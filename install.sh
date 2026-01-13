@@ -136,20 +136,84 @@ if ! command -v starship &> /dev/null; then
     curl -sS https://starship.rs/install.sh | sh -s -- -y
 fi
 
-# Configuration Finale
-echo ""
-log_info "Configuration..."
-
-# Vérification du dossier scripts
-SCRIPTS_DIR="$HOME/scripts"
-if [ ! -d "$SCRIPTS_DIR" ]; then
-    mkdir -p "$SCRIPTS_DIR"
-    log_success "Dossier $SCRIPTS_DIR créé."
+# Installation de NVM (Node Version Manager)
+if [ -d "$NVM_DIR" ]; then
+    log_success "NVM est déjà installé."
+else
+    log_info "Installation de NVM..."
+    
+    if [ "$PKG_MANAGER" == "brew" ]; then
+        # Sur MacOS, on préfère brew pour la maintenance
+        brew install nvm
+    else
+        # Sur Linux : Installation via le script officiel (Version Dynamique)
+        log_info "Récupération de la dernière version via GitHub API..."
+        
+        # Note : jq est déjà installé plus haut dans le script
+        curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | \
+        jq -r '.tag_name' | \
+        xargs -I {} curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{}/install.sh | bash
+        
+        if [ $? -eq 0 ]; then
+            log_success "NVM installé avec succès."
+        else
+            log_error "Échec de l'installation de NVM."
+        fi
+    fi
 fi
 
-# Rappel pour l'utilisateur
-echo -e "\n${BOLD}=== Installation Terminée ===${NC}"
-echo -e "Pour finaliser l'installation, assurez-vous que votre ${BOLD}.zshrc${NC} source bien le fichier rc.zsh :"
-echo -e "${BLUE}source \"$PWD/rc.zsh\"${NC}"
+# --- Configuration Automatique du .zshrc ---
 echo ""
-echo -e "Redémarrez votre terminal ou lancez : ${BOLD}zsh${NC}"
+log_info "Configuration du shell..."
+
+ZSHRC="$HOME/.zshrc"
+
+# Dossier où se trouve ce script actuellement
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_DIR="$HOME/.zsh_env"
+
+# 1. Vérification de l'emplacement
+if [ "$CURRENT_DIR" != "$TARGET_DIR" ]; then
+    log_warn "Le repo n'est pas dans $TARGET_DIR (Actuel: $CURRENT_DIR)"
+    log_warn "Pour une installation standard, il est recommandé de cloner dans ~/.zsh_env"
+    # On continue quand même en utilisant le chemin actuel pour la config
+    TARGET_DIR="$CURRENT_DIR"
+fi
+
+# 2. Injection dans .zshrc
+if grep -q "ZSH_ENV_DIR" "$ZSHRC"; then
+    log_success "Votre .zshrc est déjà configuré."
+else
+    log_info "Modification de $ZSHRC..."
+    
+    # Backup de sécurité
+    cp "$ZSHRC" "$ZSHRC.bak.$(date +%Y%m%d_%H%M%S)"
+    log_info "Backup créé."
+
+    cat <<EOF >> "$ZSHRC"
+
+# =======================================================
+# ZSH ENV CONFIGURATION
+# =======================================================
+# Init from zsh_env/install.sh
+export ZSH_ENV_DIR="$TARGET_DIR"
+
+if [ -f "\$ZSH_ENV_DIR/rc.zsh" ]; then
+    source "\$ZSH_ENV_DIR/rc.zsh"
+else
+    echo "WARNING: ZSH_ENV_DIR not found at \$ZSH_ENV_DIR"
+fi
+# =======================================================
+EOF
+    log_success "Configuration injectée dans $ZSHRC"
+fi
+
+# --- Finalisation ---
+# Vérification du dossier scripts
+SCRIPTS_DIR="$TARGET_DIR/scripts"
+if [ ! -d "$SCRIPTS_DIR" ]; then
+    mkdir -p "$SCRIPTS_DIR"
+fi
+
+echo -e "\n${BOLD}=== Installation Terminée ===${NC}"
+echo -e "Redémarrez votre terminal ou lancez : ${BOLD}source ~/.zshrc${NC}"

@@ -42,6 +42,47 @@ if [ -f "$ZSH_ENV_DIR/aliases.zsh" ]; then
     source "$ZSH_ENV_DIR/aliases.zsh"
 fi
 
+# =======================================================
+# NVM INIT (Cross-Platform)
+# =======================================================
+
+export NVM_DIR="$HOME/.nvm"
+
+# Liste priorisée des chemins d'initialisation possibles
+nvm_candidates=(
+    "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
+    "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
+    "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
+    "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
+)
+
+for nvm_path in $nvm_candidates; do
+    if [ -s "$nvm_path" ]; then
+        source "$nvm_path"
+        
+        # Chargement de l'autocomplétion si disponible (même dossier, sous-dossier etc)
+        # On tente de déduire le chemin de bash_completion par rapport à nvm.sh
+        local nvm_root=$(dirname "$nvm_path")
+        local completion_path="$nvm_root/etc/bash_completion.d/nvm"
+        
+        # Fallback pour install manuelle
+        if [ ! -f "$completion_path" ]; then
+            completion_path="$NVM_DIR/bash_completion"
+        fi
+
+        [ -s "$completion_path" ] && source "$completion_path"
+        
+        break
+    fi
+done
+
+# Hook automatique (Uniquement si NVM est chargé)
+if command -v nvm &> /dev/null; then
+    autoload -U add-zsh-hook
+    add-zsh-hook chpwd load-nvmrc
+    load-nvmrc # Exécution au démarrage
+fi
+
 # SDKMAN (Optimisé et Silencieux)
 # On vérifie d'abord que le dossier existe avant de tester le fichier
 export SDKMAN_DIR="$HOME/.sdkman"

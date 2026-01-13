@@ -163,11 +163,16 @@ while true; do
         
         # Action
         status_msg=""
+        abs_path="$(pwd)/$path_with_namespace"
+
         if [ -d "$path_with_namespace" ]; then
             if [ -d "$path_with_namespace/.git" ]; then
                 if (cd "$path_with_namespace" && git $GIT_OPTS pull --quiet); then
                     status_msg="${GREEN}✔ Update${NC}"
                     ((count_updated++))
+
+                    # Ajout dans zoxide si disponible
+                    command -v zoxide >/dev/null && zoxide add "$abs_path"
                 else
                     status_msg="${RED}✘ Fail Pull${NC}"
                     ((count_errors++))
@@ -181,6 +186,9 @@ while true; do
             if git $GIT_OPTS clone $GIT_CLONE_ARGS "$repo_url" "$path_with_namespace"; then
                 status_msg="${BLUE}✚ Clone${NC}"
                 ((count_new++))
+
+                # Ajout dans zoxide si disponible
+                command -v zoxide >/dev/null && zoxide add "$abs_path"
             else
                 status_msg="${RED}✘ Fail Clone${NC}"
                 ((count_errors++))
