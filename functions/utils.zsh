@@ -33,3 +33,20 @@ bak() {
     cp "$1" "$1.bak.$(date +%Y-%m-%d_%H%M%S)"
     echo "✅ Backup créé : $1.bak.$(date +%Y-%m-%d_%H%M%S)"
 }
+
+# Rend un fichier exécutable rapidement
+# Usage: cx mon_script.sh
+cx() {
+    if [ -z "$1" ]; then
+        echo "Usage: cx <fichier>"
+        return 1
+    fi
+    
+    if [ ! -f "$1" ]; then
+        echo "Erreur: '$1' n'est pas un fichier valide."
+        return 1
+    fi
+
+    chmod +x "$1"
+    echo "✅ '$1' est maintenant exécutable."
+}

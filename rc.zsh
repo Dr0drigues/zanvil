@@ -8,6 +8,10 @@ else
     PROMPT='%n@%m %1~ %# '
 fi
 
+# OPTIONAL: Activate AUTO_CD if wanted
+# Uncomment the following line to enable AUTO_CD
+setopt AUTO_CD
+
 # Init Environment
 if [ -z "$ZSH_ENV_DIR" ]; then
     echo "WARNING: ZSH_ENV_DIR is not set. Assuming default location."
