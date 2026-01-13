@@ -22,3 +22,14 @@ trash() {
     return 1
   fi
 }
+
+# Crée une copie de sauvegarde horodatée
+# Usage: bak mon_fichier.conf -> crée mon_fichier.conf.2023-10-27_14h30
+bak() {
+    if [ -z "$1" ]; then
+        echo "Usage: bak <filename>"
+        return 1
+    fi
+    cp "$1" "$1.bak.$(date +%Y-%m-%d_%H%M%S)"
+    echo "✅ Backup créé : $1.bak.$(date +%Y-%m-%d_%H%M%S)"
+}
