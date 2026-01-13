@@ -87,3 +87,14 @@ else
     # Si pas de trash, on force la confirmation pour éviter les accidents
     alias rm='rm -i'
 fi
+
+# =======================================================
+# MISCELLANEOUS
+# =======================================================
+if command -v npm &> /dev/null; then
+    alias npmi='npm install'
+    alias npmu='npm update'
+    alias npml='npm list --depth=0'
+    # Si le node_modules existe, on le supprime. Dans tous les cas, on vide le cache de npm et on réinstalle
+    alias nci='if [ -d node_modules ]; then rmi -rf node_modules; fi && npm cache clean --force && npm install' 
+fi
