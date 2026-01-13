@@ -1,10 +1,9 @@
 export WORK_DIR="$HOME/work"
-export SCRIPTS_DIR="$HOME/scripts"
+export SCRIPTS_DIR="./scripts"
 
 # Liste des dossiers critiques à garantir
 required_dirs=(
     "$WORK_DIR"
-    "$SCRIPTS_DIR"
     "$HOME/.config"
 )
 
