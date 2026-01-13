@@ -19,16 +19,16 @@ GITLAB_PROJECTS=(
     [ptf-liveperf]="35624"
 
     # CaaS BLG Environment
-    [blg-front]="00000"        # Remplacer par l'ID réel
-    [blg-backcaisse]="00000"   # Remplacer par l'ID réel
-    [blg-controlpanel]="00000" # Remplacer par l'ID réel
-    [blg-liveperf]="00000"     # Remplacer par l'ID réel
+    #[blg-front]="00000"        
+    #[blg-backcaisse]="00000"   
+    #[blg-controlpanel]="00000" 
+    #[blg-liveperf]="00000"     
 
     # CaaS ED Environment
-    [ed-front]="00000"
-    [ed-backcaisse]="00000"
-    [ed-controlpanel]="00000"
-    [ed-liveperf]="00000"
+    #[ed-front]="00000"
+    #[ed-backcaisse]="00000"
+    #[ed-controlpanel]="00000"
+    #[ed-liveperf]="00000"
 )
 
 ### LOGIC & ALIAS GENERATION ###
@@ -54,7 +54,7 @@ function load_gitlab_aliases() {
         alias_name="gc-${component}-${env}"
 
         # Création de l'alias
-        alias "$alias_name"="cd $WORK_DIR &&clone-projects.sh $id $GITLAB_TOKEN"
+        alias "$alias_name"="cd $WORK_DIR && clone-projects.sh $id $GITLAB_TOKEN"
     done
 }
 
