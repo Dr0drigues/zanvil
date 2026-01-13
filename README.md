@@ -1,92 +1,101 @@
 # ZSH Environment & Productivity Suite
 
-Une configuration Zsh robuste, modulaire et orientée productivité pour Développeurs (MacOS & Linux).
+Une configuration Zsh robuste, modulaire et orientée productivité pour développeurs (macOS & Linux).
+
 Ce projet automatise l'installation des outils modernes (`zoxide`, `starship`, `eza`, `nvm`) et fournit des fonctions avancées pour Git et Docker.
 
-## Installation Rapide
+---
 
-1. **Cloner le repo** (Idéalement dans `~/.zsh_env`) :
+## 🚀 Installation Rapide
 
-    ```bash
-   git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
-    ```
+**1. Cloner le repo** (idéalement dans `~/.zsh_env`) :
 
-2. Lancer le script d'installation :
+```bash
+git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
+```
 
-    ```bash
-    cd ~/.zsh_env
-    ./install.sh
-    ```
+**2. Lancer le script d'installation** :
 
-_Ce script installe les dépendances (via brew/apt/dnf), configure NVM (avec fallback dynamique sur Linux) et modifie votre .zshrc automatiquement._
+```bash
+cd ~/.zsh_env
+./install.sh
+```
 
-## Fonctionnalités clés
+> ℹ️ Ce script installe les dépendances (via brew/apt/dnf), configure NVM (avec fallback dynamique sur Linux) et modifie votre `.zshrc` automatiquement.
 
-1. Navigation Intelligente
-    - Auto-Jump (z) : Plus besoin de `cd`. Tapez `z front` pour aller dans .../front-toto. Le système "apprend" vos dossiers fréquents (basé sur `zoxide`).
+---
 
-    - Auto-CD : Tapez juste le chemin d'un dossier (`../utils`) pour y entrer.
+## ✨ Fonctionnalités Clés
 
-    - mkcd : `mkcd mon_dossier` crée le dossier et rentre dedans immédiatement.
+### 📂 Navigation Intelligente
 
-2. Gestion de Projets & Git
+- **Auto-Jump (`z`)** : Plus besoin de `cd`. Tapez `z front` pour aller dans `.../front-toto`. Le système "apprend" vos dossiers fréquents (basé sur `zoxide`).
 
-- Clone Intelligent (gclone) :
+- **Auto-CD** : Tapez juste le chemin d'un dossier (`../utils`) pour y entrer.
 
-    ```bash
-    gclone git@github.com:org/projet.git
-    ```
+- **mkcd** : `mkcd mon_dossier` crée le dossier et rentre dedans immédiatement.
 
-  - Clone le projet.
+### 🔧 Gestion de Projets & Git
 
-  - Entre dedans automatiquement.
+**Clone Intelligent (`gclone`)** :
 
-  - L'ajoute à l'index de navigation (z).
+```bash
+gclone git@github.com:org/projet.git
+```
 
-- GitLab Mass Clone : Des alias comme gc-frontco-ptf pour cloner/mettre à jour des groupes entiers de projets (basé sur scripts/clone-projects.sh).
+- Clone le projet
+- Entre dedans automatiquement
+- L'ajoute à l'index de navigation (`z`)
 
-1. Node.js & NVM Automatique
+**GitLab Mass Clone** : Des alias comme `gc-frontco-ptf` pour cloner/mettre à jour des groupes entiers de projets (basé sur `scripts/clone-projects.sh`).
 
-   - Auto-Switch : En entrant dans un dossier contenant un `.nvmrc`, l'environnement change automatiquement de version Node.
+### 📦 Node.js & NVM Automatique
 
-   - Installation Auto : Si la version requise n'est pas installée, il propose de l'installer.
+- **Auto-Switch** : En entrant dans un dossier contenant un `.nvmrc`, l'environnement change automatiquement de version Node.
 
-   - Cross-Platform : Fonctionne aussi bien sur macOS (Brew) que sur Linux (Install manuelle).
+- **Installation Auto** : Si la version requise n'est pas installée, il propose de l'installer.
 
-2. Docker & Système
+- **Cross-Platform** : Fonctionne aussi bien sur macOS (Brew) que sur Linux (installation manuelle).
 
-    - `dex` : Liste les conteneurs actifs et permet d'y entrer via une interface interactive (FZF).
+### 🐳 Docker & Système
 
-    - `fkill` : Tuer un processus via une recherche interactive.
+- **`dex`** : Liste les conteneurs actifs et permet d'y entrer via une interface interactive (FZF).
 
-    - `trash` : Remplace rm pour envoyer dans la corbeille système au lieu de supprimer définitivement.
+- **`fkill`** : Tuer un processus via une recherche interactive.
 
-## Configuration & Personnalisation
+- **`trash`** : Remplace `rm` pour envoyer dans la corbeille système au lieu de supprimer définitivement.
 
-Ne modifiez pas les fichiers du repo directement pour faciliter les mises à jour.
+---
 
-- Secrets : Créez `~/.secrets` ou `~/.gitlab_secrets` pour vos tokens API.
+## ⚙️ Configuration & Personnalisation
 
-- Variables Locales : Le fichier `variables.zsh` définit vos dossiers de travail (`$WORK_DIR`).
+> ⚠️ Ne modifiez pas les fichiers du repo directement pour faciliter les mises à jour.
 
-### Structure du projet
+- **Secrets** : Créez `~/.secrets` ou `~/.gitlab_secrets` pour vos tokens API.
+- **Variables Locales** : Le fichier `variables.zsh` définit vos dossiers de travail (`$WORK_DIR`).
+
+### 📁 Structure du Projet
 
 ```text
 ~/.zsh_env/
-├── install.sh          # Bootstrapper (Install deps + Config .zshrc)
-├── rc.zsh              # Point d'entrée sourcé par .zshrc
-├── aliases.zsh         # Alias globaux (ls, git, ..)
-├── functions/          # Fonctions chargées dynamiquement
-│   ├── nvm_auto.zsh    # Logique NVM & Auto-switch
+├── install.sh              # Bootstrapper (Install deps + Config .zshrc)
+├── rc.zsh                  # Point d'entrée sourcé par .zshrc
+├── aliases.zsh             # Alias globaux (ls, git, etc.)
+├── functions/              # Fonctions chargées dynamiquement
+│   ├── nvm_auto.zsh        # Logique NVM & Auto-switch
 │   ├── gitlab_logic.zsh
 │   └── ...
-└── scripts/            # Scripts autonomes (clone-projects.sh)
+└── scripts/                # Scripts autonomes (clone-projects.sh)
 ```
 
-## Astuces
+---
 
-- `ss` : Recharge la configuration Zsh instantanément.
+## 💡 Astuces
 
-- `please` : Relance la dernière commande avec sudo.
+| Commande | Description |
+|----------|-------------|
+| `ss` | Recharge la configuration Zsh instantanément |
+| `please` | Relance la dernière commande avec `sudo` |
+| `extract` | Décompresse n'importe quelle archive (`.tar`, `.zip`, `.gz`) sans se soucier de la syntaxe |
 
-- `extract` : Décompresse n'importe quelle archive (.tar, .zip, .gz) sans se soucier de la syntaxe.
+---
