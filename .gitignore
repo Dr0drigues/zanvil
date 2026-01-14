@@ -1,2 +1,17 @@
 # MacOS indexing file
 .DS_STORE
+
+# LLM files
+*.llmcache
+*.llmdata
+
+# Context files
+*.context
+*.ctx
+CLAUDE.md
+GEMINI.md
+.claude
+.gemini
+.cursor
+.cursorrules
+.github/copilot-*
