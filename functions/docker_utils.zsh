@@ -1,3 +1,6 @@
+# Skip si module desactive
+[ "$ZSH_ENV_MODULE_DOCKER" != "true" ] && return
+
 # =======================================================
 # DOCKER UTILITIES
 # =======================================================

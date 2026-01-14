@@ -1,3 +1,6 @@
+# Skip si module desactive
+[ "$ZSH_ENV_MODULE_GITLAB" != "true" ] && return
+
 ### SECURITY & CONFIGURATION ###
 
 # 1. Chargement sécurisé du token

@@ -42,16 +42,16 @@ fi
 # =======================================================
 # NUSHELL INTEGRATION
 # =======================================================
-if command -v nu &> /dev/null; then
+if [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && command -v nu &> /dev/null; then
     # Lancer nushell rapidement
     alias nush='nu'
-    
+
     # Exécuter une commande Nu one-liner depuis Zsh
     # Ex: nuc "ls | where size > 10kb | sort-by size"
     alias nuc='nu -c'
-    
+
     # Remplacer les outils classiques pour l'exploration de données ?
-    # alias tojson='nu -c "from json"' 
+    # alias tojson='nu -c "from json"'
 fi
 
 # =======================================================

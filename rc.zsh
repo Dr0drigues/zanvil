@@ -18,6 +18,18 @@ if [ -z "$ZSH_ENV_DIR" ]; then
     export ZSH_ENV_DIR="$HOME/.zsh_env" # Valeur par défaut de sécurité
 fi
 
+# Load Configuration (modules actifs/inactifs)
+# Valeurs par defaut (tout actif)
+ZSH_ENV_MODULE_GITLAB=${ZSH_ENV_MODULE_GITLAB:-true}
+ZSH_ENV_MODULE_DOCKER=${ZSH_ENV_MODULE_DOCKER:-true}
+ZSH_ENV_MODULE_NVM=${ZSH_ENV_MODULE_NVM:-true}
+ZSH_ENV_MODULE_NUSHELL=${ZSH_ENV_MODULE_NUSHELL:-true}
+
+# Charger config personnalisee si presente
+if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
+    source "$ZSH_ENV_DIR/config.zsh"
+fi
+
 # Load Secrets (Ignored by git)
 if [ -f "$HOME/.secrets" ]; then
     source "$HOME/.secrets"
@@ -46,41 +58,43 @@ fi
 # NVM INIT (Cross-Platform)
 # =======================================================
 
-export NVM_DIR="$HOME/.nvm"
+if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
+    export NVM_DIR="$HOME/.nvm"
 
-# Liste priorisée des chemins d'initialisation possibles
-nvm_candidates=(
-    "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
-    "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
-    "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
-    "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
-)
+    # Liste priorisée des chemins d'initialisation possibles
+    nvm_candidates=(
+        "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
+        "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
+        "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
+        "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
+    )
 
-for nvm_path in $nvm_candidates; do
-    if [ -s "$nvm_path" ]; then
-        source "$nvm_path"
-        
-        # Chargement de l'autocomplétion si disponible (même dossier, sous-dossier etc)
-        # On tente de déduire le chemin de bash_completion par rapport à nvm.sh
-        local nvm_root=$(dirname "$nvm_path")
-        local completion_path="$nvm_root/etc/bash_completion.d/nvm"
-        
-        # Fallback pour install manuelle
-        if [ ! -f "$completion_path" ]; then
-            completion_path="$NVM_DIR/bash_completion"
+    for nvm_path in $nvm_candidates; do
+        if [ -s "$nvm_path" ]; then
+            source "$nvm_path"
+
+            # Chargement de l'autocomplétion si disponible (même dossier, sous-dossier etc)
+            # On tente de déduire le chemin de bash_completion par rapport à nvm.sh
+            local nvm_root=$(dirname "$nvm_path")
+            local completion_path="$nvm_root/etc/bash_completion.d/nvm"
+
+            # Fallback pour install manuelle
+            if [ ! -f "$completion_path" ]; then
+                completion_path="$NVM_DIR/bash_completion"
+            fi
+
+            [ -s "$completion_path" ] && source "$completion_path"
+
+            break
         fi
+    done
 
-        [ -s "$completion_path" ] && source "$completion_path"
-        
-        break
+    # Hook automatique (Uniquement si NVM est chargé)
+    if command -v nvm &> /dev/null; then
+        autoload -U add-zsh-hook
+        add-zsh-hook chpwd load-nvmrc
+        load-nvmrc # Exécution au démarrage
     fi
-done
-
-# Hook automatique (Uniquement si NVM est chargé)
-if command -v nvm &> /dev/null; then
-    autoload -U add-zsh-hook
-    add-zsh-hook chpwd load-nvmrc
-    load-nvmrc # Exécution au démarrage
 fi
 
 # SDKMAN (Optimisé et Silencieux)

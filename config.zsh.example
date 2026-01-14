@@ -1,0 +1,14 @@
+# ==============================================================================
+# Configuration ZSH_ENV
+# ==============================================================================
+# Copiez ce fichier vers ~/.zsh_env/config.zsh et personnalisez-le
+# cp config.zsh.example config.zsh
+#
+# Les modules desactives ne seront pas charges au demarrage du shell
+# ==============================================================================
+
+# Modules disponibles (true = active, false = desactive)
+ZSH_ENV_MODULE_GITLAB=true      # Scripts et fonctions GitLab
+ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
+ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
+ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell

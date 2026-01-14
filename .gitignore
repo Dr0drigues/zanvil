@@ -1,6 +1,9 @@
 # MacOS indexing file
 .DS_STORE
 
+# Config personnalisee (utiliser config.zsh.example comme base)
+config.zsh
+
 # LLM files
 *.llmcache
 *.llmdata
