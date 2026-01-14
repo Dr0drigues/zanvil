@@ -2,9 +2,6 @@
 # Auto-Update ZSH_ENV
 # ==============================================================================
 
-# Skip si desactive
-[ "$ZSH_ENV_AUTO_UPDATE" != "true" ] && return
-
 # Fichier pour stocker la date de derniere verification
 ZSH_ENV_UPDATE_FILE="$ZSH_ENV_DIR/.last_update_check"
 
@@ -152,4 +149,5 @@ zsh-env-status() {
 }
 
 # Lancer la verification au demarrage (en arriere-plan pour ne pas ralentir)
-_zsh_env_auto_update &!
+# Seulement si auto-update est active
+[ "$ZSH_ENV_AUTO_UPDATE" = "true" ] && _zsh_env_auto_update &!
