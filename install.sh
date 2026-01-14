@@ -284,17 +284,52 @@ if [ "$INTERACTIVE" = true ]; then
         fi
     }
 
-    # Poser les questions
+    # Poser les questions pour les modules
     MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
     MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "true")
     MODULE_NVM=$(ask_module "NVM" "Auto-switch Node.js via .nvmrc" "true")
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
+
+    # Auto-update
+    echo "" >&2
+    echo -e "${BOLD}Auto-Update:${NC}" >&2
+    AUTO_UPDATE=$(ask_module "Auto-Update" "Verifier les mises a jour automatiquement" "true")
+
+    if [ "$AUTO_UPDATE" = "true" ]; then
+        echo -e "  Frequence de verification:" >&2
+        echo -e "    ${CYAN}1)${NC} Chaque demarrage" >&2
+        echo -e "    ${CYAN}2)${NC} Tous les 7 jours (recommande)" >&2
+        echo -e "    ${CYAN}3)${NC} Tous les 30 jours" >&2
+        printf "  Choix [2]: " >&2
+        read -r freq_choice
+        case "$freq_choice" in
+            1) UPDATE_FREQ=0 ;;
+            3) UPDATE_FREQ=30 ;;
+            *) UPDATE_FREQ=7 ;;
+        esac
+
+        echo -e "  Mode de mise a jour:" >&2
+        echo -e "    ${CYAN}1)${NC} Demander confirmation (recommande)" >&2
+        echo -e "    ${CYAN}2)${NC} Automatique (silencieux)" >&2
+        printf "  Choix [1]: " >&2
+        read -r mode_choice
+        case "$mode_choice" in
+            2) UPDATE_MODE="auto" ;;
+            *) UPDATE_MODE="prompt" ;;
+        esac
+    else
+        UPDATE_FREQ=7
+        UPDATE_MODE="prompt"
+    fi
 else
     log_info "Mode --default : tous les modules actives"
     MODULE_GITLAB="true"
     MODULE_DOCKER="true"
     MODULE_NVM="true"
     MODULE_NUSHELL="true"
+    AUTO_UPDATE="true"
+    UPDATE_FREQ=7
+    UPDATE_MODE="prompt"
 fi
 
 # Generer le fichier config.zsh
@@ -315,6 +350,11 @@ ZSH_ENV_MODULE_GITLAB=$MODULE_GITLAB
 ZSH_ENV_MODULE_DOCKER=$MODULE_DOCKER
 ZSH_ENV_MODULE_NVM=$MODULE_NVM
 ZSH_ENV_MODULE_NUSHELL=$MODULE_NUSHELL
+
+# Auto-Update
+ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
+ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
+ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
 EOF
 
 log_success "Configuration sauvegardee"
@@ -332,6 +372,14 @@ echo -e "${CYAN}Modules desactives:${NC}"
 [ "$MODULE_DOCKER" = "false" ] && echo -e "  ${RED}✗${NC} Docker"
 [ "$MODULE_NVM" = "false" ] && echo -e "  ${RED}✗${NC} NVM"
 [ "$MODULE_NUSHELL" = "false" ] && echo -e "  ${RED}✗${NC} Nushell"
+
+echo ""
+echo -e "${CYAN}Auto-Update:${NC}"
+if [ "$AUTO_UPDATE" = "true" ]; then
+    echo -e "  ${GREEN}✓${NC} Active (tous les ${UPDATE_FREQ} jours, mode: ${UPDATE_MODE})"
+else
+    echo -e "  ${RED}✗${NC} Desactive"
+fi
 
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"
 echo -e "Redemarrez votre terminal ou lancez : ${BOLD}source ~/.zshrc${NC}"

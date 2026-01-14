@@ -4,6 +4,9 @@
 # Config personnalisee (utiliser config.zsh.example comme base)
 config.zsh
 
+# Fichier de tracking auto-update
+.last_update_check
+
 # LLM files
 *.llmcache
 *.llmdata

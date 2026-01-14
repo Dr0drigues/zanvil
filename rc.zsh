@@ -25,6 +25,11 @@ ZSH_ENV_MODULE_DOCKER=${ZSH_ENV_MODULE_DOCKER:-true}
 ZSH_ENV_MODULE_NVM=${ZSH_ENV_MODULE_NVM:-true}
 ZSH_ENV_MODULE_NUSHELL=${ZSH_ENV_MODULE_NUSHELL:-true}
 
+# Auto-update (valeurs par defaut)
+ZSH_ENV_AUTO_UPDATE=${ZSH_ENV_AUTO_UPDATE:-true}
+ZSH_ENV_UPDATE_FREQUENCY=${ZSH_ENV_UPDATE_FREQUENCY:-7}
+ZSH_ENV_UPDATE_MODE=${ZSH_ENV_UPDATE_MODE:-prompt}
+
 # Charger config personnalisee si presente
 if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
     source "$ZSH_ENV_DIR/config.zsh"

@@ -12,3 +12,10 @@ ZSH_ENV_MODULE_GITLAB=true      # Scripts et fonctions GitLab
 ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
 ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
+
+# ==============================================================================
+# Auto-Update
+# ==============================================================================
+ZSH_ENV_AUTO_UPDATE=true        # Activer la verification des mises a jour
+ZSH_ENV_UPDATE_FREQUENCY=7      # Frequence en jours (0 = a chaque demarrage)
+ZSH_ENV_UPDATE_MODE="prompt"    # "prompt" = demander, "auto" = mise a jour silencieuse
