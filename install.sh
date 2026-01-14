@@ -194,11 +194,26 @@ if ! command -v nu &> /dev/null; then
     curl -s https://api.github.com/repos/nushell/nushell/releases/latest | \
     jq -r ".assets[] | select(.name | test(\"x86_64-unknown-linux-musl.tar.gz\")) | .browser_download_url" | \
     xargs curl -L -o /tmp/nu.tar.gz
-    
+
     tar -xzf /tmp/nu.tar.gz -C /tmp
     # Déplacement du binaire (suppose sudo dispo)
     sudo mv /tmp/nu-*-linux-musl/nu /usr/local/bin/
     log_success "Nushell installé."
+fi
+
+# SDKMAN (Gestionnaire de versions pour Java, Gradle, Maven, etc.)
+export SDKMAN_DIR="$HOME/.sdkman"
+if [ -d "$SDKMAN_DIR" ]; then
+    log_success "SDKMAN est deja installe."
+else
+    log_info "Installation de SDKMAN..."
+    curl -s "https://get.sdkman.io?rcupdate=false" | bash
+    if [ $? -eq 0 ]; then
+        log_success "SDKMAN installe avec succes."
+        log_info "Utilisez 'sdk install java' pour installer Java."
+    else
+        log_error "Echec de l'installation de SDKMAN."
+    fi
 fi
 
 # --- Configuration Automatique du .zshrc ---
