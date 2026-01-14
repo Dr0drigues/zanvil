@@ -224,10 +224,11 @@ if grep -q "ZSH_ENV_DIR" "$ZSHRC"; then
     log_success "Votre .zshrc est déjà configuré."
 else
     log_info "Modification de $ZSHRC..."
-    
-    # Backup de sécurité
-    cp "$ZSHRC" "$ZSHRC.bak.$(date +%Y%m%d_%H%M%S)"
-    log_info "Backup créé."
+
+    # Backup de sécurité avec format identifiable
+    BACKUP_FILE="$ZSHRC.dr0.bak.$(date +%Y%m%d_%H%M%S)"
+    cp "$ZSHRC" "$BACKUP_FILE"
+    log_info "Backup créé: $BACKUP_FILE"
 
     cat <<EOF >> "$ZSHRC"
 
