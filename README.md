@@ -57,13 +57,18 @@ gclone git@github.com:org/projet.git
 
 **GitLab Mass Clone** : Des alias comme `gc-frontco-ptf` pour cloner/mettre à jour des groupes entiers de projets (basé sur `scripts/clone-projects.sh`).
 
-### Node.js & NVM Automatique
+### Node.js & NVM
 
 - **Auto-Switch** : En entrant dans un dossier contenant un `.nvmrc`, l'environnement change automatiquement de version Node.
 
 - **Installation Auto** : Si la version requise n'est pas installée, il propose de l'installer.
 
-- **Cross-Platform** : Fonctionne aussi bien sur macOS (Brew) que sur Linux (installation manuelle).
+- **Lazy Loading** : Par défaut, NVM est chargé uniquement au premier appel de `node`/`npm` pour accélérer le démarrage du shell (~200ms gagnées).
+
+```zsh
+# Désactiver le lazy loading dans config.zsh
+ZSH_ENV_NVM_LAZY=false
+```
 
 ### Docker & Système
 
@@ -115,7 +120,33 @@ ZSH_ENV_MODULE_GITLAB=true
 ZSH_ENV_MODULE_DOCKER=true
 ZSH_ENV_MODULE_NVM=true
 ZSH_ENV_MODULE_NUSHELL=false
+
+# NVM lazy loading (true = charge au premier appel node/npm)
+ZSH_ENV_NVM_LAZY=true
 ```
+
+---
+
+## Thèmes Starship
+
+Plusieurs thèmes de prompt sont inclus :
+
+| Thème | Description |
+|-------|-------------|
+| `minimal` | Prompt minimaliste et rapide |
+| `default` | Configuration équilibrée |
+| `powerline` | Style powerline avec séparateurs |
+| `plain` | Sans icônes (compatible tous terminaux) |
+
+```bash
+# Lister les thèmes
+zsh-env-theme list
+
+# Appliquer un thème
+zsh-env-theme minimal
+```
+
+Vous pouvez aussi créer vos propres thèmes dans `~/.zsh_env/themes/`.
 
 ---
 
@@ -133,13 +164,6 @@ ZSH_ENV_UPDATE_FREQUENCY=7    # Tous les X jours (0 = chaque démarrage)
 ZSH_ENV_UPDATE_MODE="prompt"  # "prompt" ou "auto"
 ```
 
-### Commandes manuelles
-
-| Commande | Description |
-|----------|-------------|
-| `zsh-env-update` | Force la vérification et mise à jour |
-| `zsh-env-status` | Affiche le statut et la configuration |
-
 ---
 
 ## Commandes ZSH-ENV
@@ -152,6 +176,8 @@ ZSH_ENV_UPDATE_MODE="prompt"  # "prompt" ou "auto"
 | `zsh-env-completion-remove <nom>` | Supprime une completion personnalisée |
 | `zsh-env-status` | Affiche le statut de zsh_env |
 | `zsh-env-update` | Force la mise à jour |
+| `zsh-env-doctor` | Diagnostic complet de l'installation |
+| `zsh-env-theme [nom]` | Gestion des thèmes Starship |
 | `zsh-env-help` | Affiche l'aide |
 
 ### Completions personnalisées
@@ -170,7 +196,25 @@ zsh-env-completion-remove bun
 zsh-env-completions
 ```
 
-Les completions sont stockées dans `~/.zsh_env/completions.zsh`.
+---
+
+## Aliases Locaux
+
+Pour vos aliases personnels (non versionnés), créez `~/.zsh_env/aliases.local.zsh` :
+
+```bash
+cp ~/.zsh_env/aliases.local.zsh.example ~/.zsh_env/aliases.local.zsh
+```
+
+Exemple de contenu :
+
+```zsh
+# Raccourcis projet
+alias myproj="cd ~/Projects/mon-projet && code ."
+
+# Commandes spécifiques machine
+alias vpn="sudo openvpn /etc/openvpn/client.conf"
+```
 
 ---
 
@@ -200,6 +244,7 @@ Le script propose de restaurer un backup de votre `.zshrc` si disponible.
 ├── config.zsh.example      # Template de configuration
 ├── completions.zsh         # Completions personnalisées
 ├── aliases.zsh             # Alias globaux
+├── aliases.local.zsh       # Alias personnels (ignoré par git)
 ├── variables.zsh           # Variables d'environnement
 ├── functions.zsh           # Loader de fonctions
 ├── functions/              # Fonctions chargées dynamiquement
@@ -209,6 +254,11 @@ Le script propose de restaurer un backup de votre `.zshrc` si disponible.
 │   ├── gitlab_logic.zsh    # Fonctions GitLab
 │   ├── docker_utils.zsh    # Utilitaires Docker
 │   └── ...
+├── themes/                 # Thèmes Starship
+│   ├── minimal.toml
+│   ├── default.toml
+│   ├── powerline.toml
+│   └── plain.toml
 └── scripts/                # Scripts autonomes
     ├── clone-projects.sh   # Clone en masse GitLab
     └── trigger-jobs.sh     # Trigger jobs GitLab
@@ -224,6 +274,23 @@ Le script propose de restaurer un backup de votre `.zshrc` si disponible.
 | `please` | Relance la dernière commande avec `sudo` |
 | `extract` | Décompresse n'importe quelle archive |
 | `gr` | Va à la racine du repo git courant |
+
+---
+
+## Diagnostic
+
+En cas de problème, lancez :
+
+```bash
+zsh-env-doctor
+```
+
+Cette commande vérifie :
+- Les fichiers de configuration
+- Les dépendances requises et optionnelles
+- Les modules actifs
+- Les permissions
+- Les variables d'environnement
 
 ---
 

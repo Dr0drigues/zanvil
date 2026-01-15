@@ -8,6 +8,9 @@
 # Config personnalisee (utiliser config.zsh.example comme base)
 config.zsh
 
+# Aliases locaux (utiliser aliases.local.zsh.example comme base)
+aliases.local.zsh
+
 # Fichier de tracking auto-update
 .last_update_check
 

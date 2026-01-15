@@ -1,0 +1,30 @@
+# Starship Theme: Plain
+# Sans icones ni caracteres speciaux (compatible tous terminaux)
+
+format = """
+$directory$git_branch$git_status$character"""
+
+[character]
+success_symbol = "[>](green)"
+error_symbol = "[>](red)"
+
+[directory]
+style = "bold cyan"
+truncation_length = 3
+format = "[$path]($style) "
+
+[git_branch]
+format = "[($branch)]($style) "
+style = "bold purple"
+symbol = ""
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+style = "bold yellow"
+ahead = "+${count}"
+behind = "-${count}"
+diverged = "+-"
+modified = "*"
+staged = "+"
+untracked = "?"
+deleted = "x"

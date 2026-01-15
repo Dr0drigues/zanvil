@@ -277,6 +277,240 @@ zsh-env-completions() {
 }
 
 # ==============================================================================
+# zsh-env-theme : Gestion des themes Starship
+# ==============================================================================
+zsh-env-theme() {
+    local themes_dir="$ZSH_ENV_DIR/themes"
+    local starship_config="$HOME/.config/starship.toml"
+    local theme="$1"
+
+    # Verifier que Starship est installe
+    if ! command -v starship &> /dev/null; then
+        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Starship n'est pas installe."
+        return 1
+    fi
+
+    # Sans argument ou "list" : afficher les themes disponibles
+    if [ -z "$theme" ] || [ "$theme" = "list" ]; then
+        echo -e "${_zsh_cmd_bold}=== Themes Starship disponibles ===${_zsh_cmd_nc}\n"
+
+        if [ ! -d "$themes_dir" ]; then
+            echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
+            return 1
+        fi
+
+        # Theme actuel
+        local current=""
+        if [ -f "$starship_config" ]; then
+            current=$(head -1 "$starship_config" 2>/dev/null | grep -oP '(?<=Theme: )\w+' || echo "")
+        fi
+
+        for theme_file in "$themes_dir"/*.toml; do
+            [ -f "$theme_file" ] || continue
+            local name=$(basename "$theme_file" .toml)
+            local desc=$(grep -m1 "^# Starship Theme:" "$theme_file" 2>/dev/null | sed 's/^# Starship Theme: //' || echo "")
+
+            if [ "$name" = "$current" ]; then
+                echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
+            else
+                echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
+            fi
+        done
+
+        echo ""
+        echo -e "Usage: ${_zsh_cmd_bold}zsh-env-theme <nom>${_zsh_cmd_nc}"
+        return 0
+    fi
+
+    # Appliquer un theme
+    local theme_file="$themes_dir/$theme.toml"
+
+    if [ ! -f "$theme_file" ]; then
+        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
+        echo -e "Themes disponibles: $(ls "$themes_dir"/*.toml 2>/dev/null | xargs -n1 basename | sed 's/.toml//' | tr '\n' ' ')"
+        return 1
+    fi
+
+    # Creer le dossier .config si necessaire
+    mkdir -p "$HOME/.config"
+
+    # Backup de l'ancienne config si elle existe et n'est pas un de nos themes
+    if [ -f "$starship_config" ]; then
+        if ! grep -q "^# Starship Theme:" "$starship_config" 2>/dev/null; then
+            cp "$starship_config" "$starship_config.backup"
+            echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup de l'ancienne config: $starship_config.backup"
+        fi
+    fi
+
+    # Copier le theme
+    cp "$theme_file" "$starship_config"
+
+    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Theme '$theme' applique."
+    echo -e "Rechargez avec ${_zsh_cmd_bold}ss${_zsh_cmd_nc} pour voir les changements."
+}
+
+# ==============================================================================
+# zsh-env-doctor : Diagnostic de l'installation
+# ==============================================================================
+zsh-env-doctor() {
+    echo -e "${_zsh_cmd_bold}=== ZSH_ENV Doctor ===${_zsh_cmd_nc}\n"
+
+    local issues=0
+    local warnings=0
+
+    # --- Verification des fichiers critiques ---
+    echo -e "${_zsh_cmd_bold}Fichiers de configuration${_zsh_cmd_nc}"
+
+    local critical_files=(
+        "$ZSH_ENV_DIR/rc.zsh:Point d'entree principal"
+        "$ZSH_ENV_DIR/aliases.zsh:Fichier d'alias"
+        "$ZSH_ENV_DIR/variables.zsh:Variables d'environnement"
+        "$ZSH_ENV_DIR/functions.zsh:Loader de fonctions"
+    )
+
+    for entry in "${critical_files[@]}"; do
+        local file="${entry%%:*}"
+        local desc="${entry#*:}"
+        if [ -f "$file" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $desc"
+        else
+            echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} $desc ${_zsh_cmd_yellow}(manquant: $file)${_zsh_cmd_nc}"
+            ((issues++))
+        fi
+    done
+
+    # Config optionnelle
+    if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
+        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Configuration personnalisee"
+    else
+        echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Configuration personnalisee (utilise les valeurs par defaut)"
+    fi
+
+    # --- Verification du .zshrc ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Integration .zshrc${_zsh_cmd_nc}"
+
+    if [ -f "$HOME/.zshrc" ]; then
+        if grep -q "ZSH_ENV_DIR" "$HOME/.zshrc"; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} .zshrc configure correctement"
+        else
+            echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} .zshrc ne contient pas ZSH_ENV_DIR"
+            ((issues++))
+        fi
+    else
+        echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} .zshrc non trouve"
+        ((issues++))
+    fi
+
+    # --- Verification des dependances ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Dependances requises${_zsh_cmd_nc}"
+
+    local required_deps=("git" "curl" "jq")
+    for dep in "${required_deps[@]}"; do
+        if command -v "$dep" &> /dev/null; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $dep"
+        else
+            echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} $dep ${_zsh_cmd_yellow}(requis)${_zsh_cmd_nc}"
+            ((issues++))
+        fi
+    done
+
+    # --- Verification des outils recommandes ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Outils recommandes${_zsh_cmd_nc}"
+
+    local recommended_deps=("starship" "zoxide" "fzf" "eza" "bat")
+    for dep in "${recommended_deps[@]}"; do
+        if command -v "$dep" &> /dev/null; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $dep"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} $dep ${_zsh_cmd_cyan}(optionnel)${_zsh_cmd_nc}"
+            ((warnings++))
+        fi
+    done
+
+    # --- Verification des modules ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Modules actifs${_zsh_cmd_nc}"
+
+    [ "$ZSH_ENV_MODULE_GITLAB" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GitLab" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} GitLab (desactive)"
+    [ "$ZSH_ENV_MODULE_DOCKER" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Docker" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Docker (desactive)"
+    [ "$ZSH_ENV_MODULE_NVM" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} NVM (desactive)"
+    [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Nushell" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Nushell (desactive)"
+
+    # --- Verification NVM si actif ---
+    if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
+        echo ""
+        echo -e "${_zsh_cmd_bold}NVM${_zsh_cmd_nc}"
+
+        if [ -d "$NVM_DIR" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM_DIR existe ($NVM_DIR)"
+            if [ "$ZSH_ENV_NVM_LAZY" = "true" ]; then
+                echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Mode lazy-loading actif"
+            fi
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} NVM_DIR non trouve (NVM non installe?)"
+            ((warnings++))
+        fi
+    fi
+
+    # --- Verification GitLab si actif ---
+    if [ "$ZSH_ENV_MODULE_GITLAB" = "true" ]; then
+        echo ""
+        echo -e "${_zsh_cmd_bold}GitLab${_zsh_cmd_nc}"
+
+        if [ -n "$GITLAB_TOKEN" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GITLAB_TOKEN defini"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} GITLAB_TOKEN non defini (scripts GitLab ne fonctionneront pas)"
+            ((warnings++))
+        fi
+
+        if [ -n "$GITLAB_URL" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GITLAB_URL: $GITLAB_URL"
+        else
+            echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} GITLAB_URL non defini (defaut: gitlab.com)"
+        fi
+    fi
+
+    # --- Verification des permissions ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Permissions${_zsh_cmd_nc}"
+
+    if [ -x "$ZSH_ENV_DIR/install.sh" ]; then
+        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} install.sh executable"
+    else
+        echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} install.sh non executable"
+        ((warnings++))
+    fi
+
+    if [ -d "$ZSH_ENV_DIR/scripts" ]; then
+        local non_exec=$(find "$ZSH_ENV_DIR/scripts" -name "*.sh" ! -perm -u+x 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$non_exec" -eq 0 ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Scripts executables"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} $non_exec script(s) non executable(s)"
+            ((warnings++))
+        fi
+    fi
+
+    # --- Resume ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Resume${_zsh_cmd_nc}"
+
+    if [ $issues -eq 0 ] && [ $warnings -eq 0 ]; then
+        echo -e "  ${_zsh_cmd_green}Tout est OK!${_zsh_cmd_nc}"
+    elif [ $issues -eq 0 ]; then
+        echo -e "  ${_zsh_cmd_green}OK${_zsh_cmd_nc} avec ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
+    else
+        echo -e "  ${_zsh_cmd_red}$issues probleme(s)${_zsh_cmd_nc} et ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
+        echo ""
+        echo -e "  Lancez ${_zsh_cmd_bold}~/.zsh_env/install.sh${_zsh_cmd_nc} pour corriger les problemes."
+    fi
+}
+
+# ==============================================================================
 # zsh-env-help : Afficher l'aide
 # ==============================================================================
 zsh-env-help() {
@@ -302,11 +536,18 @@ ${_zsh_cmd_cyan}zsh-env-status${_zsh_cmd_nc}
 ${_zsh_cmd_cyan}zsh-env-update${_zsh_cmd_nc}
     Force la verification et mise a jour de zsh_env
 
+${_zsh_cmd_cyan}zsh-env-doctor${_zsh_cmd_nc}
+    Diagnostic complet de l'installation
+
+${_zsh_cmd_cyan}zsh-env-theme [nom]${_zsh_cmd_nc}
+    Applique un theme Starship (list pour voir les themes)
+
 ${_zsh_cmd_cyan}zsh-env-help${_zsh_cmd_nc}
     Affiche cette aide
 
 ${_zsh_cmd_bold}Configuration:${_zsh_cmd_nc} ~/.zsh_env/config.zsh
 ${_zsh_cmd_bold}Completions:${_zsh_cmd_nc}   ~/.zsh_env/completions.zsh
+${_zsh_cmd_bold}Themes:${_zsh_cmd_nc}        ~/.zsh_env/themes/
 ${_zsh_cmd_bold}Recharger:${_zsh_cmd_nc}     ss (ou source ~/.zshrc)
 EOF
 }

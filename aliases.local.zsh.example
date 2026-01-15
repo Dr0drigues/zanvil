@@ -1,0 +1,25 @@
+# ==============================================================================
+# Aliases Locaux (non versiones)
+# ==============================================================================
+# Ce fichier est ignore par git. Copiez-le vers aliases.local.zsh
+# pour ajouter vos aliases personnels.
+#
+# cp aliases.local.zsh.example aliases.local.zsh
+# ==============================================================================
+
+# Exemples d'aliases personnels :
+
+# --- Raccourcis projet ---
+# alias myproj="cd ~/Projects/mon-projet && code ."
+# alias api="cd ~/Projects/mon-api"
+
+# --- Commandes specifiques machine ---
+# alias vpn="sudo openvpn /etc/openvpn/client.conf"
+# alias db="mycli -u root -h localhost mydb"
+
+# --- Outils perso ---
+# alias weather="curl wttr.in"
+# alias ip="curl ifconfig.me"
+
+# --- Overrides locaux ---
+# alias ls="ls --color=always"

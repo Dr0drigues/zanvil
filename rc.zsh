@@ -30,6 +30,9 @@ ZSH_ENV_AUTO_UPDATE=${ZSH_ENV_AUTO_UPDATE:-true}
 ZSH_ENV_UPDATE_FREQUENCY=${ZSH_ENV_UPDATE_FREQUENCY:-7}
 ZSH_ENV_UPDATE_MODE=${ZSH_ENV_UPDATE_MODE:-prompt}
 
+# NVM Lazy loading (true = charge NVM au premier appel node/npm)
+ZSH_ENV_NVM_LAZY=${ZSH_ENV_NVM_LAZY:-true}
+
 # Charger config personnalisee si presente
 if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
     source "$ZSH_ENV_DIR/config.zsh"
@@ -59,46 +62,78 @@ if [ -f "$ZSH_ENV_DIR/aliases.zsh" ]; then
     source "$ZSH_ENV_DIR/aliases.zsh"
 fi
 
+# Load local aliases (non versionnes)
+if [ -f "$ZSH_ENV_DIR/aliases.local.zsh" ]; then
+    source "$ZSH_ENV_DIR/aliases.local.zsh"
+fi
+
 # =======================================================
-# NVM INIT (Cross-Platform)
+# NVM INIT (Cross-Platform avec Lazy Loading optionnel)
 # =======================================================
 
 if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
     export NVM_DIR="$HOME/.nvm"
 
     # Liste priorisée des chemins d'initialisation possibles
-    nvm_candidates=(
+    _zsh_env_nvm_candidates=(
         "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
         "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
         "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
         "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
     )
 
-    for nvm_path in $nvm_candidates; do
-        if [ -s "$nvm_path" ]; then
-            source "$nvm_path"
+    # Fonction interne pour charger NVM
+    _zsh_env_load_nvm() {
+        for nvm_path in $_zsh_env_nvm_candidates; do
+            if [ -s "$nvm_path" ]; then
+                source "$nvm_path"
 
-            # Chargement de l'autocomplétion si disponible (même dossier, sous-dossier etc)
-            # On tente de déduire le chemin de bash_completion par rapport à nvm.sh
-            local nvm_root=$(dirname "$nvm_path")
-            local completion_path="$nvm_root/etc/bash_completion.d/nvm"
+                # Chargement de l'autocomplétion
+                local nvm_root=$(dirname "$nvm_path")
+                local completion_path="$nvm_root/etc/bash_completion.d/nvm"
+                [ ! -f "$completion_path" ] && completion_path="$NVM_DIR/bash_completion"
+                [ -s "$completion_path" ] && source "$completion_path"
 
-            # Fallback pour install manuelle
-            if [ ! -f "$completion_path" ]; then
-                completion_path="$NVM_DIR/bash_completion"
+                # Hook automatique pour .nvmrc
+                if command -v nvm &> /dev/null; then
+                    autoload -U add-zsh-hook
+                    add-zsh-hook chpwd load-nvmrc
+                fi
+
+                return 0
             fi
+        done
+        return 1
+    }
 
-            [ -s "$completion_path" ] && source "$completion_path"
+    if [ "$ZSH_ENV_NVM_LAZY" = "true" ]; then
+        # Mode Lazy : créer des wrappers qui chargent NVM au premier appel
+        _zsh_env_lazy_nvm() {
+            # Supprimer les wrappers
+            unfunction node npm npx yarn pnpm nvm 2>/dev/null
 
-            break
+            # Charger NVM
+            if _zsh_env_load_nvm; then
+                # Exécuter la commande originale
+                "$@"
+            else
+                echo "[zsh_env] NVM non trouvé"
+                return 1
+            fi
+        }
+
+        # Créer les wrappers
+        node()  { _zsh_env_lazy_nvm node "$@" }
+        npm()   { _zsh_env_lazy_nvm npm "$@" }
+        npx()   { _zsh_env_lazy_nvm npx "$@" }
+        yarn()  { _zsh_env_lazy_nvm yarn "$@" }
+        pnpm()  { _zsh_env_lazy_nvm pnpm "$@" }
+        nvm()   { _zsh_env_lazy_nvm nvm "$@" }
+    else
+        # Mode normal : charger NVM immédiatement
+        if _zsh_env_load_nvm; then
+            load-nvmrc # Exécution au démarrage
         fi
-    done
-
-    # Hook automatique (Uniquement si NVM est chargé)
-    if command -v nvm &> /dev/null; then
-        autoload -U add-zsh-hook
-        add-zsh-hook chpwd load-nvmrc
-        load-nvmrc # Exécution au démarrage
     fi
 fi
 

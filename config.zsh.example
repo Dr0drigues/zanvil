@@ -14,6 +14,11 @@ ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
 
 # ==============================================================================
+# NVM Configuration
+# ==============================================================================
+ZSH_ENV_NVM_LAZY=true           # Lazy loading (charge au premier appel node/npm)
+
+# ==============================================================================
 # Auto-Update
 # ==============================================================================
 ZSH_ENV_AUTO_UPDATE=true        # Activer la verification des mises a jour

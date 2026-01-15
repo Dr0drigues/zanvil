@@ -1,0 +1,45 @@
+# Starship Theme: Powerline
+# Style powerline avec separateurs
+
+format = """
+[](fg:blue)$directory[](fg:blue bg:purple)$git_branch$git_status[](fg:purple bg:yellow)$nodejs$python$rust[](fg:yellow)
+$character"""
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[directory]
+style = "fg:black bg:blue"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = '[ $symbol$branch ]($style)'
+style = "fg:black bg:purple"
+symbol = " "
+
+[git_status]
+format = '[$all_status$ahead_behind]($style)'
+style = "fg:black bg:purple"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+modified = "!"
+staged = "+"
+untracked = "?"
+
+[nodejs]
+format = '[ $symbol$version ]($style)'
+style = "fg:black bg:yellow"
+symbol = " "
+
+[python]
+format = '[ $symbol$version ]($style)'
+style = "fg:black bg:yellow"
+symbol = " "
+
+[rust]
+format = '[ $symbol$version ]($style)'
+style = "fg:black bg:yellow"
+symbol = " "

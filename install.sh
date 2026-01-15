@@ -303,7 +303,38 @@ if [ "$INTERACTIVE" = true ]; then
     MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
     MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "true")
     MODULE_NVM=$(ask_module "NVM" "Auto-switch Node.js via .nvmrc" "true")
+
+    # NVM Lazy loading (seulement si NVM actif)
+    NVM_LAZY="true"
+    if [ "$MODULE_NVM" = "true" ]; then
+        NVM_LAZY=$(ask_module "NVM Lazy" "Charger NVM au premier appel node/npm (plus rapide)" "true")
+    fi
+
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
+
+    # Theme Starship
+    echo "" >&2
+    echo -e "${BOLD}Theme Starship:${NC}" >&2
+    if command -v starship &> /dev/null; then
+        echo -e "  Choisissez un theme pour votre prompt:" >&2
+        echo -e "    ${CYAN}1)${NC} minimal   - Prompt minimaliste" >&2
+        echo -e "    ${CYAN}2)${NC} default   - Configuration equilibree (recommande)" >&2
+        echo -e "    ${CYAN}3)${NC} powerline - Style powerline avec separateurs" >&2
+        echo -e "    ${CYAN}4)${NC} plain     - Sans icones (compatible tous terminaux)" >&2
+        echo -e "    ${CYAN}5)${NC} Garder ma configuration actuelle" >&2
+        printf "  Choix [2]: " >&2
+        read -r theme_choice
+        case "$theme_choice" in
+            1) STARSHIP_THEME="minimal" ;;
+            3) STARSHIP_THEME="powerline" ;;
+            4) STARSHIP_THEME="plain" ;;
+            5) STARSHIP_THEME="" ;;
+            *) STARSHIP_THEME="default" ;;
+        esac
+    else
+        echo -e "  ${YELLOW}Starship non installe, theme ignore${NC}" >&2
+        STARSHIP_THEME=""
+    fi
 
     # Auto-update
     echo "" >&2
@@ -342,6 +373,8 @@ else
     MODULE_DOCKER="true"
     MODULE_NVM="true"
     MODULE_NUSHELL="true"
+    NVM_LAZY="true"
+    STARSHIP_THEME="default"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
     UPDATE_MODE="prompt"
@@ -366,6 +399,9 @@ ZSH_ENV_MODULE_DOCKER=$MODULE_DOCKER
 ZSH_ENV_MODULE_NVM=$MODULE_NVM
 ZSH_ENV_MODULE_NUSHELL=$MODULE_NUSHELL
 
+# NVM Lazy Loading (charge au premier appel node/npm)
+ZSH_ENV_NVM_LAZY=$NVM_LAZY
+
 # Auto-Update
 ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
 ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
@@ -374,12 +410,25 @@ EOF
 
 log_success "Configuration sauvegardee"
 
+# Appliquer le theme Starship si choisi
+if [ -n "$STARSHIP_THEME" ] && [ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]; then
+    mkdir -p "$HOME/.config"
+    cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    log_success "Theme Starship '$STARSHIP_THEME' applique"
+fi
+
 # Resume
 echo ""
 echo -e "${CYAN}Modules actives:${NC}"
 [ "$MODULE_GITLAB" = "true" ] && echo -e "  ${GREEN}✓${NC} GitLab"
 [ "$MODULE_DOCKER" = "true" ] && echo -e "  ${GREEN}✓${NC} Docker"
-[ "$MODULE_NVM" = "true" ] && echo -e "  ${GREEN}✓${NC} NVM"
+if [ "$MODULE_NVM" = "true" ]; then
+    if [ "$NVM_LAZY" = "true" ]; then
+        echo -e "  ${GREEN}✓${NC} NVM (lazy loading)"
+    else
+        echo -e "  ${GREEN}✓${NC} NVM"
+    fi
+fi
 [ "$MODULE_NUSHELL" = "true" ] && echo -e "  ${GREEN}✓${NC} Nushell"
 
 echo -e "${CYAN}Modules desactives:${NC}"
@@ -387,6 +436,14 @@ echo -e "${CYAN}Modules desactives:${NC}"
 [ "$MODULE_DOCKER" = "false" ] && echo -e "  ${RED}✗${NC} Docker"
 [ "$MODULE_NVM" = "false" ] && echo -e "  ${RED}✗${NC} NVM"
 [ "$MODULE_NUSHELL" = "false" ] && echo -e "  ${RED}✗${NC} Nushell"
+
+echo ""
+echo -e "${CYAN}Theme Starship:${NC}"
+if [ -n "$STARSHIP_THEME" ]; then
+    echo -e "  ${GREEN}✓${NC} $STARSHIP_THEME"
+else
+    echo -e "  ${YELLOW}○${NC} Non modifie"
+fi
 
 echo ""
 echo -e "${CYAN}Auto-Update:${NC}"
