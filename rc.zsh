@@ -79,17 +79,18 @@ fi
 if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
     export NVM_DIR="$HOME/.nvm"
 
-    # Liste priorisée des chemins d'initialisation possibles
-    _zsh_env_nvm_candidates=(
-        "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
-        "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
-        "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
-        "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
-    )
-
     # Fonction interne pour charger NVM
     _zsh_env_load_nvm() {
-        for nvm_path in $_zsh_env_nvm_candidates; do
+        # Liste priorisée des chemins (définie localement pour robustesse)
+        local nvm_candidates=(
+            "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
+            "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
+            "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
+            "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
+        )
+
+        local nvm_path
+        for nvm_path in "${nvm_candidates[@]}"; do
             if [ -s "$nvm_path" ]; then
                 source "$nvm_path"
 
