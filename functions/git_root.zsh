@@ -7,6 +7,6 @@ function gr() {
   if [ -z "$root" ]; then
     echo "Pas dans un depot Git."
   else
-    cd "$root"
+    cd "$root" || exit
   fi
 }

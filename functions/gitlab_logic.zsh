@@ -22,7 +22,7 @@ GITLAB_PROJECTS=(
     [ptf-liveperf]="35624"
 
     # CaaS BLG Environment
-    #[blg-front]="00000"        
+    [blg-front]="36963"        
     #[blg-backcaisse]="00000"   
     #[blg-controlpanel]="00000" 
     #[blg-liveperf]="00000"     
