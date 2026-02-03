@@ -153,6 +153,16 @@ install_tool "nu"       "nushell"   "nushell"   "nushell"
 # Note: Sur Linux (trash-cli), la commande est souvent 'trash-put'
 install_tool "trash"    "trash"     "trash-cli" "trash-cli"
 
+# 3. Outils de chiffrement (pour kubeconfig, secrets, etc.)
+install_tool "sops"     "sops"      "sops"      "sops"
+install_tool "age"      "age"       "age"       "age"
+
+# 4. Outils Kubernetes / Azure
+install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
+install_tool "kubelogin"  "kubelogin"   ""            ""
+install_tool "az"         "azure-cli"   ""            ""
+install_tool "helm"       "helm"        "helm"        "helm"
+
 # --- Installation manuelle pour les outils souvent absents d'APT/DNF ---
 
 # Starship (Script officiel si non trouvé via gestionnaire)
@@ -311,6 +321,38 @@ if [ "$INTERACTIVE" = true ]; then
     fi
 
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
+    MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "true")
+
+    # Configuration SOPS/Age (si module Kube actif)
+    SOPS_CONFIGURED="false"
+    if [ "$MODULE_KUBE" = "true" ]; then
+        echo "" >&2
+        echo -e "${BOLD}Configuration SOPS/Age:${NC}" >&2
+        echo -e "  SOPS permet de chiffrer vos kubeconfig pour les versionner dans Git." >&2
+        SETUP_SOPS=$(ask_module "SOPS" "Configurer le chiffrement avec age" "true")
+
+        if [ "$SETUP_SOPS" = "true" ]; then
+            AGE_KEY_DIR="$HOME/.config/sops/age"
+            AGE_KEY_FILE="$AGE_KEY_DIR/keys.txt"
+
+            if [ -f "$AGE_KEY_FILE" ]; then
+                echo -e "  ${GREEN}Cle age existante detectee${NC}" >&2
+                SOPS_CONFIGURED="true"
+            elif command -v age-keygen &> /dev/null; then
+                echo -e "  Generation d'une nouvelle cle age..." >&2
+                mkdir -p "$AGE_KEY_DIR"
+                age-keygen -o "$AGE_KEY_FILE" 2>&1 | head -2 >&2
+                chmod 600 "$AGE_KEY_FILE"
+                echo -e "  ${GREEN}Cle generee: $AGE_KEY_FILE${NC}" >&2
+                SOPS_CONFIGURED="true"
+
+                # Recupere la cle publique pour .sops.yaml
+                AGE_PUBLIC_KEY=$(grep "public key:" "$AGE_KEY_FILE" 2>/dev/null | awk '{print $NF}')
+            else
+                echo -e "  ${YELLOW}age-keygen non disponible, configuration SOPS ignoree${NC}" >&2
+            fi
+        fi
+    fi
 
     # Theme Starship
     echo "" >&2
@@ -373,11 +415,25 @@ else
     MODULE_DOCKER="true"
     MODULE_NVM="true"
     MODULE_NUSHELL="true"
+    MODULE_KUBE="true"
     NVM_LAZY="true"
     STARSHIP_THEME="default"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
     UPDATE_MODE="prompt"
+    SOPS_CONFIGURED="false"
+
+    # Configuration SOPS automatique en mode default
+    AGE_KEY_DIR="$HOME/.config/sops/age"
+    AGE_KEY_FILE="$AGE_KEY_DIR/keys.txt"
+    if [ -f "$AGE_KEY_FILE" ]; then
+        SOPS_CONFIGURED="true"
+    elif command -v age-keygen &> /dev/null; then
+        mkdir -p "$AGE_KEY_DIR"
+        age-keygen -o "$AGE_KEY_FILE" 2>/dev/null
+        chmod 600 "$AGE_KEY_FILE"
+        SOPS_CONFIGURED="true"
+    fi
 fi
 
 # Generer le fichier config.zsh
@@ -398,6 +454,7 @@ ZSH_ENV_MODULE_GITLAB=$MODULE_GITLAB
 ZSH_ENV_MODULE_DOCKER=$MODULE_DOCKER
 ZSH_ENV_MODULE_NVM=$MODULE_NVM
 ZSH_ENV_MODULE_NUSHELL=$MODULE_NUSHELL
+ZSH_ENV_MODULE_KUBE=$MODULE_KUBE
 
 # NVM Lazy Loading (charge au premier appel node/npm)
 ZSH_ENV_NVM_LAZY=$NVM_LAZY
@@ -409,6 +466,27 @@ ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
 EOF
 
 log_success "Configuration sauvegardee"
+
+# Creation du fichier .sops.yaml si SOPS configure
+if [ "$SOPS_CONFIGURED" = "true" ] && [ -n "$AGE_PUBLIC_KEY" ]; then
+    SOPS_CONFIG="$TARGET_DIR/.sops.yaml"
+    if [ ! -f "$SOPS_CONFIG" ]; then
+        log_info "Creation de $SOPS_CONFIG..."
+        cat > "$SOPS_CONFIG" << SOPSEOF
+# Configuration SOPS pour le chiffrement des fichiers sensibles
+# Generee par install.sh
+creation_rules:
+  - path_regex: .*\.sops\.ya?ml$
+    age: $AGE_PUBLIC_KEY
+  - path_regex: kube/.*\.sops$
+    age: $AGE_PUBLIC_KEY
+SOPSEOF
+        log_success "Configuration SOPS creee"
+    fi
+
+    # Cree le dossier kube/ pour les configs chiffrees
+    mkdir -p "$TARGET_DIR/kube"
+fi
 
 # Appliquer le theme Starship si choisi
 if [ -n "$STARSHIP_THEME" ] && [ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]; then
@@ -430,12 +508,14 @@ if [ "$MODULE_NVM" = "true" ]; then
     fi
 fi
 [ "$MODULE_NUSHELL" = "true" ] && echo -e "  ${GREEN}✓${NC} Nushell"
+[ "$MODULE_KUBE" = "true" ] && echo -e "  ${GREEN}✓${NC} Kube (kubeconfig manager)"
 
 echo -e "${CYAN}Modules desactives:${NC}"
 [ "$MODULE_GITLAB" = "false" ] && echo -e "  ${RED}✗${NC} GitLab"
 [ "$MODULE_DOCKER" = "false" ] && echo -e "  ${RED}✗${NC} Docker"
 [ "$MODULE_NVM" = "false" ] && echo -e "  ${RED}✗${NC} NVM"
 [ "$MODULE_NUSHELL" = "false" ] && echo -e "  ${RED}✗${NC} Nushell"
+[ "$MODULE_KUBE" = "false" ] && echo -e "  ${RED}✗${NC} Kube"
 
 echo ""
 echo -e "${CYAN}Theme Starship:${NC}"
@@ -451,6 +531,18 @@ if [ "$AUTO_UPDATE" = "true" ]; then
     echo -e "  ${GREEN}✓${NC} Active (tous les ${UPDATE_FREQ} jours, mode: ${UPDATE_MODE})"
 else
     echo -e "  ${RED}✗${NC} Desactive"
+fi
+
+echo ""
+echo -e "${CYAN}Chiffrement SOPS/Age:${NC}"
+if [ "$SOPS_CONFIGURED" = "true" ]; then
+    echo -e "  ${GREEN}✓${NC} Configure"
+    echo -e "  Cle: ~/.config/sops/age/keys.txt"
+    if [ -n "$AGE_PUBLIC_KEY" ]; then
+        echo -e "  Public: $AGE_PUBLIC_KEY"
+    fi
+else
+    echo -e "  ${YELLOW}○${NC} Non configure (utilisez 'age-keygen' pour creer une cle)"
 fi
 
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"

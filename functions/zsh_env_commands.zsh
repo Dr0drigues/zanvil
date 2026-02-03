@@ -33,6 +33,10 @@ zsh-env-list() {
         "nvm:NVM:Node Version Manager"
         "sdk:SDKMAN:SDK Manager (Java, etc.)"
         "docker:Docker:Conteneurisation"
+        "kubectl:Kubectl:CLI Kubernetes"
+        "kubelogin:Kubelogin:Azure AKS auth"
+        "az:Azure CLI:CLI Azure"
+        "helm:Helm:Package manager K8s"
     )
 
     local installed=0
@@ -58,6 +62,10 @@ zsh-env-list() {
                 nvm) version=$(nvm --version 2>/dev/null) ;;
                 sdk) version="installed" ;;
                 docker) version=$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',') ;;
+                kubectl) version=$(kubectl version --client -o yaml 2>/dev/null | grep gitVersion | head -1 | awk '{print $2}') ;;
+                kubelogin) version=$(kubelogin --version 2>/dev/null | head -1 | awk '{print $2}') ;;
+                az) version=$(az version 2>/dev/null | jq -r '."azure-cli"' 2>/dev/null) ;;
+                helm) version=$(helm version --short 2>/dev/null | cut -d'+' -f1) ;;
                 *) version="" ;;
             esac
             printf "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} %-12s ${_zsh_cmd_cyan}%-10s${_zsh_cmd_nc} %s\n" "$name" "$version" "$desc"
@@ -420,13 +428,33 @@ zsh-env-doctor() {
     echo ""
     echo -e "${_zsh_cmd_bold}Outils recommandes${_zsh_cmd_nc}"
 
-    local recommended_deps=("starship" "zoxide" "fzf" "eza" "bat")
+    local recommended_deps=("starship" "zoxide" "fzf" "eza" "bat" "sops" "age")
     for dep in "${recommended_deps[@]}"; do
         if command -v "$dep" &> /dev/null; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $dep"
         else
             echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} $dep ${_zsh_cmd_cyan}(optionnel)${_zsh_cmd_nc}"
             ((warnings++))
+        fi
+    done
+
+    # --- Outils Kubernetes/Azure ---
+    echo ""
+    echo -e "${_zsh_cmd_bold}Outils Kubernetes/Azure${_zsh_cmd_nc}"
+
+    local kube_deps=("kubectl" "kubelogin" "az" "helm")
+    for dep in "${kube_deps[@]}"; do
+        if command -v "$dep" &> /dev/null; then
+            local version=""
+            case "$dep" in
+                kubectl) version=$(kubectl version --client -o yaml 2>/dev/null | grep gitVersion | head -1 | awk '{print $2}') ;;
+                kubelogin) version=$(kubelogin --version 2>/dev/null | head -1 | awk '{print $2}') ;;
+                az) version=$(az version 2>/dev/null | jq -r '."azure-cli"' 2>/dev/null) ;;
+                helm) version=$(helm version --short 2>/dev/null | cut -d'+' -f1) ;;
+            esac
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $dep ${_zsh_cmd_cyan}$version${_zsh_cmd_nc}"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} $dep ${_zsh_cmd_cyan}(optionnel)${_zsh_cmd_nc}"
         fi
     done
 
@@ -438,6 +466,7 @@ zsh-env-doctor() {
     [ "$ZSH_ENV_MODULE_DOCKER" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Docker" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Docker (desactive)"
     [ "$ZSH_ENV_MODULE_NVM" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} NVM (desactive)"
     [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Nushell" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Nushell (desactive)"
+    [ "$ZSH_ENV_MODULE_KUBE" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Kube" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Kube (desactive)"
 
     # --- Verification NVM si actif ---
     if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
@@ -471,6 +500,88 @@ zsh-env-doctor() {
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GITLAB_URL: $GITLAB_URL"
         else
             echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} GITLAB_URL non defini (defaut: gitlab.com)"
+        fi
+    fi
+
+    # --- Verification Kube si actif ---
+    if [ "$ZSH_ENV_MODULE_KUBE" = "true" ]; then
+        echo ""
+        echo -e "${_zsh_cmd_bold}Kubernetes${_zsh_cmd_nc}"
+
+        # kubectl
+        if command -v kubectl &> /dev/null; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} kubectl installe"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} kubectl non installe"
+            ((warnings++))
+        fi
+
+        # Config minimale
+        if [ -f "$HOME/.kube/config.minimal.yml" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Config minimale presente"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Config minimale non trouvee (~/.kube/config.minimal.yml)"
+        fi
+
+        # Dossier configs.d
+        if [ -d "$HOME/.kube/configs.d" ]; then
+            local config_count=$(ls -1 "$HOME/.kube/configs.d"/*.yml "$HOME/.kube/configs.d"/*.yaml 2>/dev/null | wc -l | tr -d ' ')
+            echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} $config_count config(s) additionnelle(s) dans configs.d/"
+        fi
+
+        # KUBECONFIG actuel
+        if [ -n "$KUBECONFIG" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} KUBECONFIG defini"
+        else
+            echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} KUBECONFIG non defini (utilise ~/.kube/config)"
+        fi
+
+        # Azure CLI login status
+        if command -v az &> /dev/null; then
+            echo ""
+            echo -e "${_zsh_cmd_bold}Azure${_zsh_cmd_nc}"
+            local az_account=$(az account show 2>/dev/null)
+            if [ -n "$az_account" ]; then
+                local az_user=$(echo "$az_account" | jq -r '.user.name // "inconnu"')
+                local az_sub=$(echo "$az_account" | jq -r '.name // "inconnu"')
+                echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Connecte: $az_user"
+                echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Subscription: $az_sub"
+            else
+                echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Non connecte (utilisez 'az login')"
+            fi
+        fi
+    fi
+
+    # --- Verification SOPS/Age ---
+    if command -v sops &> /dev/null && command -v age &> /dev/null; then
+        echo ""
+        echo -e "${_zsh_cmd_bold}Chiffrement SOPS/Age${_zsh_cmd_nc}"
+
+        local age_key_file="$HOME/.config/sops/age/keys.txt"
+        if [ -f "$age_key_file" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Cle age configuree"
+            # Affiche la cle publique
+            local pub_key=$(grep "public key:" "$age_key_file" 2>/dev/null | awk '{print $NF}')
+            if [ -n "$pub_key" ]; then
+                echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Public: ${pub_key:0:20}..."
+            fi
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Cle age non configuree"
+            echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Generez avec: age-keygen -o ~/.config/sops/age/keys.txt"
+            ((warnings++))
+        fi
+
+        # .sops.yaml
+        if [ -f "$ZSH_ENV_DIR/.sops.yaml" ]; then
+            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} .sops.yaml present"
+        else
+            echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} .sops.yaml non trouve"
+        fi
+
+        # Fichiers chiffres
+        local sops_files=$(ls -1 "$ZSH_ENV_DIR/kube"/*.sops* 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$sops_files" -gt 0 ]; then
+            echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} $sops_files fichier(s) chiffre(s) dans kube/"
         fi
     fi
 
