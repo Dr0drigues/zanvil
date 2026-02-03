@@ -1,0 +1,9 @@
+# Configuration SOPS pour le chiffrement des fichiers sensibles
+# Cle age: ~/.config/sops/age/keys.txt
+creation_rules:
+  # Tous les fichiers dans kube/
+  - path_regex: kube/.*\.ya?ml$
+    age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
+  # Fichiers .sops.yml partout ailleurs
+  - path_regex: .*\.sops\.ya?ml$
+    age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
