@@ -1,0 +1,185 @@
+name: Publish Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  publish:
+    # Only run if PR was merged (not just closed) and title starts with release emoji
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.title, '🚀 Release')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Extract version from PR title
+        id: version
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          # Extract version (e.g., "🚀 Release v1.2.0" -> "v1.2.0")
+          VERSION=$(echo "$PR_TITLE" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not extract version from PR title: $PR_TITLE"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Get previous version
+        id: previous
+        run: |
+          # Get the tag before the current one
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "v0.0.0")
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          echo "Previous version: $PREV_TAG"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREV_TAG="${{ steps.previous.outputs.tag }}"
+
+          echo "## What's Changed in $VERSION" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+
+          if [ "$PREV_TAG" = "v0.0.0" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          # Features
+          FEATS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- feat(\(.+\))?:" || true)
+          if [ -n "$FEATS" ]; then
+            echo "### ✨ Features" >> RELEASE_NOTES.md
+            echo "$FEATS" | sed 's/^- feat(\([^)]*\)): /- **\1**: /' | sed 's/^- feat: /- /' >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          # Fixes
+          FIXES=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- fix(\(.+\))?:" || true)
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> RELEASE_NOTES.md
+            echo "$FIXES" | sed 's/^- fix(\([^)]*\)): /- **\1**: /' | sed 's/^- fix: /- /' >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          # Performance
+          PERFS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- perf(\(.+\))?:" || true)
+          if [ -n "$PERFS" ]; then
+            echo "### ⚡ Performance" >> RELEASE_NOTES.md
+            echo "$PERFS" | sed 's/^- perf(\([^)]*\)): /- **\1**: /' | sed 's/^- perf: /- /' >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          # Docs
+          DOCS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- docs(\(.+\))?:" || true)
+          if [ -n "$DOCS" ]; then
+            echo "### 📚 Documentation" >> RELEASE_NOTES.md
+            echo "$DOCS" | sed 's/^- docs(\([^)]*\)): /- **\1**: /' | sed 's/^- docs: /- /' >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          # CI
+          CI=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- ci(\(.+\))?:" || true)
+          if [ -n "$CI" ]; then
+            echo "### 🔧 CI/CD" >> RELEASE_NOTES.md
+            echo "$CI" | sed 's/^- ci(\([^)]*\)): /- **\1**: /' | sed 's/^- ci: /- /' >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          # Others (excluding merge commits)
+          OTHERS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -vE "^- (feat|fix|perf|docs|ci|chore\(release\))(\(.+\))?:" | grep -v "^- Merge" || true)
+          if [ -n "$OTHERS" ]; then
+            echo "### 🔨 Other Changes" >> RELEASE_NOTES.md
+            echo "$OTHERS" >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+          fi
+
+          echo "" >> RELEASE_NOTES.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION}" >> RELEASE_NOTES.md
+
+          cat RELEASE_NOTES.md
+
+      - name: Create tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Check if tag already exists
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists, skipping tag creation"
+          else
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "Created and pushed tag $VERSION"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Check if release already exists
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists, updating..."
+            gh release edit "$VERSION" \
+              --title "$VERSION" \
+              --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file RELEASE_NOTES.md \
+              --target main
+            echo "Created release $VERSION"
+          fi
+
+      - name: Sync main back to develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Fetch develop
+          git fetch origin develop
+          git checkout develop
+          git pull origin develop
+
+          # Merge main into develop
+          git merge main --no-ff -m "chore: sync ${{ steps.version.outputs.version }} release to develop"
+
+          # Push develop
+          git push origin develop
+
+          echo "Synced main back to develop"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "## 🎉 Release Published!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Created tag \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Published GitHub Release" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Synced \`main\` back to \`develop\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
+          cat RELEASE_NOTES.md >> $GITHUB_STEP_SUMMARY

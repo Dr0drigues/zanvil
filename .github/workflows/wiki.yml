@@ -1,0 +1,75 @@
+name: Deploy Wiki
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'wiki/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone wiki repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki-repo
+
+      - name: Sync wiki content
+        run: |
+          # Remove old wiki content (except .git)
+          find wiki-repo -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+          # Copy new wiki content
+          cp -r wiki/* wiki-repo/
+
+          # List what will be deployed
+          echo "Wiki files to deploy:"
+          ls -la wiki-repo/
+
+      - name: Push to wiki
+        run: |
+          cd wiki-repo
+
+          # Check if there are changes
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to wiki, skipping push"
+            exit 0
+          fi
+
+          # Add and commit
+          git add -A
+          git commit -m "docs: sync wiki from main repository
+
+          Source commit: ${{ github.sha }}
+          Triggered by: ${{ github.event_name }}"
+
+          # Push
+          git push origin master
+
+          echo "Wiki deployed successfully!"
+
+      - name: Summary
+        run: |
+          echo "## 📚 Wiki Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Wiki URL:** https://github.com/${{ github.repository }}/wiki" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pages Updated" >> $GITHUB_STEP_SUMMARY
+          for f in wiki/*.md; do
+            name=$(basename "$f" .md)
+            echo "- [$name](https://github.com/${{ github.repository }}/wiki/$name)" >> $GITHUB_STEP_SUMMARY
+          done

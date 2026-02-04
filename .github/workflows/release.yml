@@ -1,4 +1,4 @@
-name: Create Release
+name: Prepare Release
 
 on:
   workflow_dispatch:
@@ -13,17 +13,13 @@ on:
           - patch
           - minor
           - major
-      dry_run:
-        description: 'Dry run (no actual release)'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
-  release:
+  prepare-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout develop branch
@@ -38,21 +34,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Verify branches exist
+      - name: Verify branches
         run: |
-          # Verify develop and main exist
           git fetch origin main develop
 
           echo "Branches status:"
           echo "  develop: $(git rev-parse --short origin/develop)"
           echo "  main:    $(git rev-parse --short origin/main)"
 
-          # Check if develop is ahead of main
           AHEAD=$(git rev-list origin/main..origin/develop --count)
           echo "  develop is $AHEAD commit(s) ahead of main"
 
           if [ "$AHEAD" -eq 0 ]; then
-            echo "::warning::develop has no new commits compared to main"
+            echo "::error::develop has no new commits compared to main. Nothing to release."
+            exit 1
           fi
 
       - name: Get current version
@@ -68,7 +63,6 @@ jobs:
           CURRENT_TAG="${{ steps.current.outputs.tag }}"
           BUMP="${{ inputs.bump }}"
 
-          # Get commits on develop since last tag (commits that will be released)
           if [ "$CURRENT_TAG" = "v0.0.0" ]; then
             COMMITS=$(git log origin/develop --pretty=format:"%s" --no-merges)
           else
@@ -77,18 +71,10 @@ jobs:
 
           echo "Commits to be released:"
           echo "$COMMITS"
-          echo ""
 
-          # Count commits
           COMMIT_COUNT=$(echo "$COMMITS" | grep -c "." || echo "0")
           echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
 
-          if [ "$COMMIT_COUNT" -eq 0 ]; then
-            echo "::error::No commits to release"
-            exit 1
-          fi
-
-          # Auto-detect bump type from conventional commits
           if [ "$BUMP" = "auto" ]; then
             if echo "$COMMITS" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!:"; then
               BUMP="major"
@@ -110,13 +96,9 @@ jobs:
           CURRENT="${{ steps.current.outputs.tag }}"
           BUMP="${{ steps.analyze.outputs.bump }}"
 
-          # Remove 'v' prefix
           VERSION=${CURRENT#v}
-
-          # Split version
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
-          # Bump version
           case "$BUMP" in
             major)
               MAJOR=$((MAJOR + 1))
@@ -142,10 +124,10 @@ jobs:
           CURRENT_TAG="${{ steps.current.outputs.tag }}"
           NEW_VERSION="${{ steps.version.outputs.new }}"
 
+          # Create changelog file
           echo "## What's Changed in $NEW_VERSION" > CHANGELOG.md
           echo "" >> CHANGELOG.md
 
-          # Get commits since last tag on develop
           if [ "$CURRENT_TAG" = "v0.0.0" ]; then
             RANGE="origin/develop"
           else
@@ -176,7 +158,7 @@ jobs:
             echo "" >> CHANGELOG.md
           fi
 
-          # Documentation
+          # Docs
           DOCS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- docs(\(.+\))?:" || true)
           if [ -n "$DOCS" ]; then
             echo "### Documentation" >> CHANGELOG.md
@@ -184,7 +166,7 @@ jobs:
             echo "" >> CHANGELOG.md
           fi
 
-          # Other changes (chore, refactor, style, test, ci, build)
+          # Others
           OTHERS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -vE "^- (feat|fix|perf|docs)(\(.+\))?:" || true)
           if [ -n "$OTHERS" ]; then
             echo "### Other Changes" >> CHANGELOG.md
@@ -194,102 +176,61 @@ jobs:
 
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${CURRENT_TAG}...${NEW_VERSION}" >> CHANGELOG.md
 
-          echo "Generated changelog:"
           cat CHANGELOG.md
 
-      - name: Dry run summary
-        if: ${{ inputs.dry_run }}
-        run: |
-          echo "::notice::DRY RUN - No changes will be made"
-          echo ""
-          echo "=== Release Summary ==="
-          echo "Current version: ${{ steps.current.outputs.tag }}"
-          echo "New version:     ${{ steps.version.outputs.new }}"
-          echo "Bump type:       ${{ steps.analyze.outputs.bump }}"
-          echo "Commits:         ${{ steps.analyze.outputs.commit_count }}"
-          echo ""
-          echo "=== Changelog ==="
-          cat CHANGELOG.md
-          echo ""
-          echo "=== Actions that would be performed ==="
-          echo "1. Merge develop into main"
-          echo "2. Create tag ${{ steps.version.outputs.new }} on main"
-          echo "3. Create GitHub Release"
-          echo "4. Sync main back to develop"
-
-      - name: Merge develop into main
-        if: ${{ !inputs.dry_run }}
-        run: |
-          echo "Merging develop into main..."
-
-          # Checkout main
-          git checkout main
-          git pull origin main
-
-          # Merge develop into main (no fast-forward to keep history clear)
-          git merge origin/develop --no-ff -m "chore(release): merge develop into main for ${{ steps.version.outputs.new }}"
-
-          # Push main
-          git push origin main
-
-          echo "Successfully merged develop into main"
-
-      - name: Create tag and release
-        if: ${{ !inputs.dry_run }}
+      - name: Create release PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION="${{ steps.version.outputs.new }}"
 
-          # Ensure we're on main
-          git checkout main
+          # Build PR body
+          PR_BODY=$(cat CHANGELOG.md)
+          PR_BODY="${PR_BODY}
 
-          # Create tag on main
-          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-          git push origin "$NEW_VERSION"
+          ---
 
-          # Create GitHub Release
-          gh release create "$NEW_VERSION" \
-            --title "$NEW_VERSION" \
-            --notes-file CHANGELOG.md \
-            --target main
+          > **Auto-generated release PR**
+          > Merging this PR will automatically create tag \`${NEW_VERSION}\` and publish the release.
+          >
+          > Version bump: **${{ steps.analyze.outputs.bump }}** (${{ steps.current.outputs.tag }} → ${NEW_VERSION})"
 
-          echo "Release $NEW_VERSION created on main!"
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base main --head develop --json number --jq '.[0].number' 2>/dev/null || echo "")
 
-      - name: Sync main back to develop
-        if: ${{ !inputs.dry_run }}
-        run: |
-          echo "Syncing main back to develop..."
-
-          # Checkout develop
-          git checkout develop
-          git pull origin develop
-
-          # Merge main into develop (to get the merge commit and tag)
-          git merge main --no-ff -m "chore: sync main (${{ steps.version.outputs.new }}) back to develop"
-
-          # Push develop
-          git push origin develop
-
-          echo "Successfully synced main back to develop"
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            echo "Release PR #$EXISTING_PR already exists. Updating..."
+            gh pr edit "$EXISTING_PR" \
+              --title "🚀 Release $NEW_VERSION" \
+              --body "$PR_BODY"
+            echo "pr_url=https://github.com/${{ github.repository }}/pull/$EXISTING_PR" >> $GITHUB_OUTPUT
+            echo "PR updated: https://github.com/${{ github.repository }}/pull/$EXISTING_PR"
+          else
+            echo "Creating new release PR..."
+            PR_URL=$(gh pr create \
+              --base main \
+              --head develop \
+              --title "🚀 Release $NEW_VERSION" \
+              --body "$PR_BODY")
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+            echo "PR created: $PR_URL"
+          fi
 
       - name: Summary
-        if: ${{ !inputs.dry_run }}
         run: |
-          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Release Preparation Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Previous version | ${{ steps.current.outputs.tag }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| New version | ${{ steps.version.outputs.new }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Current version | \`${{ steps.current.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| New version | \`${{ steps.version.outputs.new }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Bump type | ${{ steps.analyze.outputs.bump }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commits released | ${{ steps.analyze.outputs.commit_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commits | ${{ steps.analyze.outputs.commit_count }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Actions performed" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Merged \`develop\` into \`main\`" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ Created tag \`${{ steps.version.outputs.new }}\` on \`main\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Created GitHub Release" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ Synced \`main\` back to \`develop\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the release PR" >> $GITHUB_STEP_SUMMARY
+          echo "2. Approve and merge the PR" >> $GITHUB_STEP_SUMMARY
+          echo "3. The release will be automatically published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Changelog" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Changelog Preview" >> $GITHUB_STEP_SUMMARY
           cat CHANGELOG.md >> $GITHUB_STEP_SUMMARY
