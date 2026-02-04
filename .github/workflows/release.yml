@@ -1,4 +1,4 @@
-name: Create Release
+name: Prepare Release
 
 on:
   workflow_dispatch:
@@ -15,17 +15,40 @@ on:
           - major
 
 jobs:
-  release:
+  prepare-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
-      - name: Checkout
+      - name: Checkout develop branch
         uses: actions/checkout@v4
         with:
+          ref: develop
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify branches
+        run: |
+          git fetch origin main develop
+
+          echo "Branches status:"
+          echo "  develop: $(git rev-parse --short origin/develop)"
+          echo "  main:    $(git rev-parse --short origin/main)"
+
+          AHEAD=$(git rev-list origin/main..origin/develop --count)
+          echo "  develop is $AHEAD commit(s) ahead of main"
+
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "::error::develop has no new commits compared to main. Nothing to release."
+            exit 1
+          fi
 
       - name: Get current version
         id: current
@@ -40,18 +63,18 @@ jobs:
           CURRENT_TAG="${{ steps.current.outputs.tag }}"
           BUMP="${{ inputs.bump }}"
 
-          # Get commits since last tag
           if [ "$CURRENT_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+            COMMITS=$(git log origin/develop --pretty=format:"%s" --no-merges)
           else
-            COMMITS=$(git log ${CURRENT_TAG}..HEAD --pretty=format:"%s" --no-merges)
+            COMMITS=$(git log ${CURRENT_TAG}..origin/develop --pretty=format:"%s" --no-merges)
           fi
 
-          echo "Commits since $CURRENT_TAG:"
+          echo "Commits to be released:"
           echo "$COMMITS"
-          echo ""
 
-          # Auto-detect bump type from conventional commits
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c "." || echo "0")
+          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
           if [ "$BUMP" = "auto" ]; then
             if echo "$COMMITS" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!:"; then
               BUMP="major"
@@ -73,13 +96,9 @@ jobs:
           CURRENT="${{ steps.current.outputs.tag }}"
           BUMP="${{ steps.analyze.outputs.bump }}"
 
-          # Remove 'v' prefix
           VERSION=${CURRENT#v}
-
-          # Split version
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
-          # Bump version
           case "$BUMP" in
             major)
               MAJOR=$((MAJOR + 1))
@@ -105,14 +124,14 @@ jobs:
           CURRENT_TAG="${{ steps.current.outputs.tag }}"
           NEW_VERSION="${{ steps.version.outputs.new }}"
 
+          # Create changelog file
           echo "## What's Changed in $NEW_VERSION" > CHANGELOG.md
           echo "" >> CHANGELOG.md
 
-          # Get commits since last tag, grouped by type
           if [ "$CURRENT_TAG" = "v0.0.0" ]; then
-            RANGE="HEAD"
+            RANGE="origin/develop"
           else
-            RANGE="${CURRENT_TAG}..HEAD"
+            RANGE="${CURRENT_TAG}..origin/develop"
           fi
 
           # Features
@@ -131,8 +150,24 @@ jobs:
             echo "" >> CHANGELOG.md
           fi
 
-          # Other changes
-          OTHERS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -vE "^- (feat|fix)(\(.+\))?:" || true)
+          # Performance
+          PERFS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- perf(\(.+\))?:" || true)
+          if [ -n "$PERFS" ]; then
+            echo "### Performance" >> CHANGELOG.md
+            echo "$PERFS" | sed 's/^- perf(\([^)]*\)): /- **\1**: /' | sed 's/^- perf: /- /' >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Docs
+          DOCS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -E "^- docs(\(.+\))?:" || true)
+          if [ -n "$DOCS" ]; then
+            echo "### Documentation" >> CHANGELOG.md
+            echo "$DOCS" | sed 's/^- docs(\([^)]*\)): /- **\1**: /' | sed 's/^- docs: /- /' >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Others
+          OTHERS=$(git log $RANGE --pretty=format:"- %s" --no-merges | grep -vE "^- (feat|fix|perf|docs)(\(.+\))?:" || true)
           if [ -n "$OTHERS" ]; then
             echo "### Other Changes" >> CHANGELOG.md
             echo "$OTHERS" >> CHANGELOG.md
@@ -143,20 +178,59 @@ jobs:
 
           cat CHANGELOG.md
 
-      - name: Create tag and release
+      - name: Create release PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION="${{ steps.version.outputs.new }}"
 
-          # Create tag
-          git tag "$NEW_VERSION"
-          git push origin "$NEW_VERSION"
+          # Build PR body
+          PR_BODY=$(cat CHANGELOG.md)
+          PR_BODY="${PR_BODY}
 
-          # Create GitHub Release
-          gh release create "$NEW_VERSION" \
-            --title "$NEW_VERSION" \
-            --notes-file CHANGELOG.md \
-            --target ${{ github.sha }}
+          ---
 
-          echo "Release $NEW_VERSION created!"
+          > **Auto-generated release PR**
+          > Merging this PR will automatically create tag \`${NEW_VERSION}\` and publish the release.
+          >
+          > Version bump: **${{ steps.analyze.outputs.bump }}** (${{ steps.current.outputs.tag }} → ${NEW_VERSION})"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base main --head develop --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            echo "Release PR #$EXISTING_PR already exists. Updating..."
+            gh pr edit "$EXISTING_PR" \
+              --title "🚀 Release $NEW_VERSION" \
+              --body "$PR_BODY"
+            echo "pr_url=https://github.com/${{ github.repository }}/pull/$EXISTING_PR" >> $GITHUB_OUTPUT
+            echo "PR updated: https://github.com/${{ github.repository }}/pull/$EXISTING_PR"
+          else
+            echo "Creating new release PR..."
+            PR_URL=$(gh pr create \
+              --base main \
+              --head develop \
+              --title "🚀 Release $NEW_VERSION" \
+              --body "$PR_BODY")
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+            echo "PR created: $PR_URL"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Release Preparation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Current version | \`${{ steps.current.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| New version | \`${{ steps.version.outputs.new }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bump type | ${{ steps.analyze.outputs.bump }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commits | ${{ steps.analyze.outputs.commit_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the release PR" >> $GITHUB_STEP_SUMMARY
+          echo "2. Approve and merge the PR" >> $GITHUB_STEP_SUMMARY
+          echo "3. The release will be automatically published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Changelog Preview" >> $GITHUB_STEP_SUMMARY
+          cat CHANGELOG.md >> $GITHUB_STEP_SUMMARY
