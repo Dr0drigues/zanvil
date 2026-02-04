@@ -54,10 +54,10 @@ _kube_list_configs() {
         configs+=("config.minimal.yml")
     fi
 
-    # Configs dans configs.d/
+    # Configs dans configs.d/ (tous les fichiers réguliers)
     if [[ -d "$KUBE_CONFIGS_DIR" ]]; then
-        for f in "$KUBE_CONFIGS_DIR"/*.yml "$KUBE_CONFIGS_DIR"/*.yaml; do
-            [[ -f "$f" ]] && configs+=("configs.d/$(basename "$f")")
+        for f in "$KUBE_CONFIGS_DIR"/*(N.); do
+            configs+=("configs.d/$(basename "$f")")
         done
     fi
 
@@ -86,8 +86,15 @@ kube_init() {
 
             local basename=$(basename "$sops_file")
             # Retire l'extension .sops.yml ou .sops.yaml
-            local dest_name="${basename%.sops.yml}.yml"
-            dest_name="${dest_name%.sops.yaml}.yaml"
+            local dest_name
+            if [[ "$basename" == *.sops.yml ]]; then
+                dest_name="${basename%.sops.yml}.yml"
+            elif [[ "$basename" == *.sops.yaml ]]; then
+                dest_name="${basename%.sops.yaml}.yaml"
+            else
+                # Fallback: retire juste .sops
+                dest_name="${basename%.sops}"
+            fi
 
             local dest_path="$KUBE_DIR/$dest_name"
 
@@ -118,26 +125,26 @@ kube_select() {
     local configs=()
     local display_lines=()
 
-    # Config minimale (toujours presente)
+    # Config minimale
     if [[ -f "$KUBE_MINIMAL_CONFIG" ]]; then
         configs+=("$KUBE_MINIMAL_CONFIG")
         if _kube_is_loaded "$KUBE_MINIMAL_CONFIG"; then
-            display_lines+=("[x] config.minimal.yml (base)")
+            display_lines+=("● config.minimal.yml (base)")
         else
-            display_lines+=("[ ] config.minimal.yml (base)")
+            display_lines+=("○ config.minimal.yml (base)")
         fi
     fi
 
     # Configs additionnelles
     if [[ -d "$KUBE_CONFIGS_DIR" ]]; then
-        for f in "$KUBE_CONFIGS_DIR"/*.yml "$KUBE_CONFIGS_DIR"/*.yaml; do
-            [[ ! -f "$f" ]] && continue
+        for f in "$KUBE_CONFIGS_DIR"/*(N.); do
             configs+=("$f")
-            local name=$(basename "$f")
+            local name
+            name=$(basename "$f")
             if _kube_is_loaded "$f"; then
-                display_lines+=("[x] $name")
+                display_lines+=("● $name")
             else
-                display_lines+=("[ ] $name")
+                display_lines+=("○ $name")
             fi
         done
     fi
@@ -148,49 +155,51 @@ kube_select() {
         return 1
     fi
 
-    # Selection avec fzf (multi-select)
-    local header="TAB: selectionner | ENTER: valider | ESC: annuler"
-    local selected=$(printf '%s\n' "${display_lines[@]}" | fzf --multi --header="$header" --prompt="Configs > ")
+    # Selection avec fzf
+    local header="●/○ = etat actuel | TAB: toggle | Ctrl-A: tout | Ctrl-N: rien"
+    local selected
+    selected=$(printf '%s\n' "${display_lines[@]}" | fzf --multi \
+        --header="$header" \
+        --prompt="Configs > " \
+        --bind="ctrl-a:select-all" \
+        --bind="ctrl-n:deselect-all")
 
     if [[ -z "$selected" ]]; then
-        echo "Selection annulee."
+        echo "Selection annulee. KUBECONFIG inchange."
         return 0
     fi
 
     # Construction du nouveau KUBECONFIG
     local new_kubeconfig=""
 
-    # La config minimale est toujours incluse si elle existe
-    if [[ -f "$KUBE_MINIMAL_CONFIG" ]]; then
-        new_kubeconfig="$KUBE_MINIMAL_CONFIG"
-    fi
-
-    # Ajoute les configs selectionnees
     while IFS= read -r line; do
-        # Extrait le nom du fichier (retire le prefixe [x] ou [ ])
-        local name=$(echo "$line" | sed 's/^\[.\] //' | sed 's/ (base)$//')
+        # Extrait le nom (retire le prefixe ● ou ○)
+        local clean_name
+        clean_name=$(echo "$line" | sed 's/^[●○] //')
 
         # Trouve le chemin complet
-        for i in "${!display_lines[@]}"; do
-            local display_name=$(echo "${display_lines[$i]}" | sed 's/^\[.\] //' | sed 's/ (base)$//')
-            if [[ "$display_name" == "$name" ]]; then
-                local config_path="${configs[$i]}"
-                # N'ajoute pas la config minimale deux fois
-                if [[ "$config_path" != "$KUBE_MINIMAL_CONFIG" ]]; then
-                    if [[ -n "$new_kubeconfig" ]]; then
-                        new_kubeconfig="$new_kubeconfig:$config_path"
-                    else
-                        new_kubeconfig="$config_path"
-                    fi
+        for ((i=1; i<=${#display_lines[@]}; i++)); do
+            local check_name
+            check_name=$(echo "${display_lines[$i]}" | sed 's/^[●○] //')
+            if [[ "$check_name" == "$clean_name" ]]; then
+                if [[ -n "$new_kubeconfig" ]]; then
+                    new_kubeconfig="$new_kubeconfig:${configs[$i]}"
+                else
+                    new_kubeconfig="${configs[$i]}"
                 fi
                 break
             fi
         done
     done <<< "$selected"
 
-    export KUBECONFIG="$new_kubeconfig"
-    echo "KUBECONFIG mis a jour:"
-    kube_status
+    if [[ -z "$new_kubeconfig" ]]; then
+        unset KUBECONFIG
+        echo "KUBECONFIG vide (utilise ~/.kube/config par defaut)."
+    else
+        export KUBECONFIG="$new_kubeconfig"
+        echo "KUBECONFIG mis a jour:"
+        kube_status
+    fi
 }
 
 # Affiche les configs actuellement chargees
@@ -275,8 +284,7 @@ kube_list() {
     fi
 
     if [[ -d "$KUBE_CONFIGS_DIR" ]]; then
-        for f in "$KUBE_CONFIGS_DIR"/*.yml "$KUBE_CONFIGS_DIR"/*.yaml; do
-            [[ ! -f "$f" ]] && continue
+        for f in "$KUBE_CONFIGS_DIR"/*(N.); do
             if _kube_is_loaded "$f"; then
                 echo "  [ACTIF] $f"
             else
@@ -591,3 +599,11 @@ Emplacements:
   Fichiers sops   : ~/.zsh_env/kube/
 EOF
 }
+
+# ==============================================================================
+# Initialisation automatique au chargement
+# ==============================================================================
+# Charge silencieusement la config minimale si elle existe
+if [[ -f "$KUBE_MINIMAL_CONFIG" ]] && [[ -z "$KUBECONFIG" ]]; then
+    export KUBECONFIG="$KUBE_MINIMAL_CONFIG"
+fi
