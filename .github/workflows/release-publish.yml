@@ -154,18 +154,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Fetch develop
-          git fetch origin develop
-          git checkout develop
-          git pull origin develop
+          VERSION="${{ steps.version.outputs.version }}"
+          SYNC_BRANCH="chore/sync-${VERSION}-to-develop"
 
-          # Merge main into develop
-          git merge main --no-ff -m "chore: sync ${{ steps.version.outputs.version }} release to develop"
+          # Créer une branche temporaire depuis main
+          git checkout -b "$SYNC_BRANCH" main
+          git push origin "$SYNC_BRANCH"
 
-          # Push develop
-          git push origin develop
+          # Vérifier si une PR de sync existe déjà
+          EXISTING_PR=$(gh pr list --base develop --head "$SYNC_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
-          echo "Synced main back to develop"
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            echo "Sync PR #$EXISTING_PR already exists"
+            echo "sync_pr_url=https://github.com/${{ github.repository }}/pull/$EXISTING_PR" >> $GITHUB_OUTPUT
+          else
+            PR_URL=$(gh pr create \
+              --base develop \
+              --head "$SYNC_BRANCH" \
+              --title "chore: sync ${VERSION} release to develop" \
+              --body "Automatic sync of \`main\` back to \`develop\` after release ${VERSION}.")
+            echo "sync_pr_url=$PR_URL" >> $GITHUB_OUTPUT
+            echo "Created sync PR: $PR_URL"
+          fi
 
       - name: Summary
         run: |
@@ -179,7 +189,7 @@ jobs:
           echo "### Actions Completed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Created tag \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Published GitHub Release" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Synced \`main\` back to \`develop\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Created PR to sync \`main\` back to \`develop\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
           cat RELEASE_NOTES.md >> $GITHUB_STEP_SUMMARY
