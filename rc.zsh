@@ -52,6 +52,18 @@ fi
 
 export PATH="$SCRIPTS_DIR:$PATH"
 
+# =======================================================
+# COMPLETION SYSTEM (doit etre avant functions.zsh)
+# =======================================================
+# Initialiser compinit avec cache pour performance
+autoload -Uz compinit
+# Cache quotidien pour eviter la lenteur au demarrage
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C
+fi
+
 # Load functions
 if [ -f "$ZSH_ENV_DIR/functions.zsh" ]; then
     source "$ZSH_ENV_DIR/functions.zsh"
@@ -153,3 +165,14 @@ fi
 # PATH Final (Déduplication)
 # Empêche d'avoir le PATH qui grandit à l'infini si on reload le .zshrc
 typeset -U PATH
+
+# =======================================================
+# ZOXIDE (doit etre charge en dernier)
+# =======================================================
+# Zoxide utilise un hook chpwd pour enregistrer les repertoires.
+# Le charger en dernier garantit que son hook s'execute apres
+# tous les autres (nvm, proj, etc.) et capture le repertoire final.
+if command -v zoxide &> /dev/null; then
+    eval "$(zoxide init zsh)"
+    alias cd="z"
+fi

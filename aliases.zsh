@@ -57,10 +57,7 @@ fi
 # =======================================================
 # SYSTEM & UTILS
 # =======================================================
-if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh)"
-    alias cd="z"
-fi
+# Note: zoxide est initialise a la fin de rc.zsh pour optimisation
 
 alias ..='cd ..'
 alias c='clear'

@@ -142,6 +142,7 @@ install_tool "git"      "git"       "git"       "git"
 install_tool "curl"     "curl"      "curl"      "curl"
 install_tool "zsh"      "zsh"       "zsh"       "zsh"
 install_tool "jq"       "jq"        "jq"        "jq"
+install_tool "tmux"     "tmux"      "tmux"      "tmux"
 
 # 2. Modern Tools (La demande utilisateur)
 install_tool "eza"      "eza"       "eza"       "eza"  # Sur Debian/Ubuntu récent, sinon voir cargo

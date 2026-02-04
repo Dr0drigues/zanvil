@@ -57,7 +57,7 @@ _kube_list_configs() {
     # Configs dans configs.d/ (tous les fichiers réguliers)
     if [[ -d "$KUBE_CONFIGS_DIR" ]]; then
         for f in "$KUBE_CONFIGS_DIR"/*(N.); do
-            configs+=("configs.d/$(basename "$f")")
+            configs+=("configs.d/${f:t}")
         done
     fi
 
@@ -84,7 +84,7 @@ kube_init() {
         for sops_file in "${sops_files[@]}"; do
             [[ ! -f "$sops_file" ]] && continue
 
-            local basename=$(basename "$sops_file")
+            local basename="${sops_file:t}"
             # Retire l'extension .sops.yml ou .sops.yaml
             local dest_name
             if [[ "$basename" == *.sops.yml ]]; then
@@ -139,8 +139,7 @@ kube_select() {
     if [[ -d "$KUBE_CONFIGS_DIR" ]]; then
         for f in "$KUBE_CONFIGS_DIR"/*(N.); do
             configs+=("$f")
-            local name
-            name=$(basename "$f")
+            local name="${f:t}"
             if _kube_is_loaded "$f"; then
                 display_lines+=("● $name")
             else
@@ -330,7 +329,7 @@ kube_encrypt() {
     # Cree le dossier kube/ dans zsh_env si necessaire
     [[ ! -d "$KUBE_SOPS_SOURCE" ]] && mkdir -p "$KUBE_SOPS_SOURCE"
 
-    local basename=$(basename "$config_file")
+    local basename="${config_file:t}"
     local dest="$KUBE_SOPS_SOURCE/${basename%.yml}.sops.yml"
     dest="${dest%.yaml}.sops.yml"
 
@@ -575,6 +574,253 @@ kube_azure_list() {
     echo "Usage: kube_azure [cluster]"
 }
 
+# ==============================================================================
+# AWS EKS - Recuperation dynamique des credentials
+# ==============================================================================
+
+# Verifie les dependances AWS
+_kube_aws_check_deps() {
+    local missing=()
+    command -v aws &> /dev/null || missing+=("aws")
+    command -v kubectl &> /dev/null || missing+=("kubectl")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "Outils manquants: ${missing[*]}" >&2
+        echo "Installez-les via: brew install awscli kubectl" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Recupere les credentials pour un cluster AWS EKS
+kube_aws() {
+    if ! _kube_aws_check_deps; then
+        return 1
+    fi
+
+    # Verifier la connexion AWS
+    if ! aws sts get-caller-identity &> /dev/null; then
+        echo "Vous n'etes pas connecte a AWS." >&2
+        echo "Utilisez 'aws configure' ou definissez AWS_PROFILE." >&2
+        return 1
+    fi
+
+    local cluster_name="$1"
+    local region="${2:-${AWS_DEFAULT_REGION:-eu-west-1}}"
+
+    # Mode interactif si pas d'argument
+    if [[ -z "$cluster_name" ]]; then
+        echo "Recuperation des clusters EKS dans $region..."
+
+        local clusters=$(aws eks list-clusters --region "$region" --query 'clusters[]' --output text 2>/dev/null)
+
+        if [[ -z "$clusters" ]]; then
+            echo "Aucun cluster EKS trouve dans $region." >&2
+            return 1
+        fi
+
+        if command -v fzf &> /dev/null; then
+            cluster_name=$(echo "$clusters" | tr '\t' '\n' | fzf --header="Clusters AWS EKS ($region)" --prompt="Cluster > ")
+        else
+            echo "Clusters disponibles:"
+            echo "$clusters" | tr '\t' '\n' | nl
+            echo -n "Numero ou nom: "
+            read choice
+            if [[ "$choice" =~ ^[0-9]+$ ]]; then
+                cluster_name=$(echo "$clusters" | tr '\t' '\n' | sed -n "${choice}p")
+            else
+                cluster_name="$choice"
+            fi
+        fi
+
+        [[ -z "$cluster_name" ]] && return 0
+    fi
+
+    local kubeconfig_file="$KUBE_CONFIGS_DIR/kubeconfig-eks-${cluster_name}.yml"
+
+    echo "Recuperation des credentials pour $cluster_name..."
+    echo "  Region: $region"
+
+    if ! aws eks update-kubeconfig \
+        --name "$cluster_name" \
+        --region "$region" \
+        --kubeconfig "$kubeconfig_file"; then
+        echo "Echec de la recuperation des credentials." >&2
+        return 1
+    fi
+
+    echo ""
+    echo "Config creee: $kubeconfig_file"
+
+    # Proposer d'ajouter a KUBECONFIG
+    echo ""
+    echo -n "Ajouter a KUBECONFIG actuel? [y/N] "
+    read -r reply
+    if [[ "$reply" == "y" || "$reply" == "Y" ]]; then
+        kube_add "$kubeconfig_file"
+    fi
+}
+
+# Liste les clusters AWS EKS
+kube_aws_list() {
+    if ! _kube_aws_check_deps; then
+        return 1
+    fi
+
+    local region="${1:-${AWS_DEFAULT_REGION:-eu-west-1}}"
+
+    echo "Clusters AWS EKS ($region):"
+    echo "──────────────────────────────────────────"
+
+    local clusters=$(aws eks list-clusters --region "$region" --query 'clusters[]' --output text 2>/dev/null)
+
+    if [[ -z "$clusters" ]]; then
+        echo "  (aucun cluster trouve)"
+        return 0
+    fi
+
+    echo "$clusters" | tr '\t' '\n' | while read -r cluster; do
+        local kubeconfig_file="$KUBE_CONFIGS_DIR/kubeconfig-eks-${cluster}.yml"
+        if [[ -f "$kubeconfig_file" ]]; then
+            echo "  [x] $cluster"
+        else
+            echo "  [ ] $cluster"
+        fi
+    done
+
+    echo "──────────────────────────────────────────"
+    echo "Usage: kube_aws [cluster] [region]"
+}
+
+# ==============================================================================
+# GCP GKE - Recuperation dynamique des credentials
+# ==============================================================================
+
+# Verifie les dependances GCP
+_kube_gcp_check_deps() {
+    local missing=()
+    command -v gcloud &> /dev/null || missing+=("gcloud")
+    command -v kubectl &> /dev/null || missing+=("kubectl")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "Outils manquants: ${missing[*]}" >&2
+        echo "Installez-les via: brew install google-cloud-sdk kubectl" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Recupere les credentials pour un cluster GCP GKE
+kube_gcp() {
+    if ! _kube_gcp_check_deps; then
+        return 1
+    fi
+
+    # Verifier la connexion GCP
+    local account=$(gcloud config get-value account 2>/dev/null)
+    if [[ -z "$account" || "$account" == "(unset)" ]]; then
+        echo "Vous n'etes pas connecte a GCP." >&2
+        echo "Utilisez 'gcloud auth login'." >&2
+        return 1
+    fi
+
+    echo "Compte GCP: $account"
+
+    local cluster_name="$1"
+    local zone="$2"
+    local project="${3:-$(gcloud config get-value project 2>/dev/null)}"
+
+    # Mode interactif si pas d'argument
+    if [[ -z "$cluster_name" ]]; then
+        echo "Recuperation des clusters GKE..."
+
+        local clusters=$(gcloud container clusters list --format="value(name,zone)" 2>/dev/null)
+
+        if [[ -z "$clusters" ]]; then
+            echo "Aucun cluster GKE trouve." >&2
+            return 1
+        fi
+
+        if command -v fzf &> /dev/null; then
+            local selected=$(echo "$clusters" | fzf --header="Clusters GCP GKE" --prompt="Cluster > ")
+            cluster_name=$(echo "$selected" | awk '{print $1}')
+            zone=$(echo "$selected" | awk '{print $2}')
+        else
+            echo "Clusters disponibles:"
+            echo "$clusters" | nl
+            echo -n "Numero: "
+            read choice
+            local line=$(echo "$clusters" | sed -n "${choice}p")
+            cluster_name=$(echo "$line" | awk '{print $1}')
+            zone=$(echo "$line" | awk '{print $2}')
+        fi
+
+        [[ -z "$cluster_name" ]] && return 0
+    fi
+
+    if [[ -z "$zone" ]]; then
+        echo "Zone requise. Usage: kube_gcp <cluster> <zone> [project]" >&2
+        return 1
+    fi
+
+    local kubeconfig_file="$KUBE_CONFIGS_DIR/kubeconfig-gke-${cluster_name}.yml"
+
+    echo "Recuperation des credentials pour $cluster_name..."
+    echo "  Zone: $zone"
+    echo "  Project: $project"
+
+    if ! KUBECONFIG="$kubeconfig_file" gcloud container clusters get-credentials "$cluster_name" \
+        --zone "$zone" \
+        --project "$project"; then
+        echo "Echec de la recuperation des credentials." >&2
+        return 1
+    fi
+
+    echo ""
+    echo "Config creee: $kubeconfig_file"
+
+    # Proposer d'ajouter a KUBECONFIG
+    echo ""
+    echo -n "Ajouter a KUBECONFIG actuel? [y/N] "
+    read -r reply
+    if [[ "$reply" == "y" || "$reply" == "Y" ]]; then
+        kube_add "$kubeconfig_file"
+    fi
+}
+
+# Liste les clusters GCP GKE
+kube_gcp_list() {
+    if ! _kube_gcp_check_deps; then
+        return 1
+    fi
+
+    echo "Clusters GCP GKE:"
+    echo "──────────────────────────────────────────"
+
+    local clusters=$(gcloud container clusters list --format="value(name,zone,status)" 2>/dev/null)
+
+    if [[ -z "$clusters" ]]; then
+        echo "  (aucun cluster trouve)"
+        return 0
+    fi
+
+    echo "$clusters" | while read -r line; do
+        local name=$(echo "$line" | awk '{print $1}')
+        local zone=$(echo "$line" | awk '{print $2}')
+        local status=$(echo "$line" | awk '{print $3}')
+        local kubeconfig_file="$KUBE_CONFIGS_DIR/kubeconfig-gke-${name}.yml"
+
+        if [[ -f "$kubeconfig_file" ]]; then
+            printf "  [x] %-25s %s (%s)\n" "$name" "$zone" "$status"
+        else
+            printf "  [ ] %-25s %s (%s)\n" "$name" "$zone" "$status"
+        fi
+    done
+
+    echo "──────────────────────────────────────────"
+    echo "Usage: kube_gcp [cluster] [zone] [project]"
+}
+
 # Aide rapide
 kube_help() {
     cat << 'EOF'
@@ -592,6 +838,14 @@ Azure AKS:
   kube_azure        Recupere les credentials d'un cluster Azure (interactif)
   kube_azure_list   Liste les clusters Azure disponibles
   kube_azure_status Affiche le compte Azure connecte
+
+AWS EKS:
+  kube_aws          Recupere les credentials d'un cluster EKS (interactif)
+  kube_aws_list     Liste les clusters EKS disponibles
+
+GCP GKE:
+  kube_gcp          Recupere les credentials d'un cluster GKE (interactif)
+  kube_gcp_list     Liste les clusters GKE disponibles
 
 Emplacements:
   Config minimale : ~/.kube/config.minimal.yml
