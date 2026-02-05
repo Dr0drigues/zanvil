@@ -77,8 +77,19 @@ if command -v bat &> /dev/null; then
 fi
 
 # Sécurité suppression
+# Nettoyage préalable pour éviter les conflits au reload
+unalias rm 2>/dev/null
+unfunction rm 2>/dev/null
+
 if command -v trash &> /dev/null; then
-    alias rm='trash'
+    # Fonction intelligente : trash en interactif direct, rm natif sinon (ex: sdkman)
+    rm() {
+        if [[ ${#funcstack[@]} -le 1 && $- == *i* ]]; then
+            command trash "$@"
+        else
+            command rm "$@"
+        fi
+    }
     alias rmi='/bin/rm -i'
 else
     # Si pas de trash, on force la confirmation pour éviter les accidents
