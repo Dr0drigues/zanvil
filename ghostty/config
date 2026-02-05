@@ -1,0 +1,11 @@
+# Ghostty Configuration
+# Managed by zsh_env
+
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+
+cursor-style = block
+
+# Theme (change this line to switch themes)
+# Available: high-contrast-light, tokyo-night, tokyo-night-storm
+config-file = themes/tokyo-light-storm

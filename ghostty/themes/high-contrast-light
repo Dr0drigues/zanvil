@@ -1,0 +1,32 @@
+# Ghostty Theme: High Contrast Light
+# Optimized for readability and astigmatism
+
+background = #FAFAFA
+foreground = #1A1A1A
+
+# Normal colors (0-7)
+palette = 0=#1A1A1A
+palette = 1=#C41A16
+palette = 2=#007400
+palette = 3=#826B00
+palette = 4=#0000FF
+palette = 5=#A90D91
+palette = 6=#007676
+palette = 7=#808080
+
+# Bright colors (8-15)
+palette = 8=#4D4D4D
+palette = 9=#C41A16
+palette = 10=#007400
+palette = 11=#826B00
+palette = 12=#0000FF
+palette = 13=#A90D91
+palette = 14=#007676
+palette = 15=#1A1A1A
+
+# Cursor
+cursor-color = #007AFF
+
+# Selection
+selection-background = #B4D8FD
+selection-foreground = #1A1A1A

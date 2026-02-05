@@ -1,0 +1,70 @@
+#######################################################################
+### A Tokyo Night Day (Light) theme for Starship                   ###
+### Based on: https://starship.rs/presets/tokyo-night.html         ###
+#######################################################################
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[░▒▓](#2e7de9)\
+[  ](bg:#2e7de9 fg:#e1e2e7)\
+[](bg:#7aa2f7 fg:#2e7de9)\
+$directory\
+[](fg:#7aa2f7 bg:#a8aecb)\
+$git_branch\
+$git_status\
+[](fg:#a8aecb bg:#d5d6db)\
+$nodejs\
+$rust\
+$golang\
+$php\
+[](fg:#d5d6db bg:#e1e2e7)\
+$time\
+[ ](fg:#e1e2e7)\
+\n$character"""
+
+[directory]
+style = "fg:#1a1b26 bg:#7aa2f7"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[git_branch]
+symbol = ""
+style = "bg:#a8aecb"
+format = '[[ $symbol $branch ](fg:#3760bf bg:#a8aecb)]($style)'
+
+[git_status]
+style = "bg:#a8aecb"
+format = '[[($all_status$ahead_behind )](fg:#3760bf bg:#a8aecb)]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#d5d6db"
+format = '[[ $symbol ($version) ](fg:#587539 bg:#d5d6db)]($style)'
+
+[rust]
+symbol = ""
+style = "bg:#d5d6db"
+format = '[[ $symbol ($version) ](fg:#f52a65 bg:#d5d6db)]($style)'
+
+[golang]
+symbol = ""
+style = "bg:#d5d6db"
+format = '[[ $symbol ($version) ](fg:#007197 bg:#d5d6db)]($style)'
+
+[php]
+symbol = ""
+style = "bg:#d5d6db"
+format = '[[ $symbol ($version) ](fg:#9854f1 bg:#d5d6db)]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "bg:#e1e2e7"
+format = '[[  $time ](fg:#6172b0 bg:#e1e2e7)]($style)'

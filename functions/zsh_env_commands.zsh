@@ -310,7 +310,7 @@ zsh-env-theme() {
         # Theme actuel
         local current=""
         if [ -f "$starship_config" ]; then
-            current=$(head -1 "$starship_config" 2>/dev/null | grep -oP '(?<=Theme: )\w+' || echo "")
+            current=$(head -1 "$starship_config" 2>/dev/null | sed -n 's/.*Theme: \([a-zA-Z0-9_-]*\).*/\1/p' || echo "")
         fi
 
         for theme_file in "$themes_dir"/*.toml; do
@@ -622,6 +622,103 @@ zsh-env-doctor() {
 }
 
 # ==============================================================================
+# zsh-env-ghostty : Gestion des themes Ghostty
+# ==============================================================================
+zsh-env-ghostty() {
+    local themes_dir="$ZSH_ENV_DIR/ghostty/themes"
+    local ghostty_config="$HOME/.config/ghostty/config"
+    local theme="$1"
+
+    # Sans argument ou "list" : afficher les themes disponibles
+    if [ -z "$theme" ] || [ "$theme" = "list" ]; then
+        echo -e "${_zsh_cmd_bold}=== Themes Ghostty disponibles ===${_zsh_cmd_nc}\n"
+
+        if [ ! -d "$themes_dir" ]; then
+            echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
+            return 1
+        fi
+
+        # Theme actuel (lit la ligne config-file de la config Ghostty)
+        local current=""
+        if [ -f "$ghostty_config" ]; then
+            current=$(grep "^config-file" "$ghostty_config" 2>/dev/null | sed 's/.*themes\///' | tr -d ' ')
+        fi
+
+        for theme_file in "$themes_dir"/*; do
+            [ -f "$theme_file" ] || continue
+            local name=$(basename "$theme_file")
+            local desc=$(grep -m1 "^# Ghostty Theme:" "$theme_file" 2>/dev/null | sed 's/^# Ghostty Theme: //' || echo "")
+
+            if [ "$name" = "$current" ]; then
+                echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
+            else
+                echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
+            fi
+        done
+
+        echo ""
+        echo -e "Usage: ${_zsh_cmd_bold}zsh-env-ghostty <nom>${_zsh_cmd_nc}"
+        echo -e "Sync:  ${_zsh_cmd_bold}zsh-env-ghostty sync${_zsh_cmd_nc} (copie la config vers ~/.config/ghostty)"
+        return 0
+    fi
+
+    # Commande "sync" : deployer la config de zsh_env vers ~/.config/ghostty
+    if [ "$theme" = "sync" ]; then
+        local src_config="$ZSH_ENV_DIR/ghostty/config"
+        local dest_dir="$HOME/.config/ghostty"
+
+        if [ ! -f "$src_config" ]; then
+            echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Config source non trouvee: $src_config"
+            return 1
+        fi
+
+        mkdir -p "$dest_dir"
+
+        # Backup si existe et different
+        if [ -f "$ghostty_config" ] && ! diff -q "$src_config" "$ghostty_config" &>/dev/null; then
+            cp "$ghostty_config" "$ghostty_config.backup"
+            echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup: $ghostty_config.backup"
+        fi
+
+        # Copier config et themes
+        cp "$src_config" "$ghostty_config"
+        cp -r "$themes_dir" "$dest_dir/"
+
+        echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Config Ghostty synchronisee vers $dest_dir"
+        echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Redemarrez Ghostty pour appliquer les changements."
+        return 0
+    fi
+
+    # Appliquer un theme
+    local theme_file="$themes_dir/$theme"
+
+    if [ ! -f "$theme_file" ]; then
+        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
+        echo -e "Themes disponibles: $(ls "$themes_dir" 2>/dev/null | tr '\n' ' ')"
+        return 1
+    fi
+
+    # Mettre a jour le fichier config local (dans zsh_env)
+    local local_config="$ZSH_ENV_DIR/ghostty/config"
+
+    if [ -f "$local_config" ]; then
+        # Remplacer la ligne config-file
+        if grep -q "^config-file" "$local_config"; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|^config-file.*|config-file = themes/$theme|" "$local_config"
+            else
+                sed -i "s|^config-file.*|config-file = themes/$theme|" "$local_config"
+            fi
+        else
+            echo "config-file = themes/$theme" >> "$local_config"
+        fi
+    fi
+
+    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Theme '$theme' selectionne."
+    echo -e "Lancez ${_zsh_cmd_bold}zsh-env-ghostty sync${_zsh_cmd_nc} pour deployer vers ~/.config/ghostty"
+}
+
+# ==============================================================================
 # zsh-env-help : Afficher l'aide
 # ==============================================================================
 zsh-env-help() {
@@ -653,12 +750,19 @@ ${_zsh_cmd_cyan}zsh-env-doctor${_zsh_cmd_nc}
 ${_zsh_cmd_cyan}zsh-env-theme [nom]${_zsh_cmd_nc}
     Applique un theme Starship (list pour voir les themes)
 
+${_zsh_cmd_cyan}zsh-env-ghostty [nom|sync]${_zsh_cmd_nc}
+    Gestion des themes Ghostty
+    - list: affiche les themes disponibles
+    - sync: deploie la config vers ~/.config/ghostty
+    - <nom>: selectionne un theme
+
 ${_zsh_cmd_cyan}zsh-env-help${_zsh_cmd_nc}
     Affiche cette aide
 
 ${_zsh_cmd_bold}Configuration:${_zsh_cmd_nc} ~/.zsh_env/config.zsh
 ${_zsh_cmd_bold}Completions:${_zsh_cmd_nc}   ~/.zsh_env/completions.zsh
-${_zsh_cmd_bold}Themes:${_zsh_cmd_nc}        ~/.zsh_env/themes/
+${_zsh_cmd_bold}Themes:${_zsh_cmd_nc}        ~/.zsh_env/themes/ (Starship)
+${_zsh_cmd_bold}Ghostty:${_zsh_cmd_nc}       ~/.zsh_env/ghostty/
 ${_zsh_cmd_bold}Recharger:${_zsh_cmd_nc}     ss (ou source ~/.zshrc)
 EOF
 }
