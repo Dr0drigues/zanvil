@@ -92,5 +92,5 @@ detect_files = ["k8s.yaml", "k8s.yml", "kubernetes.yaml", "kubernetes.yml", "Cha
 description = "Indicateur contexte Work"
 command = "echo '󰋜'"
 when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
-format = "[$output ](bg:#a3aed2 fg:#e0af68)"
+format = "[$output ](bg:#a3aed2 fg:#ff6600)"
 shell = ["bash", "--noprofile", "--norc"]
