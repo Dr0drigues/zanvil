@@ -281,6 +281,47 @@ if [ ! -d "$SCRIPTS_DIR" ]; then
     mkdir -p "$SCRIPTS_DIR"
 fi
 
+# --- Detection Contexte Work ---
+echo ""
+log_info "Detection du contexte Work..."
+
+BOULANGER_DETECTED="false"
+NEXUS_URL=""
+
+# Test d'acces au Nexus (timeout 2s, -k pour cert auto-signe)
+if curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 2 "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
+    log_success "Contexte Work detecte (Nexus accessible)"
+    BOULANGER_DETECTED="true"
+
+    # Si SOPS est configure et les fichiers en clair existent sans .enc
+    if command -v sops &>/dev/null && [ -f "$HOME/.config/sops/age/keys.txt" ]; then
+        BLG_DIR="$TARGET_DIR/work"
+        mkdir -p "$BLG_DIR"
+
+        # Chiffrer settings.xml si .enc n'existe pas
+        if [ -f "$BLG_DIR/settings.xml" ] && [ ! -f "$BLG_DIR/settings.xml.enc" ]; then
+            log_info "Chiffrement de settings.xml..."
+            if sops -e "$BLG_DIR/settings.xml" > "$BLG_DIR/settings.xml.enc" 2>/dev/null; then
+                log_success "settings.xml.enc cree"
+            else
+                log_warn "Echec du chiffrement de settings.xml"
+            fi
+        fi
+
+        # Chiffrer certificates_unix.sh si .enc n'existe pas
+        if [ -f "$BLG_DIR/certificates_unix.sh" ] && [ ! -f "$BLG_DIR/certificates_unix.sh.enc" ]; then
+            log_info "Chiffrement de certificates_unix.sh..."
+            if sops -e "$BLG_DIR/certificates_unix.sh" > "$BLG_DIR/certificates_unix.sh.enc" 2>/dev/null; then
+                log_success "certificates_unix.sh.enc cree"
+            else
+                log_warn "Echec du chiffrement de certificates_unix.sh"
+            fi
+        fi
+    fi
+else
+    log_info "Hors contexte Work (mode personnel)"
+fi
+
 # --- Configuration Interactive des Modules ---
 echo ""
 echo -e "${BOLD}=== Configuration des Modules ===${NC}"
@@ -464,6 +505,9 @@ ZSH_ENV_NVM_LAZY=$NVM_LAZY
 ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
 ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
 ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
+
+# Contexte Work (detecte a l'installation)
+ZSH_ENV_BOULANGER_DETECTED=$BOULANGER_DETECTED
 EOF
 
 log_success "Configuration sauvegardee"

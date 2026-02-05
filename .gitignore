@@ -31,3 +31,8 @@ GEMINI.md
 .cursor
 .cursorrules
 .github/copilot-*
+
+# Fichiers Work dechiffres (generes a partir des .enc)
+work/settings.xml
+work/certificates_unix.sh
+.work_context_cache

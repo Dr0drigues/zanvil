@@ -7,3 +7,11 @@ creation_rules:
   # Fichiers .sops.yml partout ailleurs
   - path_regex: .*\.sops\.ya?ml$
     age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
+  # Fichiers chiffres Work (.enc)
+  - path_regex: .*\.enc$
+    age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
+  # Fichiers Work sources (pour chiffrement initial)
+  - path_regex: work/settings\.xml$
+    age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
+  - path_regex: work/certificates_unix\.sh$
+    age: age1h68wutgg5vfrf5d6z70fr5h7mmen6mnu7vyr44y8cp76vtnq6cnsk7wrah
