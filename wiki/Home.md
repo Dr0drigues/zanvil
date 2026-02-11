@@ -51,9 +51,26 @@ Bienvenue sur le wiki de **zsh_env** - une configuration Zsh modulaire et orient
 
 ```bash
 ss                  # Recharger la config
-zsh-env-doctor      # Diagnostic complet
+zsh-env-doctor      # Diagnostic complet (compact)
+zsh-env-status      # Statut rapide
 zsh-env-profile     # Profiler le temps de démarrage
 zsh-env-audit       # Audit de sécurité
+```
+
+## Interface visuelle
+
+Toutes les commandes `zsh-env-*` utilisent un style moderne et compact :
+
+```
+╭──────────────────────────────────────────╮
+│  ZSH_ENV Doctor                  v1.2.0  │
+╰──────────────────────────────────────────╯
+
+Config         rc.zsh ✓  aliases ✓  variables ✓
+Requis         git ✓  curl ✓  jq ✓
+
+────────────────────────────────────────────
+✓ Tout est OK
 ```
 
 ## Contribuer

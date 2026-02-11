@@ -4,16 +4,22 @@
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-list` | Liste les outils installés avec versions |
-| `zsh-env-doctor` | Diagnostic complet de l'installation |
+| `zsh-env-list` | Liste les outils installés avec versions (format tableau) |
+| `zsh-env-doctor` | Diagnostic complet de l'installation (compact) |
+| `zsh-env-status` | Statut rapide (version, modules, git) |
 | `zsh-env-profile` | Profile le temps de démarrage par module |
 | `zsh-env-benchmark [n]` | Benchmark sur n exécutions (défaut: 5) |
-| `zsh-env-audit` | Audit de sécurité des permissions |
+| `zsh-env-audit` | Audit de sécurité des permissions (compact) |
 | `zsh-env-audit-fix` | Corrige automatiquement les permissions |
 | `zsh-env-theme [nom]` | Gère les thèmes Starship |
+| `zsh-env-ghostty [nom\|sync]` | Gère les thèmes Ghostty |
 | `zsh-env-completions` | Charge les auto-complétions |
+| `zsh-env-completion-add` | Ajoute une completion personnalisée |
+| `zsh-env-completion-remove` | Supprime une completion personnalisée |
 | `zsh-env-update` | Force la mise à jour |
-| `zsh-env-help` | Affiche l'aide |
+| `zsh-env-help` | Affiche l'aide (format tableau) |
+
+Toutes les commandes `zsh-env-*` utilisent un style visuel moderne et compact via le système UI.
 
 ## Navigation
 
