@@ -265,6 +265,15 @@ if [[ ! -d "$SCRIPTS_DIR" ]]; then
     mkdir -p "$SCRIPTS_DIR"
 fi
 
+# --- Configuration SSL/TLS (certificats entreprise) ---
+echo ""
+log_info "Configuration SSL/TLS..."
+if [[ -x "$TARGET_DIR/scripts/ssl-setup.sh" ]]; then
+    "$TARGET_DIR/scripts/ssl-setup.sh"
+else
+    log_warn "Script ssl-setup.sh non trouve, etape ignoree"
+fi
+
 # --- Detection Contexte Work ---
 echo ""
 log_info "Detection du contexte Work..."
@@ -272,8 +281,10 @@ log_info "Detection du contexte Work..."
 BOULANGER_DETECTED="false"
 NEXUS_URL=""
 
-# Test d'acces au Nexus (timeout 2s, -k pour cert auto-signe)
-if curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 2 "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
+# Test d'acces au Nexus (timeout 2s, utilise le CA bundle si present)
+_install_curl_opts="-s --connect-timeout 2 --max-time 2"
+[[ -f "$HOME/.ssl/ca-bundle.pem" ]] && _install_curl_opts+=" --cacert $HOME/.ssl/ca-bundle.pem"
+if curl $_install_curl_opts -o /dev/null -w "%{http_code}" "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
     log_success "Contexte Work detecte (Nexus accessible)"
     BOULANGER_DETECTED="true"
 

@@ -50,9 +50,9 @@ _blg_cache_write() {
 # Test reel d'acces au Nexus
 _blg_test_nexus() {
     if command -v curl &>/dev/null; then
-        curl -sk -o /dev/null -w "%{http_code}" \
-            --connect-timeout "$_WORK_TIMEOUT" \
-            --max-time "$_WORK_TIMEOUT" \
+        local _curl_opts="-s --connect-timeout $_WORK_TIMEOUT --max-time $_WORK_TIMEOUT"
+        [[ -n "$SSL_CERT_FILE" ]] && _curl_opts+=" --cacert $SSL_CERT_FILE"
+        curl $_curl_opts -o /dev/null -w "%{http_code}" \
             "$_WORK_NEXUS_URL" 2>/dev/null | grep -q "^[23]"
         return $?
     elif command -v wget &>/dev/null; then

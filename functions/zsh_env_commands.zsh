@@ -504,6 +504,19 @@ zsh-env-doctor() {
         _zsh_section "SOPS/Age" "$sops_info"
     fi
 
+    # --- SSL/TLS ---
+    local ssl_info=""
+    if [[ -f "$HOME/.ssl/ca-bundle.pem" ]]; then
+        local cert_count=$(grep -c "BEGIN CERTIFICATE" "$HOME/.ssl/ca-bundle.pem" 2>/dev/null)
+        local enterprise_count=$(grep -c "Enterprise CA:" "$HOME/.ssl/ca-bundle.pem" 2>/dev/null)
+        ssl_info+="bundle ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+        ssl_info+="${_zsh_cmd_dim}${cert_count} CAs (${enterprise_count} entreprise)${_zsh_cmd_nc}"
+    else
+        ssl_info+="bundle ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(zsh-env-ssl-setup)${_zsh_cmd_nc}"
+        ((warnings++))
+    fi
+    _zsh_section "SSL/TLS" "$ssl_info"
+
     echo ""
 
     # --- Summary ---
@@ -655,6 +668,21 @@ zsh-env-ghostty() {
 }
 
 # ==============================================================================
+# zsh-env-ssl-setup : Configuration des certificats SSL/TLS entreprise
+# ==============================================================================
+zsh-env-ssl-setup() {
+    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+    local script="$zsh_env_dir/scripts/ssl-setup.sh"
+
+    if [[ ! -x "$script" ]]; then
+        _ui_msg_fail "Script ssl-setup.sh non trouve"
+        return 1
+    fi
+
+    "$script" "$@"
+}
+
+# ==============================================================================
 # zsh-env-help : Afficher l'aide
 # ==============================================================================
 zsh-env-help() {
@@ -672,6 +700,7 @@ zsh-env-help() {
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-theme [nom]" "Gestion themes Starship"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-ghostty [nom|sync]" "Gestion themes Ghostty"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-ssl-setup" "Configure les certificats SSL"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-update" "Mise a jour zsh_env"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-help" "Cette aide"
 
