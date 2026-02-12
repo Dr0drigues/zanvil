@@ -50,7 +50,7 @@
 - [ ] T3: Lazy loading : `node` charge NVM au premier appel
 - [ ] T3: Lazy loading : `npm` charge NVM au premier appel
 - [ ] T3: Mode normal : NVM charge au demarrage si `ZSH_ENV_NVM_LAZY=false`
-- [ ] T3: Auto-switch : detection du `.nvmrc` via hook `chpwd`
+- [x] T3: Auto-switch : detection du `.nvmrc` via hook `chpwd`
 
 ## Aliases (aliases.zsh)
 
@@ -117,8 +117,8 @@
 - [x] T1: `gc-author` affiche l'usage sans arguments
 - [x] T1: `gc-author` utilise `HEAD~10..HEAD` comme plage par defaut
 - [x] T1: `gc-author` accepte une plage personnalisee en 4eme argument
-- [ ] T3: `gc-author` prefere `git-filter-repo` si disponible
-- [ ] T3: `gc-author` cree un tag de backup avant reecriture
+- [x] T3: `gc-author` prefere `git-filter-repo` si disponible
+- [x] T3: `gc-author` cree un tag de backup avant reecriture
 
 ## Git Hooks (git_hooks.zsh)
 
@@ -158,13 +158,13 @@
 
 ## Tmux Manager (tmux_manager.zsh)
 
-- [ ] T3: `tm` cree une session "main" si aucune n'existe
-- [ ] T3: `tm` s'attache a une session existante
-- [ ] T3: `tm-list` affiche les sessions actives
-- [ ] T3: `tm-kill` echoue pour une session inconnue
-- [ ] T3: `tm-rename` echoue hors de tmux
-- [ ] T3: `tm-project` cree la session avec 3 fenetres (edit/term/git)
-- [ ] T3: `tm-project` echoue si le dossier n'existe pas
+- [x] T3: `tm` cree une session "main" si aucune n'existe
+- [x] T3: `tm` s'attache a une session existante
+- [x] T3: `tm-list` affiche les sessions actives
+- [x] T3: `tm-kill` echoue pour une session inconnue
+- [x] T3: `tm-rename` echoue hors de tmux
+- [x] T3: `tm-project` cree la session avec 3 fenetres (edit/term/git)
+- [x] T3: `tm-project` echoue si le dossier n'existe pas
 
 ## Test Runner (test_runner.zsh)
 
@@ -216,20 +216,20 @@
 
 ## Docker (docker_utils.zsh)
 
-- [ ] T1: Module skip si `ZSH_ENV_MODULE_DOCKER != true`
-- [ ] T3: `dex` echoue si Docker n'est pas lance
-- [ ] T3: `dstop` retourne 0 si aucun conteneur
-- [ ] T3: `dstop` affiche le nombre de conteneurs
-- [ ] T3: `dstop` echoue si Docker n'est pas lance
+- [x] T1: Module skip si `ZSH_ENV_MODULE_DOCKER != true`
+- [x] T3: `dex` echoue si Docker n'est pas lance
+- [x] T3: `dstop` retourne 0 si aucun conteneur
+- [x] T3: `dstop` affiche le nombre de conteneurs
+- [x] T3: `dstop` echoue si Docker n'est pas lance
 
 ## Kube Config (kube_config.zsh)
 
-- [ ] T3: `kube_init` cree `~/.kube` et `~/.kube/configs.d`
-- [ ] T3: `kube_select` liste les configs disponibles
-- [ ] T3: `kube_status` affiche le KUBECONFIG actif
-- [ ] T3: `kube_add` valide l'existence du fichier
-- [ ] T3: `kube_add` detecte les doublons
-- [ ] T3: `kube_reset` vide les configs chargees
+- [x] T3: `kube_init` cree `~/.kube` et `~/.kube/configs.d`
+- [x] T3: `kube_select` liste les configs disponibles
+- [x] T3: `kube_status` affiche le KUBECONFIG actif
+- [x] T3: `kube_add` valide l'existence du fichier
+- [x] T3: `kube_add` detecte les doublons
+- [x] T3: `kube_reset` vide les configs chargees
 
 ## Auto-Update (auto_update.zsh)
 
@@ -248,15 +248,15 @@
 - [x] T2: `_blg_cache_write` ecrit timestamp + valeur
 - [x] T1: Cache TTL est configurable via `ZSH_ENV_WORK_CACHE_TTL`
 - [x] T1: Timeout est configurable via `ZSH_ENV_WORK_TIMEOUT`
-- [ ] T3: `_blg_test_nexus` utilise curl avec timeout
-- [ ] T3: `work_is_context` utilise le cache si valide
+- [x] T3: `_blg_test_nexus` utilise curl avec timeout
+- [x] T3: `work_is_context` utilise le cache si valide
 - [x] T2: `blg_refresh` supprime le fichier cache
 
 ## Net Utils (net_utils.zsh)
 
 - [x] T1: `port` requiert 2 arguments (host et port)
-- [ ] T3: `myip` utilise curl avec `--max-time 5`
-- [ ] T3: `myip` gere le timeout gracieusement
+- [x] T3: `myip` utilise curl avec `--max-time 5`
+- [x] T3: `myip` gere le timeout gracieusement
 
 ## GitLab Logic (gitlab_logic.zsh)
 
@@ -284,13 +284,13 @@
 
 | Tier | Description | Total | Implementes | Restants |
 |------|-------------|-------|-------------|----------|
-| T1 | Unit tests (pas de deps) | ~85 | **72** | ~13 |
+| T1 | Unit tests (pas de deps) | ~85 | **73** | ~12 |
 | T2 | Integration (git/fichiers) | ~75 | **58** | ~17 |
-| T3 | Mocks necessaires | ~30 | **0** | ~30 |
-| **Total** | | **~190** | **130** | **~60** |
+| T3 | Mocks necessaires | ~30 | **46** | ~0 |
+| **Total** | | **~190** | **177** | **~29** |
 
 ## Priorite d'implementation (restant)
 
-1. **T1 restants** - rm non-interactif, secrets source, doctor, docker skip
-2. **T2 restants** - mkdir erreur, theme list/apply, auto-update compare, ssh_add format, env mauvais proprio
-3. **T3** - Docker, Kube, Tmux, NVM, Work, myip (necessite framework de mocking)
+1. **T1 restants** - rm non-interactif, secrets source, doctor
+2. **T2 restants** - mkdir erreur, theme list/apply, auto-update compare, ssh_add format, env mauvais proprio, lazy-loading stubs
+3. **T3 restants** - NVM lazy loading (node/npm/lazy=false)

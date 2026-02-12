@@ -65,3 +65,14 @@ jobs:
             spec/ssh_manager_t2_spec.sh \
             spec/project_switcher_t2_spec.sh \
             spec/completions_t2_spec.sh
+
+      - name: Run T3 mock tests
+        run: |
+          shellspec \
+            spec/docker_t3_spec.sh \
+            spec/tmux_t3_spec.sh \
+            spec/kube_t3_spec.sh \
+            spec/nvm_t3_spec.sh \
+            spec/work_t3_spec.sh \
+            spec/net_utils_t3_spec.sh \
+            spec/git_change_author_t3_spec.sh
