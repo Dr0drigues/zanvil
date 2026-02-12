@@ -10,6 +10,15 @@ _audit_warn() { echo "\033[33m[WARN]\033[0m $1"; }
 _audit_fail() { echo "\033[31m[FAIL]\033[0m $1"; }
 _audit_info() { echo "\033[34m[INFO]\033[0m $1"; }
 
+# Obtient les permissions d'un fichier (cross-platform)
+_audit_get_perms() {
+    if [[ "$OSTYPE" == darwin* ]]; then
+        stat -f "%Lp" "$1" 2>/dev/null
+    else
+        stat -c "%a" "$1" 2>/dev/null
+    fi
+}
+
 # Verifie les permissions d'un fichier
 _audit_check_perms() {
     local file="$1"
@@ -20,7 +29,7 @@ _audit_check_perms() {
         return 1
     fi
 
-    local perms=$(stat -f "%Lp" "$file" 2>/dev/null || stat -c "%a" "$file" 2>/dev/null)
+    local perms=$(_audit_get_perms "$file")
 
     if [[ "$perms" == "$expected" ]]; then
         _audit_ok "$desc ($file) - permissions $perms"
@@ -52,7 +61,7 @@ zsh-env-audit() {
             [[ ! -f "$key" ]] && continue
             [[ "$key" == *.pub ]] && continue
 
-            local perms=$(stat -f "%Lp" "$key" 2>/dev/null || stat -c "%a" "$key" 2>/dev/null)
+            local perms=$(_audit_get_perms "$key")
             if [[ "$perms" != "600" && "$perms" != "400" ]]; then
                 _audit_fail "Cle privee $key - permissions $perms (attendu: 600)"
                 ((issues++))
@@ -91,7 +100,7 @@ zsh-env-audit() {
 
     for secret in "${secret_files[@]}"; do
         if [[ -f "$secret" ]]; then
-            local perms=$(stat -f "%Lp" "$secret" 2>/dev/null || stat -c "%a" "$secret" 2>/dev/null)
+            local perms=$(_audit_get_perms "$secret")
             if [[ "$perms" != "600" && "$perms" != "400" ]]; then
                 _audit_fail "$(basename "$secret") - permissions $perms (attendu: 600)"
                 ((issues++))
@@ -118,7 +127,7 @@ zsh-env-audit() {
         for kube in "$HOME/.kube"/config* "$HOME/.kube"/kubeconfig* "$HOME/.kube/configs.d"/*; do
             [[ ! -f "$kube" ]] && continue
 
-            local perms=$(stat -f "%Lp" "$kube" 2>/dev/null || stat -c "%a" "$kube" 2>/dev/null)
+            local perms=$(_audit_get_perms "$kube")
             local name=$(basename "$kube")
 
             if [[ "$perms" != "600" && "$perms" != "400" ]]; then
@@ -196,7 +205,7 @@ zsh-env-audit() {
 
     for hist in "${history_files[@]}"; do
         if [[ -f "$hist" ]]; then
-            local perms=$(stat -f "%Lp" "$hist" 2>/dev/null || stat -c "%a" "$hist" 2>/dev/null)
+            local perms=$(_audit_get_perms "$hist")
             if [[ "$perms" != "600" ]]; then
                 _audit_warn "$(basename "$hist") - permissions $perms (recommande: 600)"
                 ((warnings++))
