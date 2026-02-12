@@ -1,14 +1,14 @@
 # Skip si module desactive
-[ "$ZSH_ENV_MODULE_GITLAB" != "true" ] && return
+[[ "$ZSH_ENV_MODULE_GITLAB" != "true" ]] && return
 
 ### SECURITY & CONFIGURATION ###
 
 # 1. Chargement sécurisé du token
 # Créez un fichier ~/.gitlab_secrets contenant : export GITLAB_TOKEN='votre_token'
-if [ -f "$HOME/.gitlab_secrets" ]; then
+if [[ -f "$HOME/.gitlab_secrets" ]]; then
     source "$HOME/.gitlab_secrets"
 else
-    echo "WARNING: $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant."
+    echo -e "${_ui_yellow}[WARN]${_ui_nc} $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant."
 fi
 
 # 2. Configuration des Group IDs (Modèle de données)

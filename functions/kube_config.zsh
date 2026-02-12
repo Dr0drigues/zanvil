@@ -380,20 +380,23 @@ kube_encrypt() {
 # Azure AKS - Recuperation dynamique des credentials
 # ==============================================================================
 
-# Configuration des clusters Azure AKS
+# Configuration des clusters Azure AKS (surchargeable via config.zsh)
 # Format: "label:subscription:resource-group:cluster-name"
-_KUBE_AZ_CLUSTERS=(
-    # BLG
-    "blg-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
-    "blg-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
-    "blg-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
-    "blg-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
-    # EDT
-    "edt-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
-    "edt-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
-    "edt-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
-    "edt-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
-)
+# Definir ZSH_ENV_KUBE_AZ_CLUSTERS dans config.zsh pour personnaliser
+if [[ -z "${_KUBE_AZ_CLUSTERS+x}" ]]; then
+    _KUBE_AZ_CLUSTERS=(
+        # BLG
+        "blg-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
+        "blg-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
+        "blg-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
+        "blg-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
+        # EDT
+        "edt-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
+        "edt-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
+        "edt-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
+        "edt-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
+    )
+fi
 
 # Verifie les dependances Azure
 _kube_az_check_deps() {

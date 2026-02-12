@@ -18,14 +18,14 @@ Describe "functions.zsh (lazy loading)"
   AfterAll 'cleanup'
 
   Describe "Lazy files are not sourced at load time"
-    It "ai-context is defined as a stub function"
-      run_check() { type -w ai-context 2>/dev/null | cut -d' ' -f2; }
+    It "ai_context_detect is defined as a stub function"
+      run_check() { type -w ai_context_detect 2>/dev/null | cut -d' ' -f2; }
       When call run_check
       The output should equal "function"
     End
 
-    It "ai-tokens is defined as a stub function"
-      run_check() { type -w ai-tokens 2>/dev/null | cut -d' ' -f2; }
+    It "ai_tokens_estimate is defined as a stub function"
+      run_check() { type -w ai_tokens_estimate 2>/dev/null | cut -d' ' -f2; }
       When call run_check
       The output should equal "function"
     End

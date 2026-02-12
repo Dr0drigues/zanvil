@@ -6,11 +6,11 @@
 myip() {
     local public_ip
     public_ip=$(curl -s --max-time 5 ifconfig.me) || public_ip="timeout"
-    echo "Public IP : $public_ip"
+    _ui_section "Public IP" "$public_ip"
     if [[ "$(uname)" == "Darwin" ]]; then
-        echo "Local IP  : $(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "N/A")"
+        _ui_section "Local IP" "$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "N/A")"
     else
-        echo "Local IP  : $(hostname -I 2>/dev/null | awk '{print $1}')"
+        _ui_section "Local IP" "$(hostname -I 2>/dev/null | awk '{print $1}')"
     fi
 }
 
@@ -18,14 +18,14 @@ myip() {
 # Usage: port google.com 80
 port() {
     if [[ $# -lt 2 ]]; then
-        echo "Usage: port <host> <port>"
+        echo -e "${_ui_bold}Usage:${_ui_nc} port <host> <port>"
         return 1
     fi
 
-    echo "Testing connection to $1:$2..."
+    echo -e "${_ui_dim}Testing connection to $1:$2...${_ui_nc}"
     if nc -z -v -w 2 "$1" "$2" 2>&1 | grep -q "succeeded"; then
-        echo "Port $2 ouvert sur $1"
+        _ui_msg_ok "Port $2 ouvert sur $1"
     else
-        echo "Port $2 ferme ou inaccessible sur $1"
+        _ui_msg_fail "Port $2 ferme ou inaccessible sur $1"
     fi
 }

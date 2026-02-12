@@ -19,6 +19,18 @@ setopt SHARE_HISTORY             # Partager l'historique entre sessions
 # SOPS/Age - Chemin vers la cle de chiffrement
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
+# =======================================================
+# CERTIFICATS SSL/TLS CUSTOM
+# =======================================================
+# Bundle CA personnalise (CAs systeme + CAs entreprise)
+# Genere par: zsh-env-ssl-setup
+if [[ -f "$HOME/.ssl/ca-bundle.pem" ]]; then
+    export SSL_CERT_FILE="$HOME/.ssl/ca-bundle.pem"
+    export CURL_CA_BUNDLE="$HOME/.ssl/ca-bundle.pem"
+    export REQUESTS_CA_BUNDLE="$HOME/.ssl/ca-bundle.pem"
+    export NODE_EXTRA_CA_CERTS="$HOME/.ssl/ca-bundle.pem"
+fi
+
 # Liste des dossiers critiques à garantir
 required_dirs=(
     "$WORK_DIR"

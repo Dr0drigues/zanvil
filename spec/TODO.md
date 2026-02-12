@@ -45,12 +45,12 @@
 - [ ] T2: Les stubs sont supprimes apres le premier appel
 - [ ] T2: Les arguments sont transmis correctement a la fonction chargee
 
-## NVM
+## Mise
 
-- [ ] T3: Lazy loading : `node` charge NVM au premier appel
-- [ ] T3: Lazy loading : `npm` charge NVM au premier appel
-- [ ] T3: Mode normal : NVM charge au demarrage si `ZSH_ENV_NVM_LAZY=false`
-- [x] T3: Auto-switch : detection du `.nvmrc` via hook `chpwd`
+- [x] T3: Auto-switch : detection native via mise (chpwd integre)
+- [ ] T3: `mise-configure java` applique les certificats Work
+- [ ] T3: `mise-configure maven` copie settings.xml
+- [x] T1: `mise-configure` sans argument affiche l'usage
 
 ## Aliases (aliases.zsh)
 
@@ -293,4 +293,4 @@
 
 1. **T1 restants** - ~9 cas restants
 2. **T2 restants** - theme list/apply, auto-update compare, ssh_add format, lazy-loading stubs
-3. **T3 restants** - NVM lazy loading (node/npm/lazy=false)
+3. **T3 restants** - mise-configure hooks (java/maven)

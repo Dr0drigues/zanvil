@@ -16,9 +16,9 @@ extract() {
             *.tar.xz)    tar xJf "$1"     ;;
             *.xz)        unxz "$1"        ;;
             *.zst)       unzstd "$1"      ;;
-            *)           echo "'$1' : format non supporte par extract()" ;;
+            *)           _ui_msg_fail "'$1' : format non supporte par extract()" ;;
         esac
     else
-        echo "'$1' n'est pas un fichier valide"
+        _ui_msg_fail "'$1' n'est pas un fichier valide"
     fi
 }

@@ -10,14 +10,16 @@
 # Modules disponibles (true = active, false = desactive)
 ZSH_ENV_MODULE_GITLAB=true      # Scripts et fonctions GitLab
 ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
-ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
+ZSH_ENV_MODULE_MISE=true        # Gestionnaire de versions (Node, Java, Maven)
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
 ZSH_ENV_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 
 # ==============================================================================
-# NVM Configuration
+# Mise Configuration
 # ==============================================================================
-ZSH_ENV_NVM_LAZY=true           # Lazy loading (charge au premier appel node/npm)
+# mise est configure via ~/.config/mise/config.toml
+# Les fichiers .nvmrc, .sdkmanrc et .tool-versions sont supportes nativement
+# Voir: https://mise.jdx.dev/configuration.html
 
 # ==============================================================================
 # Auto-Update
@@ -27,10 +29,13 @@ ZSH_ENV_UPDATE_FREQUENCY=7      # Frequence en jours (0 = a chaque demarrage)
 ZSH_ENV_UPDATE_MODE="prompt"    # "prompt" = demander, "auto" = mise a jour silencieuse
 
 # ==============================================================================
-# Contexte Work (avance)
+# Parametres avances (surchargeable)
 # ==============================================================================
-# ZSH_ENV_WORK_CACHE_TTL=300     # Duree du cache en secondes (defaut: 300 = 5 min)
-# ZSH_ENV_WORK_TIMEOUT=2         # Timeout du test reseau en secondes (defaut: 2)
+# ZSH_ENV_ZCOMPDUMP_CACHE_HOURS=24  # Cache compinit en heures (defaut: 24)
+# ZSH_ENV_WORK_CACHE_TTL=300         # Cache contexte Work en secondes (defaut: 300)
+# ZSH_ENV_WORK_TIMEOUT=2             # Timeout test reseau Work (defaut: 2s)
+# ZSH_ENV_WORK_NEXUS_URL=""
+# ZSH_ENV_AI_CHARS_PER_TOKEN=4      # Ratio caracteres/token pour estimation AI
 
 # ==============================================================================
 # Chargement des plugins
