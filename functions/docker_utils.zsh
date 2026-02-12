@@ -11,17 +11,17 @@
 dex() {
     # Vérifie si docker est lancé
     if ! docker ps > /dev/null 2>&1; then
-        echo "Docker n'est pas lancé ou accessible."
+        _ui_msg_fail "Docker n'est pas lance ou accessible."
         return 1
     fi
 
     local cid
-    # Sélection du conteneur via fzf (affiche Nom et ID)
+    # Selection du conteneur via fzf (affiche Nom et ID)
     cid=$(docker ps --format "table {{.Names}}\t{{.ID}}\t{{.Status}}" | sed 1d | fzf -m | awk '{print $2}')
 
     if [[ -n "$cid" ]]; then
-        local shell="${1:-bash}" # Par défaut bash, sinon l'argument passé (ex: sh)
-        echo "🐳 Connexion à $cid avec $shell..."
+        local shell="${1:-bash}"
+        echo -e "${_ui_dim}Connexion a $cid avec $shell...${_ui_nc}"
         docker exec -it "$cid" "$shell"
     fi
 }
@@ -29,7 +29,7 @@ dex() {
 # Nettoyage rapide (Stop all containers)
 dstop() {
     if ! docker ps > /dev/null 2>&1; then
-        echo "Docker n'est pas lance ou accessible."
+        _ui_msg_fail "Docker n'est pas lance ou accessible."
         return 1
     fi
 
@@ -37,13 +37,13 @@ dstop() {
     containers=$(docker ps -q)
 
     if [[ -z "$containers" ]]; then
-        echo "Aucun conteneur en cours d'execution."
+        _ui_msg_info "Aucun conteneur en cours d'execution."
         return 0
     fi
 
     local count
     count=$(echo "$containers" | wc -l | tr -d ' ')
-    echo "$count conteneur(s) en cours d'execution :"
+    _ui_msg_warn "$count conteneur(s) en cours d'execution :"
     docker ps --format "  {{.Names}} ({{.Image}}) - {{.Status}}"
 
     if [[ -t 0 ]]; then
@@ -51,10 +51,10 @@ dstop() {
         read -q "response?Arreter tous ces conteneurs ? [y/N] "
         echo ""
         if [[ "$response" != "y" ]]; then
-            echo "Annule."
+            echo -e "${_ui_dim}Annule.${_ui_nc}"
             return 0
         fi
     fi
 
-    docker stop $containers
+    docker stop $(echo "$containers")
 }

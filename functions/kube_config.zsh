@@ -67,15 +67,22 @@ _kube_decrypt_sops() {
     local src="$1"
     local dest="$2"
 
-    if ! _kube_has_sops; then
-        echo "sops ou age non installe, impossible de dechiffrer $src" >&2
+    if ! command -v sops &> /dev/null; then
+        echo "sops non installe, impossible de dechiffrer $src" >&2
+        return 1
+    fi
+    if ! command -v age &> /dev/null; then
+        echo "age non installe, impossible de dechiffrer $src" >&2
         return 1
     fi
 
-    if sops -d "$src" > "$dest" 2>/dev/null; then
+    local sops_err
+    sops_err=$(sops -d "$src" 2>&1 > "$dest")
+    if [[ $? -eq 0 ]]; then
         return 0
     else
-        echo "Echec du dechiffrement de $src" >&2
+        echo "Echec du dechiffrement de $src: $sops_err" >&2
+        rm -f "$dest"
         return 1
     fi
 }

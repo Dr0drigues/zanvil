@@ -5,6 +5,31 @@
 # Utilise les fonctions UI de ui.zsh (charge automatiquement)
 # ==============================================================================
 
+# Verifie les permissions d'un fichier et retourne le statut formate
+# Usage: _audit_check_perms "label" "/path" "expected_perms..." -> status_string
+# Incremente $issues ou $warnings selon le resultat
+_audit_check_perms() {
+    local label="$1"
+    local file="$2"
+    shift 2
+    local expected=("$@")
+
+    local perms=$(_ui_get_perms "$file")
+    local match=false
+
+    for exp in "${expected[@]}"; do
+        [[ "$perms" == "$exp" ]] && match=true && break
+    done
+
+    if $match; then
+        printf "%s ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " "$label"
+    else
+        printf "%s ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}%s${_zsh_cmd_nc}  " "$label" "$perms"
+        return 1
+    fi
+    return 0
+}
+
 # Audit principal
 zsh-env-audit() {
     _zsh_header "ZSH_ENV Security Audit"
@@ -23,29 +48,19 @@ zsh-env-audit() {
             ((issues++))
         fi
 
-        # Clés privées
+        # Cles privees
         for key in "$HOME/.ssh"/id_*(N) "$HOME/.ssh"/*.pem(N); do
             [[ ! -f "$key" ]] && continue
             [[ "$key" == *.pub ]] && continue
             local name=$(basename "$key")
-            local perms=$(_ui_get_perms "$key")
-            if [[ "$perms" == "600" || "$perms" == "400" ]]; then
-                ssh_status+="$name ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
-            else
-                ssh_status+="$name ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}  "
-                ((issues++))
-            fi
+            ssh_status+="$(_audit_check_perms "$name" "$key" "600" "400")"
+            [[ $? -ne 0 ]] && ((issues++))
         done
 
         # Config SSH
         if [[ -f "$HOME/.ssh/config" ]]; then
-            local perms=$(_ui_get_perms "$HOME/.ssh/config")
-            if [[ "$perms" == "600" || "$perms" == "644" ]]; then
-                ssh_status+="config ${_zsh_cmd_green}✓${_zsh_cmd_nc}"
-            else
-                ssh_status+="config ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}"
-                ((issues++))
-            fi
+            ssh_status+="$(_audit_check_perms "config" "$HOME/.ssh/config" "600" "644")"
+            [[ $? -ne 0 ]] && ((issues++))
         fi
     else
         ssh_status+="${_zsh_cmd_dim}non configure${_zsh_cmd_nc}"
@@ -61,13 +76,8 @@ zsh-env-audit() {
         local file="$HOME/$secret"
         if [[ -f "$file" ]]; then
             ((secrets_found++))
-            local perms=$(_ui_get_perms "$file")
-            if [[ "$perms" == "600" || "$perms" == "400" ]]; then
-                secrets_status+="$secret ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
-            else
-                secrets_status+="$secret ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}  "
-                ((issues++))
-            fi
+            secrets_status+="$(_audit_check_perms "$secret" "$file" "600" "400")"
+            [[ $? -ne 0 ]] && ((issues++))
         fi
     done
 
@@ -133,13 +143,8 @@ zsh-env-audit() {
 
     # AWS
     if [[ -f "$HOME/.aws/credentials" ]]; then
-        local perms=$(_ui_get_perms "$HOME/.aws/credentials")
-        if [[ "$perms" == "600" ]]; then
-            cloud_status+="AWS ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
-        else
-            cloud_status+="AWS ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}  "
-            ((issues++))
-        fi
+        cloud_status+="$(_audit_check_perms "AWS" "$HOME/.aws/credentials" "600")"
+        [[ $? -ne 0 ]] && ((issues++))
     else
         cloud_status+="${_zsh_cmd_dim}AWS ○${_zsh_cmd_nc}  "
     fi
@@ -153,13 +158,8 @@ zsh-env-audit() {
 
     # GCP
     if [[ -f "$HOME/.config/gcloud/application_default_credentials.json" ]]; then
-        local perms=$(_ui_get_perms "$HOME/.config/gcloud/application_default_credentials.json")
-        if [[ "$perms" == "600" ]]; then
-            cloud_status+="GCP ${_zsh_cmd_green}✓${_zsh_cmd_nc}"
-        else
-            cloud_status+="GCP ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}"
-            ((issues++))
-        fi
+        cloud_status+="$(_audit_check_perms "GCP" "$HOME/.config/gcloud/application_default_credentials.json" "600")"
+        [[ $? -ne 0 ]] && ((issues++))
     else
         cloud_status+="${_zsh_cmd_dim}GCP ○${_zsh_cmd_nc}"
     fi

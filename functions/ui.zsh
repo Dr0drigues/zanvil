@@ -83,9 +83,9 @@ _ui_header() {
     local spaces=$(printf '%*s' $padding '')
 
     echo -e "${_ui_cyan}"
-    printf "${_ui_box_tl}%s${_ui_box_tr}\n" "$(printf "${_ui_box_h}%.0s" $(seq 1 $inner))"
+    printf "${_ui_box_tl}%s${_ui_box_tr}\n" "$(printf "${_ui_box_h}%.0s" {1..$inner})"
     printf "${_ui_box_v}%s%s${_ui_dim}%s${_ui_cyan}  ${_ui_box_v}\n" "$content" "$spaces" "$version"
-    printf "${_ui_box_bl}%s${_ui_box_br}\n" "$(printf "${_ui_box_h}%.0s" $(seq 1 $inner))"
+    printf "${_ui_box_bl}%s${_ui_box_br}\n" "$(printf "${_ui_box_h}%.0s" {1..$inner})"
     echo -e "${_ui_nc}"
 }
 
@@ -112,7 +112,7 @@ _zsh_section() { _ui_section "$@"; }
 _ui_separator() {
     local width="${1:-44}"
     printf "${_ui_dim}"
-    printf "${_ui_box_h}%.0s" $(seq 1 $width)
+    printf "${_ui_box_h}%.0s" {1..$width}
     printf "${_ui_nc}\n"
 }
 

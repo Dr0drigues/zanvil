@@ -134,6 +134,19 @@ zsh-env-completion-remove() {
 
     if [[ -z "$name" ]]; then
         echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zsh-env-completion-remove <nom>"
+        echo ""
+        # Lister les completions disponibles
+        local config_file="$ZSH_ENV_DIR/completions.zsh"
+        if [[ -f "$config_file" ]]; then
+            local available
+            available=$(grep -oP '"\K[^:]+(?=:)' "$config_file" 2>/dev/null)
+            if [[ -n "$available" ]]; then
+                echo -e "${_zsh_cmd_cyan}Completions installees:${_zsh_cmd_nc}"
+                echo "$available" | while read -r comp; do
+                    echo "  $comp"
+                done
+            fi
+        fi
         return 1
     fi
 
