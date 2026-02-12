@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  shellspec:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zsh (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh zip xz-utils
+
+      - name: Install ShellSpec
+        run: |
+          git clone --depth 1 https://github.com/shellspec/shellspec.git /tmp/shellspec
+          sudo make -C /tmp/shellspec install
+
+      - name: Verify setup
+        run: |
+          echo "Shell: $(zsh --version)"
+          echo "ShellSpec: $(shellspec --version)"
+          echo "OS: ${{ runner.os }}"
+
+      - name: Run T1 unit tests
+        run: |
+          shellspec \
+            spec/variables_spec.sh \
+            spec/rc_spec.sh \
+            spec/functions_spec.sh \
+            spec/aliases_spec.sh \
+            spec/utils_spec.sh \
+            spec/extract_spec.sh \
+            spec/git_root_spec.sh \
+            spec/git_change_author_spec.sh \
+            spec/plugins_spec.sh \
+            spec/auto_update_spec.sh \
+            spec/work_context_spec.sh \
+            spec/project_switcher_spec.sh \
+            spec/net_utils_spec.sh \
+            spec/ssh_manager_spec.sh \
+            spec/check_env_deps_spec.sh \
+            spec/zsh_env_commands_spec.sh \
+            spec/test_runner_spec.sh \
+            spec/scripts_spec.sh \
+            spec/gitlab_logic_spec.sh
+
+      - name: Run T2 integration tests
+        run: |
+          shellspec \
+            spec/security_audit_spec.sh \
+            spec/git_hooks_spec.sh \
+            spec/extract_t2_spec.sh \
+            spec/ssh_manager_t2_spec.sh \
+            spec/project_switcher_t2_spec.sh \
+            spec/completions_t2_spec.sh
