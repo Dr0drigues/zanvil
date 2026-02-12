@@ -151,6 +151,7 @@ install_tool "zoxide"   "zoxide"    "zoxide"    "zoxide"
 install_tool "fzf"      "fzf"       "fzf"       "fzf"
 install_tool "bat"      "bat"       "bat"       "bat"  # "cat" avec des ailes
 install_tool "nu"       "nushell"   "nushell"   "nushell"
+install_tool "direnv"   "direnv"    "direnv"    "direnv"  # Charge .envrc automatiquement
 # Note: Sur Linux (trash-cli), la commande est souvent 'trash-put'
 install_tool "trash"    "trash"     "trash-cli" "trash-cli"
 

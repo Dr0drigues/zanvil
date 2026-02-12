@@ -3,13 +3,14 @@
 # ==============================================================================
 # Detection automatique du contexte professionnel Work
 # Test d'acces au Nexus interne avec cache de 5 minutes
+# Utilise les fonctions UI de ui.zsh
 # ==============================================================================
 
 # --- Configuration ---
 _WORK_NEXUS_URL=""
 _WORK_CACHE_FILE="${ZSH_ENV_DIR:-$HOME/.zsh_env}/.work_context_cache"
-_WORK_CACHE_TTL=${ZSH_ENV_WORK_CACHE_TTL:-300}  # 5 minutes en secondes (configurable)
-_WORK_TIMEOUT=${ZSH_ENV_WORK_TIMEOUT:-2}        # Timeout en secondes pour le test (configurable)
+_WORK_CACHE_TTL=300  # 5 minutes en secondes
+_WORK_TIMEOUT=2      # Timeout en secondes pour le test
 
 # --- Fonctions internes ---
 
@@ -141,14 +142,13 @@ blg_init() {
 blg_status() {
     local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
 
-    echo "=== Contexte Work ==="
-    echo ""
+    _ui_header "Contexte Work"
 
     # Statut de la detection
     if work_is_context; then
-        echo "Reseau:          \033[32mConnecte (Nexus accessible)\033[0m"
+        _ui_section "Reseau" "${_ui_green}Connecte (Nexus accessible)${_ui_nc}"
     else
-        echo "Reseau:          \033[31mNon connecte\033[0m"
+        _ui_section "Reseau" "${_ui_red}Non connecte${_ui_nc}"
     fi
 
     # Statut du cache
@@ -161,16 +161,17 @@ blg_status() {
         local remaining=$((_WORK_CACHE_TTL - age))
 
         if (( remaining > 0 )); then
-            echo "Cache:           Valide (expire dans ${remaining}s)"
+            _ui_section "Cache" "Valide (expire dans ${remaining}s)"
         else
-            echo "Cache:           Expire"
+            _ui_section "Cache" "Expire"
         fi
     else
-        echo "Cache:           Non initialise"
+        _ui_section "Cache" "Non initialise"
     fi
 
     echo ""
-    echo "=== Fichiers ==="
+    echo -e "${_ui_bold}Fichiers${_ui_nc}"
+    _ui_separator 44
 
     # Statut des fichiers chiffres/dechiffres
     local blg_dir="$zsh_env_dir/work"
@@ -180,25 +181,26 @@ blg_status() {
         local dec_file="$blg_dir/$file"
 
         if [[ -f "$dec_file" && -f "$enc_file" ]]; then
-            echo "$file:    \033[32mDechiffre\033[0m"
+            echo -e "  $file: ${_ui_green}Dechiffre${_ui_nc}"
         elif [[ -f "$enc_file" ]]; then
-            echo "$file:    \033[33mChiffre (non dechiffre)\033[0m"
+            echo -e "  $file: ${_ui_yellow}Chiffre (non dechiffre)${_ui_nc}"
         elif [[ -f "$dec_file" ]]; then
-            echo "$file:    \033[33mEn clair (non chiffre)\033[0m"
+            echo -e "  $file: ${_ui_yellow}En clair (non chiffre)${_ui_nc}"
         else
-            echo "$file:    \033[31mAbsent\033[0m"
+            echo -e "  $file: ${_ui_red}Absent${_ui_nc}"
         fi
     done
 
     echo ""
-    echo "=== Modules ==="
-    echo "GitLab:          ${ZSH_ENV_MODULE_GITLAB:-false}"
+    echo -e "${_ui_bold}Modules${_ui_nc}"
+    _ui_separator 44
+    _ui_section "GitLab" "${ZSH_ENV_MODULE_GITLAB:-false}"
 
     # SDKMAN
     if [[ -n "$SDKMAN_DIR" && -d "$SDKMAN_DIR" ]]; then
-        echo "SDKMAN:          Installe"
+        _ui_section "SDKMAN" "Installe"
     else
-        echo "SDKMAN:          Non installe"
+        _ui_section "SDKMAN" "Non installe"
     fi
 }
 

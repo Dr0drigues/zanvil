@@ -58,30 +58,27 @@ Permissions attendues : 600
 ## Exemple de sortie
 
 ```
-Audit de sécurité zsh_env
-══════════════════════════════════════════════════════════════
+╭──────────────────────────────────────────╮
+│  ZSH_ENV Security Audit          v1.2.0  │
+╰──────────────────────────────────────────╯
 
-SSH
-──────────────────────────────────────────
-[OK] Dossier SSH (~/.ssh) - permissions 700
-[OK] Clé privée id_rsa - permissions 600
-[OK] Config SSH (~/.ssh/config) - permissions 600
+SSH           ~/.ssh ✓  id_ed25519 ✓  config ✓
+Secrets       .secrets ✓  .gitlab_secrets ✗644  .npmrc ✓
+Kubernetes    ~/.kube ✓  config ✓  2 configs.d/
+Git           credential.helper ✓osxkeychain
+Cloud         AWS ○  Azure ✓  GCP ○
+History       .zsh_history ✓
 
-Fichiers secrets
-──────────────────────────────────────────
-[OK] .secrets - permissions 600
-[FAIL] .gitlab_secrets - permissions 644 (attendu: 600)
-
-...
-
-══════════════════════════════════════════════════════════════
-Résumé:
-[FAIL] 1 problème(s) critique(s)
-[WARN] 2 avertissement(s)
-
-Actions recommandées:
-  chmod 600 ~/.gitlab_secrets
+────────────────────────────────────────────
+✗ 1 erreur(s), 2 avertissement(s)
+Correction auto: zsh-env-audit-fix
 ```
+
+### Légende
+
+- `✓` : OK (permissions correctes)
+- `✗` : Erreur (permissions incorrectes, affiche la valeur)
+- `○` : Optionnel/Non configuré
 
 ## Correction automatique
 

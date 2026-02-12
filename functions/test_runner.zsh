@@ -122,6 +122,7 @@ _trun_spinner() {
     local tmp_file=$3
     local spinner='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local pid
+    local clear_line=$'\r\033[K'
 
     # Lance la commande en arrière-plan
     eval "$cmd" > "$tmp_file" 2>&1 &
@@ -130,7 +131,7 @@ _trun_spinner() {
     # Affiche le spinner
     local i=0
     while kill -0 $pid 2>/dev/null; do
-        printf "\r\033[K%s Tests en cours... (%s)" "${spinner:$i:1}" "$runner"
+        printf "${clear_line}%s Tests en cours... (%s)" "${spinner:$i:1}" "$runner"
         i=$(( (i + 1) % ${#spinner} ))
         sleep 0.1
     done
@@ -140,7 +141,7 @@ _trun_spinner() {
     local exit_code=$?
 
     # Efface la ligne du spinner
-    printf "\r\033[K"
+    printf "${clear_line}"
 
     return $exit_code
 }

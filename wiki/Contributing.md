@@ -38,6 +38,40 @@ Guide pour contribuer au projet zsh_env.
 - Vérifier les dépendances avec `command -v`
 - Utiliser `echo ... >&2` pour les erreurs
 
+### Système UI (`functions/ui.zsh`)
+
+**Toujours utiliser les fonctions UI** pour les couleurs et le formatage :
+
+```zsh
+# Header avec version
+_ui_header "Mon Module"
+
+# Sections alignées
+_ui_section "Status" "outil1 ${_ui_green}✓${_ui_nc}  outil2 ${_ui_red}✗${_ui_nc}"
+
+# Séparateur
+_ui_separator 44
+
+# Résumé
+_ui_summary $issues $warnings
+```
+
+**Ne jamais coder les couleurs en dur** :
+```zsh
+# ❌ Mauvais
+echo "\033[32m[OK]\033[0m Message"
+
+# ✓ Bon
+echo -e "${_ui_green}[OK]${_ui_nc} Message"
+# ou
+_ui_tag_ok "Message"
+```
+
+Variables disponibles :
+- Couleurs : `$_ui_green`, `$_ui_red`, `$_ui_yellow`, `$_ui_blue`, `$_ui_cyan`
+- Styles : `$_ui_bold`, `$_ui_dim`, `$_ui_nc` (reset)
+- Symboles : `$_ui_check` (✓), `$_ui_cross` (✗), `$_ui_circle` (○)
+
 ### Globs zsh
 
 Toujours utiliser le modificateur `(N)` pour éviter les erreurs :

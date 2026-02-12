@@ -1,5 +1,9 @@
+# ==============================================================================
 # sdk-sync : Installe les versions manquantes définies dans .sdkmanrc
+# ==============================================================================
 # Usage: sdk-sync [chemin/vers/.sdkmanrc]
+# Utilise les fonctions UI de ui.zsh
+# ==============================================================================
 
 sdk-sync() {
     local rc_file="${1:-.sdkmanrc}"
@@ -40,18 +44,18 @@ sdk-sync() {
     if [[ ${#installed[@]} -gt 0 ]]; then
         echo "Déjà installés:"
         for item in "${installed[@]}"; do
-            echo "  ✓ $item"
+            echo -e "  ${_ui_green}${_ui_check}${_ui_nc} $item"
         done
     fi
 
     if [[ ${#missing[@]} -eq 0 ]]; then
-        echo "\nToutes les versions sont déjà installées."
+        echo -e "\nToutes les versions sont déjà installées."
         return 0
     fi
 
-    echo "\nVersions manquantes:"
+    echo -e "\nVersions manquantes:"
     for item in "${missing[@]}"; do
-        echo "  ✗ $item"
+        echo -e "  ${_ui_red}${_ui_cross}${_ui_nc} $item"
     done
 
     # Demande de confirmation
@@ -73,7 +77,7 @@ sdk-sync() {
         sdk install "$candidate" "$version" || echo "Echec: $candidate $version"
     done
 
-    echo "\nTerminé. Exécute 'sdk env' pour activer les versions."
+    echo -e "\nTerminé. Exécute 'sdk env' pour activer les versions."
 }
 
 # Hook chpwd : rappel si des versions sont manquantes
@@ -95,7 +99,7 @@ _sdk_sync_check() {
     done < .sdkmanrc
 
     if [[ $missing -gt 0 ]]; then
-        echo "\033[33m⚠ .sdkmanrc: $missing version(s) manquante(s) - lance 'sdk-sync' pour installer\033[0m"
+        echo -e "${_ui_yellow}${_ui_warn} .sdkmanrc: $missing version(s) manquante(s) - lance 'sdk-sync' pour installer${_ui_nc}"
     fi
 }
 

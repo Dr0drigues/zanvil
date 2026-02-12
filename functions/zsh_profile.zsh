@@ -2,6 +2,7 @@
 # ZSH Profile - Profiling du temps de demarrage du shell
 # ==============================================================================
 # Mesure le temps de chargement de chaque module pour identifier les lenteurs
+# Utilise les fonctions UI de ui.zsh
 # ==============================================================================
 
 # Profiling du startup complet
@@ -9,8 +10,7 @@ zsh-env-profile() {
     local verbose=false
     [[ "$1" == "-v" ]] && verbose=true
 
-    echo "Profiling du demarrage zsh_env..."
-    echo ""
+    _ui_header "ZSH_ENV Profiling"
 
     local total_start=$EPOCHREALTIME
     local results=()
@@ -68,35 +68,35 @@ zsh-env-profile() {
 
     # Trier par temps (decroissant)
     echo "Temps par fichier (trie par duree):"
-    echo "──────────────────────────────────────────"
+    _ui_separator 44
 
     # Trier et afficher
     printf '%s\n' "${results[@]}" | sort -rn | while read -r line; do
         local time_val=${line%% *}
         # Colorer en rouge si > 50ms, jaune si > 20ms
         if (( time_val > 50 )); then
-            echo "\033[31m$line\033[0m"
+            echo -e "${_ui_red}$line${_ui_nc}"
         elif (( time_val > 20 )); then
-            echo "\033[33m$line\033[0m"
+            echo -e "${_ui_yellow}$line${_ui_nc}"
         else
-            echo "\033[32m$line\033[0m"
+            echo -e "${_ui_green}$line${_ui_nc}"
         fi
     done
 
-    echo "──────────────────────────────────────────"
+    _ui_separator 44
     printf "Total mesure:  %6.1f ms\n" "$total_time"
     printf "Temps reel:    %6.1f ms\n" "$real_total"
     echo ""
 
     # Conseils
     if (( real_total > 500 )); then
-        echo "\033[33mConseil: Le demarrage est lent (>500ms).\033[0m"
+        echo -e "${_ui_yellow}Conseil: Le demarrage est lent (>500ms).${_ui_nc}"
         echo "  - Activez le lazy loading NVM: ZSH_ENV_NVM_LAZY=true"
         echo "  - Desactivez les modules inutiles dans config.zsh"
     elif (( real_total > 200 )); then
-        echo "\033[32mLe temps de demarrage est acceptable.\033[0m"
+        echo -e "${_ui_green}Le temps de demarrage est acceptable.${_ui_nc}"
     else
-        echo "\033[32mExcellent! Demarrage rapide (<200ms).\033[0m"
+        echo -e "${_ui_green}Excellent! Demarrage rapide (<200ms).${_ui_nc}"
     fi
 }
 
@@ -114,6 +114,8 @@ zsh-env-benchmark() {
     local runs=${1:-5}
     local times=()
     local sum=0
+
+    _ui_header "ZSH_ENV Benchmark"
 
     echo "Benchmark sur $runs executions..."
     echo ""
@@ -133,6 +135,6 @@ zsh-env-benchmark() {
     local avg=$(( sum / runs ))
 
     echo ""
-    echo "──────────────────────────────────────────"
+    _ui_separator 44
     printf "Moyenne: %.1f ms\n" "$avg"
 }

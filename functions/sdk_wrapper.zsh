@@ -3,6 +3,7 @@
 # ==============================================================================
 # Intercepte les commandes sdk install pour appliquer automatiquement
 # les configurations Work (certificats Java, settings Maven)
+# Utilise les fonctions UI de ui.zsh
 # ==============================================================================
 
 # Ne charge ce wrapper que si SDKMAN est installe
@@ -21,17 +22,17 @@ _sdk_hook_java() {
     # Verifier que le certificat script existe
     local cert_script="$_SDK_ZSH_ENV_DIR/work/certificates_unix.sh"
     if [[ ! -f "$cert_script" ]]; then
-        echo "\033[33m[sdk-hook]\033[0m Script de certificats non trouve: $cert_script"
+        echo -e "${_ui_yellow}[sdk-hook]${_ui_nc} Script de certificats non trouve: $cert_script"
         return 1
     fi
 
     # Verifier que JAVA_HOME est valide
     if [[ ! -d "$java_home" ]]; then
-        echo "\033[31m[sdk-hook]\033[0m JAVA_HOME invalide: $java_home"
+        echo -e "${_ui_red}[sdk-hook]${_ui_nc} JAVA_HOME invalide: $java_home"
         return 1
     fi
 
-    echo "\033[34m[sdk-hook]\033[0m Import des certificats Work pour Java $version..."
+    echo -e "${_ui_blue}[sdk-hook]${_ui_nc} Import des certificats Work pour Java $version..."
 
     # Exporter JAVA_HOME temporairement pour le script
     (
@@ -40,9 +41,9 @@ _sdk_hook_java() {
     )
 
     if [[ $? -eq 0 ]]; then
-        echo "\033[32m[sdk-hook]\033[0m Certificats importes avec succes"
+        echo -e "${_ui_green}[sdk-hook]${_ui_nc} Certificats importes avec succes"
     else
-        echo "\033[31m[sdk-hook]\033[0m Erreur lors de l'import des certificats"
+        echo -e "${_ui_red}[sdk-hook]${_ui_nc} Erreur lors de l'import des certificats"
         return 1
     fi
 }
@@ -55,18 +56,18 @@ _sdk_hook_maven() {
     # Verifier que settings.xml existe
     local settings_src="$_SDK_ZSH_ENV_DIR/work/settings.xml"
     if [[ ! -f "$settings_src" ]]; then
-        echo "\033[33m[sdk-hook]\033[0m settings.xml non trouve: $settings_src"
+        echo -e "${_ui_yellow}[sdk-hook]${_ui_nc} settings.xml non trouve: $settings_src"
         return 1
     fi
 
     # Verifier que le dossier conf existe
     local settings_dest="$maven_home/conf/settings.xml"
     if [[ ! -d "$maven_home/conf" ]]; then
-        echo "\033[31m[sdk-hook]\033[0m Dossier conf Maven invalide: $maven_home/conf"
+        echo -e "${_ui_red}[sdk-hook]${_ui_nc} Dossier conf Maven invalide: $maven_home/conf"
         return 1
     fi
 
-    echo "\033[34m[sdk-hook]\033[0m Copie de settings.xml vers Maven $version..."
+    echo -e "${_ui_blue}[sdk-hook]${_ui_nc} Copie de settings.xml vers Maven $version..."
 
     # Backup de l'original si existe
     if [[ -f "$settings_dest" && ! -f "${settings_dest}.original" ]]; then
@@ -76,9 +77,9 @@ _sdk_hook_maven() {
     cp "$settings_src" "$settings_dest"
 
     if [[ $? -eq 0 ]]; then
-        echo "\033[32m[sdk-hook]\033[0m settings.xml copie avec succes"
+        echo -e "${_ui_green}[sdk-hook]${_ui_nc} settings.xml copie avec succes"
     else
-        echo "\033[31m[sdk-hook]\033[0m Erreur lors de la copie de settings.xml"
+        echo -e "${_ui_red}[sdk-hook]${_ui_nc} Erreur lors de la copie de settings.xml"
         return 1
     fi
 }
@@ -172,7 +173,7 @@ sdk-configure() {
     if [[ "$version" == "current" ]]; then
         version=$(sdk current "$candidate" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+[^ ]*' | head -1)
         if [[ -z "$version" ]]; then
-            echo "\033[31m[sdk-configure]\033[0m Aucune version de $candidate n'est active"
+            echo -e "${_ui_red}[sdk-configure]${_ui_nc} Aucune version de $candidate n'est active"
             return 1
         fi
         echo "Version courante de $candidate: $version"
@@ -181,7 +182,7 @@ sdk-configure() {
     # Verifier que la version existe
     local candidate_home="$SDKMAN_DIR/candidates/$candidate/$version"
     if [[ ! -d "$candidate_home" ]]; then
-        echo "\033[31m[sdk-configure]\033[0m Version non trouvee: $candidate $version"
+        echo -e "${_ui_red}[sdk-configure]${_ui_nc} Version non trouvee: $candidate $version"
         return 1
     fi
 
@@ -194,7 +195,7 @@ sdk-configure() {
             _sdk_hook_maven "$version"
             ;;
         *)
-            echo "\033[33m[sdk-configure]\033[0m Pas de hook configure pour: $candidate"
+            echo -e "${_ui_yellow}[sdk-configure]${_ui_nc} Pas de hook configure pour: $candidate"
             return 1
             ;;
     esac

@@ -53,9 +53,30 @@ hooks_install       # Installer les hooks Git
 ~/.zsh_env/
 ├── rc.zsh              # Point d'entrée
 ├── config.zsh          # Configuration personnelle
-├── functions/          # Modules (kube, ssh, tmux, proj...)
+├── functions/          # Modules fonctionnels
+│   ├── ui.zsh          # Système UI (couleurs, formatage)
+│   ├── zsh_env_commands.zsh  # Commandes zsh-env-*
+│   ├── security_audit.zsh    # Audit de sécurité
+│   └── ...             # Autres modules (kube, ssh, tmux, proj...)
 ├── themes/             # Thèmes Starship
 └── scripts/            # Scripts autonomes
+```
+
+## Système UI
+
+Toutes les commandes utilisent un style visuel cohérent via `functions/ui.zsh` :
+
+```
+╭──────────────────────────────────────────╮
+│  ZSH_ENV Doctor                  v1.2.0  │
+╰──────────────────────────────────────────╯
+
+Config         rc.zsh ✓  aliases ✓  variables ✓  functions ✓
+Requis         git ✓  curl ✓  jq ✓
+Recommandés    starship ✓  zoxide ✓  fzf ✓  eza ✓  bat ✓
+
+────────────────────────────────────────────
+✓ Tout est OK
 ```
 
 ## Contribuer
