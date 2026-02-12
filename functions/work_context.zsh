@@ -196,11 +196,11 @@ blg_status() {
     _ui_separator 44
     _ui_section "GitLab" "${ZSH_ENV_MODULE_GITLAB:-false}"
 
-    # SDKMAN
-    if [[ -n "$SDKMAN_DIR" && -d "$SDKMAN_DIR" ]]; then
-        _ui_section "SDKMAN" "Installe"
+    # Mise
+    if command -v mise &> /dev/null; then
+        _ui_section "Mise" "Installe ($(mise --version 2>/dev/null | awk '{print $1}'))"
     else
-        _ui_section "SDKMAN" "Non installe"
+        _ui_section "Mise" "Non installe"
     fi
 }
 

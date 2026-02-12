@@ -10,14 +10,16 @@
 # Modules disponibles (true = active, false = desactive)
 ZSH_ENV_MODULE_GITLAB=true      # Scripts et fonctions GitLab
 ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
-ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
+ZSH_ENV_MODULE_MISE=true        # Gestionnaire de versions (Node, Java, Maven)
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
 ZSH_ENV_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 
 # ==============================================================================
-# NVM Configuration
+# Mise Configuration
 # ==============================================================================
-ZSH_ENV_NVM_LAZY=true           # Lazy loading (charge au premier appel node/npm)
+# mise est configure via ~/.config/mise/config.toml
+# Les fichiers .nvmrc, .sdkmanrc et .tool-versions sont supportes nativement
+# Voir: https://mise.jdx.dev/configuration.html
 
 # ==============================================================================
 # Auto-Update

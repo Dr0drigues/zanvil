@@ -6,22 +6,20 @@ Describe "rc.zsh"
       # Unset all module vars to test defaults
       unset ZSH_ENV_MODULE_GITLAB
       unset ZSH_ENV_MODULE_DOCKER
-      unset ZSH_ENV_MODULE_NVM
+      unset ZSH_ENV_MODULE_MISE
       unset ZSH_ENV_MODULE_NUSHELL
       unset ZSH_ENV_AUTO_UPDATE
       unset ZSH_ENV_UPDATE_FREQUENCY
       unset ZSH_ENV_UPDATE_MODE
-      unset ZSH_ENV_NVM_LAZY
 
       # Simulate what rc.zsh does for defaults (without sourcing the full file)
       ZSH_ENV_MODULE_GITLAB=${ZSH_ENV_MODULE_GITLAB:-true}
       ZSH_ENV_MODULE_DOCKER=${ZSH_ENV_MODULE_DOCKER:-true}
-      ZSH_ENV_MODULE_NVM=${ZSH_ENV_MODULE_NVM:-true}
+      ZSH_ENV_MODULE_MISE=${ZSH_ENV_MODULE_MISE:-true}
       ZSH_ENV_MODULE_NUSHELL=${ZSH_ENV_MODULE_NUSHELL:-true}
       ZSH_ENV_AUTO_UPDATE=${ZSH_ENV_AUTO_UPDATE:-true}
       ZSH_ENV_UPDATE_FREQUENCY=${ZSH_ENV_UPDATE_FREQUENCY:-7}
       ZSH_ENV_UPDATE_MODE=${ZSH_ENV_UPDATE_MODE:-prompt}
-      ZSH_ENV_NVM_LAZY=${ZSH_ENV_NVM_LAZY:-true}
     }
     Before 'setup'
 
@@ -33,16 +31,12 @@ Describe "rc.zsh"
       The variable ZSH_ENV_MODULE_DOCKER should equal "true"
     End
 
-    It "defaults ZSH_ENV_MODULE_NVM to true"
-      The variable ZSH_ENV_MODULE_NVM should equal "true"
+    It "defaults ZSH_ENV_MODULE_MISE to true"
+      The variable ZSH_ENV_MODULE_MISE should equal "true"
     End
 
     It "defaults ZSH_ENV_MODULE_NUSHELL to true"
       The variable ZSH_ENV_MODULE_NUSHELL should equal "true"
-    End
-
-    It "defaults ZSH_ENV_NVM_LAZY to true"
-      The variable ZSH_ENV_NVM_LAZY should equal "true"
     End
 
     It "defaults ZSH_ENV_AUTO_UPDATE to true"

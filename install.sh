@@ -51,11 +51,11 @@ INSTALL_CMD=""
 detect_platform() {
     case "${OS}" in
         Linux*)
-            if [ -f /etc/debian_version ]; then
+            if [[ -f /etc/debian_version ]]; then
                 PKG_MANAGER="apt"
                 INSTALL_CMD="sudo apt-get install -y"
                 log_info "Système détecté : Linux (Debian/Ubuntu)"
-            elif [ -f /etc/fedora-release ]; then
+            elif [[ -f /etc/fedora-release ]]; then
                 PKG_MANAGER="dnf"
                 INSTALL_CMD="sudo dnf install -y"
                 log_info "Système détecté : Linux (Fedora)"
@@ -105,7 +105,7 @@ install_tool() {
     esac
 
     # Si le nom du paquet est vide pour cet OS, on tente une install manuelle ou on skip
-    if [ -z "$pkg" ]; then
+    if [[ -z "$pkg" ]]; then
         echo ""
         log_warn "Pas de paquet connu pour $tool_name sur $PKG_MANAGER."
         return
@@ -127,7 +127,7 @@ echo -e "${BOLD}=== Initialisation de l'environnement de Dev ===${NC}\n"
 detect_platform
 
 # Mise à jour des index de paquets (Linux uniquement)
-if [ "$PKG_MANAGER" == "apt" ]; then
+if [[ "$PKG_MANAGER" == "apt" ]]; then
     log_info "Mise à jour des dépôts apt..."
     sudo apt-get update -qq
 fi
@@ -155,6 +155,9 @@ install_tool "direnv"   "direnv"    "direnv"    "direnv"  # Charge .envrc automa
 # Note: Sur Linux (trash-cli), la commande est souvent 'trash-put'
 install_tool "trash"    "trash"     "trash-cli" "trash-cli"
 
+# 5. Gestionnaire de versions (mise - remplace NVM + SDKMAN)
+install_tool "mise"     "mise"      ""          ""
+
 # 3. Outils de chiffrement (pour kubeconfig, secrets, etc.)
 install_tool "sops"     "sops"      "sops"      "sops"
 install_tool "age"      "age"       "age"       "age"
@@ -174,30 +177,16 @@ if ! command -v starship &> /dev/null; then
     curl -sS --proto '=https' --tlsv1.2 https://starship.rs/install.sh | sh -s -- -y
 fi
 
-# Installation de NVM (Node Version Manager)
-if [ -d "$NVM_DIR" ]; then
-    log_success "NVM est déjà installé."
-else
-    log_info "Installation de NVM..."
-    
-    if [ "$PKG_MANAGER" == "brew" ]; then
-        # Sur MacOS, on préfère brew pour la maintenance
-        brew install nvm
-    else
-        # Sur Linux : Installation via le script officiel (Version Dynamique)
-        log_info "Récupération de la dernière version via GitHub API..."
-        
-        # Note : jq est déjà installé plus haut dans le script
-        curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nvm-sh/nvm/releases/latest | \
-        jq -r '.tag_name' | \
-        xargs -I {} curl --proto '=https' --tlsv1.2 -o- https://raw.githubusercontent.com/nvm-sh/nvm/{}/install.sh | bash
-        
-        if [ $? -eq 0 ]; then
-            log_success "NVM installé avec succès."
-        else
-            log_error "Échec de l'installation de NVM."
-        fi
-    fi
+# mise (Script officiel si non trouve via gestionnaire)
+if ! command -v mise &> /dev/null; then
+    log_info "Installation manuelle de mise..."
+    log_warn "Le script d'installation est telecharge depuis mise.jdx.dev (HTTPS)"
+    curl -sS --proto '=https' --tlsv1.2 https://mise.jdx.dev/install.sh | sh
+fi
+
+# Configuration de mise pour supporter .nvmrc et .sdkmanrc
+if command -v mise &> /dev/null; then
+    mise settings set idiomatic_version_file true 2>/dev/null
 fi
 
 # Nushell (Si non trouvé via gestionnaire de paquets)
@@ -221,20 +210,6 @@ if ! command -v nu &> /dev/null; then
     rm -rf /tmp/nu.tar.gz /tmp/nu-*-linux-musl
 fi
 
-# SDKMAN (Gestionnaire de versions pour Java, Gradle, Maven, etc.)
-export SDKMAN_DIR="$HOME/.sdkman"
-if [ -d "$SDKMAN_DIR" ]; then
-    log_success "SDKMAN est deja installe."
-else
-    log_info "Installation de SDKMAN..."
-    curl -s --proto '=https' --tlsv1.2 "https://get.sdkman.io?rcupdate=false" | bash
-    if [ $? -eq 0 ]; then
-        log_success "SDKMAN installe avec succes."
-        log_info "Utilisez 'sdk install java' pour installer Java."
-    else
-        log_error "Echec de l'installation de SDKMAN."
-    fi
-fi
 
 # --- Configuration Automatique du .zshrc ---
 echo ""
@@ -247,7 +222,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="$HOME/.zsh_env"
 
 # 1. Vérification de l'emplacement
-if [ "$CURRENT_DIR" != "$TARGET_DIR" ]; then
+if [[ "$CURRENT_DIR" != "$TARGET_DIR" ]]; then
     log_warn "Le repo n'est pas dans $TARGET_DIR (Actuel: $CURRENT_DIR)"
     log_warn "Pour une installation standard, il est recommandé de cloner dans ~/.zsh_env"
     # On continue quand même en utilisant le chemin actuel pour la config
@@ -273,7 +248,7 @@ else
 # Init from zsh_env/install.sh
 export ZSH_ENV_DIR="$TARGET_DIR"
 
-if [ -f "\$ZSH_ENV_DIR/rc.zsh" ]; then
+if [[ -f "\$ZSH_ENV_DIR/rc.zsh" ]]; then
     source "\$ZSH_ENV_DIR/rc.zsh"
 else
     echo "WARNING: ZSH_ENV_DIR not found at \$ZSH_ENV_DIR"
@@ -286,7 +261,7 @@ fi
 # --- Finalisation ---
 # Vérification du dossier scripts
 SCRIPTS_DIR="$TARGET_DIR/scripts"
-if [ ! -d "$SCRIPTS_DIR" ]; then
+if [[ ! -d "$SCRIPTS_DIR" ]]; then
     mkdir -p "$SCRIPTS_DIR"
 fi
 
@@ -303,12 +278,12 @@ if curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 2 "$NE
     BOULANGER_DETECTED="true"
 
     # Si SOPS est configure et les fichiers en clair existent sans .enc
-    if command -v sops &>/dev/null && [ -f "$HOME/.config/sops/age/keys.txt" ]; then
+    if command -v sops &>/dev/null && [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
         BLG_DIR="$TARGET_DIR/work"
         mkdir -p "$BLG_DIR"
 
         # Chiffrer settings.xml si .enc n'existe pas
-        if [ -f "$BLG_DIR/settings.xml" ] && [ ! -f "$BLG_DIR/settings.xml.enc" ]; then
+        if [[ -f "$BLG_DIR/settings.xml" ]] && [[ ! -f "$BLG_DIR/settings.xml.enc" ]]; then
             log_info "Chiffrement de settings.xml..."
             if sops -e "$BLG_DIR/settings.xml" > "$BLG_DIR/settings.xml.enc" 2>/dev/null; then
                 log_success "settings.xml.enc cree"
@@ -318,7 +293,7 @@ if curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 2 "$NE
         fi
 
         # Chiffrer certificates_unix.sh si .enc n'existe pas
-        if [ -f "$BLG_DIR/certificates_unix.sh" ] && [ ! -f "$BLG_DIR/certificates_unix.sh.enc" ]; then
+        if [[ -f "$BLG_DIR/certificates_unix.sh" ]] && [[ ! -f "$BLG_DIR/certificates_unix.sh.enc" ]]; then
             log_info "Chiffrement de certificates_unix.sh..."
             if sops -e "$BLG_DIR/certificates_unix.sh" > "$BLG_DIR/certificates_unix.sh.enc" 2>/dev/null; then
                 log_success "certificates_unix.sh.enc cree"
@@ -335,7 +310,7 @@ fi
 echo ""
 echo -e "${BOLD}=== Configuration des Modules ===${NC}"
 
-if [ "$INTERACTIVE" = true ]; then
+if [[ "$INTERACTIVE" = true ]]; then
     echo -e "Choisissez les modules a activer (Entree = valeur par defaut)\n"
 
     # Fonction pour poser une question oui/non
@@ -345,13 +320,13 @@ if [ "$INTERACTIVE" = true ]; then
         local default="$3"
 
         local prompt_default="O/n"
-        [ "$default" = "false" ] && prompt_default="o/N"
+        [[ "$default" = "false" ]] && prompt_default="o/N"
 
         # Afficher sur stderr pour ne pas etre capture par $()
         printf "  ${CYAN}%s${NC} - %s [%s]: " "$module_name" "$module_desc" "$prompt_default" >&2
         read -r answer
 
-        if [ -z "$answer" ]; then
+        if [[ -z "$answer" ]]; then
             echo "$default"
         elif [[ "$answer" =~ ^[oOyY]$ ]]; then
             echo "true"
@@ -363,30 +338,24 @@ if [ "$INTERACTIVE" = true ]; then
     # Poser les questions pour les modules
     MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
     MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "true")
-    MODULE_NVM=$(ask_module "NVM" "Auto-switch Node.js via .nvmrc" "true")
-
-    # NVM Lazy loading (seulement si NVM actif)
-    NVM_LAZY="true"
-    if [ "$MODULE_NVM" = "true" ]; then
-        NVM_LAZY=$(ask_module "NVM Lazy" "Charger NVM au premier appel node/npm (plus rapide)" "true")
-    fi
+    MODULE_MISE=$(ask_module "Mise" "Gestionnaire de versions (Node, Java, Maven, etc.)" "true")
 
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
     MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "true")
 
     # Configuration SOPS/Age (si module Kube actif)
     SOPS_CONFIGURED="false"
-    if [ "$MODULE_KUBE" = "true" ]; then
+    if [[ "$MODULE_KUBE" = "true" ]]; then
         echo "" >&2
         echo -e "${BOLD}Configuration SOPS/Age:${NC}" >&2
         echo -e "  SOPS permet de chiffrer vos kubeconfig pour les versionner dans Git." >&2
         SETUP_SOPS=$(ask_module "SOPS" "Configurer le chiffrement avec age" "true")
 
-        if [ "$SETUP_SOPS" = "true" ]; then
+        if [[ "$SETUP_SOPS" = "true" ]]; then
             AGE_KEY_DIR="$HOME/.config/sops/age"
             AGE_KEY_FILE="$AGE_KEY_DIR/keys.txt"
 
-            if [ -f "$AGE_KEY_FILE" ]; then
+            if [[ -f "$AGE_KEY_FILE" ]]; then
                 echo -e "  ${GREEN}Cle age existante detectee${NC}" >&2
                 SOPS_CONFIGURED="true"
             elif command -v age-keygen &> /dev/null; then
@@ -434,7 +403,7 @@ if [ "$INTERACTIVE" = true ]; then
     echo -e "${BOLD}Auto-Update:${NC}" >&2
     AUTO_UPDATE=$(ask_module "Auto-Update" "Verifier les mises a jour automatiquement" "true")
 
-    if [ "$AUTO_UPDATE" = "true" ]; then
+    if [[ "$AUTO_UPDATE" = "true" ]]; then
         echo -e "  Frequence de verification:" >&2
         echo -e "    ${CYAN}1)${NC} Chaque demarrage" >&2
         echo -e "    ${CYAN}2)${NC} Tous les 7 jours (recommande)" >&2
@@ -464,10 +433,9 @@ else
     log_info "Mode --default : tous les modules actives"
     MODULE_GITLAB="true"
     MODULE_DOCKER="true"
-    MODULE_NVM="true"
+    MODULE_MISE="true"
     MODULE_NUSHELL="true"
     MODULE_KUBE="true"
-    NVM_LAZY="true"
     STARSHIP_THEME="default"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
@@ -477,7 +445,7 @@ else
     # Configuration SOPS automatique en mode default
     AGE_KEY_DIR="$HOME/.config/sops/age"
     AGE_KEY_FILE="$AGE_KEY_DIR/keys.txt"
-    if [ -f "$AGE_KEY_FILE" ]; then
+    if [[ -f "$AGE_KEY_FILE" ]]; then
         SOPS_CONFIGURED="true"
     elif command -v age-keygen &> /dev/null; then
         mkdir -p "$AGE_KEY_DIR"
@@ -503,12 +471,9 @@ cat > "$CONFIG_FILE" << EOF
 # Modules (true = active, false = desactive)
 ZSH_ENV_MODULE_GITLAB=$MODULE_GITLAB
 ZSH_ENV_MODULE_DOCKER=$MODULE_DOCKER
-ZSH_ENV_MODULE_NVM=$MODULE_NVM
+ZSH_ENV_MODULE_MISE=$MODULE_MISE
 ZSH_ENV_MODULE_NUSHELL=$MODULE_NUSHELL
 ZSH_ENV_MODULE_KUBE=$MODULE_KUBE
-
-# NVM Lazy Loading (charge au premier appel node/npm)
-ZSH_ENV_NVM_LAZY=$NVM_LAZY
 
 # Auto-Update
 ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
@@ -522,9 +487,9 @@ EOF
 log_success "Configuration sauvegardee"
 
 # Creation du fichier .sops.yaml si SOPS configure
-if [ "$SOPS_CONFIGURED" = "true" ] && [ -n "$AGE_PUBLIC_KEY" ]; then
+if [[ "$SOPS_CONFIGURED" = "true" ]] && [[ -n "$AGE_PUBLIC_KEY" ]]; then
     SOPS_CONFIG="$TARGET_DIR/.sops.yaml"
-    if [ ! -f "$SOPS_CONFIG" ]; then
+    if [[ ! -f "$SOPS_CONFIG" ]]; then
         log_info "Creation de $SOPS_CONFIG..."
         cat > "$SOPS_CONFIG" << SOPSEOF
 # Configuration SOPS pour le chiffrement des fichiers sensibles
@@ -543,7 +508,7 @@ SOPSEOF
 fi
 
 # Appliquer le theme Starship si choisi
-if [ -n "$STARSHIP_THEME" ] && [ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]; then
+if [[ -n "$STARSHIP_THEME" ]] && [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
     mkdir -p "$HOME/.config"
     cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
@@ -552,28 +517,22 @@ fi
 # Resume
 echo ""
 echo -e "${CYAN}Modules actives:${NC}"
-[ "$MODULE_GITLAB" = "true" ] && echo -e "  ${GREEN}✓${NC} GitLab"
-[ "$MODULE_DOCKER" = "true" ] && echo -e "  ${GREEN}✓${NC} Docker"
-if [ "$MODULE_NVM" = "true" ]; then
-    if [ "$NVM_LAZY" = "true" ]; then
-        echo -e "  ${GREEN}✓${NC} NVM (lazy loading)"
-    else
-        echo -e "  ${GREEN}✓${NC} NVM"
-    fi
-fi
-[ "$MODULE_NUSHELL" = "true" ] && echo -e "  ${GREEN}✓${NC} Nushell"
-[ "$MODULE_KUBE" = "true" ] && echo -e "  ${GREEN}✓${NC} Kube (kubeconfig manager)"
+[[ "$MODULE_GITLAB" = "true" ]] && echo -e "  ${GREEN}✓${NC} GitLab"
+[[ "$MODULE_DOCKER" = "true" ]] && echo -e "  ${GREEN}✓${NC} Docker"
+[[ "$MODULE_MISE" = "true" ]] && echo -e "  ${GREEN}✓${NC} Mise (Node, Java, Maven)"
+[[ "$MODULE_NUSHELL" = "true" ]] && echo -e "  ${GREEN}✓${NC} Nushell"
+[[ "$MODULE_KUBE" = "true" ]] && echo -e "  ${GREEN}✓${NC} Kube (kubeconfig manager)"
 
 echo -e "${CYAN}Modules desactives:${NC}"
-[ "$MODULE_GITLAB" = "false" ] && echo -e "  ${RED}✗${NC} GitLab"
-[ "$MODULE_DOCKER" = "false" ] && echo -e "  ${RED}✗${NC} Docker"
-[ "$MODULE_NVM" = "false" ] && echo -e "  ${RED}✗${NC} NVM"
-[ "$MODULE_NUSHELL" = "false" ] && echo -e "  ${RED}✗${NC} Nushell"
-[ "$MODULE_KUBE" = "false" ] && echo -e "  ${RED}✗${NC} Kube"
+[[ "$MODULE_GITLAB" = "false" ]] && echo -e "  ${RED}✗${NC} GitLab"
+[[ "$MODULE_DOCKER" = "false" ]] && echo -e "  ${RED}✗${NC} Docker"
+[[ "$MODULE_MISE" = "false" ]] && echo -e "  ${RED}✗${NC} Mise"
+[[ "$MODULE_NUSHELL" = "false" ]] && echo -e "  ${RED}✗${NC} Nushell"
+[[ "$MODULE_KUBE" = "false" ]] && echo -e "  ${RED}✗${NC} Kube"
 
 echo ""
 echo -e "${CYAN}Theme Starship:${NC}"
-if [ -n "$STARSHIP_THEME" ]; then
+if [[ -n "$STARSHIP_THEME" ]]; then
     echo -e "  ${GREEN}✓${NC} $STARSHIP_THEME"
 else
     echo -e "  ${YELLOW}○${NC} Non modifie"
@@ -581,7 +540,7 @@ fi
 
 echo ""
 echo -e "${CYAN}Auto-Update:${NC}"
-if [ "$AUTO_UPDATE" = "true" ]; then
+if [[ "$AUTO_UPDATE" = "true" ]]; then
     echo -e "  ${GREEN}✓${NC} Active (tous les ${UPDATE_FREQ} jours, mode: ${UPDATE_MODE})"
 else
     echo -e "  ${RED}✗${NC} Desactive"
@@ -589,10 +548,10 @@ fi
 
 echo ""
 echo -e "${CYAN}Chiffrement SOPS/Age:${NC}"
-if [ "$SOPS_CONFIGURED" = "true" ]; then
+if [[ "$SOPS_CONFIGURED" = "true" ]]; then
     echo -e "  ${GREEN}✓${NC} Configure"
     echo -e "  Cle: ~/.config/sops/age/keys.txt"
-    if [ -n "$AGE_PUBLIC_KEY" ]; then
+    if [[ -n "$AGE_PUBLIC_KEY" ]]; then
         echo -e "  Public: $AGE_PUBLIC_KEY"
     fi
 else
