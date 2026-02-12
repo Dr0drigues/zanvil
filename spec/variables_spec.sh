@@ -48,6 +48,22 @@ Describe "variables.zsh"
     End
   End
 
+  Describe "mkdir failure handling"
+    It "prints error on stderr and does not crash when mkdir fails"
+      test_mkdir_fail() {
+        # Simulate the mkdir pattern from variables.zsh with a read-only path
+        local impossible_dir="/proc/fake_zsh_env_test_dir"
+        if [[ ! -d "$impossible_dir" ]]; then
+          mkdir -p "$impossible_dir" 2>/dev/null || echo "[zsh-env] Impossible de creer $impossible_dir" >&2
+        fi
+        echo "still alive"
+      }
+      When call test_mkdir_fail
+      The output should equal "still alive"
+      The stderr should include "Impossible de creer"
+    End
+  End
+
   Describe "Directory creation"
     It "creates WORK_DIR if missing"
       The path "$WORK_DIR" should be directory

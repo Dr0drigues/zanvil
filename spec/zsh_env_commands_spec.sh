@@ -38,6 +38,27 @@ Describe "zsh_env_commands.zsh"
     End
   End
 
+  Describe "zsh-env-doctor()"
+    It "returns 0 when critical files exist"
+      test_doctor_ok() {
+        # Create the critical files that doctor checks
+        mkdir -p "$ZSH_ENV_DIR/scripts" "$ZSH_ENV_DIR/kube"
+        touch "$ZSH_ENV_DIR/rc.zsh"
+        touch "$ZSH_ENV_DIR/aliases.zsh"
+        touch "$ZSH_ENV_DIR/variables.zsh"
+        touch "$ZSH_ENV_DIR/functions.zsh"
+        touch "$ZSH_ENV_DIR/install.sh"
+        chmod +x "$ZSH_ENV_DIR/install.sh"
+        # Create .zshrc with ZSH_ENV_DIR reference
+        echo 'source $ZSH_ENV_DIR/rc.zsh' > "$HOME/.zshrc"
+        zsh-env-doctor 2>/dev/null
+      }
+      When call test_doctor_ok
+      The output should include "Doctor"
+      The status should equal 0
+    End
+  End
+
   Describe "zsh-env-completion-add()"
     It "requires name and command"
       When call zsh-env-completion-add

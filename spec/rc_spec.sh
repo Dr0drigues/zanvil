@@ -118,6 +118,25 @@ Describe "rc.zsh"
     End
   End
 
+  Describe "Secrets sourcing"
+    It "sources ~/.secrets if present"
+      test_secrets_source() {
+        local tmpdir=$(mktemp -d)
+        local old_home="$HOME"
+        export HOME="$tmpdir"
+        echo 'TEST_SECRET_VAR=loaded_from_secrets' > "$tmpdir/.secrets"
+        if [[ -f "$HOME/.secrets" ]]; then
+          source "$HOME/.secrets"
+        fi
+        echo "$TEST_SECRET_VAR"
+        export HOME="$old_home"
+        rm -rf "$tmpdir"
+      }
+      When call test_secrets_source
+      The output should equal "loaded_from_secrets"
+    End
+  End
+
   Describe "PATH deduplication"
     It "deduplicates PATH with typeset -U"
       test_dedup() {

@@ -105,6 +105,25 @@ Describe "aliases.zsh"
     End
   End
 
+  Describe "rm wrapper behavior"
+    It "uses real rm in non-interactive/scripted context"
+      test_rm_scripted() {
+        # funcstack depth > 1 means scripted context
+        # The rm function should use 'command rm' not 'trash'
+        if whence -w rm | grep -q function; then
+          local def=$(whence -f rm 2>/dev/null)
+          # The function should have the 'command rm' fallback path
+          [[ "$def" == *'command rm'* ]] && echo "has_rm_fallback" || echo "missing"
+        else
+          # rm is an alias (no trash), which is also correct for non-interactive
+          echo "has_rm_fallback"
+        fi
+      }
+      When call test_rm_scripted
+      The output should equal "has_rm_fallback"
+    End
+  End
+
   Describe "git-clean-branches()"
     It "is defined as a function"
       result() { type -w git-clean-branches 2>/dev/null | cut -d' ' -f2; }

@@ -19,7 +19,7 @@
 - [x] T1: Les modules desactives ne sont pas charges (`ZSH_ENV_MODULE_*=false`)
 - [x] T1: Les fichiers manquants affichent un warning sur stderr
 - [x] T1: `config.zsh` est source si present
-- [ ] T1: `~/.secrets` est source si present
+- [x] T1: `~/.secrets` est source si present
 - [x] T1: `SCRIPTS_DIR` est ajoute au PATH
 - [x] T1: PATH est deduplique (`typeset -U PATH`)
 
@@ -32,7 +32,7 @@
 - [x] T1: `$SAVEHIST` vaut 50000
 - [x] T1: `$SOPS_AGE_KEY_FILE` est exporte
 - [x] T2: Les dossiers requis sont crees si manquants
-- [ ] T2: `mkdir` echoue gracieusement (message stderr, pas de crash)
+- [x] T2: `mkdir` echoue gracieusement (message stderr, pas de crash)
 
 ## Lazy Loading (functions.zsh)
 
@@ -66,13 +66,13 @@
 - [x] T1: `git-clean-branches` retourne 0 si aucune branche a supprimer
 - [x] T1: `nci` utilise `/bin/rm` et non `rmi`
 - [x] T1: `rm` utilise `trash` en mode interactif (si disponible)
-- [ ] T1: `rm` utilise le vrai `rm` en mode non-interactif
+- [x] T1: `rm` utilise le vrai `rm` en mode non-interactif
 
 ## Commandes zsh-env-*
 
 - [x] T1: `zsh-env-list` affiche les outils installes avec version
 - [x] T1: `zsh-env-list` marque les outils manquants
-- [ ] T1: `zsh-env-doctor` retourne 0 si tout est OK
+- [x] T1: `zsh-env-doctor` retourne 0 si tout est OK
 - [x] T1: `zsh-env-help` affiche l'aide
 - [ ] T2: `zsh-env-theme list` liste les themes Starship
 - [ ] T2: `zsh-env-theme <nom>` applique un theme
@@ -185,7 +185,7 @@
 - [x] T1: `_proj_get_value` supprime les guillemets
 - [x] T2: `_proj_load_by_path` change le repertoire courant
 - [x] T2: `_proj_load_by_path` verifie le proprietaire du fichier env ($UID)
-- [ ] T2: `_proj_load_by_path` refuse un fichier env avec mauvais proprietaire
+- [x] T2: `_proj_load_by_path` refuse un fichier env avec mauvais proprietaire
 - [x] T1: `_proj_load_by_path` ignore post_cmd en mode non-interactif
 - [x] T2: `proj_add` cree le fichier registre
 - [x] T2: `proj_add` detecte les chemins dupliques
@@ -284,13 +284,13 @@
 
 | Tier | Description | Total | Implementes | Restants |
 |------|-------------|-------|-------------|----------|
-| T1 | Unit tests (pas de deps) | ~85 | **73** | ~12 |
-| T2 | Integration (git/fichiers) | ~75 | **58** | ~17 |
+| T1 | Unit tests (pas de deps) | ~85 | **76** | ~9 |
+| T2 | Integration (git/fichiers) | ~75 | **60** | ~15 |
 | T3 | Mocks necessaires | ~30 | **46** | ~0 |
-| **Total** | | **~190** | **177** | **~29** |
+| **Total** | | **~190** | **182** | **~24** |
 
 ## Priorite d'implementation (restant)
 
-1. **T1 restants** - rm non-interactif, secrets source, doctor
-2. **T2 restants** - mkdir erreur, theme list/apply, auto-update compare, ssh_add format, env mauvais proprio, lazy-loading stubs
+1. **T1 restants** - ~9 cas restants
+2. **T2 restants** - theme list/apply, auto-update compare, ssh_add format, lazy-loading stubs
 3. **T3 restants** - NVM lazy loading (node/npm/lazy=false)

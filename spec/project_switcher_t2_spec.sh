@@ -206,5 +206,24 @@ PROJEOF
       When call load_env
       The output should include "Projet:"
     End
+
+    It "refuses env file with wrong owner"
+      load_env_bad_owner() {
+        local dir="$TEST_HOME/envproj_bad"
+        mkdir -p "$dir"
+        cat > "$dir/.proj" << 'PROJEOF'
+name: badowner
+env_file: .env.secret
+PROJEOF
+        echo "SECRET=nope" > "$dir/.env.secret"
+        # Override stat to return a different UID
+        stat() { echo "99999"; }
+        _proj_load_by_path "$dir"
+        unfunction stat 2>/dev/null
+      }
+      When call load_env_bad_owner
+      The output should include "Projet:"
+      The stderr should include "proprietaire different"
+    End
   End
 End
