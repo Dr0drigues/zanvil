@@ -37,7 +37,7 @@ if command -v git &> /dev/null; then
     alias gc='git commit -v' # -v est une bonne pratique pour relire son code avant de commit
     alias gld='git log --oneline --decorate --graph --all'
     # Nettoyage des branches mergees (avec confirmation)
-    git-clean-branches() {
+    function git-clean-branches {
         local branches
         branches=$(git branch --merged | grep -vE '(\*|master|main|dev|develop|release/)')
         if [[ -z "$branches" ]]; then
