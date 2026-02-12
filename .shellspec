@@ -1,3 +1,4 @@
+--shell zsh
 --require spec_helper
 
 ## Default kcov (coverage) options
