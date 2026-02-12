@@ -17,23 +17,23 @@ _zsh_env_should_check_update() {
     local frequency="${ZSH_ENV_UPDATE_FREQUENCY:-7}"
 
     # Si frequence = 0, toujours verifier
-    [ "$frequency" -eq 0 ] && return 0
+    [[ "$frequency" -eq 0 ]] && return 0
 
     # Si le fichier n'existe pas, c'est la premiere fois
-    [ ! -f "$ZSH_ENV_UPDATE_FILE" ] && return 0
+    [[ ! -f "$ZSH_ENV_UPDATE_FILE" ]] && return 0
 
     # Calculer la difference en jours
     local last_check=$(cat "$ZSH_ENV_UPDATE_FILE" 2>/dev/null)
     local now=$(date +%s)
     local diff=$(( (now - last_check) / 86400 ))
 
-    [ "$diff" -ge "$frequency" ]
+    [[ "$diff" -ge "$frequency" ]]
 }
 
 # Fonction pour verifier les mises a jour
 _zsh_env_check_update() {
     # Verifier qu'on est dans un repo git
-    [ ! -d "$ZSH_ENV_DIR/.git" ] && return 1
+    [[ ! -d "$ZSH_ENV_DIR/.git" ]] && return 1
 
     # Fetch silencieux
     (cd "$ZSH_ENV_DIR" && git fetch origin --quiet 2>/dev/null) || return 1
@@ -42,7 +42,7 @@ _zsh_env_check_update() {
     local local_rev=$(cd "$ZSH_ENV_DIR" && git rev-parse HEAD 2>/dev/null)
     local remote_rev=$(cd "$ZSH_ENV_DIR" && git rev-parse origin/main 2>/dev/null)
 
-    [ "$local_rev" != "$remote_rev" ]
+    [[ "$local_rev" != "$remote_rev" ]]
 }
 
 # Fonction pour effectuer la mise a jour
@@ -63,7 +63,7 @@ _zsh_env_show_changes() {
     local local_rev=$(cd "$ZSH_ENV_DIR" && git rev-parse HEAD 2>/dev/null)
     local changes=$(cd "$ZSH_ENV_DIR" && git log --oneline "$local_rev"..origin/main 2>/dev/null | head -5)
 
-    if [ -n "$changes" ]; then
+    if [[ -n "$changes" ]]; then
         echo -e "${_update_color_blue}Nouveautes:${_update_color_nc}"
         echo "$changes" | while read line; do
             echo -e "  ${_update_color_green}*${_update_color_nc} $line"
@@ -86,7 +86,7 @@ _zsh_env_auto_update() {
         _zsh_env_show_changes
         echo ""
 
-        if [ "$ZSH_ENV_UPDATE_MODE" = "auto" ]; then
+        if [[ "$ZSH_ENV_UPDATE_MODE" == "auto" ]]; then
             # Mode automatique
             _zsh_env_do_update
         else
@@ -126,7 +126,7 @@ zsh-env-status() {
     echo -e "Version: ${_update_color_green}$current${_update_color_nc}"
 
     # Derniere verification
-    if [ -f "$ZSH_ENV_UPDATE_FILE" ]; then
+    if [[ -f "$ZSH_ENV_UPDATE_FILE" ]]; then
         local last=$(cat "$ZSH_ENV_UPDATE_FILE")
         local last_date=$(date -r "$last" "+%Y-%m-%d %H:%M" 2>/dev/null || date -d "@$last" "+%Y-%m-%d %H:%M" 2>/dev/null)
         echo -e "Derniere verification: ${_update_color_blue}$last_date${_update_color_nc}"
@@ -142,12 +142,12 @@ zsh-env-status() {
     # Modules
     echo ""
     echo -e "${_update_color_bold}Modules:${_update_color_nc}"
-    [ "$ZSH_ENV_MODULE_GITLAB" = "true" ] && echo -e "  ${_update_color_green}✓${_update_color_nc} GitLab" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} GitLab"
-    [ "$ZSH_ENV_MODULE_DOCKER" = "true" ] && echo -e "  ${_update_color_green}✓${_update_color_nc} Docker" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} Docker"
-    [ "$ZSH_ENV_MODULE_NVM" = "true" ] && echo -e "  ${_update_color_green}✓${_update_color_nc} NVM" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} NVM"
-    [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && echo -e "  ${_update_color_green}✓${_update_color_nc} Nushell" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} Nushell"
+    [[ "$ZSH_ENV_MODULE_GITLAB" == "true" ]] && echo -e "  ${_update_color_green}✓${_update_color_nc} GitLab" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} GitLab"
+    [[ "$ZSH_ENV_MODULE_DOCKER" == "true" ]] && echo -e "  ${_update_color_green}✓${_update_color_nc} Docker" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} Docker"
+    [[ "$ZSH_ENV_MODULE_NVM" == "true" ]] && echo -e "  ${_update_color_green}✓${_update_color_nc} NVM" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} NVM"
+    [[ "$ZSH_ENV_MODULE_NUSHELL" == "true" ]] && echo -e "  ${_update_color_green}✓${_update_color_nc} Nushell" || echo -e "  ${_update_color_yellow}✗${_update_color_nc} Nushell"
 }
 
 # Lancer la verification au demarrage (en arriere-plan pour ne pas ralentir)
 # Seulement si auto-update est active
-[ "$ZSH_ENV_AUTO_UPDATE" = "true" ] && _zsh_env_auto_update &!
+[[ "$ZSH_ENV_AUTO_UPDATE" == "true" ]] && _zsh_env_auto_update &!

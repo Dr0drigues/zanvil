@@ -90,6 +90,11 @@ if [ "$IGNORE_SSL_ERRORS" == "true" ]; then
     GIT_OPTS="-c http.sslVerify=false"
 fi
 
+# Utiliser le header HTTP pour l'authentification (evite l'exposition du token dans ps)
+if [ "$CLONE_METHOD" != "ssh" ]; then
+    GIT_OPTS="$GIT_OPTS -c http.extraheader=\"PRIVATE-TOKEN: $ACCESS_TOKEN\""
+fi
+
 if [ "$DEPTH_MODE" == "shallow" ]; then
     GIT_CLONE_ARGS="$GIT_CLONE_ARGS --depth 1"
 fi
@@ -149,9 +154,7 @@ while true; do
         if [ "$CLONE_METHOD" == "ssh" ]; then
             repo_url=$(_jq '.ssh_url_to_repo')
         else
-            http_url=$(_jq '.http_url_to_repo')
-            clean_url=${http_url#https://}
-            repo_url="https://oauth2:${ACCESS_TOKEN}@${clean_url}"
+            repo_url=$(_jq '.http_url_to_repo')
         fi
 
         # Pour ne pas casser la barre de progression, on efface la ligne courante,

@@ -26,9 +26,8 @@ required_dirs=(
     "$SCRIPTS_DIR"
 )
 
-for dir in $required_dirs; do
-    if [ ! -d "$dir" ]; then
-        # On crée silencieusement le dossier manquant
-        mkdir -p "$dir"
+for dir in "${required_dirs[@]}"; do
+    if [[ ! -d "$dir" ]]; then
+        mkdir -p "$dir" 2>/dev/null || echo "[zsh-env] Impossible de creer $dir" >&2
     fi
 done

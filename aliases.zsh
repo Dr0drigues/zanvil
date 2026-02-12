@@ -36,13 +36,32 @@ if command -v git &> /dev/null; then
     alias gp='git push'
     alias gc='git commit -v' # -v est une bonne pratique pour relire son code avant de commit
     alias gld='git log --oneline --decorate --graph --all'
-    alias git-clean-branches="git branch --merged | grep -v '\*' | grep -v 'master' | grep -v 'main' | grep -v 'dev' | xargs -n 1 git branch -d"
+    # Nettoyage des branches mergees (avec confirmation)
+    git-clean-branches() {
+        local branches
+        branches=$(git branch --merged | grep -v '\*' | grep -v 'master' | grep -v 'main' | grep -v 'dev' | grep -v 'develop' | grep -v 'release/')
+        if [[ -z "$branches" ]]; then
+            echo "Aucune branche mergee a supprimer."
+            return 0
+        fi
+        echo "Branches mergees qui seront supprimees :"
+        echo "$branches" | sed 's/^/  /'
+        echo ""
+        local response
+        read -q "response?Supprimer ces branches ? [y/N] "
+        echo ""
+        if [[ "$response" == "y" ]]; then
+            echo "$branches" | xargs -n 1 git branch -d
+        else
+            echo "Annule."
+        fi
+    }
 fi
 
 # =======================================================
 # NUSHELL INTEGRATION
 # =======================================================
-if [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && command -v nu &> /dev/null; then
+if [[ "$ZSH_ENV_MODULE_NUSHELL" == "true" ]] && command -v nu &> /dev/null; then
     # Lancer nushell rapidement
     alias nush='nu'
 
@@ -103,6 +122,6 @@ if command -v npm &> /dev/null; then
     alias npmi='npm install'
     alias npmu='npm update'
     alias npml='npm list --depth=0'
-    # Si le node_modules existe, on le supprime. Dans tous les cas, on vide le cache de npm et on réinstalle
-    alias nci='if [ -d node_modules ]; then rmi -rf node_modules; fi && npm cache clean --force && npm install' 
+    # Reinstallation propre des node_modules
+    alias nci='if [[ -d node_modules ]]; then /bin/rm -rf node_modules; fi && npm cache clean --force && npm install'
 fi

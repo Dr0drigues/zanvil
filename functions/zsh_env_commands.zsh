@@ -79,7 +79,7 @@ zsh-env-list() {
     echo ""
     echo -e "${_zsh_cmd_bold}Resume:${_zsh_cmd_nc} ${_zsh_cmd_green}$installed installes${_zsh_cmd_nc} | ${_zsh_cmd_yellow}$missing manquants${_zsh_cmd_nc}"
 
-    if [ $missing -gt 0 ]; then
+    if [[ $missing -gt 0 ]]; then
         echo -e "\nPour installer les outils manquants: ${_zsh_cmd_bold}~/.zsh_env/install.sh${_zsh_cmd_nc}"
     fi
 }
@@ -91,7 +91,7 @@ zsh-env-completion-add() {
     local name="$1"
     local cmd="$2"
 
-    if [ -z "$name" ] || [ -z "$cmd" ]; then
+    if [[ -z "$name" ]] || [[ -z "$cmd" ]]; then
         echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zsh-env-completion-add <nom> <commande>"
         echo ""
         echo -e "${_zsh_cmd_cyan}Exemples:${_zsh_cmd_nc}"
@@ -133,7 +133,7 @@ zsh-env-completion-add() {
 zsh-env-completion-remove() {
     local name="$1"
 
-    if [ -z "$name" ]; then
+    if [[ -z "$name" ]]; then
         echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zsh-env-completion-remove <nom>"
         return 1
     fi
@@ -215,7 +215,7 @@ zsh-env-completions() {
     fi
 
     # gcloud
-    if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then
+    if [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]]; then
         source "$HOME/google-cloud-sdk/completion.zsh.inc"
         echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Google Cloud SDK"
         ((loaded++))
@@ -245,7 +245,7 @@ zsh-env-completions() {
 
     # Completions personnalisees
     local custom_file="$ZSH_ENV_DIR/completions.zsh"
-    if [ -f "$custom_file" ]; then
+    if [[ -f "$custom_file" ]]; then
         source "$custom_file"
 
         local custom_loaded=0
@@ -260,7 +260,7 @@ zsh-env-completions() {
                 # Capture la sortie de la commande puis eval avec stderr supprimé
                 local comp_script
                 comp_script=$($cmd 2>/dev/null)
-                if [ -n "$comp_script" ]; then
+                if [[ -n "$comp_script" ]]; then
                     { eval "$comp_script"; } 2>/dev/null
                     echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $name ${_zsh_cmd_cyan}(custom)${_zsh_cmd_nc}"
                     ((loaded++))
@@ -271,7 +271,7 @@ zsh-env-completions() {
             fi
         done
 
-        if [ $custom_loaded -gt 0 ]; then
+        if [[ $custom_loaded -gt 0 ]]; then
             echo ""
             echo -e "${_zsh_cmd_cyan}$custom_loaded completion(s) personnalisee(s)${_zsh_cmd_nc}"
         fi
@@ -299,26 +299,26 @@ zsh-env-theme() {
     fi
 
     # Sans argument ou "list" : afficher les themes disponibles
-    if [ -z "$theme" ] || [ "$theme" = "list" ]; then
+    if [[ -z "$theme" ]] || [[ "$theme" == "list" ]]; then
         echo -e "${_zsh_cmd_bold}=== Themes Starship disponibles ===${_zsh_cmd_nc}\n"
 
-        if [ ! -d "$themes_dir" ]; then
+        if [[ ! -d "$themes_dir" ]]; then
             echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
             return 1
         fi
 
         # Theme actuel
         local current=""
-        if [ -f "$starship_config" ]; then
+        if [[ -f "$starship_config" ]]; then
             current=$(head -1 "$starship_config" 2>/dev/null | sed -n 's/.*Theme: \([a-zA-Z0-9_-]*\).*/\1/p' || echo "")
         fi
 
         for theme_file in "$themes_dir"/*.toml; do
-            [ -f "$theme_file" ] || continue
+            [[ -f "$theme_file" ]] || continue
             local name=$(basename "$theme_file" .toml)
             local desc=$(grep -m1 "^# Starship Theme:" "$theme_file" 2>/dev/null | sed 's/^# Starship Theme: //' || echo "")
 
-            if [ "$name" = "$current" ]; then
+            if [[ "$name" == "$current" ]]; then
                 echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
             else
                 echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
@@ -333,7 +333,7 @@ zsh-env-theme() {
     # Appliquer un theme
     local theme_file="$themes_dir/$theme.toml"
 
-    if [ ! -f "$theme_file" ]; then
+    if [[ ! -f "$theme_file" ]]; then
         echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
         echo -e "Themes disponibles: $(ls "$themes_dir"/*.toml 2>/dev/null | xargs -n1 basename | sed 's/.toml//' | tr '\n' ' ')"
         return 1
@@ -343,7 +343,7 @@ zsh-env-theme() {
     mkdir -p "$HOME/.config"
 
     # Backup de l'ancienne config si elle existe et n'est pas un de nos themes
-    if [ -f "$starship_config" ]; then
+    if [[ -f "$starship_config" ]]; then
         if ! grep -q "^# Starship Theme:" "$starship_config" 2>/dev/null; then
             cp "$starship_config" "$starship_config.backup"
             echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup de l'ancienne config: $starship_config.backup"
@@ -379,7 +379,7 @@ zsh-env-doctor() {
     for entry in "${critical_files[@]}"; do
         local file="${entry%%:*}"
         local desc="${entry#*:}"
-        if [ -f "$file" ]; then
+        if [[ -f "$file" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $desc"
         else
             echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} $desc ${_zsh_cmd_yellow}(manquant: $file)${_zsh_cmd_nc}"
@@ -388,7 +388,7 @@ zsh-env-doctor() {
     done
 
     # Config optionnelle
-    if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
+    if [[ -f "$ZSH_ENV_DIR/config.zsh" ]]; then
         echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Configuration personnalisee"
     else
         echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Configuration personnalisee (utilise les valeurs par defaut)"
@@ -398,7 +398,7 @@ zsh-env-doctor() {
     echo ""
     echo -e "${_zsh_cmd_bold}Integration .zshrc${_zsh_cmd_nc}"
 
-    if [ -f "$HOME/.zshrc" ]; then
+    if [[ -f "$HOME/.zshrc" ]]; then
         if grep -q "ZSH_ENV_DIR" "$HOME/.zshrc"; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} .zshrc configure correctement"
         else
@@ -462,20 +462,20 @@ zsh-env-doctor() {
     echo ""
     echo -e "${_zsh_cmd_bold}Modules actifs${_zsh_cmd_nc}"
 
-    [ "$ZSH_ENV_MODULE_GITLAB" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GitLab" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} GitLab (desactive)"
-    [ "$ZSH_ENV_MODULE_DOCKER" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Docker" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Docker (desactive)"
-    [ "$ZSH_ENV_MODULE_NVM" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} NVM (desactive)"
-    [ "$ZSH_ENV_MODULE_NUSHELL" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Nushell" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Nushell (desactive)"
-    [ "$ZSH_ENV_MODULE_KUBE" = "true" ] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Kube" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Kube (desactive)"
+    [[ "$ZSH_ENV_MODULE_GITLAB" == "true" ]] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GitLab" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} GitLab (desactive)"
+    [[ "$ZSH_ENV_MODULE_DOCKER" == "true" ]] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Docker" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Docker (desactive)"
+    [[ "$ZSH_ENV_MODULE_NVM" == "true" ]] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} NVM (desactive)"
+    [[ "$ZSH_ENV_MODULE_NUSHELL" == "true" ]] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Nushell" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Nushell (desactive)"
+    [[ "$ZSH_ENV_MODULE_KUBE" == "true" ]] && echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Kube" || echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Kube (desactive)"
 
     # --- Verification NVM si actif ---
-    if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
+    if [[ "$ZSH_ENV_MODULE_NVM" == "true" ]]; then
         echo ""
         echo -e "${_zsh_cmd_bold}NVM${_zsh_cmd_nc}"
 
-        if [ -d "$NVM_DIR" ]; then
+        if [[ -d "$NVM_DIR" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} NVM_DIR existe ($NVM_DIR)"
-            if [ "$ZSH_ENV_NVM_LAZY" = "true" ]; then
+            if [[ "$ZSH_ENV_NVM_LAZY" == "true" ]]; then
                 echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Mode lazy-loading actif"
             fi
         else
@@ -485,18 +485,18 @@ zsh-env-doctor() {
     fi
 
     # --- Verification GitLab si actif ---
-    if [ "$ZSH_ENV_MODULE_GITLAB" = "true" ]; then
+    if [[ "$ZSH_ENV_MODULE_GITLAB" == "true" ]]; then
         echo ""
         echo -e "${_zsh_cmd_bold}GitLab${_zsh_cmd_nc}"
 
-        if [ -n "$GITLAB_TOKEN" ]; then
+        if [[ -n "$GITLAB_TOKEN" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GITLAB_TOKEN defini"
         else
             echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} GITLAB_TOKEN non defini (scripts GitLab ne fonctionneront pas)"
             ((warnings++))
         fi
 
-        if [ -n "$GITLAB_URL" ]; then
+        if [[ -n "$GITLAB_URL" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GITLAB_URL: $GITLAB_URL"
         else
             echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} GITLAB_URL non defini (defaut: gitlab.com)"
@@ -504,7 +504,7 @@ zsh-env-doctor() {
     fi
 
     # --- Verification Kube si actif ---
-    if [ "$ZSH_ENV_MODULE_KUBE" = "true" ]; then
+    if [[ "$ZSH_ENV_MODULE_KUBE" == "true" ]]; then
         echo ""
         echo -e "${_zsh_cmd_bold}Kubernetes${_zsh_cmd_nc}"
 
@@ -517,20 +517,20 @@ zsh-env-doctor() {
         fi
 
         # Config minimale
-        if [ -f "$HOME/.kube/config.minimal.yml" ]; then
+        if [[ -f "$HOME/.kube/config.minimal.yml" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Config minimale presente"
         else
             echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} Config minimale non trouvee (~/.kube/config.minimal.yml)"
         fi
 
         # Dossier configs.d
-        if [ -d "$HOME/.kube/configs.d" ]; then
+        if [[ -d "$HOME/.kube/configs.d" ]]; then
             local config_count=$(ls -1 "$HOME/.kube/configs.d"/*.yml "$HOME/.kube/configs.d"/*.yaml 2>/dev/null | wc -l | tr -d ' ')
             echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} $config_count config(s) additionnelle(s) dans configs.d/"
         fi
 
         # KUBECONFIG actuel
-        if [ -n "$KUBECONFIG" ]; then
+        if [[ -n "$KUBECONFIG" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} KUBECONFIG defini"
         else
             echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} KUBECONFIG non defini (utilise ~/.kube/config)"
@@ -541,7 +541,7 @@ zsh-env-doctor() {
             echo ""
             echo -e "${_zsh_cmd_bold}Azure${_zsh_cmd_nc}"
             local az_account=$(az account show 2>/dev/null)
-            if [ -n "$az_account" ]; then
+            if [[ -n "$az_account" ]]; then
                 local az_user=$(echo "$az_account" | jq -r '.user.name // "inconnu"')
                 local az_sub=$(echo "$az_account" | jq -r '.name // "inconnu"')
                 echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Connecte: $az_user"
@@ -558,11 +558,11 @@ zsh-env-doctor() {
         echo -e "${_zsh_cmd_bold}Chiffrement SOPS/Age${_zsh_cmd_nc}"
 
         local age_key_file="$HOME/.config/sops/age/keys.txt"
-        if [ -f "$age_key_file" ]; then
+        if [[ -f "$age_key_file" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Cle age configuree"
             # Affiche la cle publique
             local pub_key=$(grep "public key:" "$age_key_file" 2>/dev/null | awk '{print $NF}')
-            if [ -n "$pub_key" ]; then
+            if [[ -n "$pub_key" ]]; then
                 echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} Public: ${pub_key:0:20}..."
             fi
         else
@@ -572,7 +572,7 @@ zsh-env-doctor() {
         fi
 
         # .sops.yaml
-        if [ -f "$ZSH_ENV_DIR/.sops.yaml" ]; then
+        if [[ -f "$ZSH_ENV_DIR/.sops.yaml" ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} .sops.yaml present"
         else
             echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} .sops.yaml non trouve"
@@ -580,7 +580,7 @@ zsh-env-doctor() {
 
         # Fichiers chiffres
         local sops_files=$(ls -1 "$ZSH_ENV_DIR/kube"/*.sops* 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$sops_files" -gt 0 ]; then
+        if [[ "$sops_files" -gt 0 ]]; then
             echo -e "  ${_zsh_cmd_cyan}i${_zsh_cmd_nc} $sops_files fichier(s) chiffre(s) dans kube/"
         fi
     fi
@@ -589,16 +589,16 @@ zsh-env-doctor() {
     echo ""
     echo -e "${_zsh_cmd_bold}Permissions${_zsh_cmd_nc}"
 
-    if [ -x "$ZSH_ENV_DIR/install.sh" ]; then
+    if [[ -x "$ZSH_ENV_DIR/install.sh" ]]; then
         echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} install.sh executable"
     else
         echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} install.sh non executable"
         ((warnings++))
     fi
 
-    if [ -d "$ZSH_ENV_DIR/scripts" ]; then
+    if [[ -d "$ZSH_ENV_DIR/scripts" ]]; then
         local non_exec=$(find "$ZSH_ENV_DIR/scripts" -name "*.sh" ! -perm -u+x 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$non_exec" -eq 0 ]; then
+        if [[ "$non_exec" -eq 0 ]]; then
             echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Scripts executables"
         else
             echo -e "  ${_zsh_cmd_yellow}○${_zsh_cmd_nc} $non_exec script(s) non executable(s)"
@@ -610,9 +610,9 @@ zsh-env-doctor() {
     echo ""
     echo -e "${_zsh_cmd_bold}Resume${_zsh_cmd_nc}"
 
-    if [ $issues -eq 0 ] && [ $warnings -eq 0 ]; then
+    if [[ $issues -eq 0 ]] && [[ $warnings -eq 0 ]]; then
         echo -e "  ${_zsh_cmd_green}Tout est OK!${_zsh_cmd_nc}"
-    elif [ $issues -eq 0 ]; then
+    elif [[ $issues -eq 0 ]]; then
         echo -e "  ${_zsh_cmd_green}OK${_zsh_cmd_nc} avec ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
     else
         echo -e "  ${_zsh_cmd_red}$issues probleme(s)${_zsh_cmd_nc} et ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
@@ -630,26 +630,26 @@ zsh-env-ghostty() {
     local theme="$1"
 
     # Sans argument ou "list" : afficher les themes disponibles
-    if [ -z "$theme" ] || [ "$theme" = "list" ]; then
+    if [[ -z "$theme" ]] || [[ "$theme" == "list" ]]; then
         echo -e "${_zsh_cmd_bold}=== Themes Ghostty disponibles ===${_zsh_cmd_nc}\n"
 
-        if [ ! -d "$themes_dir" ]; then
+        if [[ ! -d "$themes_dir" ]]; then
             echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
             return 1
         fi
 
         # Theme actuel (lit la ligne config-file de la config Ghostty)
         local current=""
-        if [ -f "$ghostty_config" ]; then
+        if [[ -f "$ghostty_config" ]]; then
             current=$(grep "^config-file" "$ghostty_config" 2>/dev/null | sed 's/.*themes\///' | tr -d ' ')
         fi
 
         for theme_file in "$themes_dir"/*; do
-            [ -f "$theme_file" ] || continue
+            [[ -f "$theme_file" ]] || continue
             local name=$(basename "$theme_file")
             local desc=$(grep -m1 "^# Ghostty Theme:" "$theme_file" 2>/dev/null | sed 's/^# Ghostty Theme: //' || echo "")
 
-            if [ "$name" = "$current" ]; then
+            if [[ "$name" == "$current" ]]; then
                 echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
             else
                 echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
@@ -663,11 +663,11 @@ zsh-env-ghostty() {
     fi
 
     # Commande "sync" : deployer la config de zsh_env vers ~/.config/ghostty
-    if [ "$theme" = "sync" ]; then
+    if [[ "$theme" == "sync" ]]; then
         local src_config="$ZSH_ENV_DIR/ghostty/config"
         local dest_dir="$HOME/.config/ghostty"
 
-        if [ ! -f "$src_config" ]; then
+        if [[ ! -f "$src_config" ]]; then
             echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Config source non trouvee: $src_config"
             return 1
         fi
@@ -675,7 +675,7 @@ zsh-env-ghostty() {
         mkdir -p "$dest_dir"
 
         # Backup si existe et different
-        if [ -f "$ghostty_config" ] && ! diff -q "$src_config" "$ghostty_config" &>/dev/null; then
+        if [[ -f "$ghostty_config" ]] && ! diff -q "$src_config" "$ghostty_config" &>/dev/null; then
             cp "$ghostty_config" "$ghostty_config.backup"
             echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup: $ghostty_config.backup"
         fi
@@ -692,7 +692,7 @@ zsh-env-ghostty() {
     # Appliquer un theme
     local theme_file="$themes_dir/$theme"
 
-    if [ ! -f "$theme_file" ]; then
+    if [[ ! -f "$theme_file" ]]; then
         echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
         echo -e "Themes disponibles: $(ls "$themes_dir" 2>/dev/null | tr '\n' ' ')"
         return 1
@@ -701,7 +701,7 @@ zsh-env-ghostty() {
     # Mettre a jour le fichier config local (dans zsh_env)
     local local_config="$ZSH_ENV_DIR/ghostty/config"
 
-    if [ -f "$local_config" ]; then
+    if [[ -f "$local_config" ]]; then
         # Remplacer la ligne config-file
         if grep -q "^config-file" "$local_config"; then
             if [[ "$OSTYPE" == "darwin"* ]]; then
