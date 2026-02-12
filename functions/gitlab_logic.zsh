@@ -8,7 +8,7 @@
 if [[ -f "$HOME/.gitlab_secrets" ]]; then
     source "$HOME/.gitlab_secrets"
 else
-    echo "WARNING: $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant."
+    echo -e "${_ui_yellow}[WARN]${_ui_nc} $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant."
 fi
 
 # 2. Configuration des Group IDs (Modèle de données)

@@ -54,12 +54,14 @@ export PATH="$SCRIPTS_DIR:$PATH"
 
 # --- 4. Completions ---
 autoload -Uz compinit
-# Cache quotidien pour performance
-if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+# Cache des completions (surchargeable via ZSH_ENV_ZCOMPDUMP_CACHE_HOURS)
+_zsh_env_zcompdump_hours="${ZSH_ENV_ZCOMPDUMP_CACHE_HOURS:-24}"
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+${_zsh_env_zcompdump_hours}) ]]; then
     compinit
 else
     compinit -C
 fi
+unset _zsh_env_zcompdump_hours
 
 # Menu interactif : navigation avec les fleches, highlight de la selection
 zmodload zsh/complist
