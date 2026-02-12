@@ -81,8 +81,8 @@
 ## Completions
 
 - [x] T1: `zsh-env-completion-add` requiert nom et commande
-- [ ] T2: `zsh-env-completion-add` ajoute une entree dans `completions.zsh`
-- [ ] T2: `zsh-env-completion-remove` supprime une entree
+- [x] T2: `zsh-env-completion-add` ajoute une entree dans `completions.zsh`
+- [x] T2: `zsh-env-completion-remove` supprime une entree
 - [x] T2: `zsh-env-completion-remove` echoue si entree non trouvee
 
 ## Fonctions utilitaires (utils.zsh)
@@ -98,11 +98,11 @@
 
 ## Extract (extract.zsh)
 
-- [ ] T2: `extract` decompresse `.tar.gz`
-- [ ] T2: `extract` decompresse `.zip`
-- [ ] T2: `extract` decompresse `.tar.bz2`
-- [ ] T2: `extract` decompresse `.tar.xz`
-- [ ] T2: `extract` decompresse `.gz`
+- [x] T2: `extract` decompresse `.tar.gz`
+- [x] T2: `extract` decompresse `.zip`
+- [x] T2: `extract` decompresse `.tar.bz2`
+- [x] T2: `extract` decompresse `.tar.xz`
+- [x] T2: `extract` decompresse `.gz`
 - [x] T1: `extract` echoue sur un format non supporte
 - [x] T1: `extract` echoue sur un fichier inexistant
 
@@ -122,21 +122,21 @@
 
 ## Git Hooks (git_hooks.zsh)
 
-- [ ] T2: `hooks_list` echoue hors d'un depot Git
-- [ ] T2: `hooks_install_precommit` cree le fichier pre-commit
-- [ ] T2: `hooks_install_precommit` rend le hook executable
+- [x] T2: `hooks_list` echoue hors d'un depot Git
+- [x] T2: `hooks_install_precommit` cree le fichier pre-commit
+- [x] T2: `hooks_install_precommit` rend le hook executable
 
 ## Security Audit (security_audit.zsh)
 
-- [ ] T2: `zsh-env-audit` verifie les permissions de `~/.ssh` (700)
-- [ ] T2: `zsh-env-audit` verifie les permissions des cles privees (600/400)
-- [ ] T2: `zsh-env-audit` verifie `~/.ssh/config` (600)
-- [ ] T2: `zsh-env-audit` verifie `~/.secrets` (600)
-- [ ] T2: `zsh-env-audit` verifie `~/.kube` (700)
-- [ ] T2: `zsh-env-audit` detecte des credentials dans l'historique
-- [ ] T2: `zsh-env-audit` retourne le nombre d'issues
-- [ ] T2: `zsh-env-audit-fix` corrige les permissions SSH
-- [ ] T2: `zsh-env-audit-fix` corrige les permissions secrets
+- [x] T2: `zsh-env-audit` verifie les permissions de `~/.ssh` (700)
+- [x] T2: `zsh-env-audit` verifie les permissions des cles privees (600/400)
+- [x] T2: `zsh-env-audit` verifie `~/.ssh/config` (600)
+- [x] T2: `zsh-env-audit` verifie `~/.secrets` (600)
+- [x] T2: `zsh-env-audit` verifie `~/.kube` (700)
+- [x] T2: `zsh-env-audit` detecte des credentials dans l'historique
+- [x] T2: `zsh-env-audit` retourne le nombre d'issues
+- [x] T2: `zsh-env-audit-fix` corrige les permissions SSH
+- [x] T2: `zsh-env-audit-fix` corrige les permissions secrets
 
 ## SSH Manager (ssh_manager.zsh)
 
@@ -145,15 +145,15 @@
 - [x] T2: `_ssh_list_hosts` retourne les hosts tries
 - [x] T2: `_ssh_get_host_info` extrait la configuration d'un host
 - [x] T1: `ssh_select` echoue sans fichier config
-- [ ] T2: `ssh_select` filtre par pattern
-- [ ] T2: `ssh_list` affiche HostName et User
-- [ ] T2: `ssh_list` compte le total
+- [x] T2: `ssh_select` filtre par pattern
+- [x] T2: `ssh_list` affiche HostName et User
+- [x] T2: `ssh_list` compte le total
 - [x] T1: `ssh_info` requiert un argument
-- [ ] T2: `ssh_info` echoue pour un host inconnu
-- [ ] T2: `ssh_add` detecte les doublons
-- [ ] T2: `ssh_add` cree le fichier config si manquant (permissions 600)
-- [ ] T2: `ssh_add` ajoute l'entree au bon format
-- [ ] T2: `ssh_remove` cree un backup avant suppression
+- [x] T2: `ssh_info` echoue pour un host inconnu
+- [x] T2: `ssh_add` detecte les doublons
+- [x] T2: `ssh_add` cree le fichier config si manquant (permissions 600)
+- [ ] T2: `ssh_add` ajoute l'entree au bon format (interactif)
+- [x] T2: `ssh_remove` cree un backup avant suppression
 - [x] T1: `ssh_copy_key` echoue si la cle n'existe pas
 
 ## Tmux Manager (tmux_manager.zsh)
@@ -183,21 +183,21 @@
 - [x] T1: `_proj_find_config` retourne 1 si aucun fichier trouve
 - [x] T1: `_proj_get_value` parse une cle YAML simple
 - [x] T1: `_proj_get_value` supprime les guillemets
-- [ ] T2: `_proj_load_by_path` change le repertoire courant
-- [ ] T2: `_proj_load_by_path` verifie le proprietaire du fichier env ($UID)
+- [x] T2: `_proj_load_by_path` change le repertoire courant
+- [x] T2: `_proj_load_by_path` verifie le proprietaire du fichier env ($UID)
 - [ ] T2: `_proj_load_by_path` refuse un fichier env avec mauvais proprietaire
 - [x] T1: `_proj_load_by_path` ignore post_cmd en mode non-interactif
-- [ ] T2: `proj_add` cree le fichier registre
-- [ ] T2: `proj_add` detecte les chemins dupliques
-- [ ] T2: `proj_add` detecte les noms dupliques
-- [ ] T2: `proj_list` affiche les projets enregistres
-- [ ] T2: `proj_list` marque les dossiers manquants
-- [ ] T2: `proj_remove` supprime l'entree du registre
-- [ ] T2: `proj_init` cree un fichier `.proj` template
+- [x] T2: `proj_add` cree le fichier registre
+- [x] T2: `proj_add` detecte les chemins dupliques
+- [x] T2: `proj_add` detecte les noms dupliques
+- [x] T2: `proj_list` affiche les projets enregistres
+- [x] T2: `proj_list` marque les dossiers manquants
+- [x] T2: `proj_remove` supprime l'entree du registre
+- [x] T2: `proj_init` cree un fichier `.proj` template
 - [x] T1: `proj_init` echoue si `.proj` existe deja
-- [ ] T2: `proj_scan` detecte les dossiers `.git`
-- [ ] T2: `proj_scan` detecte `package.json`, `Cargo.toml`, `go.mod`
-- [ ] T2: `proj_scan` respecte la limite de profondeur
+- [x] T2: `proj_scan` detecte les dossiers `.git`
+- [x] T2: `proj_scan` detecte `package.json`, `Cargo.toml`, `go.mod`
+- [x] T2: `proj_scan` respecte la limite de profondeur
 
 ## Plugins (plugins.zsh)
 
@@ -285,14 +285,12 @@
 | Tier | Description | Total | Implementes | Restants |
 |------|-------------|-------|-------------|----------|
 | T1 | Unit tests (pas de deps) | ~85 | **72** | ~13 |
-| T2 | Integration (git/fichiers) | ~75 | **22** | ~53 |
+| T2 | Integration (git/fichiers) | ~75 | **58** | ~17 |
 | T3 | Mocks necessaires | ~30 | **0** | ~30 |
-| **Total** | | **~190** | **94** | **~96** |
+| **Total** | | **~190** | **130** | **~60** |
 
 ## Priorite d'implementation (restant)
 
 1. **T1 restants** - rm non-interactif, secrets source, doctor, docker skip
-2. **T2 critiques** - extract decompression, completions add/remove, mkdir erreur
-3. **T2 securite** - security_audit (9 tests), ssh_manager (6 tests)
-4. **T2 projet** - project_switcher (10 tests), git_hooks (3 tests)
-5. **T3** - Docker, Kube, Tmux, NVM, Work, myip (necessite framework de mocking)
+2. **T2 restants** - mkdir erreur, theme list/apply, auto-update compare, ssh_add format, env mauvais proprio
+3. **T3** - Docker, Kube, Tmux, NVM, Work, myip (necessite framework de mocking)
