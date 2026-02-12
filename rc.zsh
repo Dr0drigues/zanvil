@@ -61,6 +61,25 @@ else
     compinit -C
 fi
 
+# Menu interactif : navigation avec les fleches, highlight de la selection
+zmodload zsh/complist
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# Case-insensitive + partial-word matching (ex: "doc" complete "Documents")
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+
+# Groupes avec headers
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{cyan}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{yellow}Aucun resultat pour: %d%f'
+
+# Navigation dans le menu avec vim-style en plus des fleches
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+
 # --- 5. Functions ---
 [[ -f "$ZSH_ENV_DIR/functions.zsh" ]] && source "$ZSH_ENV_DIR/functions.zsh"
 
