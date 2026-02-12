@@ -170,7 +170,8 @@ install_tool "helm"       "helm"        "helm"        "helm"
 # Starship (Script officiel si non trouvé via gestionnaire)
 if ! command -v starship &> /dev/null; then
     log_info "Installation manuelle de Starship..."
-    curl -sS https://starship.rs/install.sh | sh -s -- -y
+    log_warn "Le script d'installation est telecharge depuis starship.rs (HTTPS)"
+    curl -sS --proto '=https' --tlsv1.2 https://starship.rs/install.sh | sh -s -- -y
 fi
 
 # Installation de NVM (Node Version Manager)
@@ -187,9 +188,9 @@ else
         log_info "Récupération de la dernière version via GitHub API..."
         
         # Note : jq est déjà installé plus haut dans le script
-        curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | \
+        curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nvm-sh/nvm/releases/latest | \
         jq -r '.tag_name' | \
-        xargs -I {} curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{}/install.sh | bash
+        xargs -I {} curl --proto '=https' --tlsv1.2 -o- https://raw.githubusercontent.com/nvm-sh/nvm/{}/install.sh | bash
         
         if [ $? -eq 0 ]; then
             log_success "NVM installé avec succès."
@@ -203,14 +204,21 @@ fi
 if ! command -v nu &> /dev/null; then
     log_info "Installation manuelle de Nushell..."
     # On télécharge la dernière release via GitHub (binaire statique)
-    curl -s https://api.github.com/repos/nushell/nushell/releases/latest | \
+    log_warn "Le binaire Nushell est telecharge depuis GitHub Releases (HTTPS)"
+    curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nushell/nushell/releases/latest | \
     jq -r ".assets[] | select(.name | test(\"x86_64-unknown-linux-musl.tar.gz\")) | .browser_download_url" | \
-    xargs curl -L -o /tmp/nu.tar.gz
+    xargs curl --proto '=https' --tlsv1.2 -L -o /tmp/nu.tar.gz
 
     tar -xzf /tmp/nu.tar.gz -C /tmp
-    # Déplacement du binaire (suppose sudo dispo)
-    sudo mv /tmp/nu-*-linux-musl/nu /usr/local/bin/
-    log_success "Nushell installé."
+    # Deplacement du binaire (suppose sudo dispo)
+    local nu_bin=$(find /tmp -maxdepth 2 -name "nu" -type f 2>/dev/null | head -1)
+    if [[ -n "$nu_bin" ]]; then
+        sudo mv "$nu_bin" /usr/local/bin/
+        log_success "Nushell installe."
+    else
+        log_error "Binaire Nushell non trouve apres extraction."
+    fi
+    rm -rf /tmp/nu.tar.gz /tmp/nu-*-linux-musl
 fi
 
 # SDKMAN (Gestionnaire de versions pour Java, Gradle, Maven, etc.)
@@ -219,7 +227,7 @@ if [ -d "$SDKMAN_DIR" ]; then
     log_success "SDKMAN est deja installe."
 else
     log_info "Installation de SDKMAN..."
-    curl -s "https://get.sdkman.io?rcupdate=false" | bash
+    curl -s --proto '=https' --tlsv1.2 "https://get.sdkman.io?rcupdate=false" | bash
     if [ $? -eq 0 ]; then
         log_success "SDKMAN installe avec succes."
         log_info "Utilisez 'sdk install java' pour installer Java."

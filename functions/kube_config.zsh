@@ -10,8 +10,43 @@ KUBE_DIR="$HOME/.kube"
 KUBE_CONFIGS_DIR="$KUBE_DIR/configs.d"
 KUBE_MINIMAL_CONFIG="$KUBE_DIR/config.minimal.yml"
 KUBE_SOPS_SOURCE="$ZSH_ENV_DIR/kube"
+KUBE_SELECTION_FILE="$KUBE_DIR/.kubeconfig_selection"
 
 # --- Fonctions internes ---
+
+# Sauvegarde la selection KUBECONFIG actuelle
+_kube_save_selection() {
+    if [[ -n "$KUBECONFIG" ]]; then
+        echo "$KUBECONFIG" > "$KUBE_SELECTION_FILE"
+    elif [[ -f "$KUBE_SELECTION_FILE" ]]; then
+        rm -f "$KUBE_SELECTION_FILE"
+    fi
+}
+
+# Restaure la selection KUBECONFIG sauvegardee
+_kube_restore_selection() {
+    if [[ -f "$KUBE_SELECTION_FILE" ]]; then
+        local saved_config
+        saved_config=$(cat "$KUBE_SELECTION_FILE")
+        # Verifie que tous les fichiers existent encore
+        local valid_configs=""
+        IFS=':' read -rA configs <<< "$saved_config"
+        for config in "${configs[@]}"; do
+            if [[ -f "$config" ]]; then
+                if [[ -n "$valid_configs" ]]; then
+                    valid_configs="$valid_configs:$config"
+                else
+                    valid_configs="$config"
+                fi
+            fi
+        done
+        if [[ -n "$valid_configs" ]]; then
+            export KUBECONFIG="$valid_configs"
+            return 0
+        fi
+    fi
+    return 1
+}
 
 # Verifie que les outils necessaires sont installes
 _kube_check_deps() {
@@ -170,22 +205,16 @@ kube_select() {
 
     # Construction du nouveau KUBECONFIG
     local new_kubeconfig=""
+    local line clean_name i
 
     while IFS= read -r line; do
         # Extrait le nom (retire le prefixe ● ou ○)
-        local clean_name
-        clean_name=$(echo "$line" | sed 's/^[●○] //')
+        clean_name="${line#[●○] }"
 
         # Trouve le chemin complet
         for ((i=1; i<=${#display_lines[@]}; i++)); do
-            local check_name
-            check_name=$(echo "${display_lines[$i]}" | sed 's/^[●○] //')
-            if [[ "$check_name" == "$clean_name" ]]; then
-                if [[ -n "$new_kubeconfig" ]]; then
-                    new_kubeconfig="$new_kubeconfig:${configs[$i]}"
-                else
-                    new_kubeconfig="${configs[$i]}"
-                fi
+            if [[ "${display_lines[$i]#[●○] }" == "$clean_name" ]]; then
+                new_kubeconfig="${new_kubeconfig:+$new_kubeconfig:}${configs[$i]}"
                 break
             fi
         done
@@ -193,9 +222,11 @@ kube_select() {
 
     if [[ -z "$new_kubeconfig" ]]; then
         unset KUBECONFIG
+        _kube_save_selection
         echo "KUBECONFIG vide (utilise ~/.kube/config par defaut)."
     else
         export KUBECONFIG="$new_kubeconfig"
+        _kube_save_selection
         echo "KUBECONFIG mis a jour:"
         kube_status
     fi
@@ -255,6 +286,7 @@ kube_add() {
         export KUBECONFIG="$config_file"
     fi
 
+    _kube_save_selection
     echo "Config ajoutee: $config_file"
 }
 
@@ -262,9 +294,11 @@ kube_add() {
 kube_reset() {
     if [[ -f "$KUBE_MINIMAL_CONFIG" ]]; then
         export KUBECONFIG="$KUBE_MINIMAL_CONFIG"
+        _kube_save_selection
         echo "KUBECONFIG reinitialise a la config minimale."
     else
         unset KUBECONFIG
+        _kube_save_selection
         echo "KUBECONFIG vide (utilise ~/.kube/config par defaut)."
     fi
 }
@@ -857,7 +891,12 @@ EOF
 # ==============================================================================
 # Initialisation automatique au chargement
 # ==============================================================================
-# Charge silencieusement la config minimale si elle existe
-if [[ -f "$KUBE_MINIMAL_CONFIG" ]] && [[ -z "$KUBECONFIG" ]]; then
-    export KUBECONFIG="$KUBE_MINIMAL_CONFIG"
+# Restaure la selection sauvegardee ou charge la config minimale par defaut
+if [[ -z "$KUBECONFIG" ]]; then
+    if ! _kube_restore_selection; then
+        # Fallback sur la config minimale si pas de selection sauvegardee
+        if [[ -f "$KUBE_MINIMAL_CONFIG" ]]; then
+            export KUBECONFIG="$KUBE_MINIMAL_CONFIG"
+        fi
+    fi
 fi

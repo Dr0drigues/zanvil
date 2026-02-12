@@ -12,6 +12,7 @@ ZSH_ENV_MODULE_GITLAB=true      # Scripts et fonctions GitLab
 ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
 ZSH_ENV_MODULE_NVM=true         # Auto-switch Node.js via .nvmrc
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
+ZSH_ENV_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 
 # ==============================================================================
 # NVM Configuration
@@ -25,14 +26,18 @@ ZSH_ENV_AUTO_UPDATE=true        # Activer la verification des mises a jour
 ZSH_ENV_UPDATE_FREQUENCY=7      # Frequence en jours (0 = a chaque demarrage)
 ZSH_ENV_UPDATE_MODE="prompt"    # "prompt" = demander, "auto" = mise a jour silencieuse
 
+# ==============================================================================
+# Contexte Work (avance)
+# ==============================================================================
+# ZSH_ENV_WORK_CACHE_TTL=300     # Duree du cache en secondes (defaut: 300 = 5 min)
+# ZSH_ENV_WORK_TIMEOUT=2         # Timeout du test reseau en secondes (defaut: 2)
 
 # ==============================================================================
 # Chargement des plugins
 # ==============================================================================
-ZSH_ENV_PLUGINS_ORG=zsh-users  # Org par défaut (optionnel)
+ZSH_ENV_PLUGINS_ORG=zsh-users  # Org par defaut (optionnel)
 ZSH_ENV_PLUGINS=(
-    zsh-autosuggestions                       # Utilise l'org par défaut
+    zsh-autosuggestions                       # Utilise l'org par defaut
     Aloxaf/fzf-tab                            # GitHub owner/repo
-    https://github.com/custom/plugin.git      # URL complète
-    https://gitlab.com/user/plugin.git        # GitLab, etc.
+    # https://github.com/custom/plugin.git    # URL complete
 )

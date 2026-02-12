@@ -1,6 +1,9 @@
 # MacOS indexing file
 .DS_STORE
 
+# Backup files
+*.bak
+
 # IDEs
 .idea
 .vscode
