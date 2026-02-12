@@ -4,8 +4,8 @@
 # Estime les tokens, compresse le contexte, selectionne les fichiers pertinents
 # ==============================================================================
 
-# Configuration
-AI_TOKENS_CHARS_PER_TOKEN=4  # Approximation moyenne (ajustable)
+# Configuration (surchargeable via config.zsh)
+AI_TOKENS_CHARS_PER_TOKEN="${ZSH_ENV_AI_CHARS_PER_TOKEN:-4}"
 
 # Patterns a ignorer par defaut
 AI_TOKENS_IGNORE_DIRS=(
@@ -48,17 +48,21 @@ AI_TOKENS_PRIORITY=(
     [vue]=8 [svelte]=8
 )
 
-# Prix par million de tokens (input) - Janvier 2024
-typeset -A AI_TOKENS_PRICES
-AI_TOKENS_PRICES=(
-    [gpt-4-turbo]=10.00
-    [gpt-4]=30.00
-    [gpt-3.5-turbo]=0.50
-    [claude-3-opus]=15.00
-    [claude-3-sonnet]=3.00
-    [claude-3-haiku]=0.25
-    [claude-3.5-sonnet]=3.00
-)
+# Prix par million de tokens (input) - surchargeable via ZSH_ENV_AI_TOKENS_PRICES
+# Definir dans config.zsh pour mettre a jour les prix
+if [[ -z "${AI_TOKENS_PRICES+x}" ]]; then
+    typeset -A AI_TOKENS_PRICES
+    AI_TOKENS_PRICES=(
+        [gpt-4o]=2.50
+        [gpt-4-turbo]=10.00
+        [gpt-4]=30.00
+        [gpt-3.5-turbo]=0.50
+        [claude-opus-4]=15.00
+        [claude-sonnet-4]=3.00
+        [claude-haiku-3.5]=0.80
+        [claude-3.5-sonnet]=3.00
+    )
+fi
 
 # ==============================================================================
 # ESTIMATION DE TOKENS

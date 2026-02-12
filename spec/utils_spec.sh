@@ -5,6 +5,7 @@ Describe "utils.zsh"
     TEST_HOME=$(mktemp -d)
     export HOME="$TEST_HOME"
     export ZSH_ENV_DIR="$SHELLSPEC_PROJECT_ROOT"
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/utils.zsh"
   }
 

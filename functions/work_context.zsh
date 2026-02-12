@@ -6,11 +6,11 @@
 # Utilise les fonctions UI de ui.zsh
 # ==============================================================================
 
-# --- Configuration ---
-_WORK_NEXUS_URL=""
+# --- Configuration (surchargeable via config.zsh) ---
+_WORK_NEXUS_URL="${ZSH_ENV_WORK_NEXUS_URL:-}"
 _WORK_CACHE_FILE="${ZSH_ENV_DIR:-$HOME/.zsh_env}/.work_context_cache"
-_WORK_CACHE_TTL=300  # 5 minutes en secondes
-_WORK_TIMEOUT=2      # Timeout en secondes pour le test
+_WORK_CACHE_TTL="${ZSH_ENV_WORK_CACHE_TTL:-300}"       # 5 minutes en secondes
+_WORK_TIMEOUT="${ZSH_ENV_WORK_TIMEOUT:-2}"              # Timeout en secondes pour le test
 
 # --- Fonctions internes ---
 
@@ -50,9 +50,9 @@ _blg_cache_write() {
 # Test reel d'acces au Nexus
 _blg_test_nexus() {
     if command -v curl &>/dev/null; then
-        curl -sk -o /dev/null -w "%{http_code}" \
-            --connect-timeout "$_WORK_TIMEOUT" \
-            --max-time "$_WORK_TIMEOUT" \
+        local _curl_opts="-s --connect-timeout $_WORK_TIMEOUT --max-time $_WORK_TIMEOUT"
+        [[ -n "$SSL_CERT_FILE" ]] && _curl_opts+=" --cacert $SSL_CERT_FILE"
+        curl $_curl_opts -o /dev/null -w "%{http_code}" \
             "$_WORK_NEXUS_URL" 2>/dev/null | grep -q "^[23]"
         return $?
     elif command -v wget &>/dev/null; then
@@ -196,11 +196,11 @@ blg_status() {
     _ui_separator 44
     _ui_section "GitLab" "${ZSH_ENV_MODULE_GITLAB:-false}"
 
-    # SDKMAN
-    if [[ -n "$SDKMAN_DIR" && -d "$SDKMAN_DIR" ]]; then
-        _ui_section "SDKMAN" "Installe"
+    # Mise
+    if command -v mise &> /dev/null; then
+        _ui_section "Mise" "Installe ($(mise --version 2>/dev/null | awk '{print $1}'))"
     else
-        _ui_section "SDKMAN" "Non installe"
+        _ui_section "Mise" "Non installe"
     fi
 }
 

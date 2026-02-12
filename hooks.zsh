@@ -39,75 +39,12 @@ else
 fi
 
 # =======================================================
-# NVM (Node Version Manager)
+# MISE (Gestionnaire de versions: Node, Java, Maven, etc.)
 # =======================================================
-if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
-    export NVM_DIR="$HOME/.nvm"
-
-    # Fonction interne pour charger NVM
-    _zsh_env_load_nvm() {
-        local nvm_candidates=(
-            "$NVM_DIR/nvm.sh"                          # Linux / Install Manuelle
-            "/opt/homebrew/opt/nvm/nvm.sh"             # MacOS Apple Silicon (Brew)
-            "/usr/local/opt/nvm/nvm.sh"                # MacOS Intel (Brew)
-            "/usr/share/nvm/init-nvm.sh"               # Arch Linux (AUR)
-        )
-
-        local nvm_path
-        for nvm_path in "${nvm_candidates[@]}"; do
-            if [ -s "$nvm_path" ]; then
-                source "$nvm_path"
-
-                # Chargement de l'autocompletion
-                local nvm_root=$(dirname "$nvm_path")
-                local completion_path="$nvm_root/etc/bash_completion.d/nvm"
-                [ ! -f "$completion_path" ] && completion_path="$NVM_DIR/bash_completion"
-                [ -s "$completion_path" ] && source "$completion_path"
-
-                # Hook automatique pour .nvmrc
-                if command -v nvm &> /dev/null; then
-                    autoload -U add-zsh-hook
-                    add-zsh-hook chpwd load-nvmrc
-                fi
-
-                return 0
-            fi
-        done
-        return 1
-    }
-
-    if [ "$ZSH_ENV_NVM_LAZY" = "true" ]; then
-        # Mode Lazy : wrappers qui chargent NVM au premier appel
-        _zsh_env_lazy_nvm() {
-            unfunction node npm npx yarn pnpm nvm 2>/dev/null
-            if _zsh_env_load_nvm; then
-                "$@"
-            else
-                echo "[zsh_env] NVM non trouve"
-                return 1
-            fi
-        }
-
-        node()  { _zsh_env_lazy_nvm node "$@" }
-        npm()   { _zsh_env_lazy_nvm npm "$@" }
-        npx()   { _zsh_env_lazy_nvm npx "$@" }
-        yarn()  { _zsh_env_lazy_nvm yarn "$@" }
-        pnpm()  { _zsh_env_lazy_nvm pnpm "$@" }
-        nvm()   { _zsh_env_lazy_nvm nvm "$@" }
-    else
-        # Mode normal : charger NVM immediatement
-        if _zsh_env_load_nvm; then
-            load-nvmrc 2>/dev/null
-        fi
+if [[ "$ZSH_ENV_MODULE_MISE" = "true" ]]; then
+    if command -v mise &> /dev/null; then
+        eval "$(mise activate zsh)"
     fi
-fi
-
-# =======================================================
-# SDKMAN (Java, Gradle, Maven, etc.)
-# =======================================================
-export SDKMAN_DIR="$HOME/.sdkman"
-if [ -d "$SDKMAN_DIR" ] && [ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]; then
-    source "$SDKMAN_DIR/bin/sdkman-init.sh"
 fi
 
 # =======================================================

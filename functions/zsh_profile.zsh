@@ -91,7 +91,6 @@ zsh-env-profile() {
     # Conseils
     if (( real_total > 500 )); then
         echo -e "${_ui_yellow}Conseil: Le demarrage est lent (>500ms).${_ui_nc}"
-        echo "  - Activez le lazy loading NVM: ZSH_ENV_NVM_LAZY=true"
         echo "  - Desactivez les modules inutiles dans config.zsh"
     elif (( real_total > 200 )); then
         echo -e "${_ui_green}Le temps de demarrage est acceptable.${_ui_nc}"

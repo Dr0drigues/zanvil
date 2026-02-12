@@ -18,7 +18,7 @@ trash() {
         # Version Mac (brew) ou autre
         command trash "$@"
     else
-        echo "Erreur: Aucune commande 'trash' ou 'trash-put' trouvee."
+        echo -e "${_ui_red}Erreur:${_ui_nc} Aucune commande 'trash' ou 'trash-put' trouvee."
         return 1
     fi
 }
@@ -27,28 +27,28 @@ trash() {
 # Usage: bak mon_fichier.conf -> cree mon_fichier.conf.2023-10-27_14h30
 bak() {
     if [[ -z "$1" ]]; then
-        echo "Usage: bak <filename>"
+        echo -e "${_ui_bold}Usage:${_ui_nc} bak <filename>"
         return 1
     fi
     local timestamp
     timestamp=$(date +%Y-%m-%d_%H%M%S)
     cp "$1" "$1.bak.$timestamp"
-    echo "Backup cree : $1.bak.$timestamp"
+    _ui_msg_ok "Backup cree : $1.bak.$timestamp"
 }
 
 # Rend un fichier executable rapidement
 # Usage: cx mon_script.sh
 cx() {
     if [[ -z "$1" ]]; then
-        echo "Usage: cx <fichier>"
+        echo -e "${_ui_bold}Usage:${_ui_nc} cx <fichier>"
         return 1
     fi
 
     if [[ ! -f "$1" ]]; then
-        echo "Erreur: '$1' n'est pas un fichier valide."
+        echo -e "${_ui_red}Erreur:${_ui_nc} '$1' n'est pas un fichier valide."
         return 1
     fi
 
     chmod +x "$1"
-    echo "'$1' est maintenant executable."
+    _ui_msg_ok "'$1' est maintenant executable."
 }

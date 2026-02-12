@@ -83,19 +83,14 @@ _proj_load_by_path() {
 
     # Appliquer la version Node
     if [[ -n "$node_version" ]]; then
-        if command -v nvm &> /dev/null || [[ -f "$NVM_DIR/nvm.sh" ]]; then
-            [[ -z "$NVM_DIR" ]] && export NVM_DIR="$HOME/.nvm"
-            [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-            nvm use "$node_version" 2>/dev/null || nvm install "$node_version"
+        if command -v mise &> /dev/null; then
+            mise use node@"$node_version" 2>/dev/null || mise install node@"$node_version"
             echo "  Node: $(node -v)"
         fi
-    elif [[ -f "$proj_dir/.nvmrc" ]]; then
-        # Fallback sur .nvmrc
-        if command -v nvm &> /dev/null || [[ -s "$NVM_DIR/nvm.sh" ]]; then
-            [[ -z "$NVM_DIR" ]] && export NVM_DIR="$HOME/.nvm"
-            [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-            nvm use 2>/dev/null
-            echo "  Node: $(node -v) (via .nvmrc)"
+    elif [[ -f "$proj_dir/.nvmrc" || -f "$proj_dir/.tool-versions" || -f "$proj_dir/.mise.toml" ]]; then
+        # mise gere l'auto-switch via son hook chpwd
+        if command -v mise &> /dev/null; then
+            echo "  Node: $(node -v 2>/dev/null || echo 'N/A') (via mise)"
         fi
     fi
 
@@ -458,7 +453,7 @@ name: $default_name
 # Contexte Kubernetes (optionnel)
 # kube_context: my-cluster-context
 
-# Version Node (optionnel, sinon utilise .nvmrc)
+# Version Node (optionnel, sinon utilise .nvmrc / .tool-versions)
 # node_version: 18
 
 # Session tmux (optionnel)
@@ -666,7 +661,7 @@ Exemples:
 Fichier .proj:
   name: my-project       Nom du projet (optionnel)
   kube_context: ctx      Change le contexte kubectl
-  node_version: 18       Change la version Node (nvm)
+  node_version: 18       Change la version Node (mise)
   tmux_session: name     Suggere une session tmux
   env_file: .env.local   Charge un fichier d'environnement
   post_cmd: "cmd"        Execute une commande apres chargement

@@ -2,6 +2,7 @@
 
 Describe "extract.zsh"
   setup() {
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/extract.zsh"
   }
 

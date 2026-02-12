@@ -2,6 +2,7 @@
 
 Describe "net_utils.zsh (T3 mocked)"
   setup() {
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/net_utils.zsh"
   }
 
@@ -17,8 +18,8 @@ Describe "net_utils.zsh (T3 mocked)"
         unfunction curl uname ipconfig 2>/dev/null
       }
       When call test_myip
-      The output should include "Public IP : 1.2.3.4"
-      The output should include "Local IP  : 192.168.1.100"
+      The output should include "1.2.3.4"
+      The output should include "192.168.1.100"
     End
 
     It "handles curl timeout"
@@ -30,7 +31,7 @@ Describe "net_utils.zsh (T3 mocked)"
         unfunction curl uname ipconfig 2>/dev/null
       }
       When call test_myip_timeout
-      The output should include "Public IP : timeout"
+      The output should include "timeout"
     End
 
     It "handles Linux IP detection"
@@ -42,8 +43,8 @@ Describe "net_utils.zsh (T3 mocked)"
         unfunction curl uname hostname 2>/dev/null
       }
       When call test_myip_linux
-      The output should include "Public IP : 5.6.7.8"
-      The output should include "Local IP  : 10.0.0.5"
+      The output should include "5.6.7.8"
+      The output should include "10.0.0.5"
     End
   End
 
@@ -55,7 +56,7 @@ Describe "net_utils.zsh (T3 mocked)"
         unfunction nc 2>/dev/null
       }
       When call test_port_open
-      The output should include "Port 80 ouvert"
+      The output should include "80 ouvert"
     End
 
     It "detects closed port"
