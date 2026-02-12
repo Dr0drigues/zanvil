@@ -13,9 +13,9 @@ fi
 setopt AUTO_CD
 
 # Init Environment
-if [ -z "$ZSH_ENV_DIR" ]; then
-    echo "WARNING: ZSH_ENV_DIR is not set. Assuming default location."
-    export ZSH_ENV_DIR="$HOME/.zsh_env" # Valeur par défaut de sécurité
+if [[ -z "$ZSH_ENV_DIR" ]]; then
+    echo "WARNING: ZSH_ENV_DIR is not set. Assuming default location." >&2
+    export ZSH_ENV_DIR="$HOME/.zsh_env"
 fi
 
 # Load Configuration (modules actifs/inactifs)
@@ -34,20 +34,20 @@ ZSH_ENV_UPDATE_MODE=${ZSH_ENV_UPDATE_MODE:-prompt}
 ZSH_ENV_NVM_LAZY=${ZSH_ENV_NVM_LAZY:-true}
 
 # Charger config personnalisee si presente
-if [ -f "$ZSH_ENV_DIR/config.zsh" ]; then
+if [[ -f "$ZSH_ENV_DIR/config.zsh" ]]; then
     source "$ZSH_ENV_DIR/config.zsh"
 fi
 
 # Load Secrets (Ignored by git)
-if [ -f "$HOME/.secrets" ]; then
+if [[ -f "$HOME/.secrets" ]]; then
     source "$HOME/.secrets"
 fi
 
-# Load variables (Critique : Doit être chargé en premier)
-if [ -f "$ZSH_ENV_DIR/variables.zsh" ]; then
-    source "$ZSH_ENV_DIR/variables.zsh"
+# Load variables (Critique : Doit etre charge en premier)
+if [[ -f "$ZSH_ENV_DIR/variables.zsh" ]]; then
+    source "$ZSH_ENV_DIR/variables.zsh" || echo "[zsh-env] Erreur au chargement de variables.zsh" >&2
 else
-    echo "ERROR: variables.zsh not found in $ZSH_ENV_DIR"
+    echo "[zsh-env] ERREUR: variables.zsh introuvable dans $ZSH_ENV_DIR" >&2
 fi
 
 export PATH="$SCRIPTS_DIR:$PATH"
@@ -65,22 +65,22 @@ else
 fi
 
 # Load functions
-if [ -f "$ZSH_ENV_DIR/functions.zsh" ]; then
-    source "$ZSH_ENV_DIR/functions.zsh"
+if [[ -f "$ZSH_ENV_DIR/functions.zsh" ]]; then
+    source "$ZSH_ENV_DIR/functions.zsh" || echo "[zsh-env] Erreur au chargement de functions.zsh" >&2
 fi
 
 # Load aliases
-if [ -f "$ZSH_ENV_DIR/aliases.zsh" ]; then
-    source "$ZSH_ENV_DIR/aliases.zsh"
+if [[ -f "$ZSH_ENV_DIR/aliases.zsh" ]]; then
+    source "$ZSH_ENV_DIR/aliases.zsh" || echo "[zsh-env] Erreur au chargement de aliases.zsh" >&2
 fi
 
 # Load plugins
-if [ -f "$ZSH_ENV_DIR/plugins.zsh" ]; then
-    source "$ZSH_ENV_DIR/plugins.zsh"
+if [[ -f "$ZSH_ENV_DIR/plugins.zsh" ]]; then
+    source "$ZSH_ENV_DIR/plugins.zsh" || echo "[zsh-env] Erreur au chargement de plugins.zsh" >&2
 fi
 
 # Load local aliases (non versionnes)
-if [ -f "$ZSH_ENV_DIR/aliases.local.zsh" ]; then
+if [[ -f "$ZSH_ENV_DIR/aliases.local.zsh" ]]; then
     source "$ZSH_ENV_DIR/aliases.local.zsh"
 fi
 
@@ -88,7 +88,7 @@ fi
 # NVM INIT (Cross-Platform avec Lazy Loading optionnel)
 # =======================================================
 
-if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
+if [[ "$ZSH_ENV_MODULE_NVM" == "true" ]]; then
     export NVM_DIR="$HOME/.nvm"
 
     # Fonction interne pour charger NVM
@@ -103,14 +103,14 @@ if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
 
         local nvm_path
         for nvm_path in "${nvm_candidates[@]}"; do
-            if [ -s "$nvm_path" ]; then
+            if [[ -s "$nvm_path" ]]; then
                 source "$nvm_path"
 
                 # Chargement de l'autocomplétion
                 local nvm_root=$(dirname "$nvm_path")
                 local completion_path="$nvm_root/etc/bash_completion.d/nvm"
-                [ ! -f "$completion_path" ] && completion_path="$NVM_DIR/bash_completion"
-                [ -s "$completion_path" ] && source "$completion_path"
+                [[ ! -f "$completion_path" ]] && completion_path="$NVM_DIR/bash_completion"
+                [[ -s "$completion_path" ]] && source "$completion_path"
 
                 # Hook automatique pour .nvmrc
                 if command -v nvm &> /dev/null; then
@@ -124,7 +124,7 @@ if [ "$ZSH_ENV_MODULE_NVM" = "true" ]; then
         return 1
     }
 
-    if [ "$ZSH_ENV_NVM_LAZY" = "true" ]; then
+    if [[ "$ZSH_ENV_NVM_LAZY" == "true" ]]; then
         # Mode Lazy : créer des wrappers qui chargent NVM au premier appel
         _zsh_env_lazy_nvm() {
             # Supprimer les wrappers
@@ -158,7 +158,7 @@ fi
 # SDKMAN (Optimisé et Silencieux)
 # On vérifie d'abord que le dossier existe avant de tester le fichier
 export SDKMAN_DIR="$HOME/.sdkman"
-if [ -d "$SDKMAN_DIR" ] && [ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]; then
+if [[ -d "$SDKMAN_DIR" ]] && [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
     source "$SDKMAN_DIR/bin/sdkman-init.sh"
 fi
 

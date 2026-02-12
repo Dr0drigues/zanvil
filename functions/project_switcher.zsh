@@ -101,10 +101,17 @@ _proj_load_by_path() {
 
     # Charger un fichier env
     if [[ -n "$env_file" && -f "$proj_dir/$env_file" ]]; then
-        set -a
-        source "$proj_dir/$env_file"
-        set +a
-        echo "  Env: $env_file charge"
+        # Securite: verifier que le fichier env appartient a l'utilisateur
+        local env_owner
+        env_owner=$(stat -f '%u' "$proj_dir/$env_file" 2>/dev/null || stat -c '%u' "$proj_dir/$env_file" 2>/dev/null)
+        if [[ "$env_owner" != "$UID" ]]; then
+            echo "  Env: $env_file ignore (proprietaire different)" >&2
+        else
+            set -a
+            source "$proj_dir/$env_file"
+            set +a
+            echo "  Env: $env_file charge"
+        fi
     fi
 
     # Session tmux
@@ -114,10 +121,21 @@ _proj_load_by_path() {
         fi
     fi
 
-    # Commande post
+    # Commande post (confirmation obligatoire)
     if [[ -n "$post_cmd" ]]; then
-        echo "  Execution: $post_cmd"
-        eval "$post_cmd"
+        echo "  Post-cmd: $post_cmd"
+        if [[ -t 0 ]]; then
+            local response
+            read -q "response?  Executer cette commande ? [y/N] "
+            echo ""
+            if [[ "$response" == "y" ]]; then
+                eval "$post_cmd"
+            else
+                echo "  Post-cmd ignoree."
+            fi
+        else
+            echo "  Post-cmd ignoree (mode non-interactif)." >&2
+        fi
     fi
 
     return 0
@@ -386,7 +404,7 @@ proj_list() {
         if [[ -d "$proj_path" ]]; then
             printf "  %-15s %s\n" "$proj_name" "$proj_path"
         else
-            printf "  %-15s %s \033[31m(manquant)\033[0m\n" "$proj_name" "$proj_path"
+            printf "  %-15s %s (manquant)\n" "$proj_name" "$proj_path"
         fi
     done < "$PROJ_REGISTRY_FILE"
 

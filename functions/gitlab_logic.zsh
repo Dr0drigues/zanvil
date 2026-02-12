@@ -1,14 +1,14 @@
 # Skip si module desactive
-[ "$ZSH_ENV_MODULE_GITLAB" != "true" ] && return
+[[ "$ZSH_ENV_MODULE_GITLAB" != "true" ]] && return
 
 ### SECURITY & CONFIGURATION ###
 
 # 1. Chargement sécurisé du token
 # Créez un fichier ~/.gitlab_secrets contenant : export GITLAB_TOKEN='votre_token'
-if [ -f "$HOME/.gitlab_secrets" ]; then
+if [[ -f "$HOME/.gitlab_secrets" ]]; then
     source "$HOME/.gitlab_secrets"
 else
-    echo "WARNING: $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant."
+    echo "WARNING: $HOME/.gitlab_secrets introuvable. Le token GitLab est manquant." >&2
 fi
 
 # 2. Configuration des Group IDs (Modèle de données)
@@ -66,11 +66,10 @@ load_gitlab_aliases
 
 # Fonction utilitaire pour lister les alias générés
 function list-gitlab-cmds() {
-    echo "\033[1;34mCommandes GitLab disponibles :\033[0m"
+    echo "Commandes GitLab disponibles :"
     for key in "${(@k)GITLAB_PROJECTS}"; do
-        # On refait le parsing pour l'affichage
         parts=("${(@s/-/)key}")
-        echo "  \033[0;32mgc-${parts[2]}-${parts[1]}\033[0m -> Clone le groupe ${GITLAB_PROJECTS[$key]}"
+        echo "  gc-${parts[2]}-${parts[1]} -> Clone le groupe ${GITLAB_PROJECTS[$key]}"
     done | sort
 }
 
