@@ -6,6 +6,7 @@ Describe "docker_utils.zsh (T3 mocked)"
     ORIG_HOME="$HOME"
     export HOME="$TEST_HOME"
     export ZSH_ENV_MODULE_DOCKER="true"
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/docker_utils.zsh"
   }
 
