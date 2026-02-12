@@ -120,7 +120,8 @@ EOF
           touch "$SSH_CONFIG_FILE"
           chmod 600 "$SSH_CONFIG_FILE"
         fi
-        local perms=$(stat -f "%Lp" "$SSH_CONFIG_FILE" 2>/dev/null || stat -c "%a" "$SSH_CONFIG_FILE" 2>/dev/null)
+        local perms
+        if [[ "$OSTYPE" == darwin* ]]; then perms=$(stat -f "%Lp" "$SSH_CONFIG_FILE"); else perms=$(stat -c "%a" "$SSH_CONFIG_FILE"); fi
         echo "$perms"
       }
       When call test_create_config

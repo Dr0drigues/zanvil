@@ -103,7 +103,11 @@ _proj_load_by_path() {
     if [[ -n "$env_file" && -f "$proj_dir/$env_file" ]]; then
         # Securite: verifier que le fichier env appartient a l'utilisateur
         local env_owner
-        env_owner=$(stat -f '%u' "$proj_dir/$env_file" 2>/dev/null || stat -c '%u' "$proj_dir/$env_file" 2>/dev/null)
+        if [[ "$OSTYPE" == darwin* ]]; then
+            env_owner=$(stat -f '%u' "$proj_dir/$env_file" 2>/dev/null)
+        else
+            env_owner=$(stat -c '%u' "$proj_dir/$env_file" 2>/dev/null)
+        fi
         if [[ "$env_owner" != "$UID" ]]; then
             echo "  Env: $env_file ignore (proprietaire different)" >&2
         else

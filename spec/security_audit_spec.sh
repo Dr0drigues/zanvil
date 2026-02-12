@@ -118,7 +118,7 @@ Describe "security_audit.zsh"
       check_and_fix() {
         setopt NULL_GLOB NO_NOMATCH
         zsh-env-audit-fix > /dev/null 2>&1
-        stat -f "%Lp" "$TEST_HOME/.ssh" 2>/dev/null || stat -c "%a" "$TEST_HOME/.ssh" 2>/dev/null
+        if [[ "$OSTYPE" == darwin* ]]; then stat -f "%Lp" "$TEST_HOME/.ssh"; else stat -c "%a" "$TEST_HOME/.ssh"; fi
       }
       When call check_and_fix
       The output should equal "700"
@@ -135,7 +135,7 @@ Describe "security_audit.zsh"
       check_and_fix() {
         setopt NULL_GLOB NO_NOMATCH
         zsh-env-audit-fix > /dev/null 2>&1
-        stat -f "%Lp" "$TEST_HOME/.secrets" 2>/dev/null || stat -c "%a" "$TEST_HOME/.secrets" 2>/dev/null
+        if [[ "$OSTYPE" == darwin* ]]; then stat -f "%Lp" "$TEST_HOME/.secrets"; else stat -c "%a" "$TEST_HOME/.secrets"; fi
       }
       When call check_and_fix
       The output should equal "600"
