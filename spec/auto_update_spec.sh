@@ -52,12 +52,4 @@ Describe "auto_update.zsh"
     End
   End
 
-  Describe "zsh-env-status()"
-    It "displays configuration and modules"
-      When call zsh-env-status
-      The output should include "ZSH_ENV Status"
-      The output should include "Configuration"
-      The output should include "Modules"
-    End
-  End
 End

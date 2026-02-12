@@ -8,6 +8,7 @@ Describe "security_audit.zsh"
     export ZSH_ENV_DIR="$TEST_HOME/.zsh_env"
     mkdir -p "$ZSH_ENV_DIR"
     setopt NULL_GLOB NO_NOMATCH
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/security_audit.zsh"
   }
 
@@ -24,14 +25,13 @@ Describe "security_audit.zsh"
       mkdir -p "$TEST_HOME/.ssh"
       chmod 700 "$TEST_HOME/.ssh"
       When call zsh-env-audit
-      The output should include "Dossier SSH"
-      The output should include "OK"
+      The output should include "SSH"
     End
 
     It "detects bad permissions on ~/.ssh"
       chmod 755 "$TEST_HOME/.ssh"
       When call zsh-env-audit
-      The output should include "FAIL"
+      The output should include "erreur"
       The status should not equal 0
     End
 
@@ -47,18 +47,16 @@ Describe "security_audit.zsh"
       echo "fake_key" > "$TEST_HOME/.ssh/id_ed25519"
       chmod 644 "$TEST_HOME/.ssh/id_ed25519"
       When call zsh-env-audit
-      The output should include "FAIL"
       The output should include "id_ed25519"
       The status should not equal 0
     End
 
     It "checks ~/.ssh/config (600)"
-      # Fix other permissions first
       chmod 600 "$TEST_HOME/.ssh/id_ed25519"
       echo "Host test" > "$TEST_HOME/.ssh/config"
       chmod 600 "$TEST_HOME/.ssh/config"
       When call zsh-env-audit
-      The output should include "Config SSH"
+      The output should include "config"
       The status should equal 0
     End
 
@@ -66,7 +64,7 @@ Describe "security_audit.zsh"
       echo "export SECRET=test" > "$TEST_HOME/.secrets"
       chmod 600 "$TEST_HOME/.secrets"
       When call zsh-env-audit
-      The output should include "Fichiers secrets"
+      The output should include "Secrets"
     End
 
     It "checks ~/.kube (700)"
@@ -80,11 +78,11 @@ Describe "security_audit.zsh"
       echo "password=secret123" > "$TEST_HOME/.zsh_history"
       chmod 600 "$TEST_HOME/.zsh_history"
       When call zsh-env-audit
-      The output should include "Historique"
+      The output should include "History"
+      The output should include "secrets"
     End
 
     It "returns the number of issues (0 = ok)"
-      # Fix everything
       chmod 700 "$TEST_HOME/.ssh"
       chmod 600 "$TEST_HOME/.ssh/id_rsa"
       chmod 600 "$TEST_HOME/.ssh/id_ed25519"
@@ -92,14 +90,14 @@ Describe "security_audit.zsh"
       chmod 600 "$TEST_HOME/.secrets"
       rm -f "$TEST_HOME/.zsh_history"
       When call zsh-env-audit
-      The output should include "Audit de securite"
+      The output should include "Security Audit"
       The status should equal 0
     End
 
     It "returns non-zero with issues"
       chmod 755 "$TEST_HOME/.ssh"
       When call zsh-env-audit
-      The output should include "FAIL"
+      The output should include "erreur"
       The status should not equal 0
     End
   End

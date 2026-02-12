@@ -12,7 +12,7 @@
 # ==============================================================================
 # Version ZSH_ENV
 # ==============================================================================
-export ZSH_ENV_VERSION="v1.3.0"
+export ZSH_ENV_VERSION="v1.4.0"
 
 # ==============================================================================
 # Couleurs ANSI
@@ -277,7 +277,11 @@ _ui_summary() {
 # Retourne les permissions d'un fichier (cross-platform)
 # Usage: perms=$(_ui_get_perms "/path/to/file")
 _ui_get_perms() {
-    stat -f "%Lp" "$1" 2>/dev/null || stat -c "%a" "$1" 2>/dev/null
+    if [[ "$OSTYPE" == darwin* ]]; then
+        stat -f "%Lp" "$1" 2>/dev/null
+    else
+        stat -c "%a" "$1" 2>/dev/null
+    fi
 }
 
 # Tronque une chaîne à N caractères avec ...

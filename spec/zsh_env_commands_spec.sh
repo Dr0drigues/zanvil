@@ -6,6 +6,7 @@ Describe "zsh_env_commands.zsh"
     export HOME="$TEST_HOME"
     export ZSH_ENV_DIR="$TEST_HOME/.zsh_env"
     mkdir -p "$ZSH_ENV_DIR"
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/zsh_env_commands.zsh"
   }
 
@@ -19,20 +20,20 @@ Describe "zsh_env_commands.zsh"
   Describe "zsh-env-list()"
     It "displays installed tools with version"
       When call zsh-env-list
-      The output should include "Outils installes"
-      The output should include "Resume"
+      The output should include "Outil"
+      The output should include "installes"
     End
 
     It "marks missing tools"
       When call zsh-env-list
-      The output should include "installes"
+      The output should include "manquant"
     End
   End
 
   Describe "zsh-env-help()"
     It "displays help"
       When call zsh-env-help
-      The output should include "Commandes ZSH_ENV"
+      The output should include "Commande"
       The output should include "zsh-env-list"
       The output should include "zsh-env-doctor"
     End
