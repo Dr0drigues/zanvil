@@ -57,9 +57,9 @@ autoload -Uz compinit
 # Cache des completions (surchargeable via ZSH_ENV_ZCOMPDUMP_CACHE_HOURS)
 _zsh_env_zcompdump_hours="${ZSH_ENV_ZCOMPDUMP_CACHE_HOURS:-24}"
 if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+${_zsh_env_zcompdump_hours}) ]]; then
-    compinit
+    compinit -u
 else
-    compinit -C
+    compinit -u -C
 fi
 unset _zsh_env_zcompdump_hours
 
