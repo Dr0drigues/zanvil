@@ -39,7 +39,7 @@ if command -v git &> /dev/null; then
     # Nettoyage des branches mergees (avec confirmation)
     git-clean-branches() {
         local branches
-        branches=$(git branch --merged | grep -v '\*' | grep -v 'master' | grep -v 'main' | grep -v 'dev' | grep -v 'develop' | grep -v 'release/')
+        branches=$(git branch --merged | grep -vE '(\*|master|main|dev|develop|release/)')
         if [[ -z "$branches" ]]; then
             echo "Aucune branche mergee a supprimer."
             return 0

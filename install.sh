@@ -10,6 +10,7 @@ RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
 YELLOW=$'\033[1;33m'
 BLUE=$'\033[0;34m'
+CYAN=$'\033[0;36m'
 BOLD=$'\033[1m'
 NC=$'\033[0m' # No Color
 
@@ -194,9 +195,14 @@ if ! command -v nu &> /dev/null; then
     log_info "Installation manuelle de Nushell..."
     # On télécharge la dernière release via GitHub (binaire statique)
     log_warn "Le binaire Nushell est telecharge depuis GitHub Releases (HTTPS)"
-    curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nushell/nushell/releases/latest | \
-    jq -r ".assets[] | select(.name | test(\"x86_64-unknown-linux-musl.tar.gz\")) | .browser_download_url" | \
-    xargs curl --proto '=https' --tlsv1.2 -L -o /tmp/nu.tar.gz
+    local nu_url
+    nu_url=$(curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nushell/nushell/releases/latest | \
+        jq -r '.assets[] | select(.name | test("x86_64-unknown-linux-musl.tar.gz")) | .browser_download_url')
+    if [[ -n "$nu_url" && "$nu_url" == https://* ]]; then
+        curl --proto '=https' --tlsv1.2 -L -o /tmp/nu.tar.gz "$nu_url"
+    else
+        log_error "URL de telechargement Nushell invalide"
+    fi
 
     tar -xzf /tmp/nu.tar.gz -C /tmp
     # Deplacement du binaire (suppose sudo dispo)

@@ -96,15 +96,19 @@ _proj_load_by_path() {
 
     # Charger un fichier env
     if [[ -n "$env_file" && -f "$proj_dir/$env_file" ]]; then
-        # Securite: verifier que le fichier env appartient a l'utilisateur
-        local env_owner
+        # Securite: verifier proprietaire et permissions
+        local env_owner env_perms
         if [[ "$OSTYPE" == darwin* ]]; then
             env_owner=$(stat -f '%u' "$proj_dir/$env_file" 2>/dev/null)
+            env_perms=$(stat -f '%Lp' "$proj_dir/$env_file" 2>/dev/null)
         else
             env_owner=$(stat -c '%u' "$proj_dir/$env_file" 2>/dev/null)
+            env_perms=$(stat -c '%a' "$proj_dir/$env_file" 2>/dev/null)
         fi
         if [[ "$env_owner" != "$UID" ]]; then
             echo "  Env: $env_file ignore (proprietaire different)" >&2
+        elif [[ "$env_perms" != "600" && "$env_perms" != "400" && "$env_perms" != "644" ]]; then
+            echo "  Env: $env_file ignore (permissions $env_perms, attendu 600/644)" >&2
         else
             set -a
             source "$proj_dir/$env_file"
@@ -120,10 +124,13 @@ _proj_load_by_path() {
         fi
     fi
 
-    # Commande post (confirmation obligatoire)
+    # Commande post (confirmation obligatoire, commandes simples uniquement)
     if [[ -n "$post_cmd" ]]; then
-        echo "  Post-cmd: $post_cmd"
-        if [[ -t 0 ]]; then
+        # Securite: rejeter les commandes potentiellement dangereuses
+        if [[ "$post_cmd" == *'$('* || "$post_cmd" == *'`'* || "$post_cmd" == *'|'* || "$post_cmd" == *';'* || "$post_cmd" == *'&&'* || "$post_cmd" == *'>>'* || "$post_cmd" == *'>'* ]]; then
+            echo "  Post-cmd: ${_ui_red}refusee (caracteres dangereux)${_ui_nc}" >&2
+        elif [[ -t 0 ]]; then
+            echo "  Post-cmd: $post_cmd"
             local response
             read -q "response?  Executer cette commande ? [y/N] "
             echo ""

@@ -9,6 +9,7 @@ Describe "git_change_author.zsh (T3 mocked)"
     # Configure git for temp HOME (needed for git commit)
     git config --global user.email "test@test.com"
     git config --global user.name "Test User"
+    source "$SHELLSPEC_PROJECT_ROOT/functions/ui.zsh"
     source "$SHELLSPEC_PROJECT_ROOT/functions/git_change_author.zsh"
   }
 
