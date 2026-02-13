@@ -295,3 +295,28 @@ _ui_truncate() {
         echo "$str"
     fi
 }
+
+# ==============================================================================
+# Banner de reload
+# ==============================================================================
+
+# Affiche un banner ASCII art compact au reload
+# Usage: _zsh_env_banner
+_zsh_env_banner() {
+    local branch hash plugin_count info_line
+
+    # Branche git et short hash du repo zsh-env
+    branch=$(git -C "$ZSH_ENV_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    hash=$(git -C "$ZSH_ENV_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
+
+    # Nombre de plugins actifs
+    plugin_count=${#ZSH_ENV_PLUGINS[@]}
+
+    # Ligne d'infos
+    info_line="${branch} ${_ui_dim}·${_ui_nc} ${hash} ${_ui_dim}·${_ui_nc} ${plugin_count} plugins ${_ui_dim}·${_ui_nc} ${_ui_green}${_ui_check} reloaded${_ui_nc}"
+
+    echo ""
+    echo -e "  ${_ui_dim}░▒▓${_ui_nc}${_ui_bold}${_ui_cyan}█ zsh-env █${_ui_nc}${_ui_dim}▓▒░${_ui_nc}  ${_ui_dim}${ZSH_ENV_VERSION}${_ui_nc}"
+    echo -e "  ${info_line}"
+    echo ""
+}
