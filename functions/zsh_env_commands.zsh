@@ -530,6 +530,55 @@ zsh-env-doctor() {
     fi
     _zsh_section "SSL/TLS" "$ssl_info"
 
+    # --- Completions ---
+    local comp_status=""
+
+    # zcompdump freshness
+    local zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
+    if [[ -f "$zcompdump" ]]; then
+        local cache_hours="${ZSH_ENV_ZCOMPDUMP_CACHE_HOURS:-24}"
+        if [[ -n ${zcompdump}(#qN.mh+${cache_hours}) ]]; then
+            comp_status+="zcompdump ${_zsh_cmd_yellow}○${_zsh_cmd_nc}${_zsh_cmd_dim}stale${_zsh_cmd_nc}  "
+            ((warnings++))
+        else
+            comp_status+="zcompdump ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+        fi
+    else
+        comp_status+="zcompdump ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "
+        ((issues++))
+    fi
+
+    # Custom completions from _ZSH_ENV_CUSTOM_COMPLETIONS
+    local custom_file="$ZSH_ENV_DIR/completions.zsh"
+    if [[ -f "$custom_file" ]]; then
+        source "$custom_file" 2>/dev/null
+        for entry in "${_ZSH_ENV_CUSTOM_COMPLETIONS[@]}"; do
+            [[ -z "$entry" || "$entry" == \#* ]] && continue
+            local cname="${entry%%:*}"
+            if command -v "$cname" &> /dev/null; then
+                if (( $+functions[_$cname] )) || [[ -n "${_comps[$cname]}" ]]; then
+                    comp_status+="$cname ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+                else
+                    comp_status+="$cname ${_zsh_cmd_yellow}○${_zsh_cmd_nc}${_zsh_cmd_dim}no-comp${_zsh_cmd_nc}  "
+                    ((warnings++))
+                fi
+            fi
+        done
+    fi
+
+    # Common tools completion check
+    local comp_tools=("docker" "kubectl" "gh" "helm")
+    for ctool in "${comp_tools[@]}"; do
+        if command -v "$ctool" &> /dev/null; then
+            if (( $+functions[_$ctool] )) || [[ -n "${_comps[$ctool]}" ]]; then
+                comp_status+="$ctool ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            else
+                comp_status+="${_zsh_cmd_dim}$ctool ○${_zsh_cmd_nc}  "
+            fi
+        fi
+    done
+    _zsh_section "Completions" "$comp_status"
+
     echo ""
 
     # --- Summary ---
