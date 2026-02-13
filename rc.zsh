@@ -82,6 +82,20 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 
+# Chargement automatique des completions personnalisées
+if [[ -f "$ZSH_ENV_DIR/completions.zsh" ]]; then
+    source "$ZSH_ENV_DIR/completions.zsh"
+    for _zsh_env_comp_entry in "${_ZSH_ENV_CUSTOM_COMPLETIONS[@]}"; do
+        [[ -z "$_zsh_env_comp_entry" || "$_zsh_env_comp_entry" == \#* ]] && continue
+        _zsh_env_comp_name="${_zsh_env_comp_entry%%:*}"
+        _zsh_env_comp_cmd="${_zsh_env_comp_entry#*:}"
+        if command -v "$_zsh_env_comp_name" &> /dev/null; then
+            eval "$(eval "$_zsh_env_comp_cmd" 2>/dev/null)" &>/dev/null
+        fi
+    done
+    unset _zsh_env_comp_entry _zsh_env_comp_name _zsh_env_comp_cmd
+fi
+
 # --- 5. Functions ---
 [[ -f "$ZSH_ENV_DIR/functions.zsh" ]] && source "$ZSH_ENV_DIR/functions.zsh"
 
