@@ -235,7 +235,7 @@ zsh-env-completions() {
 
     # npm (eval au lieu de source pour éviter l'erreur _arguments)
     if command -v npm &> /dev/null; then
-        eval "$(npm completion 2>/dev/null)" 2>/dev/null
+        eval "$(npm completion 2>/dev/null)" &>/dev/null
         echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} npm"
         ((loaded++))
     fi
