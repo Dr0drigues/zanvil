@@ -82,21 +82,21 @@ DEPTH_MODE="${4:-full}"
 # --- Préparation ---
 
 CURL_OPTS="-s"
-GIT_OPTS=""
-GIT_CLONE_ARGS="--quiet"
+GIT_OPTS=()
+GIT_CLONE_ARGS=(--quiet)
 
 if [ "$IGNORE_SSL_ERRORS" == "true" ]; then
     CURL_OPTS="$CURL_OPTS -k"
-    GIT_OPTS="-c http.sslVerify=false"
+    GIT_OPTS+=(-c http.sslVerify=false)
 fi
 
 # Utiliser le header HTTP pour l'authentification (evite l'exposition du token dans ps)
 if [ "$CLONE_METHOD" != "ssh" ]; then
-    GIT_OPTS="$GIT_OPTS -c http.extraheader=\"PRIVATE-TOKEN: $ACCESS_TOKEN\""
+    GIT_OPTS+=(-c "http.extraheader=PRIVATE-TOKEN: $ACCESS_TOKEN")
 fi
 
 if [ "$DEPTH_MODE" == "shallow" ]; then
-    GIT_CLONE_ARGS="$GIT_CLONE_ARGS --depth 1"
+    GIT_CLONE_ARGS+=(--depth 1)
 fi
 
 if ! command -v jq &> /dev/null; then echo -e "${RED}Erreur: 'jq' requis.${NC}"; exit 1; fi
@@ -168,7 +168,7 @@ while true; do
 
         if [ -d "$path_with_namespace" ]; then
             if [ -d "$path_with_namespace/.git" ]; then
-                if (cd "$path_with_namespace" && git $GIT_OPTS pull --quiet); then
+                if (cd "$path_with_namespace" && git "${GIT_OPTS[@]}" pull --quiet); then
                     status_msg="${GREEN}✔ Update${NC}"
                     ((count_updated++))
 
@@ -184,7 +184,7 @@ while true; do
             fi
         else
             mkdir -p "$(dirname "$path_with_namespace")"
-            if git $GIT_OPTS clone $GIT_CLONE_ARGS "$repo_url" "$path_with_namespace"; then
+            if git "${GIT_OPTS[@]}" clone "${GIT_CLONE_ARGS[@]}" "$repo_url" "$path_with_namespace"; then
                 status_msg="${BLUE}✚ Clone${NC}"
                 ((count_new++))
 
