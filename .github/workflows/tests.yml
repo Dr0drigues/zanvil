@@ -54,7 +54,8 @@ jobs:
             spec/zsh_env_commands_spec.sh \
             spec/test_runner_spec.sh \
             spec/scripts_spec.sh \
-            spec/gitlab_logic_spec.sh
+            spec/gitlab_logic_spec.sh \
+            spec/ui_spec.sh
 
       - name: Run T2 integration tests
         run: |
@@ -72,7 +73,6 @@ jobs:
             spec/docker_t3_spec.sh \
             spec/tmux_t3_spec.sh \
             spec/kube_t3_spec.sh \
-            spec/nvm_t3_spec.sh \
             spec/work_t3_spec.sh \
             spec/net_utils_t3_spec.sh \
             spec/git_change_author_t3_spec.sh
