@@ -8,7 +8,7 @@ alias s='source'
 
 # Rechargement rapide de la configuration
 # Avec un petit feedback visuel pour confirmer que ça a marché
-alias ss='source $HOME/.zshrc && echo "Zsh config reloaded"'
+alias ss='source $HOME/.zshrc && _zsh_env_banner'
 
 # =======================================================
 # NAVIGATION & LISTING
