@@ -271,7 +271,7 @@ zsh-env-completions() {
             if command -v "$name" &> /dev/null; then
                 # Capture la sortie de la commande puis eval avec stderr supprimé
                 local comp_script
-                comp_script=$($cmd 2>/dev/null)
+                comp_script=$(eval "$cmd" 2>/dev/null)
                 if [[ -n "$comp_script" ]]; then
                     { eval "$comp_script"; } 2>/dev/null
                     echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $name ${_zsh_cmd_cyan}(custom)${_zsh_cmd_nc}"
