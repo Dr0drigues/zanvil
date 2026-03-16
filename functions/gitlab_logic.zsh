@@ -23,13 +23,13 @@ GITLAB_PROJECTS=(
 
     # CaaS BLG Environment
     [blg-front]="36963"        
-    #[blg-backcaisse]="00000"   
-    #[blg-controlpanel]="00000" 
+    [blg-backcaisse]="37350"   
+    [blg-controlpanel]="36714" 
     #[blg-liveperf]="00000"     
 
     # CaaS ED Environment
     #[ed-front]="00000"
-    #[ed-backcaisse]="00000"
+    [ed-backcaisse]="36404"
     #[ed-controlpanel]="00000"
     #[ed-liveperf]="00000"
 )
