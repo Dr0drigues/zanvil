@@ -52,6 +52,24 @@ fi
 
 export PATH="$SCRIPTS_DIR:$PATH"
 
+# --- 3b. Variables dynamiques (env.d/) ---
+# Charge tous les fichiers .zsh dans env.d/ (variables d'env thematiques)
+# Les fichiers .sops.zsh sont dechiffres automatiquement si sops/age sont disponibles
+if [[ -d "$ZSH_ENV_DIR/env.d" ]]; then
+    for _env_file in "$ZSH_ENV_DIR/env.d"/*.zsh(N); do
+        local _base="${_env_file:t}"
+        # Fichiers sops : dechiffrer a la volee
+        if [[ "$_base" == *.sops.zsh ]]; then
+            if command -v sops &>/dev/null; then
+                eval "$(sops -d "$_env_file" 2>/dev/null)"
+            fi
+        else
+            source "$_env_file"
+        fi
+    done
+    unset _env_file _base
+fi
+
 # --- 4. Completions ---
 autoload -Uz compinit
 # Cache des completions (surchargeable via ZSH_ENV_ZCOMPDUMP_CACHE_HOURS)

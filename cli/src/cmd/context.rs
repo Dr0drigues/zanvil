@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
 /// Outputs a one-line Kubernetes context summary for Starship.
-/// Format: ☸ context/namespace
+/// Format: ☸ alias/namespace (or context/namespace if no alias)
 /// Outputs nothing if kubectl is unavailable or no context is set.
 pub fn run() {
     let context = match get_current_context() {
@@ -10,9 +13,16 @@ pub fn run() {
     };
 
     let namespace = get_current_namespace().unwrap_or_else(|| "default".to_string());
-    let short_context = shorten_context(&context);
+    let aliases = load_aliases();
 
-    print!("☸ {}/{}", short_context, namespace);
+    // Chercher un alias pour ce contexte
+    let display = aliases
+        .iter()
+        .find(|(_, v)| v.as_str() == context)
+        .map(|(k, _)| k.as_str())
+        .unwrap_or_else(|| shorten_context(&context));
+
+    print!("☸ {}/{}", display, namespace);
 }
 
 fn get_current_context() -> Option<String> {
@@ -44,6 +54,27 @@ fn get_current_namespace() -> Option<String> {
 
     let ns = String::from_utf8(output.stdout).ok()?.trim().to_string();
     if ns.is_empty() { None } else { Some(ns) }
+}
+
+/// Load kube context aliases from ~/.kube/.context_aliases
+fn load_aliases() -> HashMap<String, String> {
+    let path = PathBuf::from(
+        std::env::var("HOME").unwrap_or_default()
+    ).join(".kube/.context_aliases");
+
+    let mut map = HashMap::new();
+    if let Ok(content) = fs::read_to_string(&path) {
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some((alias, context)) = line.split_once('=') {
+                map.insert(alias.to_string(), context.to_string());
+            }
+        }
+    }
+    map
 }
 
 /// Shorten a kube context name by taking the last segment after `/` or `-`.
