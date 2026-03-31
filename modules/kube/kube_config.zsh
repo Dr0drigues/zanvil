@@ -894,12 +894,122 @@ kube_gcp_list() {
 }
 
 # Aide rapide
+# Switch rapide de contexte Kubernetes
+# Usage: kube_switch [context]  — interactif sans argument
+kube_switch() {
+    _kube_check_deps || return 1
+
+    local target="$1"
+
+    if [[ -z "$target" ]]; then
+        # Selection interactive
+        local contexts
+        contexts=$(kubectl config get-contexts -o name 2>/dev/null)
+        if [[ -z "$contexts" ]]; then
+            _ui_msg_fail "Aucun contexte disponible"
+            return 1
+        fi
+
+        local current
+        current=$(kubectl config current-context 2>/dev/null)
+
+        if command -v fzf &>/dev/null; then
+            target=$(echo "$contexts" | fzf \
+                --header="Contexte actuel: ${current:-aucun}" \
+                --prompt="Switch > " \
+                --preview="kubectl config view --minify --context={} 2>/dev/null | head -20" \
+                --preview-window=right:40%)
+            [[ -z "$target" ]] && return 0
+        else
+            _ui_msg_info "Contextes disponibles:"
+            local i=1
+            while IFS= read -r ctx; do
+                if [[ "$ctx" == "$current" ]]; then
+                    printf "  ${_ui_bold}%d)${_ui_nc} ${_ui_green}%s${_ui_nc} (actuel)\n" $i "$ctx"
+                else
+                    printf "  ${_ui_bold}%d)${_ui_nc} %s\n" $i "$ctx"
+                fi
+                ((i++))
+            done <<< "$contexts"
+            echo ""
+            echo -n "Numero: "
+            local choice
+            read choice
+            [[ "$choice" =~ ^[0-9]+$ ]] && target=$(echo "$contexts" | sed -n "${choice}p")
+            [[ -z "$target" ]] && return 0
+        fi
+    fi
+
+    if kubectl config use-context "$target" &>/dev/null; then
+        local ns
+        ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+        _ui_msg_ok "Contexte: ${_ui_bold}$target${_ui_nc} ${_ui_dim}(ns: ${ns:-default})${_ui_nc}"
+    else
+        _ui_msg_fail "Contexte '$target' introuvable"
+        return 1
+    fi
+}
+
+# Switch rapide de namespace
+# Usage: kube_ns [namespace]  — interactif sans argument
+kube_ns() {
+    _kube_check_deps || return 1
+
+    local target="$1"
+
+    if [[ -z "$target" ]]; then
+        local namespaces
+        namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | tr ' ' '\n' | sort)
+        if [[ -z "$namespaces" ]]; then
+            _ui_msg_fail "Impossible de lister les namespaces"
+            return 1
+        fi
+
+        local current
+        current=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+        current="${current:-default}"
+
+        if command -v fzf &>/dev/null; then
+            target=$(echo "$namespaces" | fzf \
+                --header="Namespace actuel: $current" \
+                --prompt="Namespace > ")
+            [[ -z "$target" ]] && return 0
+        else
+            _ui_msg_info "Namespaces disponibles:"
+            local i=1
+            while IFS= read -r ns; do
+                if [[ "$ns" == "$current" ]]; then
+                    printf "  ${_ui_bold}%d)${_ui_nc} ${_ui_green}%s${_ui_nc} (actuel)\n" $i "$ns"
+                else
+                    printf "  ${_ui_bold}%d)${_ui_nc} %s\n" $i "$ns"
+                fi
+                ((i++))
+            done <<< "$namespaces"
+            echo ""
+            echo -n "Numero: "
+            local choice
+            read choice
+            [[ "$choice" =~ ^[0-9]+$ ]] && target=$(echo "$namespaces" | sed -n "${choice}p")
+            [[ -z "$target" ]] && return 0
+        fi
+    fi
+
+    if kubectl config set-context --current --namespace="$target" &>/dev/null; then
+        _ui_msg_ok "Namespace: ${_ui_bold}$target${_ui_nc}"
+    else
+        _ui_msg_fail "Erreur lors du changement de namespace"
+        return 1
+    fi
+}
+
 kube_help() {
     cat << 'EOF'
 Kube Config Manager - Commandes disponibles:
 
   kube_init        Initialise l'environnement, dechiffre les configs sops
   kube_select      Selecteur interactif (fzf) pour choisir les configs
+  kube_switch      Switch de contexte Kubernetes (interactif)
+  kube_ns          Switch de namespace (interactif)
   kube_status      Affiche les configs actuellement chargees
   kube_list        Liste toutes les configs disponibles
   kube_add         Ajoute une config a KUBECONFIG
