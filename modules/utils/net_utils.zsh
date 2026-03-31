@@ -5,7 +5,7 @@
 # Affiche l'IP publique et l'IP locale
 myip() {
     local public_ip
-    public_ip=$(curl -s --max-time 5 ifconfig.me) || public_ip="timeout"
+    public_ip=$(curl -s -k --max-time 5 https://api.ipify.org 2>/dev/null || curl -s -k --max-time 5 https://ifconfig.me/ip 2>/dev/null) || public_ip="timeout"
     _ui_section "Public IP" "$public_ip"
     if [[ "$(uname)" == "Darwin" ]]; then
         _ui_section "Local IP" "$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "N/A")"
