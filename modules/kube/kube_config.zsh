@@ -1105,6 +1105,39 @@ kube_ns() {
     fi
 }
 
+# Ouvre k9s sur un contexte (avec resolution d'alias)
+# Usage: k [context] [namespace]
+#   k              → k9s sur le contexte courant
+#   k blg-dev      → k9s sur blg-dev, namespace courant
+#   k blg-dev web  → k9s sur blg-dev, namespace web
+#   k blg-dev all  → k9s sur blg-dev, tous les namespaces
+k() {
+    if ! command -v k9s &>/dev/null; then
+        _ui_msg_fail "k9s n'est pas installe"
+        return 1
+    fi
+
+    local k9s_args=()
+
+    # Premier argument : contexte (optionnel)
+    if [[ -n "$1" ]]; then
+        local resolved=$(_kube_resolve_alias "$1")
+        k9s_args+=(--context "$resolved")
+        shift
+    fi
+
+    # Second argument : namespace (optionnel)
+    if [[ -n "$1" ]]; then
+        if [[ "$1" == "all" ]]; then
+            k9s_args+=(--all-namespaces)
+        else
+            k9s_args+=(--namespace "$1")
+        fi
+    fi
+
+    k9s "${k9s_args[@]}"
+}
+
 kube_help() {
     cat << 'EOF'
 Kube Config Manager - Commandes disponibles:
@@ -1113,6 +1146,7 @@ Kube Config Manager - Commandes disponibles:
   kube_select      Selecteur interactif (fzf) pour choisir les configs
   kube_switch      Switch de contexte Kubernetes (interactif)
   kube_ns          Switch de namespace (interactif)
+  k [ctx] [ns]     Ouvre k9s (supporte les alias, "all" pour tous ns)
   kube_status      Affiche les configs actuellement chargees
   kube_list        Liste toutes les configs disponibles
   kube_add         Ajoute une config a KUBECONFIG
