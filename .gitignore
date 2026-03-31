@@ -35,6 +35,15 @@ GEMINI.md
 .cursorrules
 .github/copilot-*
 
+# Theme state (personnel)
+.current_theme
+
+# Backups
+backups/
+
+# Rust CLI build artifacts
+cli/target/
+
 # Fichiers Boulanger dechiffres (generes a partir des .enc)
 boulanger/settings.xml
 boulanger/certificates_unix.sh

@@ -6,11 +6,16 @@ if ! (( $+functions[compdef] )); then return 0; fi
 
 _zsh_env_theme() {
     local themes_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/themes"
-    local themes=()
-
-    if [[ -d "$themes_dir" ]]; then
-        themes=(${(f)"$(ls "$themes_dir" 2>/dev/null | sed 's/\.toml$//')"})
-    fi
+    local -a themes=()
+    # Directory themes
+    for d in "$themes_dir"/*/prompt.toml(N); do
+        themes+=($(basename $(dirname "$d")))
+    done
+    # Flat themes (skip duplicates)
+    for f in "$themes_dir"/*.toml(N); do
+        local name=$(basename "$f" .toml)
+        (( ${themes[(Ie)$name]} )) || themes+=($name)
+    done
 
     _arguments \
         '1:theme:(list ${themes[@]})'
