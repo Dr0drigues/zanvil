@@ -80,13 +80,9 @@ style = "bg:#d5d6db"
 format = '[[ $symbol ($version) ](fg:#f52a65 bg:#d5d6db)]($style)'
 detect_files = ["pom.xml", "build.gradle", "build.gradle.kts", ".java-version"]
 
+# Kubernetes natif desactive — remplace par [custom.zsh_env_context] (plus rapide, plus compact)
 [kubernetes]
-disabled = false
-symbol = "☸"
-style = "bg:#d5d6db"
-format = '[[ $symbol $context(\($namespace\)) ](fg:#2e7de9 bg:#d5d6db)]($style)'
-detect_folders = ["k8s", "kubernetes", "kube", "helm"]
-detect_files = ["k8s.yaml", "k8s.yml", "kubernetes.yaml", "kubernetes.yml", "Chart.yaml"]
+disabled = true
 
 # === Module Custom: Contexte Work ===
 [custom.work]
@@ -100,7 +96,8 @@ shell = ["bash", "--noprofile", "--norc"]
 [custom.zsh_env_context]
 description = "Kubernetes context and namespace via zsh-env-cli"
 command = "zsh-env-cli context"
-when = "command -v zsh-env-cli > /dev/null 2>&1 && command -v kubectl > /dev/null 2>&1 && kubectl config current-context > /dev/null 2>&1"
+when = "test -x ${HOME}/.local/bin/zsh-env-cli"
+command_timeout = 3000
 format = "[[ $output ](fg:#326ce5 bg:#d5d6db)]($style)"
 style = "bg:#d5d6db"
 shell = ["bash", "--noprofile", "--norc"]
