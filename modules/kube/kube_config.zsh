@@ -11,6 +11,7 @@ KUBE_CONFIGS_DIR="$KUBE_DIR/configs.d"
 KUBE_MINIMAL_CONFIG="$KUBE_DIR/config.minimal.yml"
 KUBE_SOPS_SOURCE="$ZSH_ENV_DIR/kube"
 KUBE_SELECTION_FILE="$KUBE_DIR/.kubeconfig_selection"
+KUBE_ALIASES_FILE="$KUBE_DIR/.context_aliases"
 
 # --- Fonctions internes ---
 
@@ -110,6 +111,63 @@ _kube_list_configs() {
 _kube_is_loaded() {
     local config_path="$1"
     [[ ":$KUBECONFIG:" == *":$config_path:"* ]]
+}
+
+# Resout un alias de contexte kube vers le nom complet
+# Usage: _kube_resolve_alias "blg-dev" -> "aks-org-cluster-dev"
+_kube_resolve_alias() {
+    local alias_name="$1"
+    [[ ! -f "$KUBE_ALIASES_FILE" ]] && echo "$alias_name" && return
+    local resolved
+    resolved=$(grep "^${alias_name}=" "$KUBE_ALIASES_FILE" 2>/dev/null | head -1 | cut -d= -f2-)
+    echo "${resolved:-$alias_name}"
+}
+
+# Resout un contexte complet vers son alias (inverse)
+_kube_get_alias() {
+    local context="$1"
+    [[ ! -f "$KUBE_ALIASES_FILE" ]] && echo "$context" && return
+    local alias_name
+    alias_name=$(grep "=${context}$" "$KUBE_ALIASES_FILE" 2>/dev/null | head -1 | cut -d= -f1)
+    echo "${alias_name:-$context}"
+}
+
+# Demande et enregistre un alias pour un contexte
+_kube_ask_alias() {
+    local context="$1"
+    # Verifier si un alias existe deja
+    local existing=$(_kube_get_alias "$context")
+    if [[ "$existing" != "$context" ]]; then
+        return 0
+    fi
+
+    echo ""
+    echo -e "${_ui_cyan}Contexte:${_ui_nc} $context"
+    echo -n "Alias court (vide = pas d'alias): "
+    local alias_input
+    read alias_input
+    if [[ -n "$alias_input" ]]; then
+        echo "${alias_input}=${context}" >> "$KUBE_ALIASES_FILE"
+        _ui_msg_ok "Alias '${alias_input}' enregistre pour ${context}"
+    fi
+}
+
+# Liste les alias enregistres
+kube_aliases() {
+    if [[ ! -f "$KUBE_ALIASES_FILE" ]] || [[ ! -s "$KUBE_ALIASES_FILE" ]]; then
+        _ui_msg_info "Aucun alias configure"
+        echo -e "  ${_ui_dim}Les alias sont demandes a l'ajout de config (kube_azure, kube_aws, etc.)${_ui_nc}"
+        echo -e "  ${_ui_dim}Ou ajoutez manuellement: echo 'blg-dev=contexte-complet' >> ~/.kube/.context_aliases${_ui_nc}"
+        return 0
+    fi
+
+    _ui_header "Kube Aliases"
+    printf "${_ui_bold}%-16s %s${_ui_nc}\n" "Alias" "Contexte"
+    _ui_separator
+    while IFS='=' read -r alias_name context; do
+        [[ -z "$alias_name" || "$alias_name" == \#* ]] && continue
+        printf "  ${_ui_green}%-14s${_ui_nc} %s\n" "$alias_name" "$context"
+    done < "$KUBE_ALIASES_FILE"
 }
 
 # --- Fonctions publiques ---
@@ -582,6 +640,11 @@ kube_azure() {
     echo ""
     echo "Config creee: $kubeconfig_file"
 
+    # Demander un alias pour ce contexte
+    local ctx_name
+    ctx_name=$(KUBECONFIG="$kubeconfig_file" kubectl config current-context 2>/dev/null)
+    [[ -n "$ctx_name" ]] && _kube_ask_alias "$ctx_name"
+
     # Proposer d'ajouter a KUBECONFIG
     echo ""
     read -q "reply?Ajouter a KUBECONFIG actuel? [y/N] "
@@ -723,6 +786,11 @@ kube_aws() {
     echo ""
     echo "Config creee: $kubeconfig_file"
 
+    # Demander un alias pour ce contexte
+    local ctx_name
+    ctx_name=$(KUBECONFIG="$kubeconfig_file" kubectl config current-context 2>/dev/null)
+    [[ -n "$ctx_name" ]] && _kube_ask_alias "$ctx_name"
+
     # Proposer d'ajouter a KUBECONFIG
     echo ""
     echo -n "Ajouter a KUBECONFIG actuel? [y/N] "
@@ -851,6 +919,11 @@ kube_gcp() {
     echo ""
     echo "Config creee: $kubeconfig_file"
 
+    # Demander un alias pour ce contexte
+    local ctx_name
+    ctx_name=$(KUBECONFIG="$kubeconfig_file" kubectl config current-context 2>/dev/null)
+    [[ -n "$ctx_name" ]] && _kube_ask_alias "$ctx_name"
+
     # Proposer d'ajouter a KUBECONFIG
     echo ""
     echo -n "Ajouter a KUBECONFIG actuel? [y/N] "
@@ -913,37 +986,67 @@ kube_switch() {
         local current
         current=$(kubectl config current-context 2>/dev/null)
 
+        # Construire la liste avec alias
+        local display_list=""
+        while IFS= read -r ctx; do
+            local alias_name=$(_kube_get_alias "$ctx")
+            if [[ "$alias_name" != "$ctx" ]]; then
+                display_list+="${alias_name}  (${ctx})\n"
+            else
+                display_list+="${ctx}\n"
+            fi
+        done <<< "$contexts"
+
         if command -v fzf &>/dev/null; then
-            target=$(echo "$contexts" | fzf \
-                --header="Contexte actuel: ${current:-aucun}" \
+            local selected
+            selected=$(echo -e "$display_list" | fzf \
+                --header="Contexte actuel: $(_kube_get_alias "${current:-aucun}")" \
                 --prompt="Switch > " \
-                --preview="kubectl config view --minify --context={} 2>/dev/null | head -20" \
+                --preview="kubectl config view --minify --context={1} 2>/dev/null | head -20" \
                 --preview-window=right:40%)
-            [[ -z "$target" ]] && return 0
+            [[ -z "$selected" ]] && return 0
+            # Extraire le premier mot (alias ou contexte)
+            target="${selected%% *}"
         else
             _ui_msg_info "Contextes disponibles:"
+            local -a ctx_list=()
             local i=1
-            while IFS= read -r ctx; do
-                if [[ "$ctx" == "$current" ]]; then
-                    printf "  ${_ui_bold}%d)${_ui_nc} ${_ui_green}%s${_ui_nc} (actuel)\n" $i "$ctx"
+            while IFS= read -r line; do
+                [[ -z "$line" ]] && continue
+                ctx_list+=("${line%% *}")
+                local alias_name="${line%% *}"
+                if [[ "$alias_name" == "$(_kube_get_alias "$current")" ]]; then
+                    printf "  ${_ui_bold}%d)${_ui_nc} ${_ui_green}%s${_ui_nc} (actuel)\n" $i "$line"
                 else
-                    printf "  ${_ui_bold}%d)${_ui_nc} %s\n" $i "$ctx"
+                    printf "  ${_ui_bold}%d)${_ui_nc} %s\n" $i "$line"
                 fi
                 ((i++))
-            done <<< "$contexts"
+            done < <(echo -e "$display_list")
             echo ""
-            echo -n "Numero: "
+            echo -n "Numero ou alias: "
             local choice
             read choice
-            [[ "$choice" =~ ^[0-9]+$ ]] && target=$(echo "$contexts" | sed -n "${choice}p")
+            if [[ "$choice" =~ ^[0-9]+$ ]]; then
+                target="${ctx_list[$choice]}"
+            else
+                target="$choice"
+            fi
             [[ -z "$target" ]] && return 0
         fi
     fi
 
-    if kubectl config use-context "$target" &>/dev/null; then
-        local ns
+    # Resoudre l'alias si c'en est un
+    local resolved=$(_kube_resolve_alias "$target")
+
+    if kubectl config use-context "$resolved" &>/dev/null; then
+        local ns display_name
         ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
-        _ui_msg_ok "Contexte: ${_ui_bold}$target${_ui_nc} ${_ui_dim}(ns: ${ns:-default})${_ui_nc}"
+        display_name=$(_kube_get_alias "$resolved")
+        if [[ "$display_name" != "$resolved" ]]; then
+            _ui_msg_ok "Contexte: ${_ui_bold}$display_name${_ui_nc} ${_ui_dim}($resolved, ns: ${ns:-default})${_ui_nc}"
+        else
+            _ui_msg_ok "Contexte: ${_ui_bold}$resolved${_ui_nc} ${_ui_dim}(ns: ${ns:-default})${_ui_nc}"
+        fi
     else
         _ui_msg_fail "Contexte '$target' introuvable"
         return 1

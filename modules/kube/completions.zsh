@@ -24,11 +24,23 @@ _kube_encrypt() {
 compdef _kube_encrypt kube_encrypt
 
 _kube_switch() {
-    local contexts=()
-    if command -v kubectl &>/dev/null; then
-        contexts=(${(f)"$(kubectl config get-contexts -o name 2>/dev/null)"})
+    local -a completions=()
+    # Alias d'abord (priorite)
+    local alias_file="$HOME/.kube/.context_aliases"
+    if [[ -f "$alias_file" ]]; then
+        while IFS='=' read -r a c; do
+            [[ -z "$a" || "$a" == \#* ]] && continue
+            completions+=("$a:$c")
+        done < "$alias_file"
     fi
-    _arguments '1:context:(${contexts[@]})'
+    # Puis contextes kubectl
+    if command -v kubectl &>/dev/null; then
+        local -a ctxs=(${(f)"$(kubectl config get-contexts -o name 2>/dev/null)"})
+        for c in "${ctxs[@]}"; do
+            completions+=("$c")
+        done
+    fi
+    _describe 'context' completions
 }
 compdef _kube_switch kube_switch
 
