@@ -11,11 +11,17 @@
 zsh-env-theme() {
     # Delegation au CLI Rust si disponible
     if command -v zsh-env-cli &>/dev/null; then
-        zsh-env-cli theme "$@"
+        local cli_args=("$@")
+        # Mapper l'ancien usage: zsh-env-theme <name> -> zsh-env-cli theme apply <name>
+        if [[ -n "$1" && "$1" != "list" && "$1" != "current" && "$1" != "apply" ]]; then
+            cli_args=(apply "$@")
+        fi
+        zsh-env-cli theme "${cli_args[@]}"
         local rc=$?
         # Sourcer la palette pour la session courante apres apply
-        if [[ $rc -eq 0 && "$1" != "list" && "$1" != "current" && -n "$1" ]]; then
-            local _p="$ZSH_ENV_DIR/themes/$1/palette.zsh"
+        local _theme_name="${cli_args[-1]}"
+        if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
+            local _p="$ZSH_ENV_DIR/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
         fi
         return $rc
