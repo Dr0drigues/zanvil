@@ -1,8 +1,9 @@
 # ZSH Environment & Productivity Suite
 
-Configuration Zsh modulaire et orientée productivité pour développeurs (macOS & Linux).
+Configuration Zsh modulaire et orientee productivite pour developpeurs (macOS & Linux).
+Architecture hybride **Rust CLI + modules zsh** pour des performances optimales.
 
-**[Documentation complète sur le Wiki](https://github.com/Dr0drigues/zsh_env/wiki)**
+**[Documentation complete sur le Wiki](https://github.com/Dr0drigues/zsh_env/wiki)**
 
 ## Installation
 
@@ -11,79 +12,117 @@ git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
 cd ~/.zsh_env && ./install.sh
 ```
 
-## Fonctionnalités
+Le script installe les dependances, configure `.zshrc`, et build le CLI Rust si `cargo` est disponible.
+
+## Fonctionnalites
 
 | Module | Description |
 |--------|-------------|
 | **Navigation** | Jump intelligent avec `zoxide`, auto-cd |
 | **Project Switcher** | Changement de contexte complet (kube, node, tmux) |
-| **Kubernetes** | Multi-config avec support Azure/AWS/GCP |
-| **SSH Manager** | Gestion simplifiée des connexions SSH |
+| **Kubernetes** | Multi-config Azure/AWS/GCP, aliases, `kube_switch`, `k` (k9s) |
+| **GitLab** | Clone groupes, PAT status, browse, pipelines |
+| **SSH Manager** | Gestion simplifiee des connexions SSH |
 | **Tmux Manager** | Gestion des sessions tmux |
-| **Git Hooks** | Hooks standards (lint, conventional commits) |
+| **Git Bulk** | Operations git en masse avec dry-run |
 | **Security** | Audit des permissions et secrets |
-| **Plugins** | Gestionnaire de plugins Zsh intégré |
-| **Themes** | Thèmes Starship personnalisables |
+| **Themes** | Themes unifies Starship + palette shell (true color) |
+| **CLI Rust** | Binaire natif optionnel pour doctor, audit, context, modules |
+| **env.d/** | Variables d'env dynamiques avec support sops |
+| **.zsh-env.local** | Auto-chargement par projet (style direnv) |
 
 ## Commandes essentielles
 
 ```bash
-ss                  # Recharger la config
-zsh-env-doctor      # Diagnostic
-zsh-env-profile     # Profiler le démarrage
-zsh-env-audit       # Audit de sécurité
+ss                         # Recharger la config
+zsh-env-help               # Liste toutes les commandes
+zsh-env-doctor             # Diagnostic systeme
+zsh-env-audit              # Audit de securite
+zsh-env-modules list       # Lister/activer/desactiver les modules
+zsh-env-theme list         # Gestion des themes (prompt + palette)
+zsh-env-backup             # Sauvegarde des configs
 
-proj mon-projet     # Charger un projet
-kube_select         # Sélectionner configs K8s
-ssh_select          # Sélectionner un host SSH
-tm                  # Gérer les sessions tmux
-hooks_install       # Installer les hooks Git
+kube_switch blg-dev        # Switch de cluster (avec aliases)
+kube_ns                    # Switch de namespace
+k blg-dev                  # k9s sur un cluster
+kube_status                # Contexte + namespace + pods
+
+zsh-env-gitlab-status      # Statut du PAT GitLab
+zsh-env-gitlab-browse -m   # Ouvrir les MRs dans le navigateur
+gpr                        # Raccourci creation MR
+
+proj mon-projet            # Charger un projet
+zsh-env-switch env         # Switcher d'environnement
+ssh_select                 # Selectionner un host SSH
+tm                         # Gerer les sessions tmux
+hooks_install              # Installer les hooks Git
 ```
 
-## Documentation
-
-- [Installation](https://github.com/Dr0drigues/zsh_env/wiki/Installation)
-- [Configuration](https://github.com/Dr0drigues/zsh_env/wiki/Configuration)
-- [Référence des commandes](https://github.com/Dr0drigues/zsh_env/wiki/Commandes)
-- [Troubleshooting](https://github.com/Dr0drigues/zsh_env/wiki/Troubleshooting)
-
-## Structure
+## Architecture
 
 ```
 ~/.zsh_env/
-├── rc.zsh              # Point d'entrée
-├── config.zsh          # Configuration personnelle
-├── functions/          # Modules fonctionnels
-│   ├── ui.zsh          # Système UI (couleurs, formatage)
-│   ├── zsh_env_commands.zsh  # Commandes zsh-env-*
-│   ├── security_audit.zsh    # Audit de sécurité
-│   └── ...             # Autres modules (kube, ssh, tmux, proj...)
-├── themes/             # Thèmes Starship
+├── rc.zsh              # Point d'entree
+├── config.zsh          # Configuration modules (gitignored)
+├── core/               # Systeme central
+│   ├── ui.zsh          # Systeme UI + palette loader
+│   ├── loader.zsh      # Module loader automatique
+│   ├── commands.zsh    # zsh-env-list, doctor, status, help
+│   ├── admin.zsh       # modules, backup, restore, switch
+│   ├── theme.zsh       # Themes Starship + Ghostty
+│   └── hooks.zsh       # Init outils + .zsh-env.local
+├── modules/            # Features modulaires
+│   ├── git/            # bulk, hooks, change-author
+│   ├── gitlab/         # clone, pipelines, PAT, browse
+│   ├── kube/           # config, switch, ns, k9s, aliases
+│   ├── docker/         # dex, dstop
+│   ├── ssh/            # select, add, remove, test
+│   ├── tmux/           # sessions (lazy loaded)
+│   ├── ai/             # context, tokens (lazy loaded)
+│   └── ...
+├── themes/             # Flat .toml ou directory (prompt.toml + palette.zsh)
+├── env.d/              # Variables dynamiques (*.zsh, *.sops.zsh)
+├── cli/                # CLI Rust companion (optionnel)
 └── scripts/            # Scripts autonomes
 ```
 
-## Système UI
+## CLI Rust (optionnel)
 
-Toutes les commandes utilisent un style visuel cohérent via `functions/ui.zsh` :
+Le binaire `zsh-env-cli` (684 Ko) accelere les commandes lourdes. Les fonctions zsh delegent automatiquement au CLI quand il est disponible.
+
+```bash
+zsh-env-cli doctor          # Diagnostic natif
+zsh-env-cli audit           # Scan securite
+zsh-env-cli theme list      # Gestion themes
+zsh-env-cli context         # Contexte kube (pour Starship)
+zsh-env-cli modules list    # Gestion modules
+```
+
+Build manuel : `cd cli && cargo build --release && cp target/release/zsh-env-cli ~/.local/bin/`
+
+## Systeme de themes
+
+Les themes unifies controlent a la fois le prompt Starship et les couleurs des commandes zsh-env-* :
 
 ```
-╭──────────────────────────────────────────╮
-│  ZSH_ENV Doctor                  v1.2.0  │
-╰──────────────────────────────────────────╯
+themes/
+├── tokyo-night-pro/     # Directory theme
+│   ├── prompt.toml      # Config Starship
+│   └── palette.zsh      # Couleurs true color pour _ui_*
+├── minimal.toml         # Flat theme (couleurs par defaut)
+└── ...
+```
 
-Config         rc.zsh ✓  aliases ✓  variables ✓  functions ✓
-Requis         git ✓  curl ✓  jq ✓
-Recommandés    starship ✓  zoxide ✓  fzf ✓  eza ✓  bat ✓
-
-────────────────────────────────────────────
-✓ Tout est OK
+```bash
+zsh-env-theme list              # Voir les themes disponibles
+zsh-env-theme tokyo-night-pro   # Appliquer (prompt + palette)
 ```
 
 ## Contribuer
 
 Voir [Contributing](https://github.com/Dr0drigues/zsh_env/wiki/Contributing) pour les conventions.
 
-## Désinstallation
+## Desinstallation
 
 ```bash
 ~/.zsh_env/uninstall.sh
