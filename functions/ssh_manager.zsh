@@ -93,8 +93,8 @@ ssh_list() {
         return 0
     fi
 
-    echo "Hosts SSH configures:"
-    echo "──────────────────────────────────────────"
+    _ui_msg_info "Hosts SSH configures:"
+    _ui_separator
 
     while IFS= read -r host; do
         local hostname=$(grep -A 5 -i "^Host $host$" "$SSH_CONFIG_FILE" | grep -i "HostName" | head -1 | awk '{print $2}')
@@ -109,8 +109,8 @@ ssh_list() {
         fi
     done <<< "$hosts"
 
-    echo "──────────────────────────────────────────"
-    echo "Total: $(echo "$hosts" | wc -l | tr -d ' ') hosts"
+    _ui_separator
+    _ui_msg_ok "Total: $(echo "$hosts" | wc -l | tr -d ' ') hosts"
 }
 
 # Affiche les details d'un host
@@ -129,12 +129,12 @@ ssh_info() {
         return 1
     fi
 
-    echo "Configuration de '$host':"
-    echo "──────────────────────────────────────────"
+    _ui_msg_info "Configuration de '$host':"
+    _ui_separator
     echo "$info" | while IFS= read -r line; do
         echo "  $line"
     done
-    echo "──────────────────────────────────────────"
+    _ui_separator
 }
 
 # Ajoute un nouveau host interactivement
@@ -173,6 +173,7 @@ ssh_add() {
     # Creer le fichier config si n'existe pas
     if [[ ! -f "$SSH_CONFIG_FILE" ]]; then
         mkdir -p "$HOME/.ssh"
+        chmod 700 "$HOME/.ssh"
         touch "$SSH_CONFIG_FILE"
         chmod 600 "$SSH_CONFIG_FILE"
     fi
@@ -233,6 +234,7 @@ ssh_remove() {
 
     # Backup
     cp "$SSH_CONFIG_FILE" "$SSH_CONFIG_FILE.bak"
+    chmod 600 "$SSH_CONFIG_FILE.bak"
 
     # Supprimer le bloc Host
     awk -v host="$host" '

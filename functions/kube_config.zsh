@@ -18,6 +18,7 @@ KUBE_SELECTION_FILE="$KUBE_DIR/.kubeconfig_selection"
 _kube_save_selection() {
     if [[ -n "$KUBECONFIG" ]]; then
         echo "$KUBECONFIG" > "$KUBE_SELECTION_FILE"
+        chmod 600 "$KUBE_SELECTION_FILE"
     elif [[ -f "$KUBE_SELECTION_FILE" ]]; then
         rm -f "$KUBE_SELECTION_FILE"
     fi
@@ -76,12 +77,11 @@ _kube_decrypt_sops() {
         return 1
     fi
 
-    local sops_err
-    sops_err=$(sops -d "$src" 2>&1 > "$dest")
-    if [[ $? -eq 0 ]]; then
+    if sops -d "$src" > "$dest" 2>/dev/null; then
+        chmod 600 "$dest"
         return 0
     else
-        echo "Echec du dechiffrement de $src: $sops_err" >&2
+        _ui_msg_fail "Echec du dechiffrement de $(basename "$src")"
         rm -f "$dest"
         return 1
     fi
@@ -241,26 +241,50 @@ kube_select() {
 
 # Affiche les configs actuellement chargees
 kube_status() {
-    echo "Configs actives:"
+    _ui_header "Kubernetes Status"
+
+    # Configs actives
+    _ui_section "Configs" ""
     if [[ -z "$KUBECONFIG" ]]; then
-        echo "  (aucune - utilise ~/.kube/config par defaut)"
-        return
+        echo -e "  ${_ui_dim}(aucune - utilise ~/.kube/config par defaut)${_ui_nc}"
+    else
+        IFS=':' read -rA configs <<< "$KUBECONFIG"
+        for config in "${configs[@]}"; do
+            if [[ -f "$config" ]]; then
+                _ui_msg_ok "$(basename "$config")"
+            else
+                _ui_msg_fail "$(basename "$config") (MANQUANT)"
+            fi
+        done
     fi
 
-    IFS=':' read -rA configs <<< "$KUBECONFIG"
-    for config in "${configs[@]}"; do
-        if [[ -f "$config" ]]; then
-            echo "  - $config"
-        else
-            echo "  - $config (MANQUANT)"
-        fi
-    done
-
-    # Affiche le contexte actuel si kubectl est disponible
+    # Infos kubectl si disponible
     if command -v kubectl &> /dev/null; then
-        local ctx=$(kubectl config current-context 2>/dev/null)
-        [[ -n "$ctx" ]] && echo "Contexte actuel: $ctx"
+        local ctx ns server_version pods
+
+        ctx=$(kubectl config current-context 2>/dev/null)
+        if [[ -n "$ctx" ]]; then
+            _ui_section "Contexte" "$ctx"
+
+            ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+            _ui_section "Namespace" "${ns:-default}"
+
+            # Version serveur (avec timeout court)
+            server_version=$(kubectl version --short 2>/dev/null | grep -i "server" | awk '{print $NF}')
+            [[ -z "$server_version" ]] && server_version=$(kubectl version -o json 2>/dev/null | grep -A1 '"server"' | grep gitVersion | awk -F'"' '{print $4}')
+            [[ -n "$server_version" ]] && _ui_section "Cluster" "$server_version"
+
+            # Pods running dans le namespace courant
+            pods=$(kubectl get pods --no-headers --field-selector=status.phase=Running 2>/dev/null | wc -l | tr -d ' ')
+            [[ -n "$pods" && "$pods" != "0" ]] && _ui_section "Pods running" "$pods"
+        else
+            _ui_msg_warn "Aucun contexte actif"
+        fi
+    else
+        _ui_msg_warn "kubectl non installe"
     fi
+
+    _ui_separator
 }
 
 # Ajoute une config a KUBECONFIG
@@ -375,6 +399,7 @@ kube_encrypt() {
     dest="${dest%.yaml}.sops.yml"
 
     if sops -e "$config_file" > "$dest"; then
+        chmod 600 "$dest"
         echo "Fichier chiffre: $dest"
         echo "Vous pouvez maintenant le versionner dans Git."
     else
@@ -545,6 +570,7 @@ kube_azure() {
         echo "Echec de la recuperation des credentials." >&2
         return 1
     fi
+    chmod 600 "$kubeconfig_file"
 
     # Convertir pour kubelogin
     echo "Conversion pour Azure CLI auth..."
@@ -692,6 +718,7 @@ kube_aws() {
         echo "Echec de la recuperation des credentials." >&2
         return 1
     fi
+    chmod 600 "$kubeconfig_file"
 
     echo ""
     echo "Config creee: $kubeconfig_file"
@@ -819,6 +846,7 @@ kube_gcp() {
         echo "Echec de la recuperation des credentials." >&2
         return 1
     fi
+    chmod 600 "$kubeconfig_file"
 
     echo ""
     echo "Config creee: $kubeconfig_file"

@@ -18,16 +18,18 @@
 #   commit   Commit les repos avec des changements stages
 #
 # Options:
-#   -m "msg"   Message de commit (pour commit)
-#   -d <dir>   Dossier a scanner (defaut: dossier courant)
-#   -r         Recursif (cherche aussi dans les sous-sous-dossiers)
-#   -h         Aide
+#   -m "msg"       Message de commit (pour commit)
+#   -d <dir>       Dossier a scanner (defaut: dossier courant)
+#   -r             Recursif (cherche aussi dans les sous-sous-dossiers)
+#   -n|--dry-run   Simule l'action sans l'executer
+#   -h             Aide
 # ==============================================================================
 zsh-env-git-bulk() {
     local action="status"
     local target_dir="."
     local commit_msg=""
     local recursive=true
+    local dry_run=false
 
     # Parse des arguments
     while [[ $# -gt 0 ]]; do
@@ -48,6 +50,10 @@ zsh-env-git-bulk() {
                 ;;
             -r)
                 recursive=true
+                shift
+                ;;
+            -n|--dry-run)
+                dry_run=true
                 shift
                 ;;
             -h|--help)
@@ -85,13 +91,23 @@ zsh-env-git-bulk() {
     fi
 
     # Executer l'action
-    case "$action" in
-        status) _git_bulk_status "${repos[@]}" ;;
-        pull)   _git_bulk_pull "${repos[@]}" ;;
-        push)   _git_bulk_push "${repos[@]}" ;;
-        fetch)  _git_bulk_fetch "${repos[@]}" ;;
-        commit) _git_bulk_commit "$commit_msg" "${repos[@]}" ;;
-    esac
+    if [[ "$dry_run" == "true" ]]; then
+        case "$action" in
+            status) _git_bulk_status "${repos[@]}" ;;
+            pull)   _git_bulk_pull_dry "${repos[@]}" ;;
+            push)   _git_bulk_push_dry "${repos[@]}" ;;
+            fetch)  _ui_msg_info "[DRY-RUN] fetch: rien a simuler, utilisez 'fetch' directement" ;;
+            commit) _git_bulk_commit_dry "${repos[@]}" ;;
+        esac
+    else
+        case "$action" in
+            status) _git_bulk_status "${repos[@]}" ;;
+            pull)   _git_bulk_pull "${repos[@]}" ;;
+            push)   _git_bulk_push "${repos[@]}" ;;
+            fetch)  _git_bulk_fetch "${repos[@]}" ;;
+            commit) _git_bulk_commit "$commit_msg" "${repos[@]}" ;;
+        esac
+    fi
 }
 
 # ==============================================================================
@@ -444,6 +460,125 @@ _git_bulk_commit() {
 }
 
 # ==============================================================================
+# Dry-run: pull (fetch + affiche combien de commits en retard)
+# ==============================================================================
+_git_bulk_pull_dry() {
+    local repos=("$@")
+
+    _ui_header "Git Bulk Pull [DRY-RUN]"
+    echo ""
+
+    local behind_total=0 up_to_date=0 errors=0
+
+    for repo in "${repos[@]}"; do
+        local name=$(basename "$repo")
+        printf "  %-24s " "$name"
+
+        # Fetch pour mettre a jour les refs distantes
+        git -C "$repo" fetch 2>/dev/null
+        local rc=$?
+
+        if [[ $rc -ne 0 ]]; then
+            _ui_fail "" "fetch erreur"
+            echo ""
+            ((errors++))
+            continue
+        fi
+
+        local behind_n
+        behind_n=$(git -C "$repo" rev-list --count HEAD..@{u} 2>/dev/null || echo "0")
+
+        if [[ $behind_n -gt 0 ]]; then
+            _ui_msg_info "[DRY-RUN] ${behind_n} commit(s) a pull"
+            ((behind_total += behind_n))
+        else
+            _ui_ok "" "a jour"
+            echo ""
+            ((up_to_date++))
+        fi
+    done
+
+    echo ""
+    _ui_separator 54
+    printf "${_ui_cyan}%d${_ui_nc} a jour  ${_ui_yellow}%d${_ui_nc} commit(s) a pull  ${_ui_red}%d${_ui_nc} erreurs\n" "$up_to_date" "$behind_total" "$errors"
+}
+
+# ==============================================================================
+# Dry-run: push (affiche combien de commits en avance)
+# ==============================================================================
+_git_bulk_push_dry() {
+    local repos=("$@")
+
+    _ui_header "Git Bulk Push [DRY-RUN]"
+    echo ""
+
+    local ahead_total=0 up_to_date=0 errors=0
+
+    for repo in "${repos[@]}"; do
+        local name=$(basename "$repo")
+        printf "  %-24s " "$name"
+
+        local ahead_n
+        ahead_n=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null)
+        local rc=$?
+
+        if [[ $rc -ne 0 ]]; then
+            _ui_skip "pas de remote"
+            echo ""
+            ((errors++))
+            continue
+        fi
+
+        if [[ $ahead_n -gt 0 ]]; then
+            _ui_msg_info "[DRY-RUN] ${ahead_n} commit(s) a push"
+            ((ahead_total += ahead_n))
+        else
+            _ui_ok "" "rien a push"
+            echo ""
+            ((up_to_date++))
+        fi
+    done
+
+    echo ""
+    _ui_separator 54
+    printf "${_ui_cyan}%d${_ui_nc} a jour  ${_ui_yellow}%d${_ui_nc} commit(s) a push  ${_ui_dim}%d${_ui_nc} sans remote\n" "$up_to_date" "$ahead_total" "$errors"
+}
+
+# ==============================================================================
+# Dry-run: commit (affiche les fichiers modifies par repo)
+# ==============================================================================
+_git_bulk_commit_dry() {
+    local repos=("$@")
+
+    _ui_header "Git Bulk Commit [DRY-RUN]"
+    echo ""
+
+    local dirty=0 clean=0
+
+    for repo in "${repos[@]}"; do
+        local name=$(basename "$repo")
+        printf "  %-24s " "$name"
+
+        local changes
+        changes=$(git -C "$repo" status --porcelain 2>/dev/null)
+        local file_count=$(echo "$changes" | grep -c '.' 2>/dev/null || echo "0")
+
+        if [[ -z "$changes" ]]; then
+            _ui_ok "" "clean"
+            echo ""
+            ((clean++))
+        else
+            _ui_msg_info "[DRY-RUN] ${file_count} fichier(s) modifie(s)"
+            ((dirty++))
+        fi
+    done
+
+    echo ""
+    _ui_separator 54
+    printf "${_ui_green}%d${_ui_nc} clean  ${_ui_yellow}%d${_ui_nc} avec changements\n" "$clean" "$dirty"
+}
+
+# ==============================================================================
 # Aide
 # ==============================================================================
 _git_bulk_help() {
@@ -465,6 +600,7 @@ _git_bulk_help() {
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-m \"message\"" "Message de commit"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-d <dossier>" "Dossier a scanner (defaut: .)"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-r" "Recherche recursive"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-n, --dry-run" "Simule l'action sans l'executer"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-h" "Cette aide"
 
     echo ""
@@ -484,6 +620,9 @@ _git_bulk_help() {
     echo ""
     echo -e "  ${_ui_dim}# Scan recursif${_ui_nc}"
     echo -e "  zsh-env-git-bulk status -r -d ~/projects"
+    echo ""
+    echo -e "  ${_ui_dim}# Dry-run: voir ce que pull ferait${_ui_nc}"
+    echo -e "  zsh-env-git-bulk pull --dry-run -d ~/work"
 }
 
 # Alias courts

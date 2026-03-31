@@ -20,5 +20,6 @@ _ZSH_ENV_CUSTOM_COMPLETIONS=(
     # "deno:deno completions zsh"
     # "fly:flyctl completion zsh"
     # "turbo:turbo completion zsh"
-    "rustup:rustup completions zsh"
+    # "rustup:rustup completions zsh"  # deja gere par zsh-env-completions
+    "armadai:armadai completion zsh"
 )

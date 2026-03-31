@@ -44,8 +44,36 @@ _zsh_env_check_update() {
 _zsh_env_do_update() {
     echo -e "${_ui_blue}[zsh_env]${_ui_nc} Mise a jour en cours..."
 
+    # Capturer la version avant mise a jour
+    local old_version="${ZSH_ENV_VERSION:-unknown}"
+    local old_help=""
+    if (( $+functions[zsh-env-help] )); then
+        old_help=$(zsh-env-help 2>/dev/null | grep -oE 'zsh-env-[a-z-]+' | sort)
+    fi
+
     if (cd "$ZSH_ENV_DIR" && git pull --quiet origin main 2>/dev/null); then
         echo -e "${_ui_green}[zsh_env]${_ui_nc} Mise a jour terminee. Rechargez avec: ${_ui_bold}ss${_ui_nc}"
+
+        # Detecter les nouvelles commandes apres reload du fichier
+        local new_help_file="$ZSH_ENV_DIR/functions/zsh_env_commands.zsh"
+        if [[ -f "$new_help_file" ]]; then
+            local new_cmds=$(grep -oE 'zsh-env-[a-z-]+' "$new_help_file" | sort -u)
+            local added=$(comm -13 <(echo "$old_help") <(echo "$new_cmds") 2>/dev/null)
+            if [[ -n "$added" ]]; then
+                echo ""
+                echo -e "${_ui_cyan}Nouvelles commandes:${_ui_nc}"
+                echo "$added" | while read cmd; do
+                    echo -e "  ${_ui_green}+${_ui_nc} $cmd"
+                done
+            fi
+        fi
+
+        # Detecter changement de version
+        local new_version=$(grep -oP 'ZSH_ENV_VERSION="\K[^"]+' "$ZSH_ENV_DIR/functions/ui.zsh" 2>/dev/null)
+        if [[ -n "$new_version" && "$new_version" != "$old_version" ]]; then
+            echo -e "  ${_ui_bold}$old_version ${_ui_arrow} $new_version${_ui_nc}"
+        fi
+
         return 0
     else
         echo -e "${_ui_yellow}[zsh_env]${_ui_nc} Erreur lors de la mise a jour."

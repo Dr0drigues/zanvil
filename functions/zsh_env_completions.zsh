@@ -204,6 +204,45 @@ _trash() {
 }
 compdef _trash trash
 
+# --- Completions zsh-env-modules ---
+
+_zsh_env_modules() {
+    local modules=(GITLAB DOCKER MISE NUSHELL KUBE)
+
+    _arguments \
+        '1:action:(list enable disable)' \
+        '2:module:(${modules[@]})'
+}
+compdef _zsh_env_modules zsh-env-modules
+
+# --- Completions gc-* (GitLab clone aliases) ---
+
+_gc_gitlab_alias() {
+    local -a gc_cmds
+    for alias_name desc in "${(@kv)GC_ALIAS_DESCRIPTIONS}"; do
+        gc_cmds+=("$alias_name:$desc")
+    done
+    _describe 'gc alias' gc_cmds
+}
+
+# Enregistre la complétion pour chaque alias gc-* existant
+if (( ${#GC_ALIAS_DESCRIPTIONS} )); then
+    for _gc_name in "${(@k)GC_ALIAS_DESCRIPTIONS}"; do
+        compdef _gc_gitlab_alias "$_gc_name"
+    done
+    unset _gc_name
+fi
+
+# --- Completions zsh-env-gitlab-browse ---
+
+_zsh_env_gitlab_browse() {
+    _arguments \
+        '(-m --mrs -p --pipelines -i --issues)'{-m,--mrs}'[Merge Requests]' \
+        '(-m --mrs -p --pipelines -i --issues)'{-p,--pipelines}'[Pipelines]' \
+        '(-m --mrs -p --pipelines -i --issues)'{-i,--issues}'[Issues]'
+}
+compdef _zsh_env_gitlab_browse zsh-env-gitlab-browse
+
 # --- Completions ai-context ---
 
 _ai_context() {

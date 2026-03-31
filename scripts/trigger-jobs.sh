@@ -5,9 +5,9 @@
 # ==============================================================================
 
 # --- Configuration ---
-GITLAB_BASE_DOMAIN="gitlab.example.com"
+GITLAB_BASE_DOMAIN="${GITLAB_BASE_DOMAIN:-gitlab.example.com}"
 GITLAB_API_URL="https://${GITLAB_BASE_DOMAIN}/api/v4"
-IGNORE_SSL_ERRORS="true"
+IGNORE_SSL_ERRORS="${GITLAB_IGNORE_SSL:-true}"
 
 # --- Couleurs & Styles ---
 RED=$'\033[0;31m'
@@ -153,7 +153,7 @@ fi
 
 # --- Preparation ---
 
-CURL_OPTS="-s"
+CURL_OPTS="-s --connect-timeout 10 --max-time 60"
 if [ "$IGNORE_SSL_ERRORS" == "true" ]; then
     CURL_OPTS="$CURL_OPTS -k"
 fi
