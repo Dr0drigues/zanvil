@@ -35,6 +35,24 @@ GEMINI.md
 .cursorrules
 .github/copilot-*
 
+# Theme state et profiles (personnel)
+.current_theme
+profiles/
+
+# Trust store pour .zsh-env.local
+.trusted/
+
+# env.d : fichiers en clair (les .sops.zsh peuvent etre versionnes)
+env.d/*.zsh
+!env.d/*.sops.zsh
+!env.d/README.md
+
+# Backups
+backups/
+
+# Rust CLI build artifacts
+cli/target/
+
 # Fichiers Work dechiffres (generes a partir des .enc)
 work/settings.xml
 work/certificates_unix.sh

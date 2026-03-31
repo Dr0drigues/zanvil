@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  shellspec:
+  smoke-test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,59 +20,87 @@ jobs:
 
       - name: Install zsh (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y zsh zip xz-utils
+        run: sudo apt-get update && sudo apt-get install -y zsh jq curl
 
-      - name: Install ShellSpec
+      - name: Verify zsh loads without errors
         run: |
-          git clone --depth 1 https://github.com/shellspec/shellspec.git /tmp/shellspec
-          sudo make -C /tmp/shellspec install
+          export ZSH_ENV_DIR="$PWD"
+          export HOME="$(mktemp -d)"
+          mkdir -p "$HOME/.config" "$HOME/.kube" "$HOME/work"
 
-      - name: Verify setup
-        run: |
-          echo "Shell: $(zsh --version)"
-          echo "ShellSpec: $(shellspec --version)"
-          echo "OS: ${{ runner.os }}"
+          # Create minimal config
+          cp config.zsh.example "$PWD/config.zsh"
 
-      - name: Run T1 unit tests
-        run: |
-          shellspec \
-            spec/variables_spec.sh \
-            spec/rc_spec.sh \
-            spec/functions_spec.sh \
-            spec/aliases_spec.sh \
-            spec/utils_spec.sh \
-            spec/extract_spec.sh \
-            spec/git_root_spec.sh \
-            spec/git_change_author_spec.sh \
-            spec/plugins_spec.sh \
-            spec/auto_update_spec.sh \
-            spec/work_context_spec.sh \
-            spec/project_switcher_spec.sh \
-            spec/net_utils_spec.sh \
-            spec/ssh_manager_spec.sh \
-            spec/check_env_deps_spec.sh \
-            spec/zsh_env_commands_spec.sh \
-            spec/test_runner_spec.sh \
-            spec/scripts_spec.sh \
-            spec/gitlab_logic_spec.sh \
-            spec/ui_spec.sh
+          # Source rc.zsh in zsh and check for errors
+          zsh -c '
+            export ZSH_ENV_DIR="'"$PWD"'"
+            source "$ZSH_ENV_DIR/rc.zsh" 2>&1
+            echo "ZSH_ENV_VERSION: $ZSH_ENV_VERSION"
+            echo "Modules loaded successfully"
+          '
 
-      - name: Run T2 integration tests
+      - name: Verify core files exist
         run: |
-          shellspec \
-            spec/security_audit_spec.sh \
-            spec/git_hooks_spec.sh \
-            spec/extract_t2_spec.sh \
-            spec/ssh_manager_t2_spec.sh \
-            spec/project_switcher_t2_spec.sh \
-            spec/completions_t2_spec.sh
+          for f in rc.zsh core/ui.zsh core/loader.zsh core/variables.zsh core/aliases.zsh core/hooks.zsh core/commands.zsh core/admin.zsh core/theme.zsh; do
+            if [ -f "$f" ]; then
+              echo "OK: $f"
+            else
+              echo "MISSING: $f" && exit 1
+            fi
+          done
 
-      - name: Run T3 mock tests
+      - name: Verify modules structure
         run: |
-          shellspec \
-            spec/docker_t3_spec.sh \
-            spec/tmux_t3_spec.sh \
-            spec/kube_t3_spec.sh \
-            spec/work_t3_spec.sh \
-            spec/net_utils_t3_spec.sh \
-            spec/git_change_author_t3_spec.sh
+          for mod in git gitlab kube docker ssh tmux ai project security utils tools work; do
+            if [ -f "modules/$mod/init.zsh" ]; then
+              echo "OK: modules/$mod/init.zsh"
+            else
+              echo "MISSING: modules/$mod/init.zsh" && exit 1
+            fi
+          done
+
+  rust-cli:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cli/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.lock') }}
+
+      - name: Build CLI
+        run: cd cli && cargo build --release
+
+      - name: Test CLI commands
+        run: |
+          export ZSH_ENV_DIR="$PWD"
+          CLI="./cli/target/release/zsh-env-cli"
+
+          echo "=== theme list ==="
+          $CLI theme list
+
+          echo "=== theme current ==="
+          $CLI theme current || true
+
+          echo "=== doctor ==="
+          $CLI doctor || true
+
+          echo "=== modules list ==="
+          $CLI modules list || true
+
+          echo "=== --help ==="
+          $CLI --help

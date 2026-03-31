@@ -1,0 +1,102 @@
+# Starship Theme: Tokyo Night Pro
+#######################################################################
+### A Tokyo Night theme for Starship                                ###
+### source: https://starship.rs/presets/tokyo-night.html            ###
+#######################################################################
+"$schema" = 'https://starship.rs/config-schema.json'
+command_timeout = 3000
+
+format = """
+[░▒▓](#a3aed2)\
+${custom.work}\
+[  ](bg:#a3aed2 fg:#090c0c)\
+[](bg:#769ff0 fg:#a3aed2)\
+$directory\
+[](fg:#769ff0 bg:#394260)\
+$git_branch\
+$git_status\
+[](fg:#394260 bg:#212736)\
+$java\
+$nodejs\
+$rust\
+$golang\
+$php\
+\$kubernetes\\\n${custom.zsh_env_context}\\
+[](fg:#212736 bg:#1d2230)\
+$time\
+[ ](fg:#1d2230)\
+\n$character"""
+
+[directory]
+style = "fg:#e3e5e5 bg:#769ff0"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[git_branch]
+symbol = ""
+style = "bg:#394260"
+format = '[[ $symbol $branch ](fg:#769ff0 bg:#394260)]($style)'
+
+[git_status]
+style = "bg:#394260"
+format = '[[($all_status$ahead_behind )](fg:#769ff0 bg:#394260)]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#212736"
+format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
+
+[rust]
+symbol = ""
+style = "bg:#212736"
+format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
+
+[golang]
+symbol = ""
+style = "bg:#212736"
+format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
+
+[php]
+symbol = ""
+style = "bg:#212736"
+format = '[[ $symbol ($version) ](fg:#769ff0 bg:#212736)]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "bg:#1d2230"
+format = '[[  $time ](fg:#a0a9cb bg:#1d2230)]($style)'
+
+[java]
+symbol = "☕"
+style = "bg:#212736"
+format = '[[ $symbol ($version) ](fg:#f7768e bg:#212736)]($style)'
+detect_files = ["pom.xml", "build.gradle", "build.gradle.kts", ".java-version"]
+
+# Kubernetes natif desactive — remplace par [custom.zsh_env_context] (plus rapide, plus compact)
+[kubernetes]
+disabled = true
+
+# === Module Custom: Contexte Work ===
+[custom.work]
+description = "Indicateur contexte Work"
+command = "echo '󰋜'"
+when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
+format = "[$output ](bg:#a3aed2 fg:#e0af68)"
+shell = ["bash", "--noprofile", "--norc"]
+
+# === Module Custom: Contexte Dev (Kube) ===
+[custom.zsh_env_context]
+description = "Kubernetes context and namespace via zsh-env-cli"
+command = "zsh-env-cli context"
+when = "test -x ${HOME}/.local/bin/zsh-env-cli"
+format = "[[ $output ](fg:#7dcfff bg:#212736)]($style)"
+style = "bg:#212736"
+shell = ["bash", "--noprofile", "--norc"]
