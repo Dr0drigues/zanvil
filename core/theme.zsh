@@ -9,73 +9,108 @@
 # zsh-env-theme : Gestion des themes Starship
 # ==============================================================================
 zsh-env-theme() {
+    # Delegation au CLI Rust si disponible
+    if command -v zsh-env-cli &>/dev/null; then
+        zsh-env-cli theme "$@"
+        local rc=$?
+        # Sourcer la palette pour la session courante apres apply
+        if [[ $rc -eq 0 && "$1" != "list" && "$1" != "current" && -n "$1" ]]; then
+            local _p="$ZSH_ENV_DIR/themes/$1/palette.zsh"
+            [[ -f "$_p" ]] && source "$_p"
+        fi
+        return $rc
+    fi
+
+    # --- Fallback zsh ---
     local themes_dir="$ZSH_ENV_DIR/themes"
     local starship_config="$HOME/.config/starship.toml"
+    local state_file="$ZSH_ENV_DIR/.current_theme"
     local theme="$1"
 
-    # Vérifier que Starship est installé
     if ! command -v starship &> /dev/null; then
-        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Starship n'est pas installe."
+        _ui_msg_fail "Starship n'est pas installe."
         return 1
     fi
 
     # Sans argument ou "list" : afficher les themes disponibles
     if [[ -z "$theme" ]] || [[ "$theme" = "list" ]]; then
-        _zsh_header "Themes Starship"
+        _ui_header "Themes Starship"
 
-        if [[ ! -d "$themes_dir" ]]; then
-            echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
-            return 1
-        fi
-
-        # Theme actuel
+        # Theme actuel depuis le fichier d'etat
         local current=""
-        if [[ -f "$starship_config" ]]; then
-            current=$(head -1 "$starship_config" 2>/dev/null | sed -n 's/.*Theme: \([a-zA-Z0-9_-]*\).*/\1/p' || echo "")
-        fi
+        [[ -f "$state_file" ]] && current=$(<"$state_file")
 
-        for theme_file in "$themes_dir"/*.toml; do
-            [[ -f "$theme_file" ]] || continue
-            local name=$(basename "$theme_file" .toml)
-            local desc=$(grep -m1 "^# Starship Theme:" "$theme_file" 2>/dev/null | sed 's/^# Starship Theme: //' || echo "")
+        # Collecter les noms de themes (directory + flat, sans doublons)
+        local -a theme_names=()
+        # Directory themes
+        for d in "$themes_dir"/*/prompt.toml(N); do
+            theme_names+=($(basename $(dirname "$d")))
+        done
+        # Flat themes (skip si version directory existe)
+        for f in "$themes_dir"/*.toml(N); do
+            local name=$(basename "$f" .toml)
+            (( ${theme_names[(Ie)$name]} )) || theme_names+=($name)
+        done
+
+        for name in ${(o)theme_names}; do
+            local desc="" toml_file=""
+            if [[ -f "$themes_dir/$name/prompt.toml" ]]; then
+                toml_file="$themes_dir/$name/prompt.toml"
+            else
+                toml_file="$themes_dir/$name.toml"
+            fi
+            desc=$(grep -m1 "^# Starship Theme:" "$toml_file" 2>/dev/null | sed 's/^# Starship Theme: //')
+
+            # Indicateur palette
+            local palette_tag=""
+            [[ -f "$themes_dir/$name/palette.zsh" ]] && palette_tag=" ${_ui_magenta}[palette]${_ui_nc}"
 
             if [[ "$name" = "$current" ]]; then
-                echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
+                echo -e "  ${_ui_green}*${_ui_nc} ${_ui_bold}$name${_ui_nc} - $desc ${_ui_cyan}(actif)${_ui_nc}$palette_tag"
             else
-                echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
+                echo -e "  ${_ui_cyan}${_ui_circle}${_ui_nc} $name - $desc$palette_tag"
             fi
         done
 
         echo ""
-        echo -e "${_zsh_cmd_dim}Usage: zsh-env-theme <nom>${_zsh_cmd_nc}"
+        echo -e "  ${_ui_dim}Usage: zsh-env-theme <nom>${_ui_nc}"
         return 0
     fi
 
-    # Appliquer un theme
-    local theme_file="$themes_dir/$theme.toml"
-
-    if [[ ! -f "$theme_file" ]]; then
-        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
-        echo -e "Themes disponibles: $(ls "$themes_dir"/*.toml 2>/dev/null | xargs -n1 basename | sed 's/.toml//' | tr '\n' ' ')"
+    # Resoudre le theme (directory > flat)
+    local toml_source=""
+    if [[ -f "$themes_dir/$theme/prompt.toml" ]]; then
+        toml_source="$themes_dir/$theme/prompt.toml"
+    elif [[ -f "$themes_dir/$theme.toml" ]]; then
+        toml_source="$themes_dir/$theme.toml"
+    else
+        _ui_msg_fail "Theme '$theme' non trouve."
         return 1
     fi
 
-    # Créer le dossier .config si nécessaire
     mkdir -p "$HOME/.config"
 
-    # Backup de l'ancienne config si elle existe et n'est pas un de nos themes
+    # Backup si config existante non geree
     if [[ -f "$starship_config" ]]; then
         if ! grep -q "^# Starship Theme:" "$starship_config" 2>/dev/null; then
             cp "$starship_config" "$starship_config.backup"
-            echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup de l'ancienne config: $starship_config.backup"
+            _ui_msg_info "Backup: $starship_config.backup"
         fi
     fi
 
-    # Copier le theme
-    cp "$theme_file" "$starship_config"
+    # Appliquer
+    cp "$toml_source" "$starship_config"
+    echo "$theme" > "$state_file"
 
-    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Theme '$theme' applique."
-    echo -e "Rechargez avec ${_zsh_cmd_bold}ss${_zsh_cmd_nc} pour voir les changements."
+    # Sourcer la palette si disponible
+    local palette="$themes_dir/$theme/palette.zsh"
+    if [[ -f "$palette" ]]; then
+        source "$palette"
+        _ui_tag_ok "Theme '$theme' applique (prompt + palette)"
+    else
+        _ui_tag_ok "Theme '$theme' applique"
+    fi
+    _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
 
 # ==============================================================================

@@ -295,3 +295,29 @@ _ui_truncate() {
         echo "$str"
     fi
 }
+
+# ==============================================================================
+# Theme palette override
+# ==============================================================================
+# Source la palette du theme actif pour harmoniser les couleurs
+# entre le prompt Starship et les commandes zsh-env-*
+if [[ -f "$ZSH_ENV_DIR/.current_theme" ]]; then
+    local _theme_name
+    _theme_name=$(<"$ZSH_ENV_DIR/.current_theme")
+    if [[ -n "$_theme_name" ]]; then
+        local _palette="$ZSH_ENV_DIR/themes/$_theme_name/palette.zsh"
+        if [[ -f "$_palette" ]]; then
+            source "$_palette"
+            # Refresh compat aliases
+            _zsh_cmd_green=$_ui_green
+            _zsh_cmd_red=$_ui_red
+            _zsh_cmd_yellow=$_ui_yellow
+            _zsh_cmd_blue=$_ui_blue
+            _zsh_cmd_cyan=$_ui_cyan
+            _zsh_cmd_bold=$_ui_bold
+            _zsh_cmd_dim=$_ui_dim
+            _zsh_cmd_nc=$_ui_nc
+        fi
+    fi
+    unset _theme_name _palette
+fi
