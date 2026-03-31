@@ -58,3 +58,13 @@ _zsh_env_gitlab_browse() {
         '(-m --mrs -p --pipelines -i --issues)'{-i,--issues}'[Issues]'
 }
 compdef _zsh_env_gitlab_browse zsh-env-gitlab-browse
+
+_zsh_env_switch() {
+    local profiles_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/profiles"
+    local -a profiles=()
+    for f in "$profiles_dir"/*.zsh(N); do
+        profiles+=($(basename "$f" .zsh))
+    done
+    _arguments '1:profile:(list ${profiles[@]})'
+}
+compdef _zsh_env_switch zsh-env-switch

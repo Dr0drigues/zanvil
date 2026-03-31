@@ -6,7 +6,7 @@
 #
 # Usage dans les autres fichiers:
 #   Les fonctions sont automatiquement disponibles car ui.zsh est chargé
-#   en premier par functions.zsh (ordre alphabétique inversé ou explicite)
+#   en premier par core/loader.zsh
 # ==============================================================================
 
 # ==============================================================================

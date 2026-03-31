@@ -32,6 +32,9 @@ _audit_check_perms() {
 
 # Audit principal
 zsh-env-audit() {
+    if command -v zsh-env-cli &>/dev/null; then
+        zsh-env-cli audit; return $?
+    fi
     _zsh_header "ZSH_ENV Security Audit"
 
     local issues=0

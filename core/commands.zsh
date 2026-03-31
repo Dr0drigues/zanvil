@@ -88,6 +88,9 @@ zsh-env-list() {
 # zsh-env-doctor : Diagnostic compact de l'installation
 # ==============================================================================
 zsh-env-doctor() {
+    if command -v zsh-env-cli &>/dev/null; then
+        zsh-env-cli doctor; return $?
+    fi
     _zsh_header "ZSH_ENV Doctor"
 
     local issues=0
@@ -324,6 +327,7 @@ zsh-env-help() {
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-config-reset" "Restaure la config par defaut"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-backup" "Sauvegarde configs personnalisees"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-restore" "Restaure depuis un backup"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-switch [env]" "Switch d'environnement rapide"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-update" "Mise a jour zsh_env"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-help" "Cette aide"
 
