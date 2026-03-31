@@ -1,7 +1,8 @@
 mod cmd;
 mod config;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
 use cmd::theme::ThemeAction;
 use cmd::modules::ModulesAction;
 
@@ -30,6 +31,9 @@ enum Commands {
         #[command(subcommand)]
         action: ModulesAction,
     },
+    /// Generate shell completions
+    #[command(hide = true)]
+    Completions,
 }
 
 fn main() {
@@ -41,5 +45,8 @@ fn main() {
         Commands::Audit => cmd::audit::run(),
         Commands::Context => cmd::context::run(),
         Commands::Modules { action } => cmd::modules::run(action),
+        Commands::Completions => {
+            generate(Shell::Zsh, &mut Cli::command(), "zsh-env-cli", &mut std::io::stdout());
+        }
     }
 }
