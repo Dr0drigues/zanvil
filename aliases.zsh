@@ -31,7 +31,7 @@ fi
 # Vérifions que git est installé (rare qu'il ne le soit pas, mais sait-on jamais)
 if command -v git &> /dev/null; then
     alias gst='git status'
-    alias gl='git fetch --all; git pull'
+    alias gl='git pull'
     alias ga='git add'
     alias gp='git push'
     alias gc='git commit -v' # -v est une bonne pratique pour relire son code avant de commit
@@ -123,5 +123,5 @@ if command -v npm &> /dev/null; then
     alias npmu='npm update'
     alias npml='npm list --depth=0'
     # Reinstallation propre des node_modules
-    alias nci='if [[ -d node_modules ]]; then /bin/rm -rf node_modules; fi && npm cache clean --force && npm install'
+    alias nci='if [[ -d node_modules ]]; then command rm -rf node_modules; fi && npm cache clean --force && npm install'
 fi

@@ -171,6 +171,9 @@ zsh-env-completion-remove() {
 # zsh-env-completions : Charger les auto-completions
 # ==============================================================================
 zsh-env-completions() {
+    # Initialiser le système de completion AVANT de charger les completions
+    autoload -Uz compinit && compinit -u -C
+
     _zsh_header "ZSH_ENV Completions"
 
     local loaded=0
@@ -249,8 +252,8 @@ zsh-env-completions() {
 
     # rustup & cargo
     if command -v rustup &> /dev/null; then
-        source <(rustup completions zsh 2>/dev/null)
-        source <(rustup completions zsh cargo 2>/dev/null)
+        { source <(rustup completions zsh 2>/dev/null); } 2>/dev/null
+        { source <(rustup completions zsh cargo 2>/dev/null); } 2>/dev/null
         echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Rustup/Cargo"
         ((loaded++))
     fi
@@ -270,8 +273,8 @@ zsh-env-completions() {
 
             if command -v "$name" &> /dev/null; then
                 # Capture la sortie de la commande puis eval avec stderr supprimé
-                local comp_script
-                comp_script=$($cmd 2>/dev/null)
+                local comp_script=""
+                comp_script="$(${(z)cmd} 2>/dev/null)"
                 if [[ -n "$comp_script" ]]; then
                     { eval "$comp_script"; } 2>/dev/null
                     echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $name ${_zsh_cmd_cyan}(custom)${_zsh_cmd_nc}"
@@ -292,8 +295,6 @@ zsh-env-completions() {
     _zsh_separator 44
     echo -e "${_zsh_cmd_green}$loaded${_zsh_cmd_nc} completions chargees"
 
-    # Recharger le système de completion
-    autoload -Uz compinit && compinit -C
 }
 
 # ==============================================================================
@@ -696,6 +697,260 @@ zsh-env-ssl-setup() {
 }
 
 # ==============================================================================
+# zsh-env-modules : Gestion des modules
+# ==============================================================================
+zsh-env-modules() {
+    local config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+
+    # Description de chaque module
+    typeset -A module_desc
+    module_desc=(
+        [GITLAB]="Alias GitLab, clone groupes, statut PAT"
+        [DOCKER]="Utilitaires Docker (dex, dstop)"
+        [MISE]="Gestionnaire de versions (Node, Java...)"
+        [NUSHELL]="Integration Nushell (nush, nuc)"
+        [KUBE]="Gestion kubeconfig (kube_select, Azure/AWS/GCP)"
+    )
+
+    local action="${1:-list}"
+    local module_name="${2:u}" # uppercase
+
+    case "$action" in
+        list|ls)
+            _ui_header "Modules ZSH_ENV"
+            printf "${_ui_bold}%-12s %-8s %s${_ui_nc}\n" "Module" "Statut" "Description"
+            _ui_separator
+
+            for mod in GITLAB DOCKER MISE NUSHELL KUBE; do
+                local var_name="ZSH_ENV_MODULE_${mod}"
+                local mod_state="${(P)var_name}"
+                local desc="${module_desc[$mod]}"
+                if [[ "$mod_state" == "true" ]]; then
+                    printf "  %-10s ${_ui_green}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "actif" "$desc"
+                else
+                    printf "  %-10s ${_ui_red}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "inactif" "$desc"
+                fi
+            done
+            _ui_separator
+            echo -e "  ${_ui_dim}Modifier: zsh-env-modules enable|disable <module>${_ui_nc}"
+            ;;
+
+        enable|on)
+            if [[ -z "$module_name" ]]; then
+                _ui_msg_fail "Usage: zsh-env-modules enable <module>"
+                return 1
+            fi
+            if [[ -z "${module_desc[$module_name]}" ]]; then
+                _ui_msg_fail "Module inconnu: $module_name"
+                _ui_msg_info "Modules disponibles: ${(kj:, :)module_desc}"
+                return 1
+            fi
+            if [[ ! -f "$config_file" ]]; then
+                _ui_msg_fail "Fichier config introuvable: $config_file"
+                return 1
+            fi
+            if [[ "$OSTYPE" == darwin* ]]; then
+                sed -i '' "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=true/" "$config_file"
+            else
+                sed -i "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=true/" "$config_file"
+            fi
+            _ui_msg_ok "Module $module_name active"
+            _ui_msg_info "Rechargez avec: ss"
+            ;;
+
+        disable|off)
+            if [[ -z "$module_name" ]]; then
+                _ui_msg_fail "Usage: zsh-env-modules disable <module>"
+                return 1
+            fi
+            if [[ -z "${module_desc[$module_name]}" ]]; then
+                _ui_msg_fail "Module inconnu: $module_name"
+                _ui_msg_info "Modules disponibles: ${(kj:, :)module_desc}"
+                return 1
+            fi
+            if [[ ! -f "$config_file" ]]; then
+                _ui_msg_fail "Fichier config introuvable: $config_file"
+                return 1
+            fi
+            if [[ "$OSTYPE" == darwin* ]]; then
+                sed -i '' "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=false/" "$config_file"
+            else
+                sed -i "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=false/" "$config_file"
+            fi
+            _ui_msg_ok "Module $module_name desactive"
+            _ui_msg_info "Rechargez avec: ss"
+            ;;
+
+        *)
+            _ui_msg_fail "Action inconnue: $action"
+            echo "Usage: zsh-env-modules [list|enable|disable] [module]"
+            return 1
+            ;;
+    esac
+}
+
+# ==============================================================================
+# zsh-env-backup / zsh-env-restore : Sauvegarde et restauration
+# ==============================================================================
+zsh-env-backup() {
+    local backup_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/backups"
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local dest="$backup_dir/$timestamp"
+
+    mkdir -p "$dest"
+
+    # Fichiers a sauvegarder
+    local -a files=(
+        "${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+        "${ZSH_ENV_DIR:-$HOME/.zsh_env}/completions.zsh"
+        "$HOME/.secrets"
+        "$HOME/.gitlab_secrets"
+    )
+
+    _ui_header "ZSH_ENV Backup"
+
+    local count=0
+    for f in "${files[@]}"; do
+        if [[ -f "$f" ]]; then
+            cp "$f" "$dest/"
+            chmod 600 "$dest/$(basename "$f")"
+            _ui_msg_ok "$(basename "$f")"
+            ((count++))
+        else
+            echo -e "  ${_ui_dim}$(basename "$f") (absent)${_ui_nc}"
+        fi
+    done
+
+    _ui_separator
+    if [[ $count -gt 0 ]]; then
+        _ui_msg_ok "$count fichier(s) sauvegarde(s) dans $dest"
+    else
+        _ui_msg_warn "Aucun fichier a sauvegarder"
+        rmdir "$dest" 2>/dev/null
+    fi
+}
+
+zsh-env-restore() {
+    local backup_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/backups"
+
+    if [[ ! -d "$backup_dir" ]] || [[ -z "$(ls -A "$backup_dir" 2>/dev/null)" ]]; then
+        _ui_msg_fail "Aucun backup disponible dans $backup_dir"
+        return 1
+    fi
+
+    _ui_header "ZSH_ENV Restore"
+
+    local selected="$1"
+
+    if [[ -z "$selected" ]]; then
+        # Selection interactive
+        local -a backups
+        backups=($(ls -1r "$backup_dir"))
+
+        if command -v fzf &>/dev/null; then
+            selected=$(printf '%s\n' "${backups[@]}" | fzf --header="Choisir un backup" --prompt="Restore > ")
+        else
+            _ui_msg_info "Backups disponibles:"
+            local i=1
+            for b in "${backups[@]}"; do
+                local file_count=$(ls -1 "$backup_dir/$b" 2>/dev/null | wc -l | tr -d ' ')
+                printf "  ${_ui_bold}%d)${_ui_nc} %s ${_ui_dim}(%s fichiers)${_ui_nc}\n" $i "$b" "$file_count"
+                ((i++))
+            done
+            echo ""
+            echo -n "Numero: "
+            read choice
+            [[ "$choice" =~ ^[0-9]+$ ]] && selected="${backups[$choice]}"
+        fi
+    fi
+
+    [[ -z "$selected" ]] && return 0
+
+    local src="$backup_dir/$selected"
+    if [[ ! -d "$src" ]]; then
+        _ui_msg_fail "Backup introuvable: $selected"
+        return 1
+    fi
+
+    _ui_msg_info "Restauration depuis $selected:"
+    echo ""
+
+    for f in "$src"/*; do
+        local name="$(basename "$f")"
+        local target
+
+        case "$name" in
+            config.zsh|completions.zsh)
+                target="${ZSH_ENV_DIR:-$HOME/.zsh_env}/$name" ;;
+            .secrets|.gitlab_secrets)
+                target="$HOME/$name" ;;
+            *)
+                target="${ZSH_ENV_DIR:-$HOME/.zsh_env}/$name" ;;
+        esac
+
+        if [[ -f "$target" ]]; then
+            local diff_out=$(diff "$target" "$f" 2>/dev/null)
+            if [[ -z "$diff_out" ]]; then
+                echo -e "  ${_ui_dim}$name (identique)${_ui_nc}"
+                continue
+            fi
+        fi
+
+        cp "$f" "$target"
+        chmod 600 "$target"
+        _ui_msg_ok "$name → $target"
+    done
+
+    _ui_separator
+    _ui_msg_info "Rechargez avec: ss"
+}
+
+# ==============================================================================
+# zsh-env-config-reset : Restaurer la config par defaut
+# ==============================================================================
+zsh-env-config-reset() {
+    local config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+    local default_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh.example"
+
+    if [[ ! -f "$default_file" ]]; then
+        _ui_msg_fail "Template introuvable: $default_file"
+        return 1
+    fi
+
+    if [[ ! -f "$config_file" ]]; then
+        cp "$default_file" "$config_file"
+        _ui_msg_ok "Config creee depuis le template"
+        return 0
+    fi
+
+    # Afficher les differences
+    local diff_output
+    diff_output=$(diff "$config_file" "$default_file" 2>/dev/null)
+    if [[ -z "$diff_output" ]]; then
+        _ui_msg_ok "La config est deja aux valeurs par defaut"
+        return 0
+    fi
+
+    _ui_msg_warn "Differences detectees:"
+    echo "$diff_output"
+    echo ""
+
+    local response
+    read -q "response?Restaurer aux valeurs par defaut ? [y/N] "
+    echo ""
+    if [[ "$response" != "y" ]]; then
+        _ui_msg_info "Annule."
+        return 0
+    fi
+
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    cp "$config_file" "${config_file}.bak.${timestamp}"
+    cp "$default_file" "$config_file"
+    _ui_msg_ok "Config restauree (backup: config.zsh.bak.${timestamp})"
+    _ui_msg_info "Rechargez avec: ss"
+}
+
+# ==============================================================================
 # zsh-env-help : Afficher l'aide
 # ==============================================================================
 zsh-env-help() {
@@ -715,6 +970,12 @@ zsh-env-help() {
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-git-bulk [action]" "Operations Git en masse"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-ssl-setup" "Configure les certificats SSL"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-gitlab-status" "Statut du token GitLab PAT"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-gitlab-browse" "Ouvre le repo GitLab dans le navigateur"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-modules [action]" "Gestion des modules (list/enable/disable)"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-config-reset" "Restaure la config par defaut"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-backup" "Sauvegarde configs personnalisees"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-restore" "Restaure depuis un backup"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-update" "Mise a jour zsh_env"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-help" "Cette aide"
 

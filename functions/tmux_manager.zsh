@@ -7,7 +7,7 @@
 # Verification de tmux
 _tmux_check() {
     if ! command -v tmux &> /dev/null; then
-        echo "tmux n'est pas installe." >&2
+        _ui_msg_fail "tmux n'est pas installe."
         return 1
     fi
     return 0
@@ -27,7 +27,7 @@ tm() {
         if [[ -z "$sessions" ]]; then
             # Pas de sessions, en creer une
             session_name="main"
-            echo "Aucune session existante. Creation de '$session_name'..."
+            _ui_msg_info "Aucune session existante. Creation de '$session_name'..."
             tmux new-session -s "$session_name"
             return
         fi
@@ -52,7 +52,7 @@ tm() {
             [[ -z "$choice" ]] && return 0
             session_name="$choice"
         else
-            echo "Sessions disponibles:"
+            _ui_msg_info "Sessions disponibles:"
             echo "$sessions" | nl
             echo -n "Numero ou nom (vide = nouvelle): "
             read choice
@@ -76,7 +76,7 @@ tm() {
         fi
     else
         # Creer la session
-        echo "Creation de la session '$session_name'..."
+        _ui_msg_info "Creation de la session '$session_name'..."
         if [[ -n "$TMUX" ]]; then
             tmux new-session -d -s "$session_name"
             tmux switch-client -t "$session_name"
@@ -93,15 +93,15 @@ tm-list() {
     local sessions=$(tmux list-sessions 2>/dev/null)
 
     if [[ -z "$sessions" ]]; then
-        echo "Aucune session tmux active."
+        _ui_msg_info "Aucune session tmux active."
         return 0
     fi
 
-    echo "Sessions tmux:"
-    echo "──────────────────────────────────────────"
+    _ui_msg_info "Sessions tmux:"
+    _ui_separator
     tmux list-sessions -F "#{?session_attached,*  ,   }#{session_name} (#{session_windows} fenetres, cree #{t:session_created})"
-    echo "──────────────────────────────────────────"
-    echo "* = session attachee"
+    _ui_separator
+    echo -e "  ${_ui_dim}* = session attachee${_ui_nc}"
 }
 
 # Tue une session tmux
@@ -116,7 +116,7 @@ tm-kill() {
         local sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
 
         if [[ -z "$sessions" ]]; then
-            echo "Aucune session tmux active."
+            _ui_msg_info "Aucune session tmux active."
             return 0
         fi
 
@@ -124,7 +124,7 @@ tm-kill() {
             session_name=$(echo "$sessions" | fzf --header="Session a tuer" --prompt="Kill > ")
             [[ -z "$session_name" ]] && return 0
         else
-            echo "Sessions disponibles:"
+            _ui_msg_info "Sessions disponibles:"
             echo "$sessions" | nl
             echo -n "Numero ou nom: "
             read choice
@@ -138,9 +138,9 @@ tm-kill() {
 
     if tmux has-session -t "$session_name" 2>/dev/null; then
         tmux kill-session -t "$session_name"
-        echo "Session '$session_name' terminee."
+        _ui_msg_ok "Session '$session_name' terminee."
     else
-        echo "Session '$session_name' non trouvee." >&2
+        _ui_msg_fail "Session '$session_name' non trouvee."
         return 1
     fi
 }
@@ -161,9 +161,9 @@ tm-kill-others() {
     done
 
     if [[ $killed -gt 0 ]]; then
-        echo "$killed session(s) terminee(s)."
+        _ui_msg_ok "$killed session(s) terminee(s)."
     else
-        echo "Aucune autre session a terminer."
+        _ui_msg_info "Aucune autre session a terminer."
     fi
 }
 
@@ -172,7 +172,7 @@ tm-rename() {
     _tmux_check || return 1
 
     if [[ -z "$TMUX" ]]; then
-        echo "Pas dans une session tmux." >&2
+        _ui_msg_fail "Pas dans une session tmux."
         return 1
     fi
 
@@ -185,7 +185,7 @@ tm-rename() {
     [[ -z "$new_name" ]] && return 0
 
     tmux rename-session "$new_name"
-    echo "Session renommee en '$new_name'."
+    _ui_msg_ok "Session renommee en '$new_name'."
 }
 
 # Cree une session pour un projet (avec layout predetermine)
@@ -197,18 +197,18 @@ tm-project() {
 
     # Aller au dossier projet
     if [[ ! -d "$project_dir" ]]; then
-        echo "Dossier non trouve: $project_dir" >&2
+        _ui_msg_fail "Dossier non trouve: $project_dir"
         return 1
     fi
 
     # Creer ou attacher
     if tmux has-session -t "$session_name" 2>/dev/null; then
-        echo "Session '$session_name' existe deja. Attachment..."
+        _ui_msg_info "Session '$session_name' existe deja. Attachment..."
         tm "$session_name"
         return
     fi
 
-    echo "Creation de la session projet '$session_name'..."
+    _ui_msg_info "Creation de la session projet '$session_name'..."
 
     # Creer session avec layout projet
     tmux new-session -d -s "$session_name" -c "$project_dir"

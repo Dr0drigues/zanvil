@@ -8,7 +8,7 @@ if [[ -f "$ZSH_ENV_DIR/functions/ui.zsh" ]]; then
 fi
 
 # Fichiers charges en lazy loading (au premier appel)
-_ZSH_ENV_LAZY_FILES=(ai_context.zsh ai_tokens.zsh)
+_ZSH_ENV_LAZY_FILES=(ai_context.zsh ai_tokens.zsh net_utils.zsh tmux_manager.zsh)
 
 # Charger tous les autres fichiers de fonctions (sauf lazy)
 for file in "$ZSH_ENV_DIR/functions"/*; do
@@ -40,4 +40,14 @@ done
 for _fn in ai_tokens_estimate ai_tokens_analyze ai_tokens_compress ai_tokens_select ai_tokens_export ai_tokens_help; do
     eval "${_fn}() { _zsh_env_lazy_load ai_tokens.zsh ${_fn} \"\$@\"; }"
 done
+# net_utils.zsh (~32 lignes)
+for _fn in myip port; do
+    eval "${_fn}() { _zsh_env_lazy_load net_utils.zsh ${_fn} \"\$@\"; }"
+done
+
+# tmux_manager.zsh (~249 lignes)
+for _fn in tm tm-list tm-kill tm-kill-others tm-rename tm-project tm-help; do
+    eval "${_fn}() { _zsh_env_lazy_load tmux_manager.zsh ${_fn} \"\$@\"; }"
+done
+
 unset _fn
