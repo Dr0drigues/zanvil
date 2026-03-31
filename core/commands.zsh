@@ -96,9 +96,9 @@ zsh-env-doctor() {
     # --- Config files (inline) ---
     local config_status=""
     [[ -f "$ZSH_ENV_DIR/rc.zsh" ]] && config_status+="rc.zsh ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="rc.zsh ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/aliases.zsh" ]] && config_status+="aliases ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="aliases ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/variables.zsh" ]] && config_status+="variables ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="variables ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/functions.zsh" ]] && config_status+="functions ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || { config_status+="functions ${_zsh_cmd_red}✗${_zsh_cmd_nc}"; ((issues++)); }
+    [[ -f "$ZSH_ENV_DIR/core/aliases.zsh" ]] && config_status+="aliases ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="aliases ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
+    [[ -f "$ZSH_ENV_DIR/core/variables.zsh" ]] && config_status+="variables ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="variables ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
+    [[ -f "$ZSH_ENV_DIR/core/loader.zsh" ]] && config_status+="loader ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || { config_status+="loader ${_zsh_cmd_red}✗${_zsh_cmd_nc}"; ((issues++)); }
     _zsh_section "Config" "$config_status"
 
     # --- .zshrc integration ---
