@@ -20,7 +20,7 @@ $nodejs\
 $rust\
 $golang\
 $php\
-$kubernetes\
+\$kubernetes\\\n${custom.zsh_env_context}\\
 [](fg:#212736 bg:#1d2230)\
 $time\
 [ ](fg:#1d2230)\
@@ -93,4 +93,13 @@ description = "Indicateur contexte Work"
 command = "echo '󰋜'"
 when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
 format = "[$output ](bg:#a3aed2 fg:#e0af68)"
+shell = ["bash", "--noprofile", "--norc"]
+
+# === Module Custom: Contexte Dev (Kube) ===
+[custom.zsh_env_context]
+description = "Kubernetes context and namespace via zsh-env-cli"
+command = "zsh-env-cli context"
+when = "command -v zsh-env-cli > /dev/null 2>&1 && command -v kubectl > /dev/null 2>&1 && kubectl config current-context > /dev/null 2>&1"
+format = "[[ $output ](fg:#7dcfff bg:#212736)]($style)"
+style = "bg:#212736"
 shell = ["bash", "--noprofile", "--norc"]

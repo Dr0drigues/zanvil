@@ -214,5 +214,38 @@ for key id in "${(@kv)GITLAB_PROJECTS}"; do
     GC_ALIAS_DESCRIPTIONS[gc-${parts[2]}-${parts[1]}]="Clone groupe $id"
 done
 
+# Alias gpr : ouvre la page de creation de MR pour la branche courante
+alias gpr='zsh-env-gitlab-browse -m'
+
 # Nettoyage de la fonction pour ne pas polluer l'espace de noms global
 unfunction load_gitlab_aliases
+
+### PAT EXPIRATION CHECK (silencieux au startup) ###
+# Alerte une seule fois par session si le token expire dans < 14 jours
+if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
+    _zsh_env_pat_check() {
+        local gitlab_url="https://${GITLAB_BASE_DOMAIN:-gitlab.example.com}/api/v4"
+        local response expires_at
+        response=$(curl -s -k --max-time 3 --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
+        expires_at=$(echo "$response" | jq -r '.expires_at // empty' 2>/dev/null)
+
+        if [[ -n "$expires_at" ]]; then
+            local now_epoch expire_epoch days_left
+            now_epoch=$(date +%s)
+            if [[ "$OSTYPE" == darwin* ]]; then
+                expire_epoch=$(date -j -f "%Y-%m-%d" "$expires_at" +%s 2>/dev/null)
+            else
+                expire_epoch=$(date -d "$expires_at" +%s 2>/dev/null)
+            fi
+            if [[ -n "$expire_epoch" ]]; then
+                days_left=$(( (expire_epoch - now_epoch) / 86400 ))
+                if (( days_left < 0 )); then
+                    echo -e "${_ui_red}[GitLab]${_ui_nc} Token PAT ${_ui_bold}EXPIRE${_ui_nc} depuis $(( -days_left )) jour(s) !"
+                elif (( days_left <= 14 )); then
+                    echo -e "${_ui_yellow}[GitLab]${_ui_nc} Token PAT expire dans ${_ui_bold}${days_left}${_ui_nc} jour(s)"
+                fi
+            fi
+        fi
+    }
+    _zsh_env_pat_check &!
+fi

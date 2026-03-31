@@ -35,8 +35,9 @@ GEMINI.md
 .cursorrules
 .github/copilot-*
 
-# Theme state (personnel)
+# Theme state et profiles (personnel)
 .current_theme
+profiles/
 
 # Backups
 backups/
