@@ -1,0 +1,4 @@
+source "$ZSH_ENV_DIR/modules/git/git_bulk.zsh"
+source "$ZSH_ENV_DIR/modules/git/git_hooks.zsh"
+source "$ZSH_ENV_DIR/modules/git/git_change_author.zsh"
+source "$ZSH_ENV_DIR/modules/git/git_root.zsh"
