@@ -44,10 +44,10 @@ fi
 [[ -f "$HOME/.secrets" ]] && source "$HOME/.secrets"
 
 # --- 3. Variables ---
-if [[ -f "$ZSH_ENV_DIR/variables.zsh" ]]; then
-    source "$ZSH_ENV_DIR/variables.zsh"
+if [[ -f "$ZSH_ENV_DIR/core/variables.zsh" ]]; then
+    source "$ZSH_ENV_DIR/core/variables.zsh"
 else
-    echo "ERROR: variables.zsh not found in $ZSH_ENV_DIR"
+    echo "ERROR: core/variables.zsh not found in $ZSH_ENV_DIR"
 fi
 
 export PATH="$SCRIPTS_DIR:$PATH"
@@ -82,18 +82,18 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 
-# --- 5. Functions ---
-[[ -f "$ZSH_ENV_DIR/functions.zsh" ]] && source "$ZSH_ENV_DIR/functions.zsh"
+# --- 5. Module Loader ---
+source "$ZSH_ENV_DIR/core/loader.zsh"
 
 # --- 6. Aliases ---
-[[ -f "$ZSH_ENV_DIR/aliases.zsh" ]] && source "$ZSH_ENV_DIR/aliases.zsh"
+source "$ZSH_ENV_DIR/core/aliases.zsh"
 [[ -f "$ZSH_ENV_DIR/aliases.local.zsh" ]] && source "$ZSH_ENV_DIR/aliases.local.zsh"
 
 # --- 7. Plugins ---
 [[ -f "$ZSH_ENV_DIR/plugins.zsh" ]] && source "$ZSH_ENV_DIR/plugins.zsh"
 
 # --- 8. Hooks (outils externes) ---
-[[ -f "$ZSH_ENV_DIR/hooks.zsh" ]] && source "$ZSH_ENV_DIR/hooks.zsh"
+source "$ZSH_ENV_DIR/core/hooks.zsh"
 
 # --- Options ZSH ---
 setopt AUTO_CD
