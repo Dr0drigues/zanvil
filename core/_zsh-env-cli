@@ -1,0 +1,525 @@
+#compdef zsh-env-cli
+
+autoload -U is-at-least
+
+_zsh-env-cli() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_zsh-env-cli_commands" \
+"*::: :->zsh-env" \
+&& ret=0
+    case $state in
+    (zsh-env)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-command-$line[1]:"
+        case $line[1] in
+            (theme)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_zsh-env-cli__theme_commands" \
+"*::: :->theme" \
+&& ret=0
+
+    case $state in
+    (theme)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-theme-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(apply)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':name -- Theme name to apply:_default' \
+&& ret=0
+;;
+(current)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__theme__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-theme-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(apply)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(current)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(audit)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(context)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(modules)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_zsh-env-cli__modules_commands" \
+"*::: :->modules" \
+&& ret=0
+
+    case $state in
+    (modules)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-modules-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':name -- Module name:_default' \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':name -- Module name:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__modules__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-modules-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-help-command-$line[1]:"
+        case $line[1] in
+            (theme)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__help__theme_commands" \
+"*::: :->theme" \
+&& ret=0
+
+    case $state in
+    (theme)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-help-theme-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(apply)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(current)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(audit)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(context)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(modules)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__help__modules_commands" \
+"*::: :->modules" \
+&& ret=0
+
+    case $state in
+    (modules)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-help-modules-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_zsh-env-cli_commands] )) ||
+_zsh-env-cli_commands() {
+    local commands; commands=(
+'theme:Manage Starship themes' \
+'doctor:Check system health' \
+'audit:Run security audit' \
+'context:Show current context' \
+'modules:Manage zsh_env modules' \
+'completions:Generate shell completions' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__audit_commands] )) ||
+_zsh-env-cli__audit_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli audit commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__completions_commands] )) ||
+_zsh-env-cli__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli completions commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__context_commands] )) ||
+_zsh-env-cli__context_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli context commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__doctor_commands] )) ||
+_zsh-env-cli__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli doctor commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help_commands] )) ||
+_zsh-env-cli__help_commands() {
+    local commands; commands=(
+'theme:Manage Starship themes' \
+'doctor:Check system health' \
+'audit:Run security audit' \
+'context:Show current context' \
+'modules:Manage zsh_env modules' \
+'completions:Generate shell completions' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__audit_commands] )) ||
+_zsh-env-cli__help__audit_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help audit commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__completions_commands] )) ||
+_zsh-env-cli__help__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help completions commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__context_commands] )) ||
+_zsh-env-cli__help__context_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help context commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__doctor_commands] )) ||
+_zsh-env-cli__help__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help doctor commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__help_commands] )) ||
+_zsh-env-cli__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__modules_commands] )) ||
+_zsh-env-cli__help__modules_commands() {
+    local commands; commands=(
+'list:List available modules' \
+'enable:Enable a module' \
+'disable:Disable a module' \
+    )
+    _describe -t commands 'zsh-env-cli help modules commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__modules__disable_commands] )) ||
+_zsh-env-cli__help__modules__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help modules disable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__modules__enable_commands] )) ||
+_zsh-env-cli__help__modules__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help modules enable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__modules__list_commands] )) ||
+_zsh-env-cli__help__modules__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help modules list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__theme_commands] )) ||
+_zsh-env-cli__help__theme_commands() {
+    local commands; commands=(
+'list:List available themes' \
+'apply:Apply a theme' \
+'current:Show current theme' \
+    )
+    _describe -t commands 'zsh-env-cli help theme commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__theme__apply_commands] )) ||
+_zsh-env-cli__help__theme__apply_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help theme apply commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__theme__current_commands] )) ||
+_zsh-env-cli__help__theme__current_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help theme current commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__theme__list_commands] )) ||
+_zsh-env-cli__help__theme__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help theme list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules_commands] )) ||
+_zsh-env-cli__modules_commands() {
+    local commands; commands=(
+'list:List available modules' \
+'enable:Enable a module' \
+'disable:Disable a module' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli modules commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__disable_commands] )) ||
+_zsh-env-cli__modules__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules disable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__enable_commands] )) ||
+_zsh-env-cli__modules__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules enable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__help_commands] )) ||
+_zsh-env-cli__modules__help_commands() {
+    local commands; commands=(
+'list:List available modules' \
+'enable:Enable a module' \
+'disable:Disable a module' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli modules help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__help__disable_commands] )) ||
+_zsh-env-cli__modules__help__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules help disable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__help__enable_commands] )) ||
+_zsh-env-cli__modules__help__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules help enable commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__help__help_commands] )) ||
+_zsh-env-cli__modules__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules help help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__help__list_commands] )) ||
+_zsh-env-cli__modules__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules help list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__modules__list_commands] )) ||
+_zsh-env-cli__modules__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli modules list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme_commands] )) ||
+_zsh-env-cli__theme_commands() {
+    local commands; commands=(
+'list:List available themes' \
+'apply:Apply a theme' \
+'current:Show current theme' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli theme commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__apply_commands] )) ||
+_zsh-env-cli__theme__apply_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme apply commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__current_commands] )) ||
+_zsh-env-cli__theme__current_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme current commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__help_commands] )) ||
+_zsh-env-cli__theme__help_commands() {
+    local commands; commands=(
+'list:List available themes' \
+'apply:Apply a theme' \
+'current:Show current theme' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli theme help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__help__apply_commands] )) ||
+_zsh-env-cli__theme__help__apply_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme help apply commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__help__current_commands] )) ||
+_zsh-env-cli__theme__help__current_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme help current commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__help__help_commands] )) ||
+_zsh-env-cli__theme__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme help help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__help__list_commands] )) ||
+_zsh-env-cli__theme__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme help list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__theme__list_commands] )) ||
+_zsh-env-cli__theme__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli theme list commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_zsh-env-cli" ]; then
+    _zsh-env-cli "$@"
+else
+    compdef _zsh-env-cli zsh-env-cli
+fi

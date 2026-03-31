@@ -30,11 +30,16 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo -e "${BOLD}OPTIONS${NC}"
             echo "    --default     Installation sans configuration interactive"
+            echo "    --check       Verifie les dependances sans rien installer"
             echo "    -h, --help    Affiche cette aide"
             exit 0
             ;;
         --default)
             INTERACTIVE=false
+            shift
+            ;;
+        --check)
+            CHECK_MODE=true
             shift
             ;;
         *)
@@ -43,6 +48,66 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --- Avertissement si exécuté en tant que root ---
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    log_warn "Ce script est execute en tant que root. Il est recommande de l'executer avec votre utilisateur normal."
+    log_warn "Les fichiers de configuration seront crees dans /root au lieu de votre \$HOME."
+fi
+
+# --- Vérification de sudo ---
+_sudo_available() {
+    if command -v sudo &> /dev/null; then
+        return 0
+    else
+        log_error "sudo n'est pas disponible. Impossible d'executer les commandes privilegiees."
+        log_error "Installez sudo ou executez ce script en tant que root."
+        return 1
+    fi
+}
+
+# --- Mode --check : vérification des dépendances ---
+if [[ "${CHECK_MODE:-false}" = true ]]; then
+    # Détection de la plateforme pour affichage
+    case "$(uname -s)" in
+        Darwin*) _check_platform="macOS (brew)" ;;
+        Linux*)
+            if [[ -f /etc/debian_version ]]; then _check_platform="Linux (apt)"
+            elif [[ -f /etc/fedora-release ]]; then _check_platform="Linux (dnf)"
+            else _check_platform="Linux (inconnu)"; fi
+            ;;
+        *) _check_platform="inconnu" ;;
+    esac
+
+    echo -e "${BOLD}=== Verification des dependances ===${NC}"
+    echo -e "Plateforme : ${CYAN}${_check_platform}${NC}\n"
+
+    _check_installed=0
+    _check_missing=0
+
+    # Liste des outils attendus (nom binaire)
+    _check_deps=(
+        git curl zsh jq tmux
+        eza starship zoxide fzf bat nu direnv trash mise
+        sops age
+        kubectl kubelogin az helm
+    )
+
+    for _dep in "${_check_deps[@]}"; do
+        if command -v "$_dep" &> /dev/null; then
+            _ver=$("$_dep" --version 2>/dev/null | head -1 || echo "?")
+            echo -e "  ${GREEN}✓${NC} $_dep  ${CYAN}${_ver}${NC}"
+            ((_check_installed++))
+        else
+            echo -e "  ${RED}✗${NC} $_dep  ${RED}manquant${NC}"
+            ((_check_missing++))
+        fi
+    done
+
+    echo ""
+    echo -e "${BOLD}Resume :${NC} ${GREEN}${_check_installed} installes${NC}, ${RED}${_check_missing} manquants${NC}"
+    exit 0
+fi
 
 # --- Détection OS & Package Manager ---
 OS="$(uname -s)"
@@ -112,6 +177,13 @@ install_tool() {
         return
     fi
 
+    # Vérifier sudo pour les gestionnaires qui en ont besoin
+    if [[ "$PKG_MANAGER" == "apt" || "$PKG_MANAGER" == "dnf" ]]; then
+        if ! _sudo_available; then
+            return 1
+        fi
+    fi
+
     # Exécution de l'installation (rediriger stderr vers stdout pour le log si besoin)
     if $INSTALL_CMD "$pkg" &> /dev/null; then
         echo -e "${GREEN}Fait.${NC}"
@@ -129,8 +201,10 @@ detect_platform
 
 # Mise à jour des index de paquets (Linux uniquement)
 if [[ "$PKG_MANAGER" == "apt" ]]; then
-    log_info "Mise à jour des dépôts apt..."
-    sudo apt-get update -qq
+    if _sudo_available; then
+        log_info "Mise à jour des dépôts apt..."
+        sudo apt-get update -qq
+    fi
 fi
 
 echo ""
@@ -195,25 +269,29 @@ if ! command -v nu &> /dev/null; then
     log_info "Installation manuelle de Nushell..."
     # On télécharge la dernière release via GitHub (binaire statique)
     log_warn "Le binaire Nushell est telecharge depuis GitHub Releases (HTTPS)"
-    local nu_url
+    nu_tmp_dir=$(mktemp -d)
+    trap "rm -rf '$nu_tmp_dir'" EXIT
     nu_url=$(curl -s --proto '=https' --tlsv1.2 https://api.github.com/repos/nushell/nushell/releases/latest | \
         jq -r '.assets[] | select(.name | test("x86_64-unknown-linux-musl.tar.gz")) | .browser_download_url')
     if [[ -n "$nu_url" && "$nu_url" == https://* ]]; then
-        curl --proto '=https' --tlsv1.2 -L -o /tmp/nu.tar.gz "$nu_url"
+        curl --proto '=https' --tlsv1.2 -L -o "$nu_tmp_dir/nu.tar.gz" "$nu_url"
     else
         log_error "URL de telechargement Nushell invalide"
     fi
 
-    tar -xzf /tmp/nu.tar.gz -C /tmp
-    # Deplacement du binaire (suppose sudo dispo)
-    local nu_bin=$(find /tmp -maxdepth 2 -name "nu" -type f 2>/dev/null | head -1)
+    tar -xzf "$nu_tmp_dir/nu.tar.gz" -C "$nu_tmp_dir"
+    # Deplacement du binaire
+    nu_bin=$(find "$nu_tmp_dir" -maxdepth 2 -name "nu" -type f 2>/dev/null | head -1)
     if [[ -n "$nu_bin" ]]; then
-        sudo mv "$nu_bin" /usr/local/bin/
-        log_success "Nushell installe."
+        if _sudo_available; then
+            sudo mv "$nu_bin" /usr/local/bin/
+            log_success "Nushell installe."
+        fi
     else
         log_error "Binaire Nushell non trouve apres extraction."
     fi
-    rm -rf /tmp/nu.tar.gz /tmp/nu-*-linux-musl
+    rm -rf "$nu_tmp_dir"
+    trap - EXIT
 fi
 
 
@@ -532,10 +610,29 @@ SOPSEOF
 fi
 
 # Appliquer le theme Starship si choisi
-if [[ -n "$STARSHIP_THEME" ]] && [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
+if [[ -n "$STARSHIP_THEME" ]]; then
     mkdir -p "$HOME/.config"
-    cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    if [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" ]]; then
+        cp "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
+    elif [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
+        cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    fi
+    echo "$STARSHIP_THEME" > "$TARGET_DIR/.current_theme"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
+fi
+
+# Build du CLI Rust (optionnel, necessite cargo)
+if command -v cargo &>/dev/null; then
+    log_info "Build de zsh-env-cli..."
+    if (cd "$TARGET_DIR/cli" && cargo build --release 2>/dev/null); then
+        mkdir -p "$HOME/.local/bin"
+        cp "$TARGET_DIR/cli/target/release/zsh-env-cli" "$HOME/.local/bin/"
+        log_success "zsh-env-cli installe dans ~/.local/bin/"
+    else
+        log_warn "Build de zsh-env-cli echoue (optionnel, les commandes zsh fonctionnent sans)"
+    fi
+else
+    log_info "cargo non trouve — zsh-env-cli non installe (optionnel)"
 fi
 
 # Resume
