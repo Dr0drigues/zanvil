@@ -603,10 +603,29 @@ SOPSEOF
 fi
 
 # Appliquer le theme Starship si choisi
-if [[ -n "$STARSHIP_THEME" ]] && [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
+if [[ -n "$STARSHIP_THEME" ]]; then
     mkdir -p "$HOME/.config"
-    cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    if [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" ]]; then
+        cp "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
+    elif [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
+        cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    fi
+    echo "$STARSHIP_THEME" > "$TARGET_DIR/.current_theme"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
+fi
+
+# Build du CLI Rust (optionnel, necessite cargo)
+if command -v cargo &>/dev/null; then
+    log_info "Build de zsh-env-cli..."
+    if (cd "$TARGET_DIR/cli" && cargo build --release 2>/dev/null); then
+        mkdir -p "$HOME/.local/bin"
+        cp "$TARGET_DIR/cli/target/release/zsh-env-cli" "$HOME/.local/bin/"
+        log_success "zsh-env-cli installe dans ~/.local/bin/"
+    else
+        log_warn "Build de zsh-env-cli echoue (optionnel, les commandes zsh fonctionnent sans)"
+    fi
+else
+    log_info "cargo non trouve — zsh-env-cli non installe (optionnel)"
 fi
 
 # Resume

@@ -4,6 +4,9 @@
 # Remplace functions.zsh - charge core/*.zsh puis modules/*/init.zsh
 # ==============================================================================
 
+# --- 0. Ajouter core/ au fpath pour les completions CLI ---
+fpath=("$ZSH_ENV_DIR/core" $fpath)
+
 # --- 1. Charger le systeme UI en premier ---
 source "$ZSH_ENV_DIR/core/ui.zsh"
 
