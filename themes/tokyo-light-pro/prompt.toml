@@ -21,6 +21,7 @@ $rust\
 $golang\
 $php\
 $kubernetes\
+${custom.zsh_env_context}\
 [](fg:#d5d6db bg:#e1e2e7)\
 $time\
 [ ](fg:#e1e2e7)\
@@ -93,4 +94,13 @@ description = "Indicateur contexte Boulanger"
 command = "echo '󰋜'"
 when = "test -f ~/.zsh_env/.boulanger_context_cache && tail -1 ~/.zsh_env/.boulanger_context_cache | grep -q true"
 format = "[$output ](bg:#2e7de9 fg:#8c6c3e)"
+shell = ["bash", "--noprofile", "--norc"]
+
+# === Module Custom: Contexte Dev (Kube) ===
+[custom.zsh_env_context]
+description = "Kubernetes context and namespace via zsh-env-cli"
+command = "zsh-env-cli context"
+when = "command -v zsh-env-cli > /dev/null 2>&1 && command -v kubectl > /dev/null 2>&1 && kubectl config current-context > /dev/null 2>&1"
+format = "[[ $output ](fg:#326ce5 bg:#d5d6db)]($style)"
+style = "bg:#d5d6db"
 shell = ["bash", "--noprofile", "--norc"]

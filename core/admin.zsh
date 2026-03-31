@@ -225,6 +225,9 @@ zsh-env-completions() {
 # zsh-env-modules : Gestion des modules
 # ==============================================================================
 zsh-env-modules() {
+    if command -v zsh-env-cli &>/dev/null; then
+        zsh-env-cli modules "$@"; return $?
+    fi
     local config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
 
     # Description de chaque module
@@ -473,4 +476,66 @@ zsh-env-config-reset() {
     cp "$default_file" "$config_file"
     _ui_msg_ok "Config restauree (backup: config.zsh.bak.${timestamp})"
     _ui_msg_info "Rechargez avec: ss"
+}
+
+# ==============================================================================
+# zsh-env-switch : Switch rapide d'environnement
+# ==============================================================================
+# Combine kubeconfig + variables en un seul geste
+# Profiles definis dans ~/.zsh_env/profiles/*.zsh
+zsh-env-switch() {
+    local profiles_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/profiles"
+    local profile="$1"
+
+    if [[ ! -d "$profiles_dir" ]]; then
+        mkdir -p "$profiles_dir"
+    fi
+
+    # Sans argument : selection interactive
+    if [[ -z "$profile" ]] || [[ "$profile" == "list" ]]; then
+        _ui_header "Environnements"
+
+        local -a profiles=()
+        for f in "$profiles_dir"/*.zsh(N); do
+            profiles+=($(basename "$f" .zsh))
+        done
+
+        if [[ ${#profiles[@]} -eq 0 ]]; then
+            _ui_msg_info "Aucun profil configure dans $profiles_dir"
+            echo ""
+            echo -e "  ${_ui_dim}Creez un fichier .zsh dans profiles/ :"
+            echo -e "  Exemple: profiles/blg-dev.zsh${_ui_nc}"
+            echo ""
+            echo -e "  ${_ui_dim}Contenu type :${_ui_nc}"
+            echo -e "  ${_ui_dim}  export KUBECONFIG=~/.kube/configs.d/blg-dev.yml${_ui_nc}"
+            echo -e "  ${_ui_dim}  kubectl config use-context blg-dev${_ui_nc}"
+            return 0
+        fi
+
+        if command -v fzf &>/dev/null; then
+            profile=$(printf '%s\n' "${profiles[@]}" | fzf --header="Choisir un environnement" --prompt="Switch > ")
+            [[ -z "$profile" ]] && return 0
+        else
+            _ui_msg_info "Profils disponibles:"
+            local i=1
+            for p in "${profiles[@]}"; do
+                printf "  ${_ui_bold}%d)${_ui_nc} %s\n" $i "$p"
+                ((i++))
+            done
+            echo ""
+            echo -n "Numero: "
+            read choice
+            [[ "$choice" =~ ^[0-9]+$ ]] && profile="${profiles[$choice]}"
+            [[ -z "$profile" ]] && return 0
+        fi
+    fi
+
+    local profile_file="$profiles_dir/${profile}.zsh"
+    if [[ ! -f "$profile_file" ]]; then
+        _ui_msg_fail "Profil '$profile' introuvable ($profile_file)"
+        return 1
+    fi
+
+    source "$profile_file"
+    _ui_msg_ok "Environnement '$profile' active"
 }
