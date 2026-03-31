@@ -360,7 +360,7 @@ kube_list() {
     # Fichiers sops non dechiffres
     if [[ -d "$KUBE_SOPS_SOURCE" ]]; then
         local has_sops=false
-        for f in "$KUBE_SOPS_SOURCE"/*.sops "$KUBE_SOPS_SOURCE"/*.sops.yml "$KUBE_SOPS_SOURCE"/*.sops.yaml; do
+        for f in "$KUBE_SOPS_SOURCE"/*.sops(N) "$KUBE_SOPS_SOURCE"/*.sops.yml(N) "$KUBE_SOPS_SOURCE"/*.sops.yaml(N); do
             [[ ! -f "$f" ]] && continue
             if ! $has_sops; then
                 echo ""
