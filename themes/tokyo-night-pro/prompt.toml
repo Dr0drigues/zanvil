@@ -4,6 +4,7 @@
 ### source: https://starship.rs/presets/tokyo-night.html            ###
 #######################################################################
 "$schema" = 'https://starship.rs/config-schema.json'
+command_timeout = 3000
 
 format = """
 [░▒▓](#a3aed2)\
@@ -96,7 +97,6 @@ shell = ["bash", "--noprofile", "--norc"]
 description = "Kubernetes context and namespace via zsh-env-cli"
 command = "zsh-env-cli context"
 when = "test -x ${HOME}/.local/bin/zsh-env-cli"
-command_timeout = 3000
 format = "[[ $output ](fg:#7dcfff bg:#212736)]($style)"
 style = "bg:#212736"
 shell = ["bash", "--noprofile", "--norc"]
