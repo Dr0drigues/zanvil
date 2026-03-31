@@ -1,39 +1,110 @@
 # Kubernetes Config Manager
 
-Gestion multi-config Kubernetes avec support Azure AKS, AWS EKS et GCP GKE.
+Gestion multi-config Kubernetes avec support Azure AKS, AWS EKS et GCP GKE. En v2, ajout de commandes rapides pour le changement de contexte, de namespace et le lancement de k9s.
 
 ## Commandes
 
 | Commande | Description |
 |----------|-------------|
-| `kube_init` | Initialise l'environnement, déchiffre les configs sops |
-| `kube_select` | Sélection interactive des configs (fzf) |
+| `kube_init` | Initialise l'environnement, dechiffre les configs sops |
+| `kube_select` | Selection interactive des configs (fzf) |
 | `kube_status` | Affiche les configs actives |
 | `kube_list` | Liste toutes les configs disponibles |
-| `kube_add <file>` | Ajoute une config à KUBECONFIG |
+| `kube_add <file>` | Ajoute une config a KUBECONFIG |
 | `kube_reset` | Remet uniquement la config minimale |
 | `kube_encrypt <file>` | Chiffre une config avec sops/age |
+| `kube_switch [context]` | Change de contexte Kubernetes |
+| `kube_ns [namespace]` | Change de namespace |
+| `k [alias]` | Lance k9s avec support des alias de contexte |
 | `kube_help` | Affiche l'aide |
+
+## Changement de contexte (kube_switch)
+
+`kube_switch` permet de changer rapidement de contexte Kubernetes :
+
+```bash
+# Selection interactive (fzf)
+kube_switch
+
+# Contexte specifique
+kube_switch my-cluster-dev
+
+# Utiliser un alias de contexte
+kube_switch dev
+```
+
+Sans argument, une liste interactive (fzf) des contextes disponibles est proposee.
+
+## Changement de namespace (kube_ns)
+
+`kube_ns` permet de changer le namespace par defaut du contexte courant :
+
+```bash
+# Selection interactive (fzf)
+kube_ns
+
+# Namespace specifique
+kube_ns monitoring
+```
+
+## k9s avec alias (k)
+
+La commande `k` lance k9s avec support des alias de contexte :
+
+```bash
+# k9s sur le contexte courant
+k
+
+# k9s sur un contexte specifique
+k my-cluster-dev
+
+# k9s via un alias de contexte
+k dev
+```
+
+## Alias de contexte
+
+Les alias sont definis dans `~/.kube/.context_aliases` :
+
+```bash
+# Format : alias=contexte-complet
+dev=aks-blg-dev
+prd=aks-blg-prd
+staging=eks-staging-eu-west-1
+```
+
+Les alias sont utilises par `kube_switch` et `k` pour raccourcir les noms de contexte.
+
+```bash
+# Au lieu de :
+kube_switch aks-blg-dev
+
+# Utiliser :
+kube_switch dev
+
+# Ou directement avec k9s :
+k dev
+```
 
 ## Azure AKS
 
 ```bash
-# Sélection interactive
+# Selection interactive
 kube_azure
 
-# Cluster spécifique
+# Cluster specifique
 kube_azure blg-dev
 
-# Liste des clusters configurés
+# Liste des clusters configures
 kube_azure_list
 
 # Statut de connexion Azure
 kube_azure_status
 ```
 
-### Clusters préconfigurés
+### Clusters preconfigures
 
-Les clusters sont définis dans `kube_config.zsh` :
+Les clusters sont definis dans la configuration du module kube :
 
 ```zsh
 _KUBE_AZ_CLUSTERS=(
@@ -45,39 +116,40 @@ _KUBE_AZ_CLUSTERS=(
 ## AWS EKS
 
 ```bash
-# Sélection interactive
+# Selection interactive
 kube_aws
 
-# Cluster et région spécifiques
+# Cluster et region specifiques
 kube_aws my-cluster eu-west-1
 
 # Liste des clusters
 kube_aws_list
 ```
 
-Prérequis : `aws` CLI configuré (`aws configure` ou `AWS_PROFILE`).
+Prerequis : `aws` CLI configure (`aws configure` ou `AWS_PROFILE`).
 
 ## GCP GKE
 
 ```bash
-# Sélection interactive
+# Selection interactive
 kube_gcp
 
-# Cluster spécifique
+# Cluster specifique
 kube_gcp my-cluster europe-west1-b my-project
 
 # Liste des clusters
 kube_gcp_list
 ```
 
-Prérequis : `gcloud auth login`.
+Prerequis : `gcloud auth login`.
 
 ## Structure des fichiers
 
 ```
 ~/.kube/
-├── config                    # Config par défaut kubectl
+├── config                    # Config par defaut kubectl
 ├── config.minimal.yml        # Config minimale (base)
+├── .context_aliases          # Alias de contexte (nouveau v2)
 └── configs.d/                # Configs additionnelles
     ├── kubeconfig-blg-dev.yml
     ├── kubeconfig-eks-prod.yml
@@ -86,14 +158,14 @@ Prérequis : `gcloud auth login`.
 
 ## Chiffrement SOPS
 
-Pour versionner des kubeconfigs de manière sécurisée :
+Pour versionner des kubeconfigs de maniere securisee :
 
 ```bash
 # Chiffrer une config
 kube_encrypt ~/.kube/config.minimal.yml
-# -> Crée ~/.zsh_env/kube/config.minimal.sops.yml
+# -> Cree ~/.zsh_env/kube/config.minimal.sops.yml
 
-# Déchiffrer au démarrage (automatique si sops/age installés)
+# Dechiffrer au demarrage (automatique si sops/age installes)
 kube_init
 ```
 
@@ -107,17 +179,17 @@ creation_rules:
 
 ## Multi-config KUBECONFIG
 
-`kube_select` permet de sélectionner plusieurs configs :
+`kube_select` permet de selectionner plusieurs configs :
 
 ```
-●/○ = état actuel | TAB: toggle | Ctrl-A: tout | Ctrl-N: rien
+●/○ = etat actuel | TAB: toggle | Ctrl-A: tout | Ctrl-N: rien
 
 ● config.minimal.yml (base)
 ○ kubeconfig-blg-dev.yml
 ○ kubeconfig-eks-prod.yml
 ```
 
-Le KUBECONFIG résultant est la concaténation :
+Le KUBECONFIG resultant est la concatenation :
 
 ```bash
 echo $KUBECONFIG
