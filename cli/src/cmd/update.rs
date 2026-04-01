@@ -5,20 +5,7 @@ use std::process::Command;
 pub fn run(check_only: bool) {
     let zsh_env_dir = config::zsh_env_dir();
 
-    println!(
-        "{}",
-        "╭──────────────────────────────────────────╮".cyan()
-    );
-    println!(
-        "{}  {:<30}    {}",
-        "│".cyan(),
-        "ZSH_ENV Update",
-        "│".cyan()
-    );
-    println!(
-        "{}",
-        "╰──────────────────────────────────────────╯".cyan()
-    );
+    super::print_header("ZSH_ENV Update");
     println!();
 
     // Fetch latest

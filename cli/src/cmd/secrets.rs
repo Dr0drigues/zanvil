@@ -71,20 +71,7 @@ fn mask_value(val: &str) -> String {
 }
 
 pub fn run(dir: &str, includes: &[String], excludes: &[String]) {
-    println!(
-        "{}",
-        "╭──────────────────────────────────────────╮".cyan()
-    );
-    println!(
-        "{}  {:<30}    {}",
-        "│".cyan(),
-        "Secrets Scan",
-        "│".cyan()
-    );
-    println!(
-        "{}",
-        "╰──────────────────────────────────────────╯".cyan()
-    );
+    super::print_header("Secrets Scan");
     println!();
     println!("{:<14} {}", "Dossier".bold(), dir);
     println!("{:<14} {}", "Moteur".bold(), "Rust (ignore + regex)");

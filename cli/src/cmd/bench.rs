@@ -3,20 +3,7 @@ use std::process::Command;
 use std::time::Instant;
 
 pub fn run(runs: u32) {
-    println!(
-        "{}",
-        "╭──────────────────────────────────────────╮".cyan()
-    );
-    println!(
-        "{}  {:<30}    {}",
-        "│".cyan(),
-        "ZSH_ENV Benchmark",
-        "│".cyan()
-    );
-    println!(
-        "{}",
-        "╰──────────────────────────────────────────╯".cyan()
-    );
+    super::print_header("ZSH_ENV Benchmark");
     println!();
     println!("{:<14} {}", "Runs".bold(), runs);
     println!();
