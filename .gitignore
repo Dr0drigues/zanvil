@@ -50,6 +50,12 @@ env.d/*.zsh
 # Backups
 backups/
 
+# Sync export (genere par zsh-env-sync)
+sync.json
+
+# Migration state
+.migration_version
+
 # Rust CLI build artifacts
 cli/target/
 
