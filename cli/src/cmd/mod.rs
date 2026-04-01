@@ -1,5 +1,10 @@
 pub mod audit;
+pub mod bench;
 pub mod context;
 pub mod doctor;
 pub mod modules;
+pub mod secrets;
+pub mod sync;
 pub mod theme;
+pub mod tui_config;
+pub mod update;
