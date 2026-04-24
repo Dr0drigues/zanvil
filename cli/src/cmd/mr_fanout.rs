@@ -528,19 +528,27 @@ fn apply_patch(patch_path: &std::path::Path, title: &str) -> Result<(), String> 
 }
 
 fn capture_worktree_patch() -> Result<PathBuf, String> {
-    // Diff incluant staged + unstaged. Untracked exclus (limitation acceptable).
-    let r = Command::new("git")
-        .args(["diff", "HEAD", "--binary"])
-        .output()
-        .map_err(|e| format!("git diff: {}", e))?;
-    if !r.status.success() {
-        return Err(String::from_utf8_lossy(&r.stderr).to_string());
+    // Stage tout (y compris untracked) pour obtenir un diff complet, puis unstage.
+    // Les fichiers restent intacts sur disque apres git reset HEAD.
+    let add_r = run_cmd("git", &["add", "--all"]);
+    if !add_r.ok {
+        return Err(format!("git add: {}", add_r.stderr.trim()));
     }
-    if r.stdout.is_empty() {
+    let diff_r = Command::new("git")
+        .args(["diff", "--cached", "HEAD", "--binary"])
+        .output()
+        .map_err(|e| format!("git diff: {}", e));
+    // Toujours unstager, meme en cas d'erreur
+    let _ = run_cmd("git", &["reset", "HEAD"]);
+    let diff_r = diff_r?;
+    if !diff_r.status.success() {
+        return Err(String::from_utf8_lossy(&diff_r.stderr).to_string());
+    }
+    if diff_r.stdout.is_empty() {
         return Err("aucun changement dans le worktree".into());
     }
     let path = std::env::temp_dir().join(format!("mr-fanout-{}.patch", std::process::id()));
-    std::fs::write(&path, &r.stdout).map_err(|e| format!("write patch: {}", e))?;
+    std::fs::write(&path, &diff_r.stdout).map_err(|e| format!("write patch: {}", e))?;
     Ok(path)
 }
 
