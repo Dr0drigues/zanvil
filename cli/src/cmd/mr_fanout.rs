@@ -218,14 +218,34 @@ pub fn run(args: MrFanoutArgs) {
     for t in &targets {
         let new_branch = format!("{}_{}_{}", prefix, t, slug);
         let mr_title = format!("[{}] {}", env_label(t), title);
-        println!(
-            "  {} {} {} {}",
-            "→".dimmed(),
-            t.cyan(),
-            "as".dimmed(),
-            new_branch.green()
-        );
-        println!("    {} {}", "MR:".dimmed(), mr_title.bold());
+        if args.update {
+            if branch_exists_remote(&new_branch) {
+                println!(
+                    "  {} {} {} {}",
+                    "↻".cyan(),
+                    t.cyan(),
+                    "update".dimmed(),
+                    new_branch.yellow()
+                );
+            } else {
+                println!(
+                    "  {} {} {} {}",
+                    "–".dimmed(),
+                    t.dimmed(),
+                    "skip (branche distante absente):".dimmed(),
+                    new_branch.dimmed()
+                );
+            }
+        } else {
+            println!(
+                "  {} {} {} {}",
+                "→".dimmed(),
+                t.cyan(),
+                "as".dimmed(),
+                new_branch.green()
+            );
+            println!("    {} {}", "MR:".dimmed(), mr_title.bold());
+        }
     }
     println!("{}", "─".repeat(60).dimmed());
 
@@ -389,7 +409,14 @@ fn process_target(
 ) -> Outcome {
     // 1. Positionnement sur la branche de travail
     let r = if args.update {
-        // Mode update : la branche existe deja (locale ou distante), on la reset sur origin/{target}
+        // Mode update : la branche doit exister sur origin (MR deja ouverte)
+        if !branch_exists_remote(new_branch) {
+            return Outcome {
+                target: target.into(), branch: new_branch.into(),
+                status: StepStatus::Skipped,
+                message: "branche distante absente — MR non existante, utiliser sans --update".into(),
+            };
+        }
         if branch_exists_local(new_branch) {
             let s = run_cmd("git", &["switch", new_branch]);
             if !s.ok {
@@ -401,8 +428,8 @@ fn process_target(
             }
             run_cmd("git", &["reset", "--hard", &format!("origin/{}", target)])
         } else {
-            // Branche pas encore locale (ex: sur une autre machine) — on la recrée
-            run_cmd("git", &["switch", "-c", new_branch, &format!("origin/{}", target)])
+            // Branche sur origin mais pas locale — checkout depuis origin
+            run_cmd("git", &["switch", "-c", new_branch, &format!("origin/{}", new_branch)])
         }
     } else {
         // Mode normal : la branche ne doit pas exister
@@ -630,6 +657,13 @@ fn branch_exists_local(name: &str) -> bool {
         .args(["show-ref", "--verify", "--quiet", &format!("refs/heads/{}", name)])
         .status();
     matches!(r, Ok(s) if s.success())
+}
+
+fn branch_exists_remote(name: &str) -> bool {
+    let r = Command::new("git")
+        .args(["ls-remote", "--exit-code", "--heads", "origin", name])
+        .output();
+    matches!(r, Ok(o) if o.status.success())
 }
 
 fn ensure_in_git_repo() -> Result<(), String> {
