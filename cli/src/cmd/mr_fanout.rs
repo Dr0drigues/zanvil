@@ -190,7 +190,12 @@ pub fn run(args: MrFanoutArgs) {
     }
 
     // Description
-    let description = resolve_description(&args, &title);
+    // En update la MR existe deja, pas de prompt description sauf si -D/--description-file explicite
+    let description = if args.update && args.description.is_none() && args.description_file.is_none() {
+        String::new()
+    } else {
+        resolve_description(&args, &title)
+    };
 
     // Branch prefix
     let prefix = match args.branch_prefix.clone() {
