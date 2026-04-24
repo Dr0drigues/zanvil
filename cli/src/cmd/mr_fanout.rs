@@ -59,13 +59,16 @@ pub struct MrFanoutArgs {
     /// Fetch origin avant de creer les branches (met a jour les refs distantes)
     #[arg(long)]
     pub pull: bool,
+    /// Mettre a jour les branches existantes (reset + reapply + force push, sans creer de MR)
+    #[arg(long)]
+    pub update: bool,
     /// Pattern regex custom pour la detection des branches d'env
-    /// (defaut: devaz2|devaz|dev|qlfaz(-[^/]+)?|qlf|ppaz|pprd|prodaz|prod)
+    /// (defaut: devaz2|devaz|dev|qlfaz(-[a-z]+)?|qlf(-[a-z]+)?|ppaz|pprd|prodaz|prod)
     #[arg(long)]
     pub pattern: Option<String>,
 }
 
-const DEFAULT_PATTERN: &str = r"^(devaz2|devaz|dev|qlfaz(-[^/]+)?|qlf|ppaz|pprd|prodaz|prod)$";
+const DEFAULT_PATTERN: &str = r"^(devaz2|devaz|dev|qlfaz(-[a-z]+)?|qlf(-[a-z]+)?|ppaz|pprd|prodaz|prod)$";
 const FORBIDDEN_KEYWORDS: &[&str] = &["feature", "fix", "hotfix", "release", "feat", "chore"];
 
 #[derive(Debug, Clone)]
@@ -384,27 +387,40 @@ fn process_target(
     title: &str,
     description: &str,
 ) -> Outcome {
-    // 1. La branche locale ne doit pas exister
-    if branch_exists_local(new_branch) {
-        return Outcome {
-            target: target.into(),
-            branch: new_branch.into(),
-            status: StepStatus::Skipped,
-            message: "branche locale deja existante".into(),
-        };
-    }
-
-    // 2. Switch -c
-    let r = run_cmd(
-        "git",
-        &["switch", "-c", new_branch, &format!("origin/{}", target)],
-    );
+    // 1. Positionnement sur la branche de travail
+    let r = if args.update {
+        // Mode update : la branche existe deja (locale ou distante), on la reset sur origin/{target}
+        if branch_exists_local(new_branch) {
+            let s = run_cmd("git", &["switch", new_branch]);
+            if !s.ok {
+                return Outcome {
+                    target: target.into(), branch: new_branch.into(),
+                    status: StepStatus::Failed,
+                    message: format!("switch failed: {}", s.stderr.trim()),
+                };
+            }
+            run_cmd("git", &["reset", "--hard", &format!("origin/{}", target)])
+        } else {
+            // Branche pas encore locale (ex: sur une autre machine) — on la recrée
+            run_cmd("git", &["switch", "-c", new_branch, &format!("origin/{}", target)])
+        }
+    } else {
+        // Mode normal : la branche ne doit pas exister
+        if branch_exists_local(new_branch) {
+            return Outcome {
+                target: target.into(), branch: new_branch.into(),
+                status: StepStatus::Skipped,
+                message: "branche locale deja existante (utiliser --update pour ecraser)".into(),
+            };
+        }
+        run_cmd("git", &["switch", "-c", new_branch, &format!("origin/{}", target)])
+    };
     if !r.ok {
         return Outcome {
             target: target.into(),
             branch: new_branch.into(),
             status: StepStatus::Failed,
-            message: format!("switch failed: {}", r.stderr.trim()),
+            message: format!("switch/reset failed: {}", r.stderr.trim()),
         };
     }
 
@@ -439,13 +455,28 @@ fn process_target(
         };
     }
 
-    let r = run_cmd("git", &["push", "-u", "origin", new_branch]);
+    let push_args: Vec<&str> = if args.update {
+        vec!["push", "--force-with-lease", "origin", new_branch]
+    } else {
+        vec!["push", "-u", "origin", new_branch]
+    };
+    let r = run_cmd("git", &push_args);
     if !r.ok {
         return Outcome {
             target: target.into(),
             branch: new_branch.into(),
             status: StepStatus::Failed,
             message: format!("push failed: {}", r.stderr.trim()),
+        };
+    }
+
+    // En mode update la MR existe deja, le push suffit a la mettre a jour
+    if args.update {
+        return Outcome {
+            target: target.into(),
+            branch: new_branch.into(),
+            status: StepStatus::Ok,
+            message: "branche mise a jour (force push)".into(),
         };
     }
 
