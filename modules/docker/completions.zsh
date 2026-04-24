@@ -14,3 +14,7 @@ _dex() {
         '2:shell:(bash sh zsh ash)'
 }
 compdef _dex dex
+
+# dbuild : reprend les completions de docker build
+_dbuild() { words=(docker build "${words[@]:1}"); CURRENT=$((CURRENT + 1)); _docker }
+compdef _dbuild dbuild
