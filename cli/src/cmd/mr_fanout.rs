@@ -284,21 +284,28 @@ pub fn run(args: MrFanoutArgs) {
         }
     }
 
-    // Mode patch : capturer le diff + stash
+    // Mode patch : capturer le diff
+    // - --commit + --mode patch : diff du commit specifique (pas besoin de toucher le worktree)
+    // - --mode patch seul        : diff du worktree (staged + untracked)
     let patch_path = if matches!(args.mode, Mode::Patch) {
-        match capture_worktree_patch() {
+        let p = match &args.commit {
+            Some(sha) => capture_commit_patch(sha),
+            None => capture_worktree_patch(),
+        };
+        match p {
             Ok(p) => p,
             Err(e) => die(&e),
         }
     } else {
-        // Working dir doit etre clean
+        // Cherry/range : working dir doit etre clean
         if !is_worktree_clean() {
             die("Working tree dirty. Commit/stash d'abord, ou utilisez --mode patch.");
         }
         PathBuf::new()
     };
 
-    let stashed = if matches!(args.mode, Mode::Patch) {
+    // Stash uniquement pour le patch worktree (pas pour commit patch ni cherry/range)
+    let stashed = if matches!(args.mode, Mode::Patch) && args.commit.is_none() {
         match stash_worktree() {
             Ok(b) => b,
             Err(e) => die(&e),
@@ -605,6 +612,24 @@ fn apply_patch(patch_path: &std::path::Path, title: &str) -> Result<(), String> 
         return Err(format!("git commit: {}", r.stderr.trim()));
     }
     Ok(())
+}
+
+/// Capture le diff d'un commit specifique: git diff <sha>^ <sha> --binary
+fn capture_commit_patch(sha: &str) -> Result<PathBuf, String> {
+    let parent = format!("{}^", sha);
+    let r = Command::new("git")
+        .args(["diff", &parent, sha, "--binary"])
+        .output()
+        .map_err(|e| format!("git diff: {}", e))?;
+    if !r.status.success() {
+        return Err(String::from_utf8_lossy(&r.stderr).to_string());
+    }
+    if r.stdout.is_empty() {
+        return Err(format!("commit {} ne contient aucun changement", &sha[..8]));
+    }
+    let path = std::env::temp_dir().join(format!("mr-fanout-{}.patch", std::process::id()));
+    std::fs::write(&path, &r.stdout).map_err(|e| format!("write patch: {}", e))?;
+    Ok(path)
 }
 
 fn capture_worktree_patch() -> Result<PathBuf, String> {
