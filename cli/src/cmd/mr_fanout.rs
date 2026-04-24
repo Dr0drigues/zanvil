@@ -172,22 +172,21 @@ pub fn run(args: MrFanoutArgs) {
         targets.join(", ").cyan()
     );
 
-    // Title
+    // Title (requis en creation, optionnel en update)
     let title = match args.title.clone() {
         Some(t) if !t.trim().is_empty() => t,
+        _ if args.update => String::new(), // pas de prompt en update
         _ => match prompt_line("Titre de la MR") {
             Some(t) if !t.trim().is_empty() => t,
             _ => die("Titre requis."),
         },
     };
 
-    // Slug
+    // Slug (vide en update sans -T : on découvre la branche sur origin)
     let slug = slugify(&title);
-    if slug.is_empty() {
-        die("Titre vide apres slugification.");
-    }
-    if let Err(e) = ensure_no_forbidden(&slug) {
-        die(&e);
+    if !args.update {
+        if slug.is_empty() { die("Titre vide apres slugification."); }
+        if let Err(e) = ensure_no_forbidden(&slug) { die(&e); }
     }
 
     // Description
@@ -206,43 +205,47 @@ pub fn run(args: MrFanoutArgs) {
     }
 
     // Affichage du plan
+    // En update : résoudre les noms de branches réels depuis origin maintenant
+    let resolved: Vec<(String, Option<String>)> = targets
+        .iter()
+        .map(|t| {
+            if args.update {
+                (t.clone(), find_update_branch(&prefix, t, &slug))
+            } else {
+                (t.clone(), Some(format!("{}_{}_{}", prefix, t, slug)))
+            }
+        })
+        .collect();
+
     println!();
     println!("{}", "─".repeat(60).dimmed());
-    println!("{} {}", "title:".dimmed(), title.bold());
-    println!("{} {}", "slug: ".dimmed(), slug.cyan());
+    if !title.is_empty() {
+        println!("{} {}", "title:".dimmed(), title.bold());
+        println!("{} {}", "slug: ".dimmed(), slug.cyan());
+    }
     println!("{} {}", "mode: ".dimmed(), format!("{:?}", args.mode).to_lowercase().cyan());
     if matches!(args.mode, Mode::Range) {
         println!("{} {}", "from: ".dimmed(), args.from.cyan());
     }
     println!("{}", "─".repeat(60).dimmed());
-    for t in &targets {
-        let new_branch = format!("{}_{}_{}", prefix, t, slug);
-        let mr_title = format!("[{}] {}", env_label(t), title);
+    for (t, branch_opt) in &resolved {
         if args.update {
-            if branch_exists_remote(&new_branch) {
-                println!(
+            match branch_opt {
+                Some(b) => println!(
                     "  {} {} {} {}",
-                    "↻".cyan(),
-                    t.cyan(),
-                    "update".dimmed(),
-                    new_branch.yellow()
-                );
-            } else {
-                println!(
-                    "  {} {} {} {}",
-                    "–".dimmed(),
-                    t.dimmed(),
-                    "skip (branche distante absente):".dimmed(),
-                    new_branch.dimmed()
-                );
+                    "↻".cyan(), t.cyan(), "update".dimmed(), b.yellow()
+                ),
+                None => println!(
+                    "  {} {} {}",
+                    "–".dimmed(), t.dimmed(), "skip (aucune MR trouvée sur origin)".dimmed()
+                ),
             }
         } else {
+            let new_branch = branch_opt.as_deref().unwrap();
+            let mr_title = format!("[{}] {}", env_label(t), title);
             println!(
                 "  {} {} {} {}",
-                "→".dimmed(),
-                t.cyan(),
-                "as".dimmed(),
-                new_branch.green()
+                "→".dimmed(), t.cyan(), "as".dimmed(), new_branch.green()
             );
             println!("    {} {}", "MR:".dimmed(), mr_title.bold());
         }
@@ -309,8 +312,20 @@ pub fn run(args: MrFanoutArgs) {
 
     let mut outcomes: Vec<Outcome> = Vec::new();
 
-    for target in &targets {
-        let new_branch = format!("{}_{}_{}", prefix, target, slug);
+    for (target, branch_opt) in &resolved {
+        let new_branch = match branch_opt {
+            Some(b) => b.clone(),
+            None => {
+                // Pas de branche trouvée en mode update : skip sans switch
+                outcomes.push(Outcome {
+                    target: target.clone(),
+                    branch: String::new(),
+                    status: StepStatus::Skipped,
+                    message: "aucune MR trouvée sur origin".into(),
+                });
+                continue;
+            }
+        };
         println!();
         println!(
             "{} {} {}",
@@ -409,14 +424,7 @@ fn process_target(
 ) -> Outcome {
     // 1. Positionnement sur la branche de travail
     let r = if args.update {
-        // Mode update : la branche doit exister sur origin (MR deja ouverte)
-        if !branch_exists_remote(new_branch) {
-            return Outcome {
-                target: target.into(), branch: new_branch.into(),
-                status: StepStatus::Skipped,
-                message: "branche distante absente — MR non existante, utiliser sans --update".into(),
-            };
-        }
+        // Mode update : la branche existe sur origin (verifie en amont)
         if branch_exists_local(new_branch) {
             let s = run_cmd("git", &["switch", new_branch]);
             if !s.ok {
@@ -664,6 +672,35 @@ fn branch_exists_remote(name: &str) -> bool {
         .args(["ls-remote", "--exit-code", "--heads", "origin", name])
         .output();
     matches!(r, Ok(o) if o.status.success())
+}
+
+/// Cherche sur origin les branches correspondant a {prefix}_{target}_{*}.
+/// Si slug est non-vide, verifie l'exact {prefix}_{target}_{slug} en premier.
+/// Sinon liste toutes les branches matchant le prefixe et retourne la premiere.
+fn find_update_branch(prefix: &str, target: &str, slug: &str) -> Option<String> {
+    if !slug.is_empty() {
+        let exact = format!("{}_{}_{}", prefix, target, slug);
+        if branch_exists_remote(&exact) {
+            return Some(exact);
+        }
+    }
+    // Recherche par prefixe {prefix}_{target}_
+    let r = Command::new("git")
+        .args(["ls-remote", "--heads", "origin"])
+        .output()
+        .ok()?;
+    String::from_utf8_lossy(&r.stdout)
+        .lines()
+        .filter_map(|line| {
+            let refname = line.split_whitespace().nth(1)?;
+            let branch = refname.strip_prefix("refs/heads/")?;
+            if branch.starts_with(&format!("{}_{}_", prefix, target)) {
+                Some(branch.to_string())
+            } else {
+                None
+            }
+        })
+        .next()
 }
 
 fn ensure_in_git_repo() -> Result<(), String> {
