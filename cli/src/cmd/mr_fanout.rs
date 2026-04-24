@@ -56,6 +56,9 @@ pub struct MrFanoutArgs {
     /// Arreter au premier echec (defaut: continuer et resumer a la fin)
     #[arg(long)]
     pub strict: bool,
+    /// SHA d'un commit specifique a cherry-picker (defaut: HEAD en mode cherry)
+    #[arg(long, value_name = "SHA")]
+    pub commit: Option<String>,
     /// Fetch origin avant de creer les branches (met a jour les refs distantes)
     #[arg(long)]
     pub pull: bool,
@@ -229,6 +232,9 @@ pub fn run(args: MrFanoutArgs) {
         println!("{} {}", "slug: ".dimmed(), slug.cyan());
     }
     println!("{} {}", "mode: ".dimmed(), format!("{:?}", args.mode).to_lowercase().cyan());
+    if let Some(sha) = &args.commit {
+        println!("{} {}", "commit:".dimmed(), sha.cyan());
+    }
     if matches!(args.mode, Mode::Range) {
         println!("{} {}", "from: ".dimmed(), args.from.cyan());
     }
@@ -302,7 +308,10 @@ pub fn run(args: MrFanoutArgs) {
     };
 
     // Capture le SHA HEAD pour cherry-pick (avant tout switch)
-    let head_sha = git_rev_parse("HEAD").unwrap_or_else(|_| die("git rev-parse HEAD a echoue"));
+    let head_sha = match &args.commit {
+        Some(sha) => git_rev_parse(sha).unwrap_or_else(|_| die(&format!("commit introuvable: {}", sha))),
+        None => git_rev_parse("HEAD").unwrap_or_else(|_| die("git rev-parse HEAD a echoue")),
+    };
     let from_sha = if matches!(args.mode, Mode::Range) {
         match git_rev_parse(&args.from) {
             Ok(s) => Some(s),
