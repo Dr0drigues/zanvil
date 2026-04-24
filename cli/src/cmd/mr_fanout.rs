@@ -455,9 +455,10 @@ fn process_target(
                     message: format!("switch failed: {}", s.stderr.trim()),
                 };
             }
-            run_cmd("git", &["reset", "--hard", &format!("origin/{}", target)])
+            // Reset sur origin/{mr_branch} (pas origin/{target}) pour conserver les commits existants
+            run_cmd("git", &["reset", "--hard", &format!("origin/{}", new_branch)])
         } else {
-            // Branche sur origin mais pas locale — checkout depuis origin
+            // Branche sur origin mais pas locale — checkout depuis la MR distante
             run_cmd("git", &["switch", "-c", new_branch, &format!("origin/{}", new_branch)])
         }
     } else {
