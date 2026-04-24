@@ -5,6 +5,8 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 use cmd::theme::ThemeAction;
 use cmd::modules::ModulesAction;
+use cmd::mr_fanout::MrFanoutArgs;
+use cmd::project::ProjectAction;
 use cmd::sync::SyncAction;
 
 #[derive(Parser)]
@@ -61,6 +63,14 @@ enum Commands {
         #[arg(long)]
         exclude: Vec<String>,
     },
+    /// Manage projects (zproject)
+    Project {
+        #[command(subcommand)]
+        action: ProjectAction,
+    },
+    /// Fan-out a change as a MR/PR across multiple env branches
+    #[command(name = "mr-fanout")]
+    MrFanout(MrFanoutArgs),
     /// Interactive configuration TUI
     Config,
     /// Generate shell completions
@@ -79,6 +89,8 @@ fn main() {
         Commands::Modules { action } => cmd::modules::run(action),
         Commands::Bench { runs } => cmd::bench::run(runs),
         Commands::Update { check } => cmd::update::run(check),
+        Commands::Project { action } => cmd::project::run(action),
+        Commands::MrFanout(args) => cmd::mr_fanout::run(args),
         Commands::Config => cmd::tui_config::run(),
         Commands::Sync { action } => cmd::sync::run(action),
         Commands::Secrets { dir, include, exclude } => cmd::secrets::run(&dir, &include, &exclude),
