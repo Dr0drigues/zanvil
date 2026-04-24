@@ -56,6 +56,9 @@ pub struct MrFanoutArgs {
     /// Arreter au premier echec (defaut: continuer et resumer a la fin)
     #[arg(long)]
     pub strict: bool,
+    /// Fetch origin avant de creer les branches (met a jour les refs distantes)
+    #[arg(long)]
+    pub pull: bool,
     /// Pattern regex custom pour la detection des branches d'env
     /// (defaut: devaz2|devaz|dev|qlfaz(-[^/]+)?|qlf|ppaz|pprd|prodaz|prod)
     #[arg(long)]
@@ -231,6 +234,17 @@ pub fn run(args: MrFanoutArgs) {
     if !confirm("Continuer ?", true) {
         println!("{}", "annule".dimmed());
         return;
+    }
+
+    // Fetch origin pour mettre a jour les refs distantes avant de creer les branches
+    if args.pull {
+        print!("{} git fetch origin... ", "·".dimmed());
+        let r = run_cmd("git", &["fetch", "origin"]);
+        if r.ok {
+            println!("{}", "ok".green());
+        } else {
+            println!("{}", "warn: fetch failed, on continue".yellow());
+        }
     }
 
     // Mode patch : capturer le diff + stash
