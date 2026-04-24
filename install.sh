@@ -550,6 +550,94 @@ else
     fi
 fi
 
+# --- Docker BuildKit (si module Docker actif) ---
+if [[ "$MODULE_DOCKER" = "true" ]]; then
+    if ! docker buildx version &>/dev/null 2>&1; then
+        log_info "Installation de docker-buildx (BuildKit)..."
+        install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
+
+        # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
+        if ! docker buildx version &>/dev/null 2>&1; then
+            log_info "Installation manuelle de docker-buildx..."
+            local buildx_version="v0.21.1"
+            local buildx_arch
+            case "$(uname -m)" in
+                x86_64)  buildx_arch="amd64" ;;
+                arm64|aarch64) buildx_arch="arm64" ;;
+                *) log_warn "Architecture non supportee pour buildx: $(uname -m)"; buildx_arch="" ;;
+            esac
+
+            if [[ -n "$buildx_arch" ]]; then
+                local buildx_os
+                case "$(uname -s)" in
+                    Darwin) buildx_os="darwin" ;;
+                    Linux)  buildx_os="linux" ;;
+                esac
+                local buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
+                local buildx_dir="$HOME/.docker/cli-plugins"
+                mkdir -p "$buildx_dir"
+                if curl -sSL "$buildx_url" -o "$buildx_dir/docker-buildx"; then
+                    chmod +x "$buildx_dir/docker-buildx"
+                    log_success "docker-buildx installe dans $buildx_dir"
+                else
+                    log_warn "Impossible de telecharger docker-buildx — BuildKit ne sera pas disponible"
+                fi
+            fi
+        fi
+    else
+        log_success "docker-buildx est deja installe."
+    fi
+
+    # --- Configuration Colima pour contexte Work ---
+    if [[ "$BOULANGER_DETECTED" = "true" ]] && command -v colima &>/dev/null; then
+        local colima_config="$HOME/.colima/default/colima.yaml"
+
+        if [[ -f "$colima_config" ]]; then
+            log_info "Configuration de Colima pour le contexte Work..."
+
+            # Docker daemon config (remplace docker: {})
+            if grep -q "^docker: {}" "$colima_config" 2>/dev/null; then
+                sed -i.bak 's/^docker: {}/docker:\
+  debug: true\
+  default-address-pools:\
+    - base: "172.20.0.0\/16"\
+      size: 24\
+  experimental: false\
+  insecure-registries: []\
+  registry-mirrors: []/' "$colima_config" && rm -f "${colima_config}.bak"
+                log_success "Docker daemon configure (address-pools, debug)"
+            else
+                log_info "Docker daemon deja configure dans colima.yaml"
+            fi
+
+            # Provision script pour injecter le CA corporate dans la VM
+            if grep -q "^provision: null" "$colima_config" 2>/dev/null || grep -q "^provision: \[\]" "$colima_config" 2>/dev/null; then
+                sed -i.bak '/^provision: .*$/c\
+provision:\
+  - mode: system\
+    script: |\
+      CA_BUNDLE="/Users/'"$USER"'/.ssl/ca-bundle.pem"\
+      DEST="/usr/local/share/ca-certificates/corporate-ca.crt"\
+      if [ -f "$CA_BUNDLE" ]; then\
+        if ! cmp -s "$CA_BUNDLE" "$DEST" 2>/dev/null; then\
+          cp "$CA_BUNDLE" "$DEST"\
+          update-ca-certificates\
+          systemctl restart docker\
+        fi\
+      fi' "$colima_config" && rm -f "${colima_config}.bak"
+                log_success "Provision CA corporate configure"
+            else
+                log_info "Provision deja configure dans colima.yaml"
+            fi
+
+            echo ""
+            log_warn "Redemarrer Colima pour appliquer : colima stop && colima start"
+        else
+            log_info "Colima detecte mais pas encore initialise (lancer 'colima start' d'abord)"
+        fi
+    fi
+fi
+
 # Generer le fichier config.zsh
 CONFIG_FILE="$TARGET_DIR/config.zsh"
 echo ""
