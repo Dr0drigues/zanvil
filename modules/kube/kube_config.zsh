@@ -1119,11 +1119,22 @@ k() {
 
     local k9s_args=()
 
-    # Premier argument : contexte (optionnel)
+    # Premier argument : contexte (optionnel).
+    # Si absent et qu'un zproject est actif, utilise son contexte/namespace.
     if [[ -n "$1" ]]; then
         local resolved=$(_kube_resolve_alias "$1")
         k9s_args+=(--context "$resolved")
         shift
+    elif [[ -n "${ZPROJECT_KUBE_CONTEXT:-}" ]]; then
+        local resolved=$(_kube_resolve_alias "$ZPROJECT_KUBE_CONTEXT")
+        k9s_args+=(--context "$resolved")
+        if [[ -n "${ZPROJECT_KUBE_NAMESPACE:-}" ]]; then
+            k9s_args+=(--namespace "$ZPROJECT_KUBE_NAMESPACE")
+        fi
+        # Force la vue pods (k9s garde la derniere vue comme "contexts" sinon)
+        k9s_args+=(-c pods)
+        k9s "${k9s_args[@]}"
+        return $?
     fi
 
     # Second argument : namespace (optionnel)
