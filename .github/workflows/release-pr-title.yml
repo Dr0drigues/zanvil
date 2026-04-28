@@ -22,54 +22,55 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Calculate next version
+      - name: Detect version from PR title or calculate
         id: version
         run: |
-          # Get current tag
-          CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Current version: $CURRENT_TAG"
+          PR_TITLE="${{ github.event.pull_request.title }}"
 
-          # Get commits since last tag
-          if [ "$CURRENT_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+          # Si le titre contient deja une version explicite (ex: "Release v2.1.0"),
+          # on la respecte au lieu de recalculer
+          EXPLICIT_VERSION=$(echo "$PR_TITLE" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || true)
+
+          if [ -n "$EXPLICIT_VERSION" ]; then
+            echo "Version explicite detectee dans le titre: $EXPLICIT_VERSION"
+            echo "new=$EXPLICIT_VERSION" >> $GITHUB_OUTPUT
+            echo "bump=explicit" >> $GITHUB_OUTPUT
           else
-            COMMITS=$(git log ${CURRENT_TAG}..HEAD --pretty=format:"%s" --no-merges)
+            # Auto-calculate version from conventional commits
+            CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            echo "Current version: $CURRENT_TAG"
+
+            if [ "$CURRENT_TAG" = "v0.0.0" ]; then
+              COMMITS=$(git log --pretty=format:"%s" --no-merges)
+            else
+              COMMITS=$(git log ${CURRENT_TAG}..HEAD --pretty=format:"%s" --no-merges)
+            fi
+
+            # Determine bump type (! suffix = breaking = major)
+            if echo "$COMMITS" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!:"; then
+              BUMP="major"
+            elif echo "$COMMITS" | grep -qiE "BREAKING CHANGE"; then
+              BUMP="major"
+            elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+              BUMP="minor"
+            else
+              BUMP="patch"
+            fi
+
+            VERSION=${CURRENT_TAG#v}
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            case "$BUMP" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH + 1)) ;;
+            esac
+
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+            echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "bump=$BUMP" >> $GITHUB_OUTPUT
+            echo "New version: $NEW_VERSION (bump: $BUMP)"
           fi
-
-          # Determine bump type
-          if echo "$COMMITS" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!:"; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -qiE "BREAKING CHANGE"; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
-            BUMP="minor"
-          else
-            BUMP="patch"
-          fi
-
-          # Calculate new version
-          VERSION=${CURRENT_TAG#v}
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-
-          case "$BUMP" in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "bump=$BUMP" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION (bump: $BUMP)"
 
       - name: Update PR title
         env:

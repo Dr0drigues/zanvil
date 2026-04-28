@@ -9,6 +9,17 @@
 # zsh-env-theme : Gestion des themes Starship
 # ==============================================================================
 zsh-env-theme() {
+    # Intercepter preview et auto avant delegation CLI
+    if [[ "$1" == "preview" ]]; then
+        shift
+        _zsh_env_theme_preview "$@"
+        return $?
+    fi
+    if [[ "$1" == "auto" ]]; then
+        _zsh_env_theme_auto
+        return $?
+    fi
+
     # Delegation au CLI Rust si disponible
     if command -v zsh-env-cli &>/dev/null; then
         local cli_args=("$@")
@@ -79,7 +90,9 @@ zsh-env-theme() {
         done
 
         echo ""
-        echo -e "  ${_ui_dim}Usage: zsh-env-theme <nom>${_ui_nc}"
+        echo -e "  ${_ui_dim}Usage: zsh-env-theme <nom>          Appliquer un theme${_ui_nc}"
+        echo -e "  ${_ui_dim}       zsh-env-theme preview <nom>  Apercu sans appliquer${_ui_nc}"
+        echo -e "  ${_ui_dim}       zsh-env-theme auto            Auto dark/light${_ui_nc}"
         return 0
     fi
 
@@ -118,6 +131,167 @@ zsh-env-theme() {
     fi
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
+
+# ==============================================================================
+# Theme Preview : apercu sans appliquer
+# ==============================================================================
+_zsh_env_theme_preview() {
+    local theme="$1"
+    local themes_dir="$ZSH_ENV_DIR/themes"
+
+    if [[ -z "$theme" ]]; then
+        _ui_msg_fail "Usage: zsh-env-theme preview <nom>"
+        return 1
+    fi
+
+    # Resoudre le fichier toml
+    local toml_source=""
+    if [[ -f "$themes_dir/$theme/prompt.toml" ]]; then
+        toml_source="$themes_dir/$theme/prompt.toml"
+    elif [[ -f "$themes_dir/$theme.toml" ]]; then
+        toml_source="$themes_dir/$theme.toml"
+    else
+        _ui_msg_fail "Theme '$theme' non trouve."
+        return 1
+    fi
+
+    _ui_header "Theme Preview: $theme"
+
+    # Description
+    local desc=$(grep -m1 "^# Starship Theme:" "$toml_source" 2>/dev/null | sed 's/^# Starship Theme: //')
+    [[ -n "$desc" ]] && _ui_section "Description" "$desc"
+
+    # Palette
+    local palette="$themes_dir/$theme/palette.zsh"
+    if [[ -f "$palette" ]]; then
+        _ui_section "Palette" "oui"
+        echo ""
+        echo "  ${_ui_bold}Couleurs:${_ui_nc}"
+        # Sourcer la palette dans un scope local pour evaluer les variables
+        local _pv_red _pv_green _pv_yellow _pv_blue _pv_magenta _pv_cyan _pv_white _pv_dim
+        # Lire le fichier et extraire var=hex
+        grep -E '^_ui_\w+=' "$palette" 2>/dev/null | while IFS= read -r line; do
+            local var_name=$(echo "$line" | cut -d= -f1 | tr -d ' ')
+            # Extraire le commentaire hex (#rrggbb)
+            local hex=$(echo "$line" | grep -oE '#[0-9a-fA-F]{6}' 2>/dev/null | head -1)
+            # Evaluer la variable pour obtenir le code ANSI
+            eval "local color_code=$line" 2>/dev/null
+            local color_val="${(P)var_name}"
+            printf "    %-20s %b████████%b  ${_ui_dim}%s${_ui_nc}\n" "$var_name" "$color_val" "${_ui_nc}" "$hex"
+        done
+    else
+        _ui_section "Palette" "non (couleurs par defaut)"
+    fi
+
+    # Generer un prompt de demo avec starship
+    if command -v starship &>/dev/null; then
+        echo ""
+        _ui_section "Prompt" "apercu"
+        echo ""
+        # starship prompt genere des %{...%} (zsh prompt escapes)
+        # On les convertit en codes ANSI bruts pour l'affichage hors prompt
+        local prompt_ok prompt_err
+        prompt_ok=$(STARSHIP_CONFIG="$toml_source" starship prompt \
+            --status=0 --jobs=0 --cmd-duration=1234 2>/dev/null)
+        prompt_err=$(STARSHIP_CONFIG="$toml_source" starship prompt \
+            --status=1 --jobs=0 --cmd-duration=0 2>/dev/null)
+
+        # Nettoyer les %{...%} -> garder le contenu entre %{ et %}
+        prompt_ok=$(echo "$prompt_ok" | sed 's/%{//g; s/%}//g')
+        prompt_err=$(echo "$prompt_err" | sed 's/%{//g; s/%}//g')
+
+        printf "  %b\n" "$prompt_ok"
+        printf "  %b\n" "$prompt_err"
+    fi
+
+    echo ""
+    _ui_msg_info "Appliquer: zsh-env-theme $theme"
+}
+
+# ==============================================================================
+# Auto dark/light : detection du mode systeme
+# ==============================================================================
+# Config dans config.zsh :
+#   ZSH_ENV_THEME_LIGHT=tokyo-light-pro
+#   ZSH_ENV_THEME_DARK=tokyo-night-pro
+# ==============================================================================
+_zsh_env_detect_appearance() {
+    # macOS : lire le mode systeme
+    if [[ "$OSTYPE" == darwin* ]]; then
+        if defaults read -g AppleInterfaceStyle &>/dev/null 2>&1; then
+            echo "dark"
+        else
+            echo "light"
+        fi
+        return
+    fi
+
+    # Linux : essayer via dbus (GNOME/KDE)
+    if command -v gsettings &>/dev/null; then
+        local gtk_theme=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)
+        if [[ "$gtk_theme" == *"dark"* ]]; then
+            echo "dark"
+            return
+        fi
+    fi
+
+    # Fallback : dark par defaut
+    echo "dark"
+}
+
+_zsh_env_theme_auto() {
+    local light_theme="${ZSH_ENV_THEME_LIGHT:-}"
+    local dark_theme="${ZSH_ENV_THEME_DARK:-}"
+
+    if [[ -z "$light_theme" || -z "$dark_theme" ]]; then
+        _ui_msg_fail "Configurez ZSH_ENV_THEME_LIGHT et ZSH_ENV_THEME_DARK dans config.zsh"
+        echo ""
+        echo "  Exemple:"
+        echo "    ZSH_ENV_THEME_LIGHT=tokyo-light-pro"
+        echo "    ZSH_ENV_THEME_DARK=tokyo-night-pro"
+        return 1
+    fi
+
+    local appearance=$(_zsh_env_detect_appearance)
+    local target_theme=""
+
+    if [[ "$appearance" == "dark" ]]; then
+        target_theme="$dark_theme"
+    else
+        target_theme="$light_theme"
+    fi
+
+    # Verifier si deja sur le bon theme
+    local state_file="$ZSH_ENV_DIR/.current_theme"
+    local current=""
+    [[ -f "$state_file" ]] && current=$(<"$state_file")
+
+    if [[ "$current" == "$target_theme" ]]; then
+        _ui_msg_ok "Deja sur le theme $target_theme ($appearance)"
+        return 0
+    fi
+
+    _ui_msg_info "Mode detecte: $appearance -> theme $target_theme"
+    zsh-env-theme "$target_theme"
+}
+
+# Hook auto dark/light au startup (silencieux)
+if [[ -n "${ZSH_ENV_THEME_LIGHT}" && -n "${ZSH_ENV_THEME_DARK}" ]]; then
+    _zsh_env_theme_auto_startup() {
+        local appearance=$(_zsh_env_detect_appearance)
+        local target=""
+        [[ "$appearance" == "dark" ]] && target="$ZSH_ENV_THEME_DARK" || target="$ZSH_ENV_THEME_LIGHT"
+
+        local current=""
+        [[ -f "$ZSH_ENV_DIR/.current_theme" ]] && current=$(<"$ZSH_ENV_DIR/.current_theme")
+
+        if [[ "$current" != "$target" ]]; then
+            zsh-env-theme "$target" &>/dev/null
+        fi
+    }
+    _zsh_env_theme_auto_startup
+    unfunction _zsh_env_theme_auto_startup 2>/dev/null
+fi
 
 # ==============================================================================
 # zsh-env-ghostty : Gestion des themes Ghostty

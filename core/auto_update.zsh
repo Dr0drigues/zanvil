@@ -74,6 +74,22 @@ _zsh_env_do_update() {
             echo -e "  ${_ui_bold}$old_version ${_ui_arrow} $new_version${_ui_nc}"
         fi
 
+        # Appliquer les migrations en attente
+        if [[ -d "$ZSH_ENV_DIR/migrations" ]] && (( $+functions[zsh-env-migrate] )); then
+            local state_file="$ZSH_ENV_DIR/.migration_version"
+            local current_ver=0
+            [[ -f "$state_file" ]] && current_ver=$(<"$state_file")
+            local has_pending=false
+            for m in "$ZSH_ENV_DIR/migrations"/[0-9]*.zsh(N); do
+                local num=${$(basename "$m")%%_*}
+                (( 10#$num > current_ver )) && { has_pending=true; break; }
+            done
+            if [[ "$has_pending" == "true" ]]; then
+                echo ""
+                zsh-env-migrate
+            fi
+        fi
+
         return 0
     else
         echo -e "${_ui_yellow}[zsh_env]${_ui_nc} Erreur lors de la mise a jour."

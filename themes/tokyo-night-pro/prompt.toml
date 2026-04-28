@@ -21,7 +21,7 @@ $nodejs\
 $rust\
 $golang\
 $php\
-\$kubernetes\\\n${custom.zsh_env_context}\\
+\$kubernetes\\\n${custom.zproject}${custom.zsh_env_context}\\
 [](fg:#212736 bg:#1d2230)\
 $time\
 [ ](fg:#1d2230)\
@@ -90,6 +90,14 @@ description = "Indicateur contexte Work"
 command = "echo '󰋜'"
 when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
 format = "[$output ](bg:#a3aed2 fg:#e0af68)"
+shell = ["bash", "--noprofile", "--norc"]
+
+# === Module Custom: Projet actif (zproject) ===
+[custom.zproject]
+description = "Projet zproject actif"
+command = 'echo "${ZPROJECT_NAME}${ZPROJECT_ENV:+/${ZPROJECT_ENV}}"'
+when = 'test -n "$ZPROJECT_NAME"'
+format = "[ 󰏗 $output ](fg:#bb9af7 bg:#212736)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # === Module Custom: Contexte Dev (Kube) ===

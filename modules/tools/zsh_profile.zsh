@@ -1,139 +1,232 @@
 # ==============================================================================
-# ZSH Profile - Profiling du temps de demarrage du shell
+# ZSH_ENV Bench - Profiling du temps de demarrage par module
 # ==============================================================================
-# Mesure le temps de chargement de chaque module pour identifier les lenteurs
-# Utilise les fonctions UI de ui.zsh
+# Mesure le temps de chargement de chaque core/*.zsh et modules/*/init.zsh
 # ==============================================================================
 
-# Profiling du startup complet
-zsh-env-profile() {
-    local verbose=false
-    [[ "$1" == "-v" ]] && verbose=true
+# Profiling detaille par composant
+zsh-env-bench() {
+    local mode="detailed"
+    local runs=5
 
-    _ui_header "ZSH_ENV Profiling"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --quick|-q) mode="quick"; shift ;;
+            --runs|-r) shift; runs="$1"; shift ;;
+            -h|--help) _bench_help; return 0 ;;
+            *) shift ;;
+        esac
+    done
 
-    local total_start=$EPOCHREALTIME
+    case "$mode" in
+        quick)    _bench_quick ;;
+        detailed) _bench_detailed ;;
+    esac
+}
+
+# Benchmark multi-runs
+zsh-env-benchmark() {
+    local runs=${1:-5}
+    _bench_runs "$runs"
+}
+
+# ==============================================================================
+# Profiling detaille
+# ==============================================================================
+_bench_detailed() {
+    _ui_header "ZSH_ENV Bench"
+
+    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
     local results=()
     local total_time=0
 
-    # Fonction pour mesurer le temps de source d'un fichier
-    _profile_source() {
-        local file="$1"
-        local label="$2"
-
+    # Fonction de mesure
+    _bench_source() {
+        local file="$1" label="$2"
         if [[ -f "$file" ]]; then
             local start=$EPOCHREALTIME
             source "$file" 2>/dev/null
             local end=$EPOCHREALTIME
             local elapsed=$(( (end - start) * 1000 ))
             total_time=$(( total_time + elapsed ))
-            results+=("$(printf "%6.1f ms  %s" "$elapsed" "$label")")
+            results+=("$(printf "%07.1f|%s" "$elapsed" "$label")")
         fi
     }
 
-    # Simuler le chargement dans l'ordre de rc.zsh
-    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+    local total_start=$EPOCHREALTIME
 
-    # Config personnalisee
-    _profile_source "$zsh_env_dir/config.zsh" "config.zsh"
+    # --- Phase 1 : Config & variables ---
+    _ui_section "Phase" "config & variables"
+    _bench_source "$zsh_env_dir/config.zsh" "config.zsh"
+    _bench_source "$HOME/.secrets" "~/.secrets"
+    _bench_source "$zsh_env_dir/core/variables.zsh" "core/variables.zsh"
 
-    # Secrets
-    _profile_source "$HOME/.secrets" "~/.secrets"
+    # --- Phase 2 : env.d ---
+    for envfile in "$zsh_env_dir/env.d"/*.zsh(N); do
+        _bench_source "$envfile" "env.d/$(basename "$envfile")"
+    done
 
-    # Variables
-    _profile_source "$zsh_env_dir/variables.zsh" "variables.zsh"
+    # --- Phase 3 : Core (ui.zsh first, then others) ---
+    _bench_source "$zsh_env_dir/core/ui.zsh" "core/ui.zsh"
 
-    # Functions (le plus lourd generalement)
-    if [[ -d "$zsh_env_dir/functions" ]]; then
-        for func_file in "$zsh_env_dir/functions"/*.zsh(N); do
-            local name=$(basename "$func_file")
-            _profile_source "$func_file" "functions/$name"
-        done
-    fi
+    local skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
+    for core_file in "$zsh_env_dir/core"/*.zsh(N); do
+        local core_name=$(basename "$core_file")
+        (( ${skip_core[(Ie)$core_name]} )) && continue
+        _bench_source "$core_file" "core/$core_name"
+    done
 
-    # Aliases
-    _profile_source "$zsh_env_dir/aliases.zsh" "aliases.zsh"
+    # --- Phase 4 : Modules ---
+    for module_dir in "$zsh_env_dir/modules"/*/; do
+        [[ ! -d "$module_dir" ]] && continue
+        local module_name=$(basename "$module_dir")
+        local init_file="$module_dir/init.zsh"
 
-    # Plugins
-    _profile_source "$zsh_env_dir/plugins.zsh" "plugins.zsh"
+        # Skip lazy modules (stub only)
+        if [[ -f "$module_dir/.lazy" ]]; then
+            results+=("$(printf "%07.1f|%s" "0.0" "modules/$module_name (lazy)")")
+            continue
+        fi
 
-    # Completions
-    _profile_source "$zsh_env_dir/completions.zsh" "completions.zsh"
+        # Skip disabled modules
+        local guard_var="ZSH_ENV_MODULE_${(U)module_name}"
+        if [[ -n "${(P)guard_var}" && "${(P)guard_var}" != "true" ]]; then
+            continue
+        fi
 
-    # Aliases locaux
-    _profile_source "$zsh_env_dir/aliases.local.zsh" "aliases.local.zsh"
+        [[ -f "$init_file" ]] && _bench_source "$init_file" "modules/$module_name"
+    done
+
+    # --- Phase 5 : Aliases, plugins, hooks ---
+    _bench_source "$zsh_env_dir/core/aliases.zsh" "core/aliases.zsh"
+    _bench_source "$zsh_env_dir/plugins.zsh" "plugins.zsh"
+    _bench_source "$zsh_env_dir/core/hooks.zsh" "core/hooks.zsh"
 
     local total_end=$EPOCHREALTIME
     local real_total=$(( (total_end - total_start) * 1000 ))
 
-    # Trier par temps (decroissant)
-    echo "Temps par fichier (trie par duree):"
-    _ui_separator 44
+    # --- Affichage ---
+    echo ""
+    printf "${_ui_bold}%-40s %8s  %s${_ui_nc}\n" "Composant" "Temps" ""
+    _ui_separator 58
 
-    # Trier et afficher
-    printf '%s\n' "${results[@]}" | sort -rn | while read -r line; do
-        local time_val=${line%% *}
-        # Colorer en rouge si > 50ms, jaune si > 20ms
-        if (( time_val > 50 )); then
-            echo -e "${_ui_red}$line${_ui_nc}"
-        elif (( time_val > 20 )); then
-            echo -e "${_ui_yellow}$line${_ui_nc}"
-        else
-            echo -e "${_ui_green}$line${_ui_nc}"
+    # Trier par temps decroissant
+    local sorted=($(printf '%s\n' "${results[@]}" | sort -rn))
+
+    for entry in "${sorted[@]}"; do
+        local time_val="${entry%%|*}"
+        local label="${entry#*|}"
+        local ms=$(printf "%.1f" "$time_val")
+
+        # Barre horizontale proportionnelle
+        local bar_len=0
+        if (( real_total > 0 )); then
+            bar_len=$(( (time_val * 20) / real_total ))
         fi
+        (( bar_len < 0 )) && bar_len=0
+        (( bar_len > 20 )) && bar_len=20
+        local bar=$(printf '%*s' "$bar_len" '' | tr ' ' '█')
+        local bar_empty=$(printf '%*s' "$(( 20 - bar_len ))" '' | tr ' ' '░')
+
+        # Couleur selon le seuil
+        local color="$_ui_green"
+        if (( time_val > 50 )); then
+            color="$_ui_red"
+        elif (( time_val > 20 )); then
+            color="$_ui_yellow"
+        fi
+
+        printf "  %-38s ${color}%6.1f ms${_ui_nc}  ${color}%s${_ui_nc}${_ui_dim}%s${_ui_nc}\n" \
+            "$label" "$ms" "$bar" "$bar_empty"
     done
 
-    _ui_separator 44
-    printf "Total mesure:  %6.1f ms\n" "$total_time"
-    printf "Temps reel:    %6.1f ms\n" "$real_total"
+    echo ""
+    _ui_separator 58
+    printf "${_ui_bold}Total mesure:${_ui_nc}  %6.1f ms\n" "$total_time"
+    printf "${_ui_bold}Temps reel:${_ui_nc}    %6.1f ms\n" "$real_total"
     echo ""
 
     # Conseils
     if (( real_total > 500 )); then
-        echo -e "${_ui_yellow}Conseil: Le demarrage est lent (>500ms).${_ui_nc}"
-        echo "  - Desactivez les modules inutiles dans config.zsh"
+        _ui_msg_warn "Demarrage lent (>500ms). Desactivez les modules inutiles dans config.zsh"
     elif (( real_total > 200 )); then
-        echo -e "${_ui_green}Le temps de demarrage est acceptable.${_ui_nc}"
+        _ui_msg_info "Temps acceptable ($(printf '%.0f' "$real_total")ms)"
     else
-        echo -e "${_ui_green}Excellent! Demarrage rapide (<200ms).${_ui_nc}"
+        _ui_msg_ok "Excellent! Demarrage rapide (<200ms)"
     fi
 }
 
-# Profiling rapide (juste le total)
-zsh-env-profile-quick() {
+# ==============================================================================
+# Quick : juste le total
+# ==============================================================================
+_bench_quick() {
     local start=$EPOCHREALTIME
-    source "${ZSH_ENV_DIR:-$HOME/.zsh_env}/rc.zsh" 2>/dev/null
+    zsh -i -c exit 2>/dev/null
     local end=$EPOCHREALTIME
     local elapsed=$(( (end - start) * 1000 ))
-    printf "Temps de chargement: %.1f ms\n" "$elapsed"
+    printf "${_ui_bold}Temps de chargement:${_ui_nc} %.0f ms\n" "$elapsed"
 }
 
-# Benchmark multiple runs
-zsh-env-benchmark() {
+# ==============================================================================
+# Multi-runs benchmark
+# ==============================================================================
+_bench_runs() {
     local runs=${1:-5}
-    local times=()
-    local sum=0
 
     _ui_header "ZSH_ENV Benchmark"
-
-    echo "Benchmark sur $runs executions..."
+    _ui_section "Runs" "$runs"
     echo ""
 
+    local times=()
+    local sum=0
+    local min=999999 max=0
+
     for ((i=1; i<=runs; i++)); do
-        # Utiliser EPOCHREALTIME pour mesurer precisement
         local start=$EPOCHREALTIME
         zsh -i -c exit 2>/dev/null
         local end=$EPOCHREALTIME
-        local time_ms=$(( (end - start) * 1000 ))
-        times+=("$time_ms")
-        sum=$(( sum + time_ms ))
-        printf "  Run %d: %.0f ms\n" "$i" "$time_ms"
+        local ms=$(( (end - start) * 1000 ))
+        times+=("$ms")
+        sum=$(( sum + ms ))
+        (( ms < min )) && min=$ms
+        (( ms > max )) && max=$ms
+
+        # Barre de progression
+        local pct=$(( (i * 100) / runs ))
+        local bar_len=$(( (i * 20) / runs ))
+        local bar=$(printf '%*s' "$bar_len" '' | tr ' ' '█')
+        local bar_empty=$(printf '%*s' "$(( 20 - bar_len ))" '' | tr ' ' '░')
+        printf "\r  ${_ui_dim}[%s%s]${_ui_nc} Run %d/%d: %6.0f ms" "$bar" "$bar_empty" "$i" "$runs" "$ms"
     done
 
-    # Calculer moyenne
+    echo ""
+    echo ""
+
+    # Stats
     local avg=$(( sum / runs ))
 
-    echo ""
+    # Trier pour p95
+    local sorted_times=($(printf '%s\n' "${times[@]}" | sort -n))
+    local p95_idx=$(( (runs * 95 + 99) / 100 ))
+    (( p95_idx > runs )) && p95_idx=$runs
+    local p95=${sorted_times[$p95_idx]}
+
     _ui_separator 44
-    printf "Moyenne: %.1f ms\n" "$avg"
+    printf "  ${_ui_dim}%-12s${_ui_nc} ${_ui_green}%6.0f ms${_ui_nc}\n" "Min" "$min"
+    printf "  ${_ui_dim}%-12s${_ui_nc} ${_ui_bold}%6.0f ms${_ui_nc}\n" "Moyenne" "$avg"
+    printf "  ${_ui_dim}%-12s${_ui_nc} ${_ui_yellow}%6.0f ms${_ui_nc}\n" "P95" "$p95"
+    printf "  ${_ui_dim}%-12s${_ui_nc} ${_ui_red}%6.0f ms${_ui_nc}\n" "Max" "$max"
+}
+
+# ==============================================================================
+# Aide
+# ==============================================================================
+_bench_help() {
+    _ui_header "ZSH_ENV Bench"
+    echo ""
+    printf "${_ui_bold}Usage:${_ui_nc}\n"
+    echo "  zsh-env-bench                 Profiling detaille par module"
+    echo "  zsh-env-bench --quick         Temps total uniquement"
+    echo "  zsh-env-bench --runs N        Benchmark sur N executions (defaut: 5)"
+    echo "  zsh-env-benchmark [N]         Alias pour --runs N"
 }

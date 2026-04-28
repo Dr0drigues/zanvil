@@ -13,26 +13,9 @@ fi
 
 # 2. Configuration des Group IDs (Modèle de données)
 # Structure : [environnement-composant]=ID
-typeset -A GITLAB_PROJECTS
-GITLAB_PROJECTS=(
-    # PTF Environment
-    [ptf-frontco]="35621"
-    [ptf-backcaisse]="35617"
-    [ptf-controlpanel]="35366"
-    [ptf-liveperf]="35624"
-
-    # CaaS BLG Environment
-    [blg-front]="36963"
-    #[blg-backcaisse]="00000"
-    [blg-controlpanel]="36714"
-    #[blg-liveperf]="00000"
-
-    # CaaS ED Environment
-    #[ed-front]="00000"
-    #[ed-backcaisse]="00000"
-    #[ed-controlpanel]="00000"
-    #[ed-liveperf]="00000"
-)
+# Definir GITLAB_PROJECTS dans env.d/gitlab.zsh (typeset -gA puis assignations)
+typeset -gA GITLAB_PROJECTS
+[[ -z "${GITLAB_PROJECTS+x}" || ${#GITLAB_PROJECTS[@]} -eq 0 ]] && GITLAB_PROJECTS=()
 
 ### LOGIC & ALIAS GENERATION ###
 
@@ -81,7 +64,8 @@ alias help-clone="list-gitlab-cmds"
 
 # Vérifie le statut du Personal Access Token GitLab
 function zsh-env-gitlab-status() {
-    local gitlab_url="https://${GITLAB_BASE_DOMAIN:-gitlab.example.com}/api/v4"
+    [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
+    local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
 
     if [[ -z "$GITLAB_TOKEN" ]]; then
         _ui_msg_fail "GITLAB_TOKEN non défini (vérifiez ~/.gitlab_secrets)"
@@ -224,7 +208,8 @@ unfunction load_gitlab_aliases
 # Alerte une seule fois par session si le token expire dans < 14 jours
 if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
     _zsh_env_pat_check() {
-        local gitlab_url="https://${GITLAB_BASE_DOMAIN:-gitlab.example.com}/api/v4"
+        [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
+    local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
         local response expires_at
         response=$(curl -s -k --max-time 3 --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
         expires_at=$(echo "$response" | jq -r '.expires_at // empty' 2>/dev/null)

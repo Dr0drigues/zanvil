@@ -201,6 +201,11 @@ proj() {
             proj_init
             return
             ;;
+        --scaffold|scaffold)
+            shift
+            proj_scaffold "$@"
+            return
+            ;;
         --scan|-s)
             proj_scan "$2" "$3"
             return
@@ -653,6 +658,7 @@ Usage:
   proj --init            Cree un fichier .proj dans le dossier courant
   proj --scan [dir]      Scanne et propose des projets a enregistrer
   proj --auto [dir]      Auto-enregistre les projets avec .proj
+  proj scaffold          Bootstrapper un nouveau projet (node, java)
 
 Options de --add:
   -n, --name NAME        Nom du projet (sinon demande interactif)

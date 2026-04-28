@@ -52,6 +52,20 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/; do
         continue
     fi
 
+    # Verifier les dependances (.deps)
+    if [[ -f "$_module_dir/.deps" ]]; then
+        local _deps_ok=true
+        while IFS= read -r _dep_name; do
+            [[ -z "$_dep_name" || "$_dep_name" == \#* ]] && continue
+            local _dep_guard="ZSH_ENV_MODULE_${(U)_dep_name}"
+            # Un module sans guard explicite est considere comme actif (ex: git, utils)
+            if [[ -n "${(P)_dep_guard}" && "${(P)_dep_guard}" != "true" ]]; then
+                echo -e "${_ui_yellow}[zsh-env]${_ui_nc} Module '${_module_name}' requiert '${_dep_name}' (desactive)"
+                _deps_ok=false
+            fi
+        done < "$_module_dir/.deps"
+    fi
+
     # Charger init.zsh
     [[ -f "$_module_dir/init.zsh" ]] && source "$_module_dir/init.zsh"
 

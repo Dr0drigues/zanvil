@@ -125,3 +125,12 @@ if command -v npm &> /dev/null; then
     # Reinstallation propre des node_modules
     alias nci='if [[ -d node_modules ]]; then command rm -rf node_modules; fi && npm cache clean --force && npm install'
 fi
+
+if command -v brew &> /dev/null; then
+    alias bubu='brew update && brew upgrade && brew cleanup'
+fi
+
+# ArmadAI DEV
+if command -v armadai &> /dev/null; then
+    alias armadai-dev='$WORK_DIR/misc/armadai/target/release/armadai'
+fi

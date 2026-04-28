@@ -17,8 +17,25 @@ _zsh_env_theme() {
         (( ${themes[(Ie)$name]} )) || themes+=($name)
     done
 
+    local -a actions=(
+        'list:Lister les themes disponibles'
+        'current:Afficher le theme actuel'
+        'apply:Appliquer un theme'
+        'preview:Apercu sans appliquer'
+        'auto:Auto dark/light'
+    )
+
     _arguments \
-        '1:theme:(list ${themes[@]})'
+        '1:action:->actions' \
+        '2:theme:(${themes[@]})'
+
+    case "$state" in
+        actions)
+            _describe 'action' actions
+            # Also complete theme names directly
+            compadd -a themes
+            ;;
+    esac
 }
 compdef _zsh_env_theme zsh-env-theme
 
@@ -68,3 +85,47 @@ _zsh_env_switch() {
     _arguments '1:profile:(list ${profiles[@]})'
 }
 compdef _zsh_env_switch zsh-env-switch
+
+_zsh_env_sync() {
+    local -a actions=(
+        'export:Exporter la config'
+        'import:Importer une config'
+        'diff:Comparer avec la config locale'
+    )
+
+    _arguments \
+        '1:action:->actions' \
+        '2:file:_files -g "*.json"'
+
+    case "$state" in
+        actions) _describe 'action' actions ;;
+    esac
+}
+compdef _zsh_env_sync zsh-env-sync
+
+_zsh_env_bench() {
+    _arguments \
+        '--quick[Temps total uniquement]' \
+        '--runs[Benchmark multi-runs]:runs:' \
+        '-q[Temps total uniquement]' \
+        '-r[Benchmark multi-runs]:runs:'
+}
+compdef _zsh_env_bench zsh-env-bench
+
+_zsh_env_secrets_scan() {
+    _arguments \
+        '--current[Scan le working tree]' \
+        '--history[Scan historique git]' \
+        '--bulk[Mode multi-repos]' \
+        '--include[Filtrer par glob]:glob:' \
+        '--exclude[Exclure par glob]:glob:' \
+        '-d[Dossier]:directory:_directories'
+}
+compdef _zsh_env_secrets_scan zsh-env-secrets-scan
+
+_zsh_env_docker_clean() {
+    _arguments \
+        '--apply[Executer le nettoyage]' \
+        '--all[Inclure images non-dangling et build cache]'
+}
+compdef _zsh_env_docker_clean zsh-env-docker-clean dclean

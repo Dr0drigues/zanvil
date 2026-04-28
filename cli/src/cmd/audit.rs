@@ -45,15 +45,7 @@ pub fn run() {
     let mut issues: u32 = 0;
     let mut warnings: u32 = 0;
 
-    // Header
-    println!("{}", "╭──────────────────────────────────────────╮".cyan());
-    println!(
-        "{}  {:<30}    {}",
-        "│".cyan(),
-        "ZSH_ENV Security Audit",
-        "│".cyan()
-    );
-    println!("{}", "╰──────────────────────────────────────────╯".cyan());
+    super::print_header("ZSH_ENV Security Audit");
     println!();
 
     // --- SSH ---
