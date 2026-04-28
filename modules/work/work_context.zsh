@@ -1,12 +1,12 @@
 # ==============================================================================
 # Work Context Detection
 # ==============================================================================
-# Detection automatique du contexte professionnel Work
-# Test d'acces au Nexus interne avec cache de 5 minutes
-# Utilise les fonctions UI de ui.zsh
+# Detection automatique du contexte professionnel via test reseau interne
+# Cache de 5 minutes pour eviter les appels reseau repetes
+# Configuration via env.d/work.zsh ou config.zsh
 # ==============================================================================
 
-# --- Configuration (surchargeable via config.zsh) ---
+# --- Configuration (surchargeable via env.d/work.zsh) ---
 _WORK_NEXUS_URL="${ZSH_ENV_WORK_NEXUS_URL:-}"
 _WORK_CACHE_FILE="${ZSH_ENV_DIR:-$HOME/.zsh_env}/.work_context_cache"
 _WORK_CACHE_TTL="${ZSH_ENV_WORK_CACHE_TTL:-300}"       # 5 minutes en secondes
@@ -15,12 +15,12 @@ _WORK_TIMEOUT="${ZSH_ENV_WORK_TIMEOUT:-2}"              # Timeout en secondes po
 # --- Fonctions internes ---
 
 # Retourne le timestamp actuel en secondes
-_blg_timestamp() {
+_work_timestamp() {
     date +%s
 }
 
 # Verifie si le cache est encore valide
-_blg_cache_valid() {
+_work_cache_valid() {
     [[ ! -f "$_WORK_CACHE_FILE" ]] && return 1
 
     local cached_time cached_value
@@ -29,7 +29,7 @@ _blg_cache_valid() {
 
     [[ -z "$cached_time" ]] && return 1
 
-    local now=$(_blg_timestamp)
+    local now=$(_work_timestamp)
     local age=$((now - cached_time))
 
     if (( age < _WORK_CACHE_TTL )); then
@@ -41,14 +41,15 @@ _blg_cache_valid() {
 }
 
 # Met a jour le cache
-_blg_cache_write() {
+_work_cache_write() {
     local value=$1
-    echo "$(_blg_timestamp)" > "$_WORK_CACHE_FILE"
+    echo "$(_work_timestamp)" > "$_WORK_CACHE_FILE"
     echo "$value" >> "$_WORK_CACHE_FILE"
 }
 
-# Test reel d'acces au Nexus
-_blg_test_nexus() {
+# Test reel d'acces au Nexus interne
+_work_test_nexus() {
+    [[ -z "$_WORK_NEXUS_URL" ]] && return 1
     if command -v curl &>/dev/null; then
         local _curl_opts="-s --connect-timeout $_WORK_TIMEOUT --max-time $_WORK_TIMEOUT"
         [[ -n "$SSL_CERT_FILE" ]] && _curl_opts+=" --cacert $SSL_CERT_FILE"
@@ -67,7 +68,7 @@ _blg_test_nexus() {
 # Teste si on est dans le contexte Work (avec cache)
 work_is_context() {
     # Verifier le cache d'abord
-    if _blg_cache_valid; then
+    if _work_cache_valid; then
         return 0
     fi
 
@@ -76,7 +77,7 @@ work_is_context() {
         local cached_time cached_value
         cached_time=$(head -1 "$_WORK_CACHE_FILE" 2>/dev/null)
         cached_value=$(tail -1 "$_WORK_CACHE_FILE" 2>/dev/null)
-        local now=$(_blg_timestamp)
+        local now=$(_work_timestamp)
         local age=$((now - cached_time))
 
         if (( age < _WORK_CACHE_TTL )) && [[ "$cached_value" == "false" ]]; then
@@ -85,28 +86,28 @@ work_is_context() {
     fi
 
     # Test reel
-    if _blg_test_nexus; then
-        _blg_cache_write "true"
+    if _work_test_nexus; then
+        _work_cache_write "true"
         return 0
     else
-        _blg_cache_write "false"
+        _work_cache_write "false"
         return 1
     fi
 }
 
 # Force la re-detection (invalide le cache)
-blg_refresh() {
+work_refresh() {
     rm -f "$_WORK_CACHE_FILE"
     if work_is_context; then
         echo "Contexte Work detecte - fichiers dechiffres"
-        blg_init
+        work_init
     else
         echo "Hors contexte Work"
     fi
 }
 
 # Initialise le contexte Work (dechiffre les fichiers si necessaire)
-blg_init() {
+work_init() {
     local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
     local decrypted_count=0
 
@@ -115,19 +116,19 @@ blg_init() {
         return 1
     fi
 
-    local blg_dir="$zsh_env_dir/work"
+    local work_dir="$zsh_env_dir/work"
 
     # Dechiffrer settings.xml.enc si existe et pas deja dechiffre
-    if [[ -f "$blg_dir/settings.xml.enc" && ! -f "$blg_dir/settings.xml" ]]; then
-        if sops -d "$blg_dir/settings.xml.enc" > "$blg_dir/settings.xml" 2>/dev/null; then
+    if [[ -f "$work_dir/settings.xml.enc" && ! -f "$work_dir/settings.xml" ]]; then
+        if sops -d "$work_dir/settings.xml.enc" > "$work_dir/settings.xml" 2>/dev/null; then
             ((decrypted_count++))
         fi
     fi
 
     # Dechiffrer certificates_unix.sh.enc si existe et pas deja dechiffre
-    if [[ -f "$blg_dir/certificates_unix.sh.enc" && ! -f "$blg_dir/certificates_unix.sh" ]]; then
-        if sops -d "$blg_dir/certificates_unix.sh.enc" > "$blg_dir/certificates_unix.sh" 2>/dev/null; then
-            chmod +x "$blg_dir/certificates_unix.sh"
+    if [[ -f "$work_dir/certificates_unix.sh.enc" && ! -f "$work_dir/certificates_unix.sh" ]]; then
+        if sops -d "$work_dir/certificates_unix.sh.enc" > "$work_dir/certificates_unix.sh" 2>/dev/null; then
+            chmod +x "$work_dir/certificates_unix.sh"
             ((decrypted_count++))
         fi
     fi
@@ -139,7 +140,7 @@ blg_init() {
 }
 
 # Affiche l'etat du contexte Work
-blg_status() {
+work_status() {
     local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
 
     _ui_header "Contexte Work"
@@ -156,7 +157,7 @@ blg_status() {
         local cached_time cached_value
         cached_time=$(head -1 "$_WORK_CACHE_FILE" 2>/dev/null)
         cached_value=$(tail -1 "$_WORK_CACHE_FILE" 2>/dev/null)
-        local now=$(_blg_timestamp)
+        local now=$(_work_timestamp)
         local age=$((now - cached_time))
         local remaining=$((_WORK_CACHE_TTL - age))
 
@@ -174,11 +175,11 @@ blg_status() {
     _ui_separator 44
 
     # Statut des fichiers chiffres/dechiffres
-    local blg_dir="$zsh_env_dir/work"
+    local work_dir="$zsh_env_dir/work"
     local files=("settings.xml" "certificates_unix.sh")
     for file in "${files[@]}"; do
-        local enc_file="$blg_dir/${file}.enc"
-        local dec_file="$blg_dir/$file"
+        local enc_file="$work_dir/${file}.enc"
+        local dec_file="$work_dir/$file"
 
         if [[ -f "$dec_file" && -f "$enc_file" ]]; then
             echo -e "  $file: ${_ui_green}Dechiffre${_ui_nc}"
@@ -207,5 +208,5 @@ blg_status() {
 # --- Auto-initialisation au chargement ---
 # Ne s'execute que si on detecte le contexte Work (test rapide via cache ou reseau)
 if work_is_context; then
-    blg_init
+    work_init
 fi

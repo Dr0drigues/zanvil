@@ -185,6 +185,316 @@ esac
     ;;
 esac
 ;;
+(bench)
+_arguments "${_arguments_options[@]}" : \
+'-r+[Number of runs]:RUNS:_default' \
+'--runs=[Number of runs]:RUNS:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(sync)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_zsh-env-cli__sync_commands" \
+"*::: :->sync" \
+&& ret=0
+
+    case $state in
+    (sync)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-sync-command-$line[1]:"
+        case $line[1] in
+            (export)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'::output -- Output file path:_default' \
+&& ret=0
+;;
+(import)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':file -- Input file path:_default' \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':file -- File to compare with:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__sync__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-sync-help-command-$line[1]:"
+        case $line[1] in
+            (export)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(import)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'--check[Only check for updates, don'\''t apply]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(secrets)
+_arguments "${_arguments_options[@]}" : \
+'*--include=[Include glob patterns]:INCLUDE:_default' \
+'*--exclude=[Exclude glob patterns]:EXCLUDE:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::dir -- Directory to scan:_default' \
+&& ret=0
+;;
+(project)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_zsh-env-cli__project_commands" \
+"*::: :->project" \
+&& ret=0
+
+    case $state in
+    (project)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-project-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" : \
+'-e+[Environment (defaults to project'\''s default_env)]:ENV:_default' \
+'--env=[Environment (defaults to project'\''s default_env)]:ENV:_default' \
+'--show-origin[Show source of each resolved value]' \
+'-h[Print help]' \
+'--help[Print help]' \
+'::name -- Project name (defaults to first known project):_default' \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'::name -- Project name (defaults to all projects):_default' \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':a:_default' \
+':b:_default' \
+&& ret=0
+;;
+(find-path)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'::dir:_default' \
+&& ret=0
+;;
+(stacks)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(stack-resolve)
+_arguments "${_arguments_options[@]}" : \
+'-e+[Stack env (key of \[envs.<e>\])]:ENV:_default' \
+'--env=[Stack env (key of \[envs.<e>\])]:ENV:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':name:_default' \
+&& ret=0
+;;
+(activate)
+_arguments "${_arguments_options[@]}" : \
+'-e+[]:ENV:_default' \
+'--env=[]:ENV:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':name:_default' \
+&& ret=0
+;;
+(run)
+_arguments "${_arguments_options[@]}" : \
+'--name=[Project name (defaults to \$ZPROJECT_NAME)]:NAME:_default' \
+'-e+[Environment (defaults to \$ZPROJECT_ENV)]:ENV:_default' \
+'--env=[Environment (defaults to \$ZPROJECT_ENV)]:ENV:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+':cmd:_default' \
+&& ret=0
+;;
+(scan)
+_arguments "${_arguments_options[@]}" : \
+'--name=[Project name (default\: derived from path)]:NAME:_default' \
+'--yes[Write the manifest without confirmation]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':path -- Path to scan:_default' \
+&& ret=0
+;;
+(envs)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'::name -- Project name (defaults to $ZPROJECT_NAME):_default' \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__project__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-project-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(find-path)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(stacks)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(stack-resolve)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(activate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(run)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(scan)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(envs)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(mr-fanout)
+_arguments "${_arguments_options[@]}" : \
+'-m+[Strategie de propagation]:MODE:((cherry\:"Cherry-pick le commit HEAD sur chaque branche cible"
+range\:"Cherry-pick un range <from>..HEAD sur chaque branche cible"
+patch\:"Capture le diff du worktree (staged+unstaged) et l'\''applique sur chaque branche cible"))' \
+'--mode=[Strategie de propagation]:MODE:((cherry\:"Cherry-pick le commit HEAD sur chaque branche cible"
+range\:"Cherry-pick un range <from>..HEAD sur chaque branche cible"
+patch\:"Capture le diff du worktree (staged+unstaged) et l'\''applique sur chaque branche cible"))' \
+'--from=[Base du range (mode range uniquement)]:FROM:_default' \
+'*-t+[Branches cibles (repete). Si absent, selection interactive]:TARGET:_default' \
+'*--target=[Branches cibles (repete). Si absent, selection interactive]:TARGET:_default' \
+'-T+[Titre de la MR/PR]:TITLE:_default' \
+'--title=[Titre de la MR/PR]:TITLE:_default' \
+'-D+[Description de la MR/PR (texte direct)]:DESCRIPTION:_default' \
+'--description=[Description de la MR/PR (texte direct)]:DESCRIPTION:_default' \
+'--description-file=[Description depuis un fichier]:PATH:_default' \
+'--branch-prefix=[Prefix custom du nom de branche (default\: git config user.name slugifie)]:BRANCH_PREFIX:_default' \
+'--pattern=[Pattern regex custom pour la detection des branches d'\''env (defaut\: devaz2|devaz|dev|qlfaz(-\[^/\]+)?|qlf|ppaz|pprd|prodaz|prod)]:PATTERN:_default' \
+'--all[Selectionner toutes les branches matching sans prompt]' \
+'--no-push[Ne pas push, uniquement creer les branches localement]' \
+'--no-mr[Push sans creer de MR]' \
+'-n[Afficher ce qui serait fait sans rien executer]' \
+'--dry-run[Afficher ce qui serait fait sans rien executer]' \
+'--draft[Creer la MR/PR en draft]' \
+'--strict[Arreter au premier echec (defaut\: continuer et resumer a la fin)]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
@@ -271,6 +581,118 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(bench)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(sync)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__help__sync_commands" \
+"*::: :->sync" \
+&& ret=0
+
+    case $state in
+    (sync)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-help-sync-command-$line[1]:"
+        case $line[1] in
+            (export)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(import)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(secrets)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(project)
+_arguments "${_arguments_options[@]}" : \
+":: :_zsh-env-cli__help__project_commands" \
+"*::: :->project" \
+&& ret=0
+
+    case $state in
+    (project)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zsh-env-cli-help-project-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(diff)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(find-path)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(stacks)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(stack-resolve)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(activate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(run)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(scan)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(envs)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(mr-fanout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (completions)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -296,6 +718,13 @@ _zsh-env-cli_commands() {
 'audit:Run security audit' \
 'context:Show current context' \
 'modules:Manage zsh_env modules' \
+'bench:Benchmark shell startup time' \
+'sync:Sync configuration between machines' \
+'update:Self-update zsh_env' \
+'secrets:Scan for leaked secrets' \
+'project:Manage projects (zproject)' \
+'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
+'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -306,10 +735,20 @@ _zsh-env-cli__audit_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli audit commands' commands "$@"
 }
+(( $+functions[_zsh-env-cli__bench_commands] )) ||
+_zsh-env-cli__bench_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli bench commands' commands "$@"
+}
 (( $+functions[_zsh-env-cli__completions_commands] )) ||
 _zsh-env-cli__completions_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli completions commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__config_commands] )) ||
+_zsh-env-cli__config_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli config commands' commands "$@"
 }
 (( $+functions[_zsh-env-cli__context_commands] )) ||
 _zsh-env-cli__context_commands() {
@@ -329,6 +768,13 @@ _zsh-env-cli__help_commands() {
 'audit:Run security audit' \
 'context:Show current context' \
 'modules:Manage zsh_env modules' \
+'bench:Benchmark shell startup time' \
+'sync:Sync configuration between machines' \
+'update:Self-update zsh_env' \
+'secrets:Scan for leaked secrets' \
+'project:Manage projects (zproject)' \
+'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
+'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -339,10 +785,20 @@ _zsh-env-cli__help__audit_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli help audit commands' commands "$@"
 }
+(( $+functions[_zsh-env-cli__help__bench_commands] )) ||
+_zsh-env-cli__help__bench_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help bench commands' commands "$@"
+}
 (( $+functions[_zsh-env-cli__help__completions_commands] )) ||
 _zsh-env-cli__help__completions_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli help completions commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__config_commands] )) ||
+_zsh-env-cli__help__config_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help config commands' commands "$@"
 }
 (( $+functions[_zsh-env-cli__help__context_commands] )) ||
 _zsh-env-cli__help__context_commands() {
@@ -383,6 +839,118 @@ _zsh-env-cli__help__modules__list_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli help modules list commands' commands "$@"
 }
+(( $+functions[_zsh-env-cli__help__mr-fanout_commands] )) ||
+_zsh-env-cli__help__mr-fanout_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help mr-fanout commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project_commands] )) ||
+_zsh-env-cli__help__project_commands() {
+    local commands; commands=(
+'list:List all known projects' \
+'config:Show resolved configuration for a project' \
+'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
+'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
+'find-path:Print project name whose path contains the given directory (or current dir)' \
+'stacks:List defined stacks' \
+'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
+'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
+'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
+'scan:Auto-fill a project manifest from a path' \
+'envs:List available environments for a project' \
+'status:Show active project status (reads shell env vars)' \
+    )
+    _describe -t commands 'zsh-env-cli help project commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__activate_commands] )) ||
+_zsh-env-cli__help__project__activate_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project activate commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__config_commands] )) ||
+_zsh-env-cli__help__project__config_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project config commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__diff_commands] )) ||
+_zsh-env-cli__help__project__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__doctor_commands] )) ||
+_zsh-env-cli__help__project__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project doctor commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__envs_commands] )) ||
+_zsh-env-cli__help__project__envs_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project envs commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__find-path_commands] )) ||
+_zsh-env-cli__help__project__find-path_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project find-path commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__list_commands] )) ||
+_zsh-env-cli__help__project__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__run_commands] )) ||
+_zsh-env-cli__help__project__run_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project run commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__scan_commands] )) ||
+_zsh-env-cli__help__project__scan_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project scan commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__stack-resolve_commands] )) ||
+_zsh-env-cli__help__project__stack-resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project stack-resolve commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__stacks_commands] )) ||
+_zsh-env-cli__help__project__stacks_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project stacks commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__project__status_commands] )) ||
+_zsh-env-cli__help__project__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help project status commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__secrets_commands] )) ||
+_zsh-env-cli__help__secrets_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help secrets commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__sync_commands] )) ||
+_zsh-env-cli__help__sync_commands() {
+    local commands; commands=(
+'export:Export configuration to JSON' \
+'import:Import configuration from JSON' \
+'diff:Compare local config with exported file' \
+    )
+    _describe -t commands 'zsh-env-cli help sync commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__sync__diff_commands] )) ||
+_zsh-env-cli__help__sync__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help sync diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__sync__export_commands] )) ||
+_zsh-env-cli__help__sync__export_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help sync export commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__sync__import_commands] )) ||
+_zsh-env-cli__help__sync__import_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help sync import commands' commands "$@"
+}
 (( $+functions[_zsh-env-cli__help__theme_commands] )) ||
 _zsh-env-cli__help__theme_commands() {
     local commands; commands=(
@@ -406,6 +974,11 @@ _zsh-env-cli__help__theme__current_commands() {
 _zsh-env-cli__help__theme__list_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli help theme list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__help__update_commands] )) ||
+_zsh-env-cli__help__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli help update commands' commands "$@"
 }
 (( $+functions[_zsh-env-cli__modules_commands] )) ||
 _zsh-env-cli__modules_commands() {
@@ -462,6 +1035,234 @@ _zsh-env-cli__modules__list_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli modules list commands' commands "$@"
 }
+(( $+functions[_zsh-env-cli__mr-fanout_commands] )) ||
+_zsh-env-cli__mr-fanout_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli mr-fanout commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project_commands] )) ||
+_zsh-env-cli__project_commands() {
+    local commands; commands=(
+'list:List all known projects' \
+'config:Show resolved configuration for a project' \
+'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
+'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
+'find-path:Print project name whose path contains the given directory (or current dir)' \
+'stacks:List defined stacks' \
+'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
+'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
+'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
+'scan:Auto-fill a project manifest from a path' \
+'envs:List available environments for a project' \
+'status:Show active project status (reads shell env vars)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli project commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__activate_commands] )) ||
+_zsh-env-cli__project__activate_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project activate commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__config_commands] )) ||
+_zsh-env-cli__project__config_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project config commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__diff_commands] )) ||
+_zsh-env-cli__project__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__doctor_commands] )) ||
+_zsh-env-cli__project__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project doctor commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__envs_commands] )) ||
+_zsh-env-cli__project__envs_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project envs commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__find-path_commands] )) ||
+_zsh-env-cli__project__find-path_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project find-path commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help_commands] )) ||
+_zsh-env-cli__project__help_commands() {
+    local commands; commands=(
+'list:List all known projects' \
+'config:Show resolved configuration for a project' \
+'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
+'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
+'find-path:Print project name whose path contains the given directory (or current dir)' \
+'stacks:List defined stacks' \
+'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
+'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
+'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
+'scan:Auto-fill a project manifest from a path' \
+'envs:List available environments for a project' \
+'status:Show active project status (reads shell env vars)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli project help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__activate_commands] )) ||
+_zsh-env-cli__project__help__activate_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help activate commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__config_commands] )) ||
+_zsh-env-cli__project__help__config_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help config commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__diff_commands] )) ||
+_zsh-env-cli__project__help__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__doctor_commands] )) ||
+_zsh-env-cli__project__help__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help doctor commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__envs_commands] )) ||
+_zsh-env-cli__project__help__envs_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help envs commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__find-path_commands] )) ||
+_zsh-env-cli__project__help__find-path_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help find-path commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__help_commands] )) ||
+_zsh-env-cli__project__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__list_commands] )) ||
+_zsh-env-cli__project__help__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__run_commands] )) ||
+_zsh-env-cli__project__help__run_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help run commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__scan_commands] )) ||
+_zsh-env-cli__project__help__scan_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help scan commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__stack-resolve_commands] )) ||
+_zsh-env-cli__project__help__stack-resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help stack-resolve commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__stacks_commands] )) ||
+_zsh-env-cli__project__help__stacks_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help stacks commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__help__status_commands] )) ||
+_zsh-env-cli__project__help__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project help status commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__list_commands] )) ||
+_zsh-env-cli__project__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__run_commands] )) ||
+_zsh-env-cli__project__run_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project run commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__scan_commands] )) ||
+_zsh-env-cli__project__scan_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project scan commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__stack-resolve_commands] )) ||
+_zsh-env-cli__project__stack-resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project stack-resolve commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__stacks_commands] )) ||
+_zsh-env-cli__project__stacks_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project stacks commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__project__status_commands] )) ||
+_zsh-env-cli__project__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli project status commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__secrets_commands] )) ||
+_zsh-env-cli__secrets_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli secrets commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync_commands] )) ||
+_zsh-env-cli__sync_commands() {
+    local commands; commands=(
+'export:Export configuration to JSON' \
+'import:Import configuration from JSON' \
+'diff:Compare local config with exported file' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli sync commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__diff_commands] )) ||
+_zsh-env-cli__sync__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__export_commands] )) ||
+_zsh-env-cli__sync__export_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync export commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__help_commands] )) ||
+_zsh-env-cli__sync__help_commands() {
+    local commands; commands=(
+'export:Export configuration to JSON' \
+'import:Import configuration from JSON' \
+'diff:Compare local config with exported file' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zsh-env-cli sync help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__help__diff_commands] )) ||
+_zsh-env-cli__sync__help__diff_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync help diff commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__help__export_commands] )) ||
+_zsh-env-cli__sync__help__export_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync help export commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__help__help_commands] )) ||
+_zsh-env-cli__sync__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync help help commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__help__import_commands] )) ||
+_zsh-env-cli__sync__help__import_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync help import commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__sync__import_commands] )) ||
+_zsh-env-cli__sync__import_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli sync import commands' commands "$@"
+}
 (( $+functions[_zsh-env-cli__theme_commands] )) ||
 _zsh-env-cli__theme_commands() {
     local commands; commands=(
@@ -516,6 +1317,11 @@ _zsh-env-cli__theme__help__list_commands() {
 _zsh-env-cli__theme__list_commands() {
     local commands; commands=()
     _describe -t commands 'zsh-env-cli theme list commands' commands "$@"
+}
+(( $+functions[_zsh-env-cli__update_commands] )) ||
+_zsh-env-cli__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'zsh-env-cli update commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_zsh-env-cli" ]; then

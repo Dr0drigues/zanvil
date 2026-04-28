@@ -93,7 +93,7 @@ k dev
 kube_azure
 
 # Cluster specifique
-kube_azure blg-dev
+kube_azure dev
 
 # Liste des clusters configures
 kube_azure_list
@@ -108,8 +108,8 @@ Les clusters sont definis dans la configuration du module kube :
 
 ```zsh
 _KUBE_AZ_CLUSTERS=(
-    "blg-dev:sub-org:rg-org-cluster-dev:aks-org-cluster-dev"
-    "blg-prd:sub-org:rg-org-cluster-prd:aks-org-cluster-prd"
+    "dev:my-subscription:my-rg-dev:my-aks-dev"
+    "prd:my-subscription:my-rg-prd:my-aks-prd"
 )
 ```
 

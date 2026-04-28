@@ -358,47 +358,51 @@ else
     log_warn "Script ssl-setup.sh non trouve, etape ignoree"
 fi
 
-# --- Detection Contexte Work ---
+# --- Detection Contexte Work (reseau interne) ---
 echo ""
-log_info "Detection du contexte Work..."
 
-BOULANGER_DETECTED="false"
-NEXUS_URL=""
+# URL de probe interne (definir ZSH_ENV_WORK_NEXUS_URL dans env.d/work.zsh ou env)
+NEXUS_URL="${ZSH_ENV_WORK_NEXUS_URL:-}"
+WORK_DETECTED="false"
 
-# Test d'acces au Nexus (timeout 2s, utilise le CA bundle si present)
-_install_curl_opts="-s --connect-timeout 2 --max-time 2"
-[[ -f "$HOME/.ssl/ca-bundle.pem" ]] && _install_curl_opts+=" --cacert $HOME/.ssl/ca-bundle.pem"
-if curl $_install_curl_opts -o /dev/null -w "%{http_code}" "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
-    log_success "Contexte Work detecte (Nexus accessible)"
-    BOULANGER_DETECTED="true"
+if [[ -n "$NEXUS_URL" ]]; then
+    log_info "Detection du contexte Work (probe: $NEXUS_URL)..."
+    _install_curl_opts="-s --connect-timeout 2 --max-time 2"
+    [[ -f "$HOME/.ssl/ca-bundle.pem" ]] && _install_curl_opts+=" --cacert $HOME/.ssl/ca-bundle.pem"
+    if curl $_install_curl_opts -o /dev/null -w "%{http_code}" "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
+        log_success "Contexte Work detecte (probe accessible)"
+        WORK_DETECTED="true"
 
-    # Si SOPS est configure et les fichiers en clair existent sans .enc
-    if command -v sops &>/dev/null && [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
-        BLG_DIR="$TARGET_DIR/work"
-        mkdir -p "$BLG_DIR"
+        # Si SOPS est configure et les fichiers en clair existent sans .enc
+        if command -v sops &>/dev/null && [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
+            WORK_DIR="$TARGET_DIR/work"
+            mkdir -p "$WORK_DIR"
 
-        # Chiffrer settings.xml si .enc n'existe pas
-        if [[ -f "$BLG_DIR/settings.xml" ]] && [[ ! -f "$BLG_DIR/settings.xml.enc" ]]; then
-            log_info "Chiffrement de settings.xml..."
-            if sops -e "$BLG_DIR/settings.xml" > "$BLG_DIR/settings.xml.enc" 2>/dev/null; then
-                log_success "settings.xml.enc cree"
-            else
-                log_warn "Echec du chiffrement de settings.xml"
+            # Chiffrer settings.xml si .enc n'existe pas
+            if [[ -f "$WORK_DIR/settings.xml" ]] && [[ ! -f "$WORK_DIR/settings.xml.enc" ]]; then
+                log_info "Chiffrement de settings.xml..."
+                if sops -e "$WORK_DIR/settings.xml" > "$WORK_DIR/settings.xml.enc" 2>/dev/null; then
+                    log_success "settings.xml.enc cree"
+                else
+                    log_warn "Echec du chiffrement de settings.xml"
+                fi
+            fi
+
+            # Chiffrer certificates_unix.sh si .enc n'existe pas
+            if [[ -f "$WORK_DIR/certificates_unix.sh" ]] && [[ ! -f "$WORK_DIR/certificates_unix.sh.enc" ]]; then
+                log_info "Chiffrement de certificates_unix.sh..."
+                if sops -e "$WORK_DIR/certificates_unix.sh" > "$WORK_DIR/certificates_unix.sh.enc" 2>/dev/null; then
+                    log_success "certificates_unix.sh.enc cree"
+                else
+                    log_warn "Echec du chiffrement de certificates_unix.sh"
+                fi
             fi
         fi
-
-        # Chiffrer certificates_unix.sh si .enc n'existe pas
-        if [[ -f "$BLG_DIR/certificates_unix.sh" ]] && [[ ! -f "$BLG_DIR/certificates_unix.sh.enc" ]]; then
-            log_info "Chiffrement de certificates_unix.sh..."
-            if sops -e "$BLG_DIR/certificates_unix.sh" > "$BLG_DIR/certificates_unix.sh.enc" 2>/dev/null; then
-                log_success "certificates_unix.sh.enc cree"
-            else
-                log_warn "Echec du chiffrement de certificates_unix.sh"
-            fi
-        fi
+    else
+        log_info "Hors contexte Work (mode personnel)"
     fi
 else
-    log_info "Hors contexte Work (mode personnel)"
+    log_info "Aucune URL de probe Work configuree (voir env.d/work.zsh)"
 fi
 
 # --- Configuration Interactive des Modules ---
@@ -550,6 +554,96 @@ else
     fi
 fi
 
+# --- Docker BuildKit (si module Docker actif) ---
+if [[ "$MODULE_DOCKER" = "true" ]]; then
+    if ! docker buildx version &>/dev/null 2>&1; then
+        log_info "Installation de docker-buildx (BuildKit)..."
+        install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
+
+        # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
+        if ! docker buildx version &>/dev/null 2>&1; then
+            log_info "Installation manuelle de docker-buildx..."
+            local buildx_version="v0.21.1"
+            local buildx_arch
+            case "$(uname -m)" in
+                x86_64)  buildx_arch="amd64" ;;
+                arm64|aarch64) buildx_arch="arm64" ;;
+                *) log_warn "Architecture non supportee pour buildx: $(uname -m)"; buildx_arch="" ;;
+            esac
+
+            if [[ -n "$buildx_arch" ]]; then
+                local buildx_os
+                case "$(uname -s)" in
+                    Darwin) buildx_os="darwin" ;;
+                    Linux)  buildx_os="linux" ;;
+                esac
+                local buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
+                local buildx_dir="$HOME/.docker/cli-plugins"
+                mkdir -p "$buildx_dir"
+                if curl -sSL "$buildx_url" -o "$buildx_dir/docker-buildx"; then
+                    chmod +x "$buildx_dir/docker-buildx"
+                    log_success "docker-buildx installe dans $buildx_dir"
+                else
+                    log_warn "Impossible de telecharger docker-buildx — BuildKit ne sera pas disponible"
+                fi
+            fi
+        fi
+    else
+        log_success "docker-buildx est deja installe."
+    fi
+
+    # --- Configuration Colima pour contexte Work ---
+    if [[ "$WORK_DETECTED" = "true" ]] && command -v colima &>/dev/null; then
+        local colima_config="$HOME/.colima/default/colima.yaml"
+        local colima_pool="${ZSH_ENV_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
+        local colima_pool_escaped="${colima_pool//\//\\/}"
+
+        if [[ -f "$colima_config" ]]; then
+            log_info "Configuration de Colima pour le contexte Work..."
+
+            # Docker daemon config (remplace docker: {})
+            if grep -q "^docker: {}" "$colima_config" 2>/dev/null; then
+                sed -i.bak "s/^docker: {}/docker:\\
+  debug: true\\
+  default-address-pools:\\
+    - base: \"${colima_pool_escaped}\"\\
+      size: 24\\
+  experimental: false\\
+  insecure-registries: []\\
+  registry-mirrors: []/" "$colima_config" && rm -f "${colima_config}.bak"
+                log_success "Docker daemon configure (address-pools, debug)"
+            else
+                log_info "Docker daemon deja configure dans colima.yaml"
+            fi
+
+            # Provision script pour injecter le CA corporate dans la VM
+            if grep -q "^provision: null" "$colima_config" 2>/dev/null || grep -q "^provision: \[\]" "$colima_config" 2>/dev/null; then
+                sed -i.bak '/^provision: .*$/c\
+provision:\
+  - mode: system\
+    script: |\
+      CA_BUNDLE="/Users/'"$USER"'/.ssl/ca-bundle.pem"\
+      DEST="/usr/local/share/ca-certificates/corporate-ca.crt"\
+      if [ -f "$CA_BUNDLE" ]; then\
+        if ! cmp -s "$CA_BUNDLE" "$DEST" 2>/dev/null; then\
+          cp "$CA_BUNDLE" "$DEST"\
+          update-ca-certificates\
+          systemctl restart docker\
+        fi\
+      fi' "$colima_config" && rm -f "${colima_config}.bak"
+                log_success "Provision CA corporate configure"
+            else
+                log_info "Provision deja configure dans colima.yaml"
+            fi
+
+            echo ""
+            log_warn "Redemarrer Colima pour appliquer : colima stop && colima start"
+        else
+            log_info "Colima detecte mais pas encore initialise (lancer 'colima start' d'abord)"
+        fi
+    fi
+fi
+
 # Generer le fichier config.zsh
 CONFIG_FILE="$TARGET_DIR/config.zsh"
 echo ""
@@ -583,7 +677,7 @@ ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
 ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
 
 # Contexte Work (detecte a l'installation)
-ZSH_ENV_BOULANGER_DETECTED=$BOULANGER_DETECTED
+ZSH_ENV_WORK_DETECTED=$WORK_DETECTED
 EOF
 
 log_success "Configuration sauvegardee"
