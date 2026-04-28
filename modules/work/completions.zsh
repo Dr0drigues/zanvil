@@ -4,9 +4,9 @@
 
 (( $+functions[compdef] )) || return 0
 
-_blg_fetch_logs() {
+_work_fetch_logs() {
     _arguments \
-        '--app[Application a interroger (ex: bff-frontcommerce)]:app:' \
+        '--app[Application a interroger]:app:' \
         '--since[Plage relative: Xm/Xh/Xd (ex: 30m, 2h, 7d)]:duration:' \
         '--from[Debut UTC+1 (YYYY-mm-ddTHH:MM:SS)]:date:' \
         '--to[Fin UTC+1 (YYYY-mm-ddTHH:MM:SS)]:date:' \
@@ -14,4 +14,4 @@ _blg_fetch_logs() {
         '--format[Format de sortie]:format:(ndjson json text)' \
         '(-h --help)'{-h,--help}'[Afficher l aide]'
 }
-compdef _blg_fetch_logs blg_fetch_logs
+compdef _work_fetch_logs work_fetch_logs

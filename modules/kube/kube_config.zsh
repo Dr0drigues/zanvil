@@ -114,7 +114,7 @@ _kube_is_loaded() {
 }
 
 # Resout un alias de contexte kube vers le nom complet
-# Usage: _kube_resolve_alias "blg-dev" -> "aks-org-cluster-dev"
+# Usage: _kube_resolve_alias "dev" -> "aks-org-cluster-dev"
 _kube_resolve_alias() {
     local alias_name="$1"
     [[ ! -f "$KUBE_ALIASES_FILE" ]] && echo "$alias_name" && return
@@ -474,18 +474,10 @@ kube_encrypt() {
 # Format: "label:subscription:resource-group:cluster-name"
 # Definir ZSH_ENV_KUBE_AZ_CLUSTERS dans config.zsh pour personnaliser
 if [[ -z "${_KUBE_AZ_CLUSTERS+x}" ]]; then
-    _KUBE_AZ_CLUSTERS=(
-        # BLG
-        "blg-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
-        "blg-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
-        "blg-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
-        "blg-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
-        # EDT
-        "edt-dev:sub-org-cluster:rg-org-cluster-dev:aks-org-cluster-dev"
-        "edt-qlf:sub-org-cluster:rg-org-cluster-qlf:aks-org-cluster-qlf"
-        "edt-pprd:sub-org-cluster:rg-org-cluster-pprd:aks-org-cluster-pprd"
-        "edt-prd:sub-org-cluster:rg-org-cluster-prd:aks-org-cluster-prd"
-    )
+    # Aucun cluster preconfigure par defaut.
+    # Definir _KUBE_AZ_CLUSTERS dans env.d/kube.zsh ou config.zsh.
+    # Format : "label:subscription:resource-group:cluster-name"
+    _KUBE_AZ_CLUSTERS=()
 fi
 
 # Verifie les dependances Azure

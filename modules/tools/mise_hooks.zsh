@@ -73,7 +73,7 @@ _mise_hook_java() {
     local java_home="$_MISE_INSTALLS_DIR/java/$version"
 
     if _mise_is_configured java "$version"; then
-        _ui_msg_info "Java $version deja configure Work"
+        _ui_msg_info "Java $version deja configure"
         return 0
     fi
 
@@ -88,7 +88,7 @@ _mise_hook_java() {
         return 1
     fi
 
-    echo -e "${_ui_blue}[mise-hook]${_ui_nc} Import des certificats Work pour Java $version..."
+    echo -e "${_ui_blue}[mise-hook]${_ui_nc} Import des certificats pour Java $version..."
 
     (
         export JAVA_HOME="$java_home"
@@ -201,9 +201,9 @@ mise() {
     local cmd=$1
 
     # Verifier si on est en contexte Work
-    local in_blg_context=false
+    local in_work_context=false
     if typeset -f work_is_context > /dev/null 2>&1 && work_is_context; then
-        in_blg_context=true
+        in_work_context=true
     fi
 
     # Appeler la commande mise originale
@@ -211,7 +211,7 @@ mise() {
     local mise_exit_code=$?
 
     # Si l'installation a reussi et qu'on est en contexte Work
-    if [[ $mise_exit_code -eq 0 && "$cmd" == "install" && "$in_blg_context" == "true" ]]; then
+    if [[ $mise_exit_code -eq 0 && "$cmd" == "install" && "$in_work_context" == "true" ]]; then
         local has_tool_args=false
         local args=("$@")
         shift  # remove "install"

@@ -5,9 +5,13 @@
 # ==============================================================================
 
 # --- Configuration ---
-GITLAB_BASE_DOMAIN="${GITLAB_BASE_DOMAIN:-gitlab.example.com}"
+GITLAB_BASE_DOMAIN="${GITLAB_BASE_DOMAIN:-}"
+if [[ -z "$GITLAB_BASE_DOMAIN" ]]; then
+    echo "Erreur: GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)" >&2
+    exit 1
+fi
 GITLAB_API_URL="https://${GITLAB_BASE_DOMAIN}/api/v4"
-IGNORE_SSL_ERRORS="${GITLAB_IGNORE_SSL:-true}"
+IGNORE_SSL_ERRORS="${GITLAB_IGNORE_SSL:-false}"
 
 # --- Couleurs & Styles ---
 RED=$'\033[0;31m'

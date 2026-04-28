@@ -8,7 +8,7 @@ usage() {
   Exporte les logs Elasticsearch pour l'application donnée.
 
   OPTIONS:
-    --app         APP          Application à interroger (ex: bff-frontcommerce)
+    --app         APP          Application à interroger
     --since       DURATION     Plage relative: Xm (minutes), Xh (heures), Xd (jours)
                                Ex: --since 30m, --since 2h, --since 7d
     --from        FROM_DATE    Début de plage en UTC+1 (Europe/Paris hiver)
@@ -131,8 +131,12 @@ else
   LTE=$(epoch_to_iso "$TO_EPOCH")
 fi
 
-ES_URL="${ES_URL:-}"
-INDEX="es-apis-*"
+ES_URL="${ES_URL:-${ZSH_ENV_WORK_ES_URL:-}}"
+if [[ -z "$ES_URL" ]]; then
+  echo "Erreur: ES_URL non defini (voir env.d/work.zsh ou ZSH_ENV_WORK_ES_URL)"
+  exit 1
+fi
+INDEX="${ES_INDEX:-es-apis-*}"
 BATCH_SIZE=10000
 
 if [[ -n "$TARGET_DIR" ]]; then

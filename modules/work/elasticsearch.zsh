@@ -1,10 +1,10 @@
 # ==============================================================================
-# Work Elasticsearch — Fetch logs depuis es-internal
+# Work Elasticsearch — Fetch logs depuis l'Elasticsearch interne
 # ==============================================================================
 
 _WORK_FETCH_LOGS_SCRIPT="${ZSH_ENV_DIR:-$HOME/.zsh_env}/modules/work/fetch_es_logs.sh"
 
-blg_fetch_logs() {
+work_fetch_logs() {
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
         _ui_msg_fail "Script introuvable ou non executable: $_WORK_FETCH_LOGS_SCRIPT"
         return 1
