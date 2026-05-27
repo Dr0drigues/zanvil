@@ -1,0 +1,102 @@
+# themes/tokyo-light-pro/k9s-skin.yaml
+# Skin k9s aligné sur la palette tokyo-light-pro (haut contraste)
+k9s:
+  body:
+    fgColor: '#383e5d'
+    bgColor: '#e1e2e7'
+    logoColor: '#2e7de9'
+  prompt:
+    fgColor: '#383e5d'
+    bgColor: '#e1e2e7'
+    suggestColor: '#007a99'
+  info:
+    fgColor: '#2e7de9'
+    bgColor: '#e1e2e7'
+  dialog:
+    fgColor: '#383e5d'
+    bgColor: '#d5d6db'
+    buttonFgColor: '#e1e2e7'
+    buttonBgColor: '#2e7de9'
+    buttonFocusFgColor: '#e1e2e7'
+    buttonFocusBgColor: '#488348'
+    labelFgColor: '#8e6c2a'
+    fieldFgColor: '#383e5d'
+  frame:
+    border:
+      fgColor: '#969cb4'
+      focusColor: '#2e7de9'
+    menu:
+      fgColor: '#383e5d'
+      keyColor: '#007a99'
+      numKeyColor: '#488348'
+    crumbs:
+      fgColor: '#e1e2e7'
+      bgColor: '#2e7de9'
+      activeColor: '#488348'
+    status:
+      newColor: '#488348'
+      modifyColor: '#2e7de9'
+      addColor: '#488348'
+      pendingColor: '#8e6c2a'
+      errorColor: '#8f4961'
+      highlightColor: '#007a99'
+      killColor: '#8f4961'
+      completedColor: '#969cb4'
+    title:
+      fgColor: '#007a99'
+      bgColor: '#e1e2e7'
+      highlightColor: '#8e6c2a'
+      counterColor: '#488348'
+      filterColor: '#7669d6'
+  views:
+    charts:
+      bgColor: '#e1e2e7'
+      defaultDialColors:
+        - '#2e7de9'
+        - '#8f4961'
+      defaultChartColors:
+        - '#2e7de9'
+        - '#8f4961'
+    table:
+      fgColor: '#383e5d'
+      bgColor: '#e1e2e7'
+      cursorFgColor: '#e1e2e7'
+      cursorBgColor: '#2e7de9'
+      markColor: '#8e6c2a'
+      header:
+        fgColor: '#007a99'
+        bgColor: '#e1e2e7'
+        sorterColor: '#488348'
+    xray:
+      fgColor: '#383e5d'
+      bgColor: '#e1e2e7'
+      cursorColor: '#2e7de9'
+      graphicColor: '#2e7de9'
+      showIcons: false
+    yaml:
+      keyColor: '#2e7de9'
+      colonColor: '#969cb4'
+      valueColor: '#488348'
+      headerColor: '#007a99'
+    logs:
+      fgColor: '#383e5d'
+      bgColor: '#e1e2e7'
+      indicator:
+        fgColor: '#2e7de9'
+        bgColor: '#e1e2e7'
+        toggleOnColor: '#488348'
+        toggleOffColor: '#8f4961'
+    help:
+      fgColor: '#383e5d'
+      bgColor: '#e1e2e7'
+      keyColor: '#007a99'
+      numKeyColor: '#488348'
+      sectionColor: '#7669d6'
+    filter:
+      fgColor: '#383e5d'
+      bgColor: '#e1e2e7'
+      labelColor: '#2e7de9'
+      fieldColor: '#488348'
+      inverse:
+        fgColor: '#e1e2e7'
+        bgColor: '#8e6c2a'
