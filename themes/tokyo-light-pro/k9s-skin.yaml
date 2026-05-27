@@ -43,9 +43,9 @@ k9s:
       killColor: '#8f4961'
       completedColor: '#5e6272'
     title:
-      fgColor: '#007a99'
+      fgColor: '#005f7a'
       bgColor: '#f0eff5'
-      highlightColor: '#8e6c2a'
+      highlightColor: '#6c4f00'
       counterColor: '#488348'
       filterColor: '#7669d6'
   views:
