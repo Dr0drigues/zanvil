@@ -1,0 +1,31 @@
+# k9s hotkeys — raccourcis de navigation rapide
+# Déployer avec : kube_k9s_setup
+hotKeys:
+  shift-p:
+    shortCut: Shift-P
+    description: Pods
+    command: pods
+  shift-d:
+    shortCut: Shift-D
+    description: Deployments
+    command: deployments
+  shift-s:
+    shortCut: Shift-S
+    description: Services
+    command: services
+  shift-c:
+    shortCut: Shift-C
+    description: ConfigMaps
+    command: configmaps
+  shift-e:
+    shortCut: Shift-E
+    description: Events
+    command: events
+  shift-n:
+    shortCut: Shift-N
+    description: Namespaces
+    command: namespaces
+  shift-i:
+    shortCut: Shift-I
+    description: Ingresses
+    command: ingresses

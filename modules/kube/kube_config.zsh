@@ -1141,6 +1141,42 @@ k() {
     k9s "${k9s_args[@]}"
 }
 
+# Deploie la config k9s depuis le repo (~/.config/k9s/hotkeys.yaml).
+# Appliquer le skin courant si un theme est actif.
+kube_k9s_setup() {
+    if ! command -v k9s &>/dev/null; then
+        _ui_msg_fail "k9s n'est pas installe"
+        return 1
+    fi
+
+    local k9s_dir="$HOME/.config/k9s"
+    mkdir -p "$k9s_dir/skins"
+
+    _ui_header "k9s Setup"
+
+    # Deployer hotkeys
+    local hotkeys_src="$ZSH_ENV_DIR/k9s/hotkeys.yaml"
+    if [[ -f "$hotkeys_src" ]]; then
+        cp "$hotkeys_src" "$k9s_dir/hotkeys.yaml"
+        _ui_msg_ok "hotkeys.yaml deploye"
+    else
+        _ui_msg_warn "k9s/hotkeys.yaml absent dans $ZSH_ENV_DIR"
+    fi
+
+    # Appliquer le skin du theme actif
+    local current_theme=""
+    [[ -f "$ZSH_ENV_DIR/.current_theme" ]] && current_theme=$(<"$ZSH_ENV_DIR/.current_theme")
+    if [[ -n "$current_theme" ]]; then
+        _zsh_env_k9s_apply_skin "$current_theme"
+        _ui_msg_ok "skin '$current_theme' applique"
+    else
+        _ui_msg_warn "Aucun theme actif — lancez 'zsh-env-theme <nom>' pour appliquer un skin"
+    fi
+
+    _ui_separator
+    _ui_msg_info "Config k9s dans $k9s_dir"
+}
+
 # Affiche les logs d'un pod avec selection interactive fzf si besoin.
 # Usage: klog [pod] [container] [--follow] [--no-follow] [--previous] [--tail N] [-n ns]
 klog() {
@@ -1242,6 +1278,7 @@ Kube Config Manager - Commandes disponibles:
   kube_ns          Switch de namespace (interactif)
   k [ctx] [ns]     Ouvre k9s (supporte les alias, "all" pour tous ns)
   klog [pod] [ctn] Logs interactifs (fzf) — --follow, --previous, --tail N, -n ns
+  kube_k9s_setup   Deploie hotkeys + skin k9s depuis le repo
   kube_status      Affiche les configs actuellement chargees
   kube_list        Liste toutes les configs disponibles
   kube_add         Ajoute une config a KUBECONFIG
