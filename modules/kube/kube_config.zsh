@@ -1149,7 +1149,8 @@ kube_k9s_setup() {
         return 1
     fi
 
-    local k9s_dir="$HOME/.config/k9s"
+    local k9s_dir
+    k9s_dir=$(_k9s_config_dir)
     mkdir -p "$k9s_dir/skins"
 
     _ui_header "k9s Setup"

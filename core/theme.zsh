@@ -9,6 +9,15 @@
 # zsh-env-theme : Gestion des themes Starship
 # ==============================================================================
 
+# Retourne le dossier de config k9s selon la plateforme.
+_k9s_config_dir() {
+    if [[ "$OSTYPE" == darwin* ]]; then
+        echo "$HOME/Library/Application Support/k9s"
+    else
+        echo "${XDG_CONFIG_HOME:-$HOME/.config}/k9s"
+    fi
+}
+
 # Applique le skin k9s correspondant au theme active.
 # Silent si k9s absent, ZSH_ENV_K9S_AUTO_THEME=false, ou pas de skin pour ce theme.
 _zsh_env_k9s_apply_skin() {
@@ -18,13 +27,15 @@ _zsh_env_k9s_apply_skin() {
     local skin_src="$ZSH_ENV_DIR/themes/$theme/k9s-skin.yaml"
     [[ -f "$skin_src" ]] || return 0
 
-    local k9s_skins_dir="$HOME/.config/k9s/skins"
-    local k9s_config="$HOME/.config/k9s/config.yaml"
+    local k9s_dir
+    k9s_dir=$(_k9s_config_dir)
+    local k9s_skins_dir="$k9s_dir/skins"
+    local k9s_config="$k9s_dir/config.yaml"
     mkdir -p "$k9s_skins_dir"
     cp "$skin_src" "$k9s_skins_dir/${theme}.yaml"
 
     if [[ ! -f "$k9s_config" ]]; then
-        mkdir -p "$(dirname "$k9s_config")"
+        mkdir -p "$k9s_dir"
         cat > "$k9s_config" << EOF
 k9s:
   liveViewAutoRefresh: true
@@ -39,6 +50,13 @@ EOF
             sed -i '' "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
         else
             sed -i "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
+        fi
+    else
+        # Config existante sans skin: → injecter après noIcons: dans la section ui:
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+        else
+            sed -i "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
         fi
     fi
 }
