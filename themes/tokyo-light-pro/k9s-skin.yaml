@@ -37,7 +37,7 @@ k9s:
       newColor: '#488348'
       modifyColor: '#2e7de9'
       addColor: '#488348'
-      pendingColor: '#8e6c2a'
+      pendingColor: '#6c4f00'
       errorColor: '#8f4961'
       highlightColor: '#005f7a'
       killColor: '#8f4961'
