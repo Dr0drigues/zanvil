@@ -20,8 +20,9 @@ jobs:
 
       - name: Determine bump type from branch name
         id: bump
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
           echo "Source branch: $BRANCH"
 
           if [[ "$BRANCH" == hotfix/* ]]; then
