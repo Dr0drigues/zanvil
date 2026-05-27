@@ -4,7 +4,7 @@ k9s:
   body:
     fgColor: '#383e5d'
     bgColor: '#f0eff5'
-    logoColor: '#007a99'
+    logoColor: '#004d60'
   prompt:
     fgColor: '#383e5d'
     bgColor: '#f0eff5'
@@ -39,9 +39,9 @@ k9s:
       addColor: '#488348'
       pendingColor: '#8e6c2a'
       errorColor: '#8f4961'
-      highlightColor: '#007a99'
+      highlightColor: '#005f7a'
       killColor: '#8f4961'
-      completedColor: '#969cb4'
+      completedColor: '#5e6272'
     title:
       fgColor: '#007a99'
       bgColor: '#f0eff5'
@@ -75,7 +75,7 @@ k9s:
       showIcons: false
     yaml:
       keyColor: '#2e7de9'
-      colonColor: '#969cb4'
+      colonColor: '#6e7380'
       valueColor: '#488348'
       headerColor: '#007a99'
     logs:
