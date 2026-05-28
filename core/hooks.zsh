@@ -182,3 +182,12 @@ bindkey '^[[A' history-beginning-search-backward-end  # Fleche haut
 bindkey '^[[B' history-beginning-search-forward-end   # Fleche bas
 bindkey '^[OA' history-beginning-search-backward-end  # Fleche haut (mode application)
 bindkey '^[OB' history-beginning-search-forward-end   # Fleche bas (mode application)
+
+# =======================================================
+# ATUIN (Historique enrichi — remplace Ctrl+R de fzf)
+# =======================================================
+# Chargé en dernier pour que Ctrl+R override celui de fzf.
+# --disable-up-arrow : les flèches ↑↓ restent en recherche par préfixe.
+if [[ "${ZSH_ENV_MODULE_ATUIN:-}" == "true" ]] && command -v atuin &>/dev/null; then
+    eval "$(atuin init zsh --disable-up-arrow)"
+fi
