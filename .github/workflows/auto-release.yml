@@ -1,0 +1,71 @@
+name: Auto Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Determine bump type from branch name
+        id: bump
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          echo "Source branch: $BRANCH"
+
+          if [[ "$BRANCH" == hotfix/* ]]; then
+            echo "type=patch" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == feature/* ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "Branch '$BRANCH' does not match feature/* or hotfix/* — skipping release."
+            echo "type=skip" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate new version
+        id: version
+        if: steps.bump.outputs.type != 'skip'
+        run: |
+          CURRENT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION=${CURRENT#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          case "${{ steps.bump.outputs.type }}" in
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "previous=$CURRENT" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_TAG (was $CURRENT)"
+
+      - name: Create git tag
+        if: steps.bump.outputs.type != 'skip'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        if: steps.bump.outputs.type != 'skip'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            --notes-start-tag "${{ steps.version.outputs.previous }}"

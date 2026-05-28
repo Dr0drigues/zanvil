@@ -44,8 +44,7 @@ while [[ $# -gt 0 ]]; do
             echo "    -h, --help     Affiche cette aide"
             echo ""
             echo -e "${BOLD}CERTIFICATS DETECTES${NC}"
-            echo "    - Enterprise-Root-CA  (DC=com, DC=htm-group)"
-            echo "    - Enterprise-Sub-CA   (DC=com, DC=htm-group)"
+            echo "    Issuers charges depuis ZSH_ENV_ENTERPRISE_CA_ISSUERS (env.d/work.zsh)"
             exit 0
             ;;
         *) log_error "Option inconnue: $1"; exit 1 ;;
@@ -58,10 +57,12 @@ BUNDLE_FILE="$SSL_DIR/ca-bundle.pem"
 ENTERPRISE_DIR="$SSL_DIR/enterprise"
 
 # Issuers entreprise a rechercher (CN exact)
-ENTERPRISE_ISSUERS=(
-    "Enterprise-Root-CA"
-    "Enterprise-Sub-CA"
-)
+# Configurer ZSH_ENV_ENTERPRISE_CA_ISSUERS dans env.d/work.zsh (valeurs separees par ':')
+if [[ -n "${ZSH_ENV_ENTERPRISE_CA_ISSUERS:-}" ]]; then
+    IFS=':' read -ra ENTERPRISE_ISSUERS <<< "$ZSH_ENV_ENTERPRISE_CA_ISSUERS"
+else
+    ENTERPRISE_ISSUERS=()
+fi
 
 # --- Fonctions de detection ---
 

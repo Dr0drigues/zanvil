@@ -86,3 +86,26 @@ _k_k9s() {
     esac
 }
 compdef _k_k9s k
+
+_klog() {
+    local current_ns
+    current_ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+    current_ns="${current_ns:-default}"
+
+    local -a pod_completions=()
+    if command -v kubectl &>/dev/null; then
+        pod_completions=(${(f)"$(kubectl get pods -n "$current_ns" \
+            --no-headers \
+            -o custom-columns='NAME:.metadata.name' 2>/dev/null)"})
+    fi
+
+    _arguments \
+        '(-f --follow)'{-f,--follow}'[suivre les logs en temps reel]' \
+        '--no-follow[afficher et quitter sans suivre]' \
+        '(-p --previous)'{-p,--previous}'[logs du container precedent]' \
+        '(-n --namespace)'{-n,--namespace}'[namespace cible]:namespace:($(kubectl get namespaces -o jsonpath="{.items[*].metadata.name}" 2>/dev/null))' \
+        '--tail[nombre de lignes]:lignes:(20 50 100 500 1000)' \
+        '1:pod:(${pod_completions[@]})' \
+        '2:container:($(kubectl get pod ${words[2]} -n '"$current_ns"' -o jsonpath="{.spec.containers[*].name}" 2>/dev/null))'
+}
+compdef _klog klog

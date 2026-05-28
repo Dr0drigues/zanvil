@@ -1,0 +1,54 @@
+# k9s plugins — raccourcis vers outils externes
+# Déployer avec : kube_k9s_setup
+# Syntaxe : les variables ($NAME, $NAMESPACE, $CONTEXT, $POD) sont substituées par k9s
+# Pattern bash -c : '"$@" | pipe' suivi de dummy-arg puis les args réels
+plugins:
+  # Logs JSON depuis un pod (toutes les containers)
+  log-json-pod:
+    shortCut: Shift-L
+    description: Logs JSON formatés (humanlog)
+    scopes:
+      - po
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
+      - dummy-arg
+      - kubectl
+      - logs
+      - $NAME
+      - -n
+      - $NAMESPACE
+      - --context
+      - $CONTEXT
+      - --tail
+      - "500"
+      - --all-containers=true
+
+  # Logs JSON depuis une container spécifique
+  # Note: dans le scope containers, $NAME = container, $POD = pod
+  log-json-container:
+    shortCut: Shift-L
+    description: Logs JSON formatés (humanlog)
+    scopes:
+      - containers
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
+      - dummy-arg
+      - kubectl
+      - logs
+      - -c
+      - $NAME
+      - $POD
+      - -n
+      - $NAMESPACE
+      - --context
+      - $CONTEXT
+      - --tail
+      - "500"

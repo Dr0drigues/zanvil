@@ -11,3 +11,9 @@ export ZSH_ENV_WORK_ES_URL="${ZSH_ENV_WORK_ES_URL:-}"
 export ES_USER="${ES_USER:-}"
 # ES_PASSWORD a definir dans ~/.secrets ou via SOPS, jamais ici en clair
 # export ES_PASSWORD=""
+
+# PKI entreprise — URL du bundle de certificats (certificates_unix.sh)
+export ZSH_ENV_WORK_PKI_URL="${ZSH_ENV_WORK_PKI_URL:-}"
+
+# CA issuers SSL — noms CN des CAs entreprise, separes par ':' (ssl-setup.sh)
+export ZSH_ENV_ENTERPRISE_CA_ISSUERS="${ZSH_ENV_ENTERPRISE_CA_ISSUERS:-}"
