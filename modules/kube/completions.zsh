@@ -105,6 +105,10 @@ _klog() {
         '(-p --previous)'{-p,--previous}'[logs du container precedent]' \
         '(-n --namespace)'{-n,--namespace}'[namespace cible]:namespace:($(kubectl get namespaces -o jsonpath="{.items[*].metadata.name}" 2>/dev/null))' \
         '--tail[nombre de lignes]:lignes:(20 50 100 500 1000)' \
+        '(-g --grep)'{-g,--grep}'[filtrer par regex]:pattern:' \
+        '(-A --all)'{-A,--all}'[logs de tous les pods (meme label app=)]' \
+        '(-t --timestamps)'{-t,--timestamps}'[afficher les timestamps kubectl]' \
+        '(-o --save)'{-o,--save}'[sauvegarder dans un fichier]:file:_files' \
         '1:pod:(${pod_completions[@]})' \
         '2:container:($(kubectl get pod ${words[2]} -n '"$current_ns"' -o jsonpath="{.spec.containers[*].name}" 2>/dev/null))'
 }
