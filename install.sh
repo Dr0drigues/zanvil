@@ -110,32 +110,6 @@ if [[ "${CHECK_MODE:-false}" = true ]]; then
     exit 0
 fi
 
-# --- Installation optionnelle des outils modules/tools/* ---
-# Si un module est activé dans config.zsh mais que le binaire est absent, on installe.
-_config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
-if [[ -f "${_config_file}" ]]; then
-    # Format: "GUARD_VAR:binary:brew_pkg:apt_pkg:dnf_pkg"
-    _optional_tools=(
-        "ZSH_ENV_MODULE_ATUIN:atuin:atuin:atuin:atuin"
-        "ZSH_ENV_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
-        "ZSH_ENV_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
-    )
-    for _entry in "${_optional_tools[@]}"; do
-        _guard=$(echo "$_entry" | cut -d: -f1)
-        _bin=$(echo "$_entry"   | cut -d: -f2)
-        _brew=$(echo "$_entry"  | cut -d: -f3)
-        _apt=$(echo "$_entry"   | cut -d: -f4)
-        _dnf=$(echo "$_entry"   | cut -d: -f5)
-        _val=$(grep "^${_guard}=" "${_config_file}" 2>/dev/null | cut -d= -f2 | tr -d '"'"'"' ')
-        if [[ "${_val}" == "true" ]] && ! command -v "${_bin}" &>/dev/null; then
-            log_warn "${_bin} requis par ${_guard} mais absent — installation..."
-            install_tool "${_bin}" "${_brew}" "${_apt}" "${_dnf}"
-        fi
-    done
-    unset _entry _guard _bin _brew _apt _dnf _val _optional_tools
-fi
-unset _config_file
-
 # --- Détection OS & Package Manager ---
 OS="$(uname -s)"
 PKG_MANAGER=""
@@ -269,6 +243,31 @@ install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
 install_tool "kubelogin"  "kubelogin"   ""            ""
 install_tool "az"         "azure-cli"   ""            ""
 install_tool "helm"       "helm"        "helm"        "helm"
+
+# --- Outils optionnels modules/tools/* ---
+# Installés automatiquement si le module est activé dans config.zsh mais le binaire absent.
+_config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+if [[ -f "${_config_file}" ]]; then
+    _optional_tools=(
+        "ZSH_ENV_MODULE_ATUIN:atuin:atuin:atuin:atuin"
+        "ZSH_ENV_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
+        "ZSH_ENV_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
+    )
+    for _entry in "${_optional_tools[@]}"; do
+        _guard=$(echo "$_entry" | cut -d: -f1)
+        _bin=$(echo "$_entry"   | cut -d: -f2)
+        _brew=$(echo "$_entry"  | cut -d: -f3)
+        _apt=$(echo "$_entry"   | cut -d: -f4)
+        _dnf=$(echo "$_entry"   | cut -d: -f5)
+        _val=$(grep "^${_guard}=" "${_config_file}" 2>/dev/null | cut -d= -f2 | tr -d '"'"'"' ')
+        if [[ "${_val}" == "true" ]] && ! command -v "${_bin}" &>/dev/null; then
+            log_warn "${_bin} requis par ${_guard} mais absent — installation..."
+            install_tool "${_bin}" "${_brew}" "${_apt}" "${_dnf}"
+        fi
+    done
+    unset _entry _guard _bin _brew _apt _dnf _val _optional_tools
+fi
+unset _config_file
 
 # --- Installation manuelle pour les outils souvent absents d'APT/DNF ---
 
