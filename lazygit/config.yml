@@ -8,7 +8,6 @@ git:
 
 gui:
   showIcons: true
-  nerdFontsVersion: "3"
   border: rounded
   expandFocusedSidePanel: true
   mouseEvents: true
