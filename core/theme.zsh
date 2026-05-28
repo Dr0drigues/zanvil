@@ -8,6 +8,59 @@
 # ==============================================================================
 # zsh-env-theme : Gestion des themes Starship
 # ==============================================================================
+
+# Retourne le dossier de config k9s selon la plateforme.
+_k9s_config_dir() {
+    if [[ "$OSTYPE" == darwin* ]]; then
+        echo "$HOME/Library/Application Support/k9s"
+    else
+        echo "${XDG_CONFIG_HOME:-$HOME/.config}/k9s"
+    fi
+}
+
+# Applique le skin k9s correspondant au theme active.
+# Silent si k9s absent, ZSH_ENV_K9S_AUTO_THEME=false, ou pas de skin pour ce theme.
+_zsh_env_k9s_apply_skin() {
+    local theme="$1"
+    [[ "${ZSH_ENV_K9S_AUTO_THEME:-true}" == "false" ]] && return 0
+    command -v k9s &>/dev/null || return 0
+    local skin_src="$ZSH_ENV_DIR/themes/$theme/k9s-skin.yaml"
+    [[ -f "$skin_src" ]] || return 0
+
+    local k9s_dir
+    k9s_dir=$(_k9s_config_dir)
+    local k9s_skins_dir="$k9s_dir/skins"
+    local k9s_config="$k9s_dir/config.yaml"
+    mkdir -p "$k9s_skins_dir"
+    cp "$skin_src" "$k9s_skins_dir/${theme}.yaml"
+
+    if [[ ! -f "$k9s_config" ]]; then
+        mkdir -p "$k9s_dir"
+        cat > "$k9s_config" << EOF
+k9s:
+  liveViewAutoRefresh: true
+  refreshRate: 2
+  ui:
+    reactive: false
+    noIcons: false
+    skin: $theme
+EOF
+    elif grep -q "^\s*skin:" "$k9s_config"; then
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
+        else
+            sed -i "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
+        fi
+    else
+        # Config existante sans skin: → injecter après noIcons: dans la section ui:
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+        else
+            sed -i "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+        fi
+    fi
+}
+
 zsh-env-theme() {
     # Intercepter preview et auto avant delegation CLI
     if [[ "$1" == "preview" ]]; then
@@ -34,6 +87,7 @@ zsh-env-theme() {
         if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
             local _p="$ZSH_ENV_DIR/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
+            _zsh_env_k9s_apply_skin "$_theme_name"
         fi
         return $rc
     fi
@@ -129,6 +183,7 @@ zsh-env-theme() {
     else
         _ui_tag_ok "Theme '$theme' applique"
     fi
+    _zsh_env_k9s_apply_skin "$theme"
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
 
