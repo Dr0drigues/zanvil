@@ -14,7 +14,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | /opt/homebrew/bin/humanlog --color=light --skip trace_id --skip span_id --skip trace_flags --skip logger_name | less -R +G'
+      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
       - dummy-arg
       - kubectl
       - logs
@@ -39,7 +39,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | /opt/homebrew/bin/humanlog --color=light --skip trace_id --skip span_id --skip trace_flags --skip logger_name | less -R +G'
+      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
       - dummy-arg
       - kubectl
       - logs
