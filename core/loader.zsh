@@ -1,7 +1,7 @@
 # ==============================================================================
 # Module Loader - Chargement dynamique des modules
 # ==============================================================================
-# Remplace functions.zsh - charge core/*.zsh puis modules/*/init.zsh
+# Remplace functions.zsh - charge core/*.zsh puis modules/*/init.zsh et modules/*/*/init.zsh
 # ==============================================================================
 
 # --- 0. Ajouter core/ au fpath pour les completions CLI ---
@@ -33,8 +33,8 @@ _zsh_env_lazy_load_module() {
 }
 
 # --- 4. Charger les modules ---
-for _module_dir in "$ZSH_ENV_DIR/modules"/*/; do
-    [[ ! -d "$_module_dir" ]] && continue
+for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); do
+    [[ ! -f "$_module_dir/init.zsh" ]] && continue
     local _module_name="$(basename "$_module_dir")"
 
     # Lazy loading : si .lazy existe, creer des stubs
