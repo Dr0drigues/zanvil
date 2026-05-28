@@ -1,0 +1,24 @@
+# atuin config — local uniquement, pas de sync
+dialect = "unix"
+auto_sync = false
+update_check = false
+sync_frequency = "0"
+
+[daemon]
+enabled = false
+
+[stats]
+common_prefix = ["sudo"]
+
+[keys]
+scroll_exits = true
+
+[preview]
+strategy = "auto"
+
+[search]
+search_mode = "fuzzy"
+filter_mode = "global"
+filter_mode_shell_up_arrow = "session"
+show_preview = true
+exit_mode = "return-query"
