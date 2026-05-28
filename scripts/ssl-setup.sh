@@ -404,6 +404,30 @@ main() {
     $QUIET || echo -e "  ${DIM}CURL_CA_BUNDLE=$BUNDLE_FILE${NC}"
     $QUIET || echo -e "  ${DIM}REQUESTS_CA_BUNDLE=$BUNDLE_FILE${NC}"
     $QUIET || echo -e "  ${DIM}NODE_EXTRA_CA_CERTS=$BUNDLE_FILE${NC}"
+    $QUIET || echo -e "  ${DIM}GIT_SSL_CAINFO=$BUNDLE_FILE${NC}"
+
+    # --- Etape 5 : Configuration glab ---
+    if command -v glab &>/dev/null && ! $QUIET; then
+        local glab_host
+        glab_host=$(glab config get host 2>/dev/null)
+
+        if [[ -n "$glab_host" ]]; then
+            echo ""
+            echo -e "${BOLD}Configuration glab detectee :${NC} $glab_host"
+            echo -e "${YELLOW}[?]${NC} Configurer glab pour utiliser le CA bundle ? (skip_tls_verify sera desactive) [y/N] "
+            read -r answer </dev/tty
+            if [[ "$answer" =~ ^[yY]$ ]]; then
+                if glab config set --host "$glab_host" ca_cert "$BUNDLE_FILE" 2>/dev/null \
+                && glab config set --host "$glab_host" skip_tls_verify false 2>/dev/null; then
+                    log_success "glab configure : ca_cert=$BUNDLE_FILE, skip_tls_verify=false"
+                else
+                    log_warn "Echec de la configuration glab — verifiez manuellement"
+                fi
+            else
+                log_info "glab non configure (skip_tls_verify inchange)"
+            fi
+        fi
+    fi
 
     return 0
 }
