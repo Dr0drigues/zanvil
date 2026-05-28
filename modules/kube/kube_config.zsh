@@ -1169,6 +1169,15 @@ kube_k9s_setup() {
         _ui_msg_warn "k9s/hotkeys.yaml absent dans $ZSH_ENV_DIR"
     fi
 
+    # Deployer plugins
+    local plugins_src="$ZSH_ENV_DIR/k9s/plugins.yaml"
+    if [[ -f "$plugins_src" ]]; then
+        cp "$plugins_src" "$k9s_dir/plugins.yaml"
+        _ui_msg_ok "plugins.yaml deploye"
+    else
+        _ui_msg_warn "k9s/plugins.yaml absent dans $ZSH_ENV_DIR"
+    fi
+
     # Appliquer le skin du theme actif
     local current_theme=""
     [[ -f "$ZSH_ENV_DIR/.current_theme" ]] && current_theme=$(<"$ZSH_ENV_DIR/.current_theme")

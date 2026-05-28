@@ -1,0 +1,28 @@
+# k9s plugins — raccourcis vers outils externes
+# Déployer avec : kube_k9s_setup
+plugins:
+  # Vue depuis un pod (toutes les containers mélangées)
+  log-json-pod:
+    shortCut: Shift-L
+    description: Logs JSON formatés (humanlog)
+    scopes:
+      - po
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - "kubectl logs -n $NAMESPACE --context $CONTEXT --tail 500 --all-containers=true $NAME 2>&1 | /opt/homebrew/bin/humanlog --color=on | less -R +G"
+
+  # Vue depuis une container spécifique
+  log-json-container:
+    shortCut: Shift-L
+    description: Logs JSON formatés (humanlog)
+    scopes:
+      - containers
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - "kubectl logs -n $NAMESPACE --context $CONTEXT --tail 500 -c $CONTAINER $NAME 2>&1 | /opt/homebrew/bin/humanlog --color=on | less -R +G"
