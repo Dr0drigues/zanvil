@@ -1,0 +1,9 @@
+theme: galaxy
+text_area_theme: monokai
+layout: vertical
+use_host_environment: false
+
+heading_level: 2
+
+animation:
+  enabled: false
