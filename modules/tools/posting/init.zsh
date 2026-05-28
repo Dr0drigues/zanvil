@@ -21,5 +21,5 @@ if command -v posting &>/dev/null; then
 
     alias po='posting'
 else
-    echo "[zsh-env] posting: module activé mais binaire absent — pipx install posting"
+    echo "[zsh-env] posting: module activé mais binaire absent — brew install posting"
 fi
