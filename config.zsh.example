@@ -13,6 +13,7 @@ ZSH_ENV_MODULE_DOCKER=true      # Utilitaires Docker (dex, etc.)
 ZSH_ENV_MODULE_MISE=true        # Gestionnaire de versions (Node, Java, Maven)
 ZSH_ENV_MODULE_NUSHELL=true     # Integration Nushell
 ZSH_ENV_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
+ZSH_ENV_MODULE_POSTING=true     # Client HTTP TUI (posting)
 
 # ==============================================================================
 # Mise Configuration

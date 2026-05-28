@@ -252,6 +252,7 @@ if [[ -f "${_config_file}" ]]; then
         "ZSH_ENV_MODULE_ATUIN:atuin:atuin:atuin:atuin"
         "ZSH_ENV_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
         "ZSH_ENV_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
+        "ZSH_ENV_MODULE_POSTING:posting:posting:posting:posting"
     )
     for _entry in "${_optional_tools[@]}"; do
         _guard=$(echo "$_entry" | cut -d: -f1)
