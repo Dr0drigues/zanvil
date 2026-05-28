@@ -1,7 +1,7 @@
 # ==============================================================================
 # Module Loader - Chargement dynamique des modules
 # ==============================================================================
-# Remplace functions.zsh - charge core/*.zsh puis modules/*/init.zsh
+# Remplace functions.zsh - charge core/*.zsh puis modules/*/init.zsh et modules/*/*/init.zsh
 # ==============================================================================
 
 # --- 0. Ajouter core/ au fpath pour les completions CLI ---
