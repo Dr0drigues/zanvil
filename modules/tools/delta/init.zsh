@@ -12,6 +12,10 @@ if command -v delta &>/dev/null; then
         local gitconfig="${HOME}/.gitconfig"
 
         mkdir -p "${HOME}/.gitconfig.d"
+        if [[ ! -f "${ZSH_ENV_DIR}/delta/gitconfig" ]]; then
+            _ui_msg_fail "Source manquante: ${ZSH_ENV_DIR}/delta/gitconfig"
+            return 1
+        fi
         cp "${ZSH_ENV_DIR}/delta/gitconfig" "${include_file}"
 
         if ! grep -q "gitconfig.d/delta" "${gitconfig}" 2>/dev/null; then
@@ -25,8 +29,14 @@ if command -v delta &>/dev/null; then
         if [[ -f "${lg_config}" ]]; then
             if ! grep -q "pager: delta" "${lg_config}"; then
                 awk '/colorArg: always/{print; print "    pager: delta --dark --paging=never"; next}1' \
-                    "${lg_config}" > "${lg_config}.tmp" && mv "${lg_config}.tmp" "${lg_config}"
-                _ui_msg_ok "pager delta ajouté dans lazygit/config.yml"
+                    "${lg_config}" > "${lg_config}.tmp"
+                if grep -q "pager: delta" "${lg_config}.tmp" 2>/dev/null; then
+                    mv "${lg_config}.tmp" "${lg_config}"
+                    _ui_msg_ok "pager delta ajouté dans lazygit/config.yml"
+                else
+                    rm -f "${lg_config}.tmp"
+                    _ui_msg_warn "Pattern colorArg non trouvé dans lazygit/config.yml — ajout manuel requis"
+                fi
             else
                 _ui_msg_ok "lazygit pager déjà configuré"
             fi
