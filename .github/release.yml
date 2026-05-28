@@ -1,0 +1,19 @@
+# .github/release.yml
+# Configuration des catégories pour --generate-notes (GitHub Release)
+changelog:
+  categories:
+    - title: "🚀 Features"
+      labels:
+        - feature
+    - title: "🐛 Bug Fixes"
+      labels:
+        - bug
+        - fix
+    - title: "🧹 Maintenance"
+      labels:
+        - chore
+        - maintenance
+        - docs
+  exclude:
+    labels:
+      - skip-changelog

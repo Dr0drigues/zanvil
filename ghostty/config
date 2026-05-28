@@ -6,6 +6,11 @@ font-size = 14
 
 cursor-style = block
 
+# Contraste minimum pour le texte DIM (k9s flash messages, etc.)
+# Ghostty blende les couleurs DIM avec le fond, ce qui les rend invisible.
+# 3.0 garantit la lisibilite sans casser les couleurs decoratives.
+minimum-contrast = 3.0
+
 # Theme (change this line to switch themes)
 # Available: high-contrast-light, tokyo-night, tokyo-night-storm
 config-file = themes/tokyo-light-storm
