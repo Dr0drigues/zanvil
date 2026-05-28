@@ -1,0 +1,19 @@
+git:
+  paging:
+    colorArg: always
+  commit:
+    signOff: false
+  merging:
+    manualCommit: false
+
+gui:
+  showIcons: true
+  nerdFontsVersion: "3"
+  border: rounded
+  expandFocusedSidePanel: true
+  mouseEvents: true
+
+keybinding:
+  universal:
+    quit: q
+    return: <esc>
