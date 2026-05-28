@@ -9,7 +9,7 @@
     light = false
     side-by-side = true
     line-numbers = true
-    syntax-theme = Tokyo Night
+    syntax-theme = Dracula
     features = decorations
 
 [delta "decorations"]
