@@ -52,3 +52,53 @@ plugins:
       - $CONTEXT
       - --tail
       - "500"
+
+  # YAML live formaté via delta (ou bat/less en fallback) — Shift-Y selon la vue active
+  diff-yaml-deploy:
+    shortCut: Shift-Y
+    confirm: false
+    description: "YAML via delta"
+    scopes:
+      - deployments
+    command: bash
+    background: false
+    args:
+      - -c
+      - "if command -v delta &>/dev/null; then kubectl get deployment $NAME -n $NAMESPACE --context $CONTEXT -o yaml | delta; elif command -v bat &>/dev/null; then kubectl get deployment $NAME -n $NAMESPACE --context $CONTEXT -o yaml | bat -l yaml; else kubectl get deployment $NAME -n $NAMESPACE --context $CONTEXT -o yaml | less; fi"
+
+  diff-yaml-pod:
+    shortCut: Shift-Y
+    confirm: false
+    description: "YAML via delta"
+    scopes:
+      - pods
+    command: bash
+    background: false
+    args:
+      - -c
+      - "if command -v delta &>/dev/null; then kubectl get pod $NAME -n $NAMESPACE --context $CONTEXT -o yaml | delta; elif command -v bat &>/dev/null; then kubectl get pod $NAME -n $NAMESPACE --context $CONTEXT -o yaml | bat -l yaml; else kubectl get pod $NAME -n $NAMESPACE --context $CONTEXT -o yaml | less; fi"
+
+  diff-yaml-configmap:
+    shortCut: Shift-Y
+    confirm: false
+    description: "YAML via delta"
+    scopes:
+      - configmaps
+    command: bash
+    background: false
+    args:
+      - -c
+      - "if command -v delta &>/dev/null; then kubectl get configmap $NAME -n $NAMESPACE --context $CONTEXT -o yaml | delta; elif command -v bat &>/dev/null; then kubectl get configmap $NAME -n $NAMESPACE --context $CONTEXT -o yaml | bat -l yaml; else kubectl get configmap $NAME -n $NAMESPACE --context $CONTEXT -o yaml | less; fi"
+
+  # Rollout restart d'un deployment — Shift-R (avec confirmation)
+  restart-deploy:
+    shortCut: Shift-R
+    confirm: true
+    description: "Rollout restart"
+    scopes:
+      - deployments
+    command: bash
+    background: false
+    args:
+      - -c
+      - "kubectl rollout restart deployment/$NAME -n $NAMESPACE --context $CONTEXT && echo 'Restarted deployment/$NAME'"
