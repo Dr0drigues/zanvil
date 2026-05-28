@@ -113,3 +113,13 @@ _klog() {
         '2:container:($(kubectl get pod ${words[2]} -n '"$current_ns"' -o jsonpath="{.spec.containers[*].name}" 2>/dev/null))'
 }
 compdef _klog klog
+
+# Stern — completions natives + _ks
+if command -v stern &>/dev/null; then
+    source <(stern --completion zsh 2>/dev/null)
+fi
+
+_ks() {
+    (( $+functions[_stern] )) && _stern "$@"
+}
+compdef _ks ks
