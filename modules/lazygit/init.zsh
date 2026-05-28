@@ -7,15 +7,16 @@
 
 if command -v lazygit &>/dev/null; then
     export LG_CONFIG_FILE="${ZSH_ENV_DIR}/lazygit/config.yml:${HOME}/.config/lazygit/config-local.yml"
+    export LAZYGIT_NEW_DIR_FILE="${HOME}/.lazygit/newdir"
+    mkdir -p "${HOME}/.lazygit"
 
     lg() {
-        # CWD sync : lazygit écrit le répertoire de sortie dans LAZYGIT_NEW_DIR_FILE
-        export LAZYGIT_NEW_DIR_FILE="${HOME}/.lazygit/newdir"
-        mkdir -p "${HOME}/.lazygit"
         lazygit "$@"
         if [[ -f "${LAZYGIT_NEW_DIR_FILE}" ]]; then
-            cd "$(cat "${LAZYGIT_NEW_DIR_FILE}")"
+            local newdir
+            newdir="$(cat "${LAZYGIT_NEW_DIR_FILE}")"
             rm -f "${LAZYGIT_NEW_DIR_FILE}"
+            [[ -d "${newdir}" ]] && cd "${newdir}"
         fi
     }
 
