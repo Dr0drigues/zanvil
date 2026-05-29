@@ -1047,6 +1047,22 @@ kube_switch() {
     fi
 }
 
+# Switch de contexte avec pin automatique (zproject ne l'écrase plus)
+# Usage: kctx [context-ou-alias]  — interactif sans argument
+kctx() {
+    if [[ -n "${1:-}" ]]; then
+        kube_switch "$1" || return $?
+    else
+        kube_switch || return $?
+    fi
+    local ctx
+    ctx="$(kubectl config current-context 2>/dev/null)"
+    [[ -z "$ctx" ]] && return 0
+    export ZPROJECT_KUBE_OVERRIDE="$ctx"
+    [[ -n "${ZPROJECT_NAME:-}" ]] && \
+        printf "${_ui_dim}→ pinné pour %s${_ui_nc}\n" "${ZPROJECT_NAME}"
+}
+
 # Switch rapide de namespace
 # Usage: kube_ns [namespace]  — interactif sans argument
 kube_ns() {
