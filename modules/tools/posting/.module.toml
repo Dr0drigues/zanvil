@@ -1,0 +1,4 @@
+guard = "ZSH_ENV_MODULE_POSTING"
+binary = "posting"
+install = "brew install posting"
+description = "Client HTTP TUI (alias po)"

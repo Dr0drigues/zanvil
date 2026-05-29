@@ -2,5 +2,5 @@
 (( $+functions[compdef] )) || return 0
 
 if command -v lazygit &>/dev/null; then
-    eval "$(lazygit completion zsh 2>/dev/null)"
+    eval "$(lazygit completion zsh 2>/dev/null)" 2>/dev/null || true
 fi

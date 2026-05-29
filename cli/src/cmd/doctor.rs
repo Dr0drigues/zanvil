@@ -1,4 +1,5 @@
 use colored::Colorize;
+use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -97,32 +98,52 @@ fn skip_indicator(name: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Module config parsing
+// Module meta scanning
 // ---------------------------------------------------------------------------
 
-fn read_module_config() -> Vec<(String, bool)> {
-    let config_path = zsh_env_dir().join("config.zsh");
-    let mut modules = Vec::new();
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct ModuleMeta {
+    guard: Option<String>,
+    binary: Option<String>,
+    install: Option<String>,
+    description: Option<String>,
+}
 
-    if let Ok(content) = fs::read_to_string(&config_path) {
-        let known = [
-            ("ZSH_ENV_MODULE_GITLAB", "GitLab"),
-            ("ZSH_ENV_MODULE_DOCKER", "Docker"),
-            ("ZSH_ENV_MODULE_MISE", "Mise"),
-            ("ZSH_ENV_MODULE_NUSHELL", "Nushell"),
-            ("ZSH_ENV_MODULE_KUBE", "Kube"),
-        ];
-        for (var, label) in &known {
-            let enabled = content.lines().any(|line| {
-                let trimmed = line.trim();
-                trimmed == format!("{}=true", var)
-                    || trimmed == format!("{}=\"true\"", var)
-            });
-            modules.push((label.to_string(), enabled));
+fn scan_module_metas(env_dir: &std::path::Path) -> Vec<ModuleMeta> {
+    let modules_dir = env_dir.join("modules");
+    let mut result = Vec::new();
+
+    let Ok(top) = std::fs::read_dir(&modules_dir) else { return result };
+    for entry in top.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let meta_path = path.join(".module.toml");
+            if meta_path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&meta_path) {
+                    if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
+                        result.push(meta);
+                    }
+                }
+            }
+            if let Ok(sub) = std::fs::read_dir(&path) {
+                for sub_entry in sub.flatten() {
+                    let sub_path = sub_entry.path();
+                    if sub_path.is_dir() {
+                        let sub_meta = sub_path.join(".module.toml");
+                        if sub_meta.exists() {
+                            if let Ok(content) = std::fs::read_to_string(&sub_meta) {
+                                if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
+                                    result.push(meta);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-
-    modules
+    result
 }
 
 // ---------------------------------------------------------------------------
@@ -167,15 +188,6 @@ fn helm_version() -> Option<String> {
         })
 }
 
-fn mise_version() -> Option<String> {
-    get_command_output("mise", &["--version"])
-        .map(|out| {
-            out.split_whitespace()
-                .next()
-                .unwrap_or(&out)
-                .to_string()
-        })
-}
 
 // ---------------------------------------------------------------------------
 // Main
@@ -274,45 +286,76 @@ pub fn run() {
 
     println!();
 
-    // ── Modules ───────────────────────────────────────────────────────────
-    let modules = read_module_config();
+    // ── Modules + Outils (depuis .module.toml) ───────────────────────────────
+    let config_content = fs::read_to_string(env_dir.join("config.zsh")).unwrap_or_default();
+    let metas = scan_module_metas(&env_dir);
+
     let mut mod_parts: Vec<String> = Vec::new();
-    for (label, enabled) in &modules {
-        if *enabled {
-            mod_parts.push(ok_indicator(label));
+    let mut tool_parts: Vec<String> = Vec::new();
+
+    for meta in &metas {
+        let guard_var = meta.guard.as_deref().unwrap_or("");
+        let enabled = config_content.lines().any(|line| {
+            let t = line.trim();
+            t == format!("{}=true", guard_var) || t == format!("{}=\"true\"", guard_var)
+        });
+
+        let label = guard_var
+            .strip_prefix("ZSH_ENV_MODULE_")
+            .unwrap_or(guard_var);
+
+        if let Some(binary) = meta.binary.as_deref() {
+            // Tool module — section Outils
+            if enabled {
+                let bin = binary;
+                if command_exists(bin) {
+                    tool_parts.push(ok_indicator(label));
+                } else {
+                    let hint = meta.install.as_deref().unwrap_or(bin);
+                    tool_parts.push(format!(
+                        "{} {} {}",
+                        label,
+                        "✗".red(),
+                        format!("({})", hint).dimmed()
+                    ));
+                    warnings += 1;
+                }
+            } else {
+                tool_parts.push(skip_indicator(label));
+            }
         } else {
-            mod_parts.push(skip_indicator(label));
+            // Module sans binaire — section Modules
+            if enabled {
+                mod_parts.push(ok_indicator(label));
+            } else {
+                mod_parts.push(skip_indicator(label));
+            }
         }
     }
+
+    // Fallback : guards config.zsh sans .module.toml (ex: MISE, NUSHELL)
+    let shown_guards: std::collections::HashSet<String> = metas
+        .iter()
+        .filter_map(|m| m.guard.clone())
+        .collect();
+    let config_modules = crate::config::parse_modules(&config_content);
+    for m in &config_modules {
+        let guard_var = format!("ZSH_ENV_MODULE_{}", m.name);
+        if shown_guards.contains(&guard_var) {
+            continue;
+        }
+        if m.enabled {
+            mod_parts.push(ok_indicator(&m.name));
+        } else {
+            mod_parts.push(skip_indicator(&m.name));
+        }
+    }
+
     if !mod_parts.is_empty() {
         print_section("Modules", &mod_parts.join("  "));
     }
-
-    // ── Mise details ──────────────────────────────────────────────────────
-    let mise_enabled = modules.iter().any(|(l, e)| l == "Mise" && *e);
-    if mise_enabled {
-        if command_exists("mise") {
-            let ver = mise_version().unwrap_or_default();
-            let mut mise_info = ok_indicator_version("mise", &ver);
-
-            // Show active runtimes
-            if let Some(node_ver) = get_command_output("mise", &["current", "node"]) {
-                mise_info.push_str(&format!("  node:{}", node_ver.cyan()));
-            }
-            if let Some(java_ver) = get_command_output("mise", &["current", "java"]) {
-                mise_info.push_str(&format!("  java:{}", java_ver.cyan()));
-            }
-
-            print_section("Mise", &mise_info);
-        } else {
-            let mise_info = format!(
-                "mise {} {}",
-                "○".yellow(),
-                "(non installe)".dimmed()
-            );
-            print_section("Mise", &mise_info);
-            warnings += 1;
-        }
+    if !tool_parts.is_empty() {
+        print_section("Outils", &tool_parts.join("  "));
     }
 
     // ── SOPS/Age ──────────────────────────────────────────────────────────

@@ -1,5 +1,4 @@
 # atuin config — local uniquement, pas de sync
-dialect = "unix"
 auto_sync = false
 update_check = false
 sync_frequency = "0"

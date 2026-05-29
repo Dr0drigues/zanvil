@@ -59,6 +59,32 @@ jobs:
             fi
           done
 
+      - name: Test binary-absent fallback warnings
+        run: |
+          export ZSH_ENV_DIR="$PWD"
+          export HOME="$(mktemp -d)"
+
+          check_warning() {
+            local module="$1" guard="$2" grep_pattern="$3"
+            local out
+            out=$(zsh -c "
+              ${guard}=true
+              ZSH_ENV_DIR='$PWD'
+              PATH=/usr/bin:/bin
+              source '$PWD/modules/tools/${module}/init.zsh' 2>&1
+            ")
+            echo "${module}: ${out}"
+            echo "${out}" | grep -q "${grep_pattern}" \
+              || { echo "FAIL: ${module} warning absent (attendu: ${grep_pattern})"; exit 1; }
+          }
+
+          check_warning posting  ZSH_ENV_MODULE_POSTING  "brew install posting"
+          check_warning delta    ZSH_ENV_MODULE_DELTA    "brew install git-delta"
+          check_warning lazygit  ZSH_ENV_MODULE_LAZYGIT  "brew install lazygit"
+          check_warning atuin    ZSH_ENV_MODULE_ATUIN    "brew install atuin"
+
+          echo "All binary-absent fallback warnings OK"
+
   rust-cli:
     runs-on: ${{ matrix.os }}
     strategy:

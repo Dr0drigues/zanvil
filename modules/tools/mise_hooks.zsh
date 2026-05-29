@@ -7,7 +7,7 @@
 # ==============================================================================
 
 # Ne charge que si mise est installe
-command -v mise &> /dev/null || return
+command -v mise &>/dev/null || { echo "[zsh-env] mise_hooks: mise absent — brew install mise"; return; }
 
 # --- Configuration ---
 _MISE_ZSH_ENV_DIR="${ZSH_ENV_DIR:-$HOME/.zsh_env}"

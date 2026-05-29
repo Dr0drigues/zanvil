@@ -1,0 +1,4 @@
+guard = "ZSH_ENV_MODULE_DELTA"
+binary = "delta"
+install = "brew install git-delta"
+description = "Pager syntaxique pour git diff"

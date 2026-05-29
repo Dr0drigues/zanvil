@@ -1,5 +1,7 @@
 use clap::Subcommand;
 use colored::Colorize;
+use serde::Deserialize;
+use std::fs;
 
 use crate::config;
 
@@ -19,16 +21,53 @@ pub enum ModulesAction {
     },
 }
 
-/// Returns a description for known modules.
-fn module_description(name: &str) -> &'static str {
-    match name {
-        "GITLAB" => "Alias GitLab, clone groupes, statut PAT",
-        "DOCKER" => "Utilitaires Docker (dex, dstop)",
-        "MISE" => "Gestionnaire de versions (Node, Java...)",
-        "NUSHELL" => "Integration Nushell (nush, nuc)",
-        "KUBE" => "Gestion kubeconfig (kube_select, Azure/AWS/GCP)",
-        _ => "",
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct ModuleMeta {
+    guard: Option<String>,
+    binary: Option<String>,
+    install: Option<String>,
+    description: Option<String>,
+}
+
+/// Scans modules/ at depth 2 and returns all .module.toml entries.
+fn scan_module_metas() -> Vec<ModuleMeta> {
+    let env_dir = config::zsh_env_dir();
+    let modules_dir = env_dir.join("modules");
+    let mut result = Vec::new();
+
+    let Ok(top) = fs::read_dir(&modules_dir) else { return result };
+    for entry in top.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            // depth 1: modules/*/
+            let meta_path = path.join(".module.toml");
+            if meta_path.exists() {
+                if let Ok(content) = fs::read_to_string(&meta_path) {
+                    if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
+                        result.push(meta);
+                    }
+                }
+            }
+            // depth 2: modules/tools/*/
+            if let Ok(sub) = fs::read_dir(&path) {
+                for sub_entry in sub.flatten() {
+                    let sub_path = sub_entry.path();
+                    if sub_path.is_dir() {
+                        let sub_meta = sub_path.join(".module.toml");
+                        if sub_meta.exists() {
+                            if let Ok(content) = fs::read_to_string(&sub_meta) {
+                                if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
+                                    result.push(meta);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+    result
 }
 
 fn list_modules() {
@@ -40,12 +79,8 @@ fn list_modules() {
         }
     };
 
-    let modules = config::parse_modules(&content);
-
-    if modules.is_empty() {
-        println!("{}", "Aucun module trouve dans config.zsh".yellow());
-        return;
-    }
+    let metas = scan_module_metas();
+    let config_modules = config::parse_modules(&content);
 
     println!(
         "  {:<12} {:<10} {}",
@@ -55,14 +90,38 @@ fn list_modules() {
     );
     println!("  {}", "-".repeat(60));
 
-    for m in &modules {
+    let mut shown_guards: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for meta in &metas {
+        let guard_var = meta.guard.as_deref().unwrap_or("");
+        let name = guard_var
+            .strip_prefix("ZSH_ENV_MODULE_")
+            .unwrap_or(guard_var);
+        let enabled = content.lines().any(|line| {
+            let t = line.trim();
+            t == format!("{}=true", guard_var) || t == format!("{}=\"true\"", guard_var)
+        });
+        let status = if enabled {
+            "actif".green().to_string()
+        } else {
+            "inactif".red().to_string()
+        };
+        let desc = meta.description.as_deref().unwrap_or("");
+        println!("  {:<12} {:<19} {}", name, status, desc);
+        shown_guards.insert(guard_var.to_string());
+    }
+
+    // Show remaining config.zsh guards without .module.toml
+    for m in &config_modules {
+        let guard_var = format!("ZSH_ENV_MODULE_{}", m.name);
+        if shown_guards.contains(&guard_var) {
+            continue;
+        }
         let status = if m.enabled {
             "actif".green().to_string()
         } else {
             "inactif".red().to_string()
         };
-        let desc = module_description(&m.name);
-        println!("  {:<12} {:<19} {}", m.name, status, desc);
+        println!("  {:<12} {:<19}", m.name, status);
     }
 }
 

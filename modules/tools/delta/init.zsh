@@ -45,4 +45,6 @@ if command -v delta &>/dev/null; then
         _ui_section "Version" "$(delta --version 2>/dev/null)"
         _ui_section "Config" "${include_file}"
     }
+else
+    echo "[zsh-env] delta: module activé mais binaire absent — brew install git-delta"
 fi

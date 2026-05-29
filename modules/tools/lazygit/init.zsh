@@ -35,4 +35,6 @@ if command -v lazygit &>/dev/null; then
             _ui_section "Créer" "touch ${local_cfg}"
         fi
     }
+else
+    echo "[zsh-env] lazygit: module activé mais binaire absent — brew install lazygit"
 fi
