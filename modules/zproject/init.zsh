@@ -38,10 +38,11 @@ __zproject_kube_context() {
 }
 
 __zproject_kube_namespace() {
+    local target="${ZPROJECT_KUBE_OVERRIDE_NS:-$1}"
     if command -v kubectl &>/dev/null; then
-        kubectl config set-context --current --namespace="$1" >/dev/null 2>&1
+        kubectl config set-context --current --namespace="$target" >/dev/null 2>&1
     fi
-    __zproject_state_append "KUBE_NAMESPACE=$1"
+    __zproject_state_append "KUBE_NAMESPACE=$target"
 }
 
 __zproject_track_env() {
@@ -503,6 +504,7 @@ kpin() {
 # Supprime le pin et réapplique le contexte configuré du projet courant.
 kunpin() {
     unset ZPROJECT_KUBE_OVERRIDE
+    unset ZPROJECT_KUBE_OVERRIDE_NS
     if [[ -n "${ZPROJECT_NAME:-}" ]]; then
         local _script _ctx
         _script="$(zsh-env-cli project activate "${ZPROJECT_NAME}" ${ZPROJECT_ENV:+-e "$ZPROJECT_ENV"} 2>/dev/null)"
@@ -517,6 +519,65 @@ kunpin() {
         fi
     fi
     echo "kube pin supprimé"
+}
+
+# ── zpenv — switcher d'environnement ─────────────────────────────────
+# Usage: zpenv [env]  — interactif sans argument
+zpenv() {
+    if [[ -z "${ZPROJECT_NAME:-}" ]]; then
+        _ui_msg_fail "Aucun projet actif (lance zproject <name> d'abord)"
+        return 1
+    fi
+    local target="${1:-}"
+    if [[ -z "$target" ]]; then
+        local envs
+        envs="$(zsh-env-cli project envs "${ZPROJECT_NAME}" 2>/dev/null)"
+        if [[ -z "$envs" ]]; then
+            _ui_msg_fail "Aucun environnement défini pour ${ZPROJECT_NAME}"
+            return 1
+        fi
+        if command -v fzf &>/dev/null; then
+            target="$(echo "$envs" | fzf \
+                --header="Projet: ${ZPROJECT_NAME}  actuel: ${ZPROJECT_ENV:--}" \
+                --prompt="Env > ")"
+        else
+            echo "$envs"
+            printf "Env: "
+            read -r target
+        fi
+        [[ -z "$target" ]] && return 0
+    fi
+    __zproject_activate "${ZPROJECT_NAME}" "$target"
+}
+
+# ── cdp — cd vers la racine d'un projet connu ────────────────────────
+# Usage: cdp [projet]  — interactif sans argument
+cdp() {
+    local target="${1:-}"
+    if [[ -z "$target" ]]; then
+        if ! command -v zsh-env-cli &>/dev/null; then
+            _ui_msg_fail "zsh-env-cli requis"
+            return 1
+        fi
+        local list
+        list="$(zsh-env-cli project list 2>/dev/null | awk '{print $1}')"
+        if command -v fzf &>/dev/null; then
+            target="$(echo "$list" | fzf --prompt="Project > ")"
+        else
+            echo "$list"
+            printf "Projet: "
+            read -r target
+        fi
+        [[ -z "$target" ]] && return 0
+    fi
+    local script path
+    script="$(zsh-env-cli project activate "$target" 2>/dev/null)"
+    path="$(echo "$script" | grep "^export ZPROJECT_PATH=" | sed "s/export ZPROJECT_PATH='\\(.*\\)'/\\1/")"
+    if [[ -z "$path" || ! -d "$path" ]]; then
+        _ui_msg_fail "Chemin introuvable pour '$target'"
+        return 1
+    fi
+    cd "$path"
 }
 
 # Alias courts

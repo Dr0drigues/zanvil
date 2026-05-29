@@ -1115,6 +1115,22 @@ kube_ns() {
     fi
 }
 
+# Switch de namespace avec pin automatique (zproject ne l'écrase plus)
+# Usage: kns [namespace]  — interactif sans argument
+kns() {
+    if [[ -n "${1:-}" ]]; then
+        kube_ns "$1" || return $?
+    else
+        kube_ns || return $?
+    fi
+    local ns
+    ns="$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)"
+    ns="${ns:-default}"
+    export ZPROJECT_KUBE_OVERRIDE_NS="$ns"
+    [[ -n "${ZPROJECT_NAME:-}" ]] && \
+        printf "${_ui_dim}→ namespace pinné pour %s: %s${_ui_nc}\n" "${ZPROJECT_NAME}" "$ns"
+}
+
 # Ouvre k9s sur un contexte (avec resolution d'alias)
 # Usage: k [context] [namespace]
 #   k              → k9s sur le contexte courant
