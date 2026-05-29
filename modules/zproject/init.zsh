@@ -1,4 +1,6 @@
 #!/usr/bin/env zsh
+[[ "${ZSH_ENV_MODULE_ZPROJECT:-true}" != "true" ]] && return 0
+
 # zproject — active un contexte projet (kube, env, path, runtimes) par shell.
 # Delegue la resolution au CLI Rust (zsh-env-cli project ...).
 

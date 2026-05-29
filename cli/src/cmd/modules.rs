@@ -1,7 +1,5 @@
 use clap::Subcommand;
 use colored::Colorize;
-use serde::Deserialize;
-use std::fs;
 
 use crate::config;
 
@@ -21,55 +19,6 @@ pub enum ModulesAction {
     },
 }
 
-#[derive(Deserialize)]
-#[allow(dead_code)]
-struct ModuleMeta {
-    guard: Option<String>,
-    binary: Option<String>,
-    install: Option<String>,
-    description: Option<String>,
-}
-
-/// Scans modules/ at depth 2 and returns all .module.toml entries.
-fn scan_module_metas() -> Vec<ModuleMeta> {
-    let env_dir = config::zsh_env_dir();
-    let modules_dir = env_dir.join("modules");
-    let mut result = Vec::new();
-
-    let Ok(top) = fs::read_dir(&modules_dir) else { return result };
-    for entry in top.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            // depth 1: modules/*/
-            let meta_path = path.join(".module.toml");
-            if meta_path.exists() {
-                if let Ok(content) = fs::read_to_string(&meta_path) {
-                    if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
-                        result.push(meta);
-                    }
-                }
-            }
-            // depth 2: modules/tools/*/
-            if let Ok(sub) = fs::read_dir(&path) {
-                for sub_entry in sub.flatten() {
-                    let sub_path = sub_entry.path();
-                    if sub_path.is_dir() {
-                        let sub_meta = sub_path.join(".module.toml");
-                        if sub_meta.exists() {
-                            if let Ok(content) = fs::read_to_string(&sub_meta) {
-                                if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
-                                    result.push(meta);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    result
-}
-
 fn list_modules() {
     let content = match config::read_config() {
         Ok(c) => c,
@@ -79,7 +28,7 @@ fn list_modules() {
         }
     };
 
-    let metas = scan_module_metas();
+    let metas = config::scan_module_metas(&config::zsh_env_dir());
     let config_modules = config::parse_modules(&content);
 
     println!(

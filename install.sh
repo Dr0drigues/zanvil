@@ -91,7 +91,7 @@ if [[ "${CHECK_MODE:-false}" = true ]]; then
         eza starship zoxide fzf bat nu direnv trash mise
         sops age
         kubectl kubelogin az helm
-        atuin lazygit delta posting
+        atuin lazygit delta posting docker
     )
 
     for _dep in "${_check_deps[@]}"; do

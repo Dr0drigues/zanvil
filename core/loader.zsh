@@ -36,6 +36,8 @@ _zsh_env_lazy_load_module() {
 for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); do
     [[ ! -f "$_module_dir/init.zsh" ]] && continue
     local _module_name="$(basename "$_module_dir")"
+    # Chemin relatif depuis modules/ (ex: "tools/lazygit") pour les modules depth-2
+    local _module_rel="${_module_dir#$ZSH_ENV_DIR/modules/}"
 
     # Module guard : ZSH_ENV_MODULE_<NAME> — vérifié avant tout (lazy ou non)
     local _guard_var="ZSH_ENV_MODULE_${(U)_module_name}"
@@ -47,7 +49,7 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); 
     if [[ -f "$_module_dir/.lazy" ]]; then
         while IFS= read -r _fn_name; do
             [[ -z "$_fn_name" || "$_fn_name" == \#* ]] && continue
-            eval "${_fn_name}() { _zsh_env_lazy_load_module '${_module_name}' '${_fn_name}' \"\$@\"; }"
+            eval "${_fn_name}() { _zsh_env_lazy_load_module '${_module_rel}' '${_fn_name}' \"\$@\"; }"
         done < "$_module_dir/.lazy"
         continue
     fi
@@ -73,4 +75,4 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); 
     # Charger completions.zsh (compinit deja execute dans rc.zsh)
     [[ -f "$_module_dir/completions.zsh" ]] && source "$_module_dir/completions.zsh"
 done
-unset _module_dir _module_name _guard_var _fn_name _deps_ok _dep_name _dep_guard
+unset _module_dir _module_name _module_rel _guard_var _fn_name _deps_ok _dep_name _dep_guard
