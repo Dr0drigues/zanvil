@@ -14,6 +14,22 @@ alias ss='source $HOME/.zshrc && _zsh_env_banner'
 # NAVIGATION & LISTING
 # =======================================================
 
+# Copier le chemin courant dans le presse-papiers
+cpwd() {
+    local _path="$PWD"
+    if command -v pbcopy &>/dev/null; then
+        printf '%s' "$_path" | pbcopy
+    elif command -v xclip &>/dev/null; then
+        printf '%s' "$_path" | xclip -selection clipboard
+    elif command -v xsel &>/dev/null; then
+        printf '%s' "$_path" | xsel --clipboard --input
+    else
+        echo "$_path"
+        return 1
+    fi
+    echo "$_path"
+}
+
 # 1. Protection du remplacement de 'ls' par 'eza'
 # On utilise 'command -v' qui est POSIX compliant et plus rapide que 'which'
 if command -v eza &> /dev/null; then
