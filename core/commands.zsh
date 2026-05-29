@@ -338,3 +338,76 @@ zsh-env-help() {
     printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Themes" "~/.zsh_env/themes/"
     printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Recharger" "ss (ou source ~/.zshrc)"
 }
+
+# ==============================================================================
+# zsh-env-doctor-conflicts : Détection des conflits entre modules
+# ==============================================================================
+zsh-env-doctor-conflicts() {
+    _ui_header "Conflicts"
+    local issues=0
+
+    # --- Aliases en double ---
+    _ui_section "Aliases" ""
+    local alias_dups
+    alias_dups="$(grep -rh "^alias [a-z_]" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null \
+        | sed "s/alias \([^=]*\)=.*/\1/" | sort | uniq -d)"
+    if [[ -n "$alias_dups" ]]; then
+        while IFS= read -r a; do
+            local files
+            files="$(grep -rl "^alias ${a}=" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            _ui_msg_warn "'${a}' → ${files}"
+            ((issues++))
+        done <<< "$alias_dups"
+    else
+        _ui_msg_ok "Aucun alias en double"
+    fi
+    echo ""
+
+    # --- Fonctions publiques en double ---
+    _ui_section "Fonctions" ""
+    local fn_dups
+    fn_dups="$(grep -rh "^[a-z][a-z0-9_-]*() {" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null \
+        | sed "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
+    if [[ -n "$fn_dups" ]]; then
+        while IFS= read -r f; do
+            local files
+            files="$(grep -rl "^${f}() {" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            _ui_msg_warn "'${f}' → ${files}"
+            ((issues++))
+        done <<< "$fn_dups"
+    else
+        _ui_msg_ok "Aucune fonction en double"
+    fi
+    echo ""
+
+    # --- Hooks chpwd concurrents ---
+    _ui_section "Hooks" ""
+    local chpwd_count
+    chpwd_count="$(grep -rh "add-zsh-hook chpwd" "$ZSH_ENV_DIR" --include="*.zsh" 2>/dev/null | grep -cv "^#")"
+    if [[ $chpwd_count -gt 1 ]]; then
+        _ui_msg_warn "$chpwd_count hooks chpwd enregistrés (attention aux interactions)"
+        grep -rn "add-zsh-hook chpwd" "$ZSH_ENV_DIR" --include="*.zsh" 2>/dev/null | grep -v "^.*#" | sed "s|$ZSH_ENV_DIR/||"
+        ((issues++))
+    else
+        _ui_msg_ok "${chpwd_count} hook chpwd"
+    fi
+    echo ""
+
+    # --- Exports en double ---
+    _ui_section "Exports" ""
+    local export_dups
+    export_dups="$(grep -rh "^export [A-Z_][A-Z0-9_]*=" "$ZSH_ENV_DIR/modules" --include="*.zsh" 2>/dev/null \
+        | sed "s/export \([^=]*\)=.*/\1/" | sort | uniq -d)"
+    if [[ -n "$export_dups" ]]; then
+        while IFS= read -r e; do
+            local files
+            files="$(grep -rl "^export ${e}=" "$ZSH_ENV_DIR/modules" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            _ui_msg_warn "'${e}' → ${files}"
+            ((issues++))
+        done <<< "$export_dups"
+    else
+        _ui_msg_ok "Aucun export en double"
+    fi
+
+    _ui_summary $issues 0
+}
