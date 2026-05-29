@@ -1,0 +1,2 @@
+guard = "ZSH_ENV_MODULE_TOOLS"
+description = "Outils transverses : mise hooks, test runner, profiler zsh"

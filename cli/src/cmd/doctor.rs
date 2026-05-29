@@ -1,5 +1,5 @@
+use crate::config::scan_module_metas;
 use colored::Colorize;
-use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -95,55 +95,6 @@ fn fail_indicator(name: &str) -> String {
 
 fn skip_indicator(name: &str) -> String {
     format!("{} {}", name.dimmed(), "○".dimmed())
-}
-
-// ---------------------------------------------------------------------------
-// Module meta scanning
-// ---------------------------------------------------------------------------
-
-#[derive(Deserialize)]
-#[allow(dead_code)]
-struct ModuleMeta {
-    guard: Option<String>,
-    binary: Option<String>,
-    install: Option<String>,
-    description: Option<String>,
-}
-
-fn scan_module_metas(env_dir: &std::path::Path) -> Vec<ModuleMeta> {
-    let modules_dir = env_dir.join("modules");
-    let mut result = Vec::new();
-
-    let Ok(top) = std::fs::read_dir(&modules_dir) else { return result };
-    for entry in top.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            let meta_path = path.join(".module.toml");
-            if meta_path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&meta_path) {
-                    if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
-                        result.push(meta);
-                    }
-                }
-            }
-            if let Ok(sub) = std::fs::read_dir(&path) {
-                for sub_entry in sub.flatten() {
-                    let sub_path = sub_entry.path();
-                    if sub_path.is_dir() {
-                        let sub_meta = sub_path.join(".module.toml");
-                        if sub_meta.exists() {
-                            if let Ok(content) = std::fs::read_to_string(&sub_meta) {
-                                if let Ok(meta) = toml::from_str::<ModuleMeta>(&content) {
-                                    result.push(meta);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    result
 }
 
 // ---------------------------------------------------------------------------
