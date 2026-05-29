@@ -1,3 +1,5 @@
+[[ "${ZSH_ENV_MODULE_KUBE:-}" != "true" ]] && return 0
+
 # Affiche les logs d'un pod avec selection interactive fzf si besoin.
 # Usage: klog [options] [pod] [container]
 #   -f / --follow        tail en continu (défaut)

@@ -37,18 +37,18 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); 
     [[ ! -f "$_module_dir/init.zsh" ]] && continue
     local _module_name="$(basename "$_module_dir")"
 
+    # Module guard : ZSH_ENV_MODULE_<NAME> — vérifié avant tout (lazy ou non)
+    local _guard_var="ZSH_ENV_MODULE_${(U)_module_name}"
+    if [[ -n "${(P)_guard_var}" && "${(P)_guard_var}" != "true" ]]; then
+        continue
+    fi
+
     # Lazy loading : si .lazy existe, creer des stubs
     if [[ -f "$_module_dir/.lazy" ]]; then
         while IFS= read -r _fn_name; do
             [[ -z "$_fn_name" || "$_fn_name" == \#* ]] && continue
             eval "${_fn_name}() { _zsh_env_lazy_load_module '${_module_name}' '${_fn_name}' \"\$@\"; }"
         done < "$_module_dir/.lazy"
-        continue
-    fi
-
-    # Module guard : ZSH_ENV_MODULE_<NAME>
-    local _guard_var="ZSH_ENV_MODULE_${(U)_module_name}"
-    if [[ -n "${(P)_guard_var}" && "${(P)_guard_var}" != "true" ]]; then
         continue
     fi
 
@@ -64,6 +64,7 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); 
                 _deps_ok=false
             fi
         done < "$_module_dir/.deps"
+        [[ "$_deps_ok" == "false" ]] && continue
     fi
 
     # Charger init.zsh
@@ -72,4 +73,4 @@ for _module_dir in "$ZSH_ENV_DIR/modules"/*/(N) "$ZSH_ENV_DIR/modules"/*/*/(N); 
     # Charger completions.zsh (compinit deja execute dans rc.zsh)
     [[ -f "$_module_dir/completions.zsh" ]] && source "$_module_dir/completions.zsh"
 done
-unset _module_dir _module_name _guard_var _fn_name
+unset _module_dir _module_name _guard_var _fn_name _deps_ok _dep_name _dep_guard
