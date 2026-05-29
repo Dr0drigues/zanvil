@@ -6,7 +6,14 @@
 [[ "${ZSH_ENV_MODULE_LAZYGIT:-}" != "true" ]] && return 0
 
 if command -v lazygit &>/dev/null; then
-    export LG_CONFIG_FILE="${ZSH_ENV_DIR}/lazygit/config.yml:${HOME}/.config/lazygit/config-local.yml"
+    local _lg_config="${ZSH_ENV_DIR}/lazygit/config.yml"
+    local _lg_local="${HOME}/.config/lazygit/config-local.yml"
+    if [[ -f "$_lg_local" ]]; then
+        export LG_CONFIG_FILE="${_lg_config},${_lg_local}"
+    else
+        export LG_CONFIG_FILE="${_lg_config}"
+    fi
+    unset _lg_config _lg_local
     export LAZYGIT_NEW_DIR_FILE="${HOME}/.lazygit/newdir"
     mkdir -p "${HOME}/.lazygit"
 
