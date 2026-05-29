@@ -26,13 +26,15 @@ __zproject_kube_isolate() {
 }
 
 __zproject_kube_context() {
+    # ZPROJECT_KUBE_OVERRIDE : pin manuel — prend le dessus sur le contexte du projet
+    local target="${ZPROJECT_KUBE_OVERRIDE:-$1}"
     __zproject_kube_isolate
     if (( $+functions[kube_switch] )); then
-        kube_switch "$1" >/dev/null 2>&1
+        kube_switch "$target" >/dev/null 2>&1
     else
-        kubectl config use-context "$1" >/dev/null 2>&1
+        kubectl config use-context "$target" >/dev/null 2>&1
     fi
-    __zproject_state_append "KUBE_CONTEXT=$1"
+    __zproject_state_append "KUBE_CONTEXT=$target"
 }
 
 __zproject_kube_namespace() {
@@ -475,6 +477,47 @@ if (( $+functions[add-zsh-hook] )); then
     add-zsh-hook zshexit __zproject_cleanup_on_shell_exit
     add-zsh-hook chpwd __zproject_chpwd
 fi
+
+# ── kube pin/unpin ────────────────────────────────────────────────────
+
+# Force un contexte kubectl pour ce shell, même si zproject re-active.
+# Usage: kpin <context-ou-alias>
+kpin() {
+    local ctx="${1:-}"
+    if [[ -z "$ctx" ]]; then
+        if [[ -n "${ZPROJECT_KUBE_OVERRIDE:-}" ]]; then
+            echo "kube pin actif : ${ZPROJECT_KUBE_OVERRIDE}"
+        else
+            echo "kube pin inactif (contexte géré par zproject)"
+        fi
+        return 0
+    fi
+    export ZPROJECT_KUBE_OVERRIDE="$ctx"
+    if (( $+functions[kube_switch] )); then
+        kube_switch "$ctx"
+    else
+        kubectl config use-context "$ctx"
+    fi
+}
+
+# Supprime le pin et réapplique le contexte configuré du projet courant.
+kunpin() {
+    unset ZPROJECT_KUBE_OVERRIDE
+    if [[ -n "${ZPROJECT_NAME:-}" ]]; then
+        local _script _ctx
+        _script="$(zsh-env-cli project activate "${ZPROJECT_NAME}" ${ZPROJECT_ENV:+-e "$ZPROJECT_ENV"} 2>/dev/null)"
+        _ctx="$(echo "$_script" | grep -m1 '^__zproject_kube_context' | sed "s/__zproject_kube_context '\\([^']*\\)'.*/\\1/")"
+        if [[ -n "$_ctx" ]]; then
+            if (( $+functions[kube_switch] )); then
+                kube_switch "$_ctx"
+            else
+                kubectl config use-context "$_ctx"
+            fi
+            return
+        fi
+    fi
+    echo "kube pin supprimé"
+}
 
 # Alias courts
 alias zpr='zproject'
