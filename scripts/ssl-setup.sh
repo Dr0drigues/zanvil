@@ -276,6 +276,68 @@ extract_from_local_files() {
     return 1
 }
 
+# Cree un truststore JKS a partir des cacerts de la JVM active + CAs entreprise.
+# Le fichier resultant (~/.ssl/java-truststore.jks) est a chemin fixe et
+# fonctionne quelle que soit la version Java utilisee (locale ou globale via mise).
+create_java_truststore() {
+    local enterprise_certs=("$@")
+    local java_trust="$SSL_DIR/java-truststore.jks"
+    local java_trust_pass="changeit"
+
+    if ! command -v keytool &>/dev/null; then
+        log_warn "keytool non disponible — truststore Java non genere (relancer apres avoir installe Java)"
+        return 0
+    fi
+
+    # cacerts de la JVM active (contient tous les CAs publics standard)
+    local java_home
+    java_home=$(java -XshowSettings:properties 2>&1 | awk '/java.home[[:space:]]/{print $NF}')
+    local cacerts="$java_home/lib/security/cacerts"
+
+    if [[ ! -f "$cacerts" ]]; then
+        log_warn "cacerts introuvable ($cacerts) — truststore Java non genere"
+        return 0
+    fi
+
+    log_info "Creation du truststore Java..."
+
+    # Copier les cacerts comme base puis y injecter les CAs entreprise
+    cp "$cacerts" "$java_trust"
+    chmod 644 "$java_trust"
+
+    local imported=0
+    for cert in "${enterprise_certs[@]}"; do
+        local alias
+        alias="enterprise-$(basename "$cert" .pem | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+
+        keytool -delete -keystore "$java_trust" -alias "$alias" \
+            -storepass "$java_trust_pass" 2>/dev/null || true
+
+        if keytool -importcert \
+            -trustcacerts \
+            -keystore "$java_trust" \
+            -alias "$alias" \
+            -file "$cert" \
+            -storepass "$java_trust_pass" \
+            -noprompt 2>/dev/null; then
+            ((imported++))
+        else
+            log_warn "JKS: echec import $(basename "$cert" .pem)"
+        fi
+    done
+
+    if [[ $imported -gt 0 ]]; then
+        local java_ver
+        java_ver=$(java -version 2>&1 | head -1 | awk -F'"' '{print $2}')
+        log_success "Truststore Java : $java_trust"
+        log_info "  Base : cacerts Java $java_ver — $imported CA(s) entreprise injecte(s)"
+        $QUIET || echo -e "  ${DIM}javax.net.ssl.trustStore=$java_trust${NC}"
+    else
+        log_warn "Aucun CA entreprise importe dans le JKS"
+        rm -f "$java_trust"
+    fi
+}
+
 # --- Fonction principale ---
 
 main() {
@@ -406,7 +468,10 @@ main() {
     $QUIET || echo -e "  ${DIM}NODE_EXTRA_CA_CERTS=$BUNDLE_FILE${NC}"
     $QUIET || echo -e "  ${DIM}GIT_SSL_CAINFO=$BUNDLE_FILE${NC}"
 
-    # --- Etape 5 : Configuration glab ---
+    # --- Etape 5 : Truststore Java (JKS) ---
+    create_java_truststore "${enterprise_certs[@]}"
+
+    # --- Etape 6 : Configuration glab ---
     if command -v glab &>/dev/null && ! $QUIET; then
         local glab_host
         glab_host=$(glab config get host 2>/dev/null)
