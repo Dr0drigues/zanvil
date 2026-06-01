@@ -1,7 +1,7 @@
 # ==============================================================================
 # Project Switcher - Changement de contexte projet complet
 # ==============================================================================
-# Change tout le contexte: dossier, kube context, node version, tmux session
+# Change tout le contexte: dossier, kube context, node version
 # ==============================================================================
 
 # Fichier de config projet: .proj ou .project.yml
@@ -66,7 +66,6 @@ _proj_load_by_path() {
     # Lire la config
     local kube_context=$(_proj_get_value "$config_file" "kube_context")
     local node_version=$(_proj_get_value "$config_file" "node_version")
-    local tmux_session=$(_proj_get_value "$config_file" "tmux_session")
     local env_file=$(_proj_get_value "$config_file" "env_file")
     local post_cmd=$(_proj_get_value "$config_file" "post_cmd")
 
@@ -117,12 +116,6 @@ _proj_load_by_path() {
         fi
     fi
 
-    # Session tmux
-    if [[ -n "$tmux_session" ]] && command -v tmux &> /dev/null; then
-        if [[ -z "$TMUX" ]]; then
-            echo "  Tmux: utilisez 'tmux new -s $tmux_session' pour la session dediee"
-        fi
-    fi
 
     # Commande post (confirmation obligatoire, commandes simples uniquement)
     if [[ -n "$post_cmd" ]]; then
@@ -468,9 +461,6 @@ name: $default_name
 # Version Node (optionnel, sinon utilise .nvmrc / .tool-versions)
 # node_version: 18
 
-# Session tmux (optionnel)
-# tmux_session: $default_name
-
 # Fichier d'environnement a charger (optionnel)
 # env_file: .env.local
 
@@ -675,7 +665,6 @@ Fichier .proj:
   name: my-project       Nom du projet (optionnel)
   kube_context: ctx      Change le contexte kubectl
   node_version: 18       Change la version Node (mise)
-  tmux_session: name     Suggere une session tmux
   env_file: .env.local   Charge un fichier d'environnement
   post_cmd: "cmd"        Execute une commande apres chargement
 
