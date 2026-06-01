@@ -51,7 +51,7 @@ jobs:
 
       - name: Verify modules structure
         run: |
-          for mod in git gitlab kube docker ssh tmux ai project security utils tools work; do
+          for mod in git gitlab kube docker ssh ai project security utils tools work; do
             if [ -f "modules/$mod/init.zsh" ]; then
               echo "OK: modules/$mod/init.zsh"
             else
