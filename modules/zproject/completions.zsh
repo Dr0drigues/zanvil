@@ -48,7 +48,6 @@ _zproject() {
         'edit:ouvrir le manifeste dans $EDITOR'
         'status:afficher le projet actif'
         'run:executer une commande du projet'
-        'stack:activer une stack dans tmux'
         'exit:desactiver le projet courant'
     )
 

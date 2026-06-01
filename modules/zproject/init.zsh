@@ -170,15 +170,6 @@ zproject() {
             eval "$cmd_line"
             return $?
             ;;
-        stacks)
-            zsh-env-cli project stacks
-            return $?
-            ;;
-        stack)
-            shift
-            __zproject_stack "$@"
-            return $?
-            ;;
         exit)
             __zproject_exit
             return $?
@@ -379,61 +370,6 @@ __zproject_exit() {
     _ui_msg_ok "zproject: exited ${prev_name}"
 }
 
-# ── stack (tmux) ──────────────────────────────────────────────────────
-
-__zproject_stack() {
-    local name="${1:-}" env="${2:-}"
-    if [[ -z "$name" ]]; then
-        _ui_msg_fail "usage: zproject stack <name> [env]"
-        return 1
-    fi
-    if ! command -v tmux &>/dev/null; then
-        _ui_msg_fail "tmux is required for stacks"
-        return 1
-    fi
-    local resolved
-    if [[ -n "$env" ]]; then
-        resolved="$(zsh-env-cli project stack-resolve "$name" -e "$env" 2>&1)"
-    else
-        resolved="$(zsh-env-cli project stack-resolve "$name" 2>&1)"
-    fi
-    if (( $? != 0 )); then
-        _ui_msg_fail "$resolved"
-        return 1
-    fi
-
-    local session="zproject-${name}"
-    if tmux has-session -t "$session" 2>/dev/null; then
-        _ui_msg_info "stack '$name' already running — attaching"
-        tmux attach -t "$session"
-        return $?
-    fi
-
-    local first=1 member_name member_env member_path activation
-    while IFS=$'\t' read -r member_name member_env member_path; do
-        [[ -z "$member_name" ]] && continue
-        if [[ -n "$member_env" ]]; then
-            activation="zproject ${member_name} ${member_env}"
-        else
-            activation="zproject ${member_name}"
-        fi
-        if (( first )); then
-            tmux new-session -d -s "$session" -n "$member_name" -c "$member_path"
-            tmux send-keys -t "${session}:${member_name}" "$activation" C-m
-            first=0
-        else
-            tmux new-window -t "$session" -n "$member_name" -c "$member_path"
-            tmux send-keys -t "${session}:${member_name}" "$activation" C-m
-        fi
-    done <<< "$resolved"
-
-    _ui_msg_ok "stack '$name' started in tmux session '$session'"
-    if [[ -n "$TMUX" ]]; then
-        tmux switch-client -t "$session"
-    else
-        tmux attach -t "$session"
-    fi
-}
 
 # ── auto chpwd ────────────────────────────────────────────────────────
 
