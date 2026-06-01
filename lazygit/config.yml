@@ -1,18 +1,16 @@
 git:
-  paging:
-    colorArg: always
-    pager: delta --dark --paging=never
+  pagers:
+    - colorArg: always
+      pager: delta --dark --paging=never
   commit:
     signOff: false
   merging:
     manualCommit: false
-
 gui:
   showIcons: true
   border: rounded
   expandFocusedSidePanel: true
   mouseEvents: true
-
 keybinding:
   universal:
     quit: q
