@@ -235,10 +235,11 @@ extract_from_local_files() {
     local output_file="$2"
 
     local search_dirs=(
+        "$ENTERPRISE_DIR"
+        "$SSL_DIR"
         "$HOME/Downloads"
         "$HOME/Desktop"
         "$HOME/Documents"
-        "$SSL_DIR"
     )
 
     for dir in "${search_dirs[@]}"; do
