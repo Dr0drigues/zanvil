@@ -89,6 +89,7 @@ if [[ "${CHECK_MODE:-false}" = true ]]; then
     _check_deps=(
         git curl zsh jq tmux
         eza starship zoxide fzf bat nu direnv trash mise
+        rg fd dust duf procs btop gping tldr
         sops age
         kubectl kubelogin az helm
         atuin lazygit delta posting docker
