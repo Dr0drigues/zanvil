@@ -13,7 +13,7 @@ Configuration Zsh modulaire et orientee productivite pour developpeurs (macOS &a
 Architecture hybride <strong>Rust CLI + modules zsh</strong> pour des performances optimales.
 </p>
 
-<p align="center"><strong><a href="https://github.com/Dr0drigues/zsh_env/wiki">Documentation complete sur le Wiki</a></strong></p>
+<p align="center"><strong><a href="https://dr0drigues.github.io/zsh_env/">Site de documentation</a></strong> · <a href="https://github.com/Dr0drigues/zsh_env/wiki">Wiki</a></p>
 
 ## Installation
 

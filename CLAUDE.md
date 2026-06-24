@@ -1,0 +1,169 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Description
+
+Suite de configuration Zsh modulaire et orientee productivite pour macOS et Linux. Architecture hybride Rust CLI + modules zsh. Automatise l'installation d'outils modernes (zoxide, starship, eza, mise, nushell) et fournit des fonctions avancees pour Git, GitLab, Docker et Kubernetes.
+
+## Installation
+
+```bash
+git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
+cd ~/.zsh_env
+./install.sh
+```
+
+Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zshrc`, et build le CLI Rust si cargo est disponible.
+
+## Architecture
+
+```
+~/.zsh_env/
+├── rc.zsh              # Point d'entree principal (source par .zshrc)
+├── config.zsh          # Configuration modules (gitignored)
+├── completions.zsh     # Completions custom utilisateur
+├── core/               # Systeme central
+│   ├── ui.zsh          # Systeme UI (_ui_* variables + fonctions) + palette loader
+│   ├── loader.zsh      # Module loader (decouverte auto modules/)
+│   ├── variables.zsh   # Variables d'environnement
+│   ├── aliases.zsh     # Alias globaux
+│   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zsh-env.local)
+│   ├── commands.zsh    # zsh-env-list, doctor, status, help
+│   ├── admin.zsh       # zsh-env-modules, backup, restore, switch, completions
+│   ├── theme.zsh       # zsh-env-theme, ghostty
+│   ├── setup.zsh       # zsh-env-ssl-setup
+│   ├── auto_update.zsh # Systeme d'auto-update
+│   ├── check_env_deps.zsh
+│   └── completions.zsh # Completions des commandes core
+├── modules/            # Features modulaires (init.zsh + completions.zsh par module)
+│   ├── git/            # git_bulk, git_hooks, git_change_author, git_root
+│   ├── gitlab/         # gitlab_logic, pipeline_bulk (guard: ZSH_ENV_MODULE_GITLAB)
+│   ├── kube/           # kube_config, kube_switch, kube_ns, k (guard: ZSH_ENV_MODULE_KUBE)
+│   ├── docker/         # docker_utils (guard: ZSH_ENV_MODULE_DOCKER)
+│   ├── ssh/            # ssh_manager
+│   ├── tmux/           # tmux_manager (lazy loaded)
+│   ├── ai/             # ai_context, ai_tokens (lazy loaded)
+│   ├── project/        # project_switcher
+│   ├── security/       # security_audit
+│   ├── utils/          # utils, extract, fkill, net_utils (lazy)
+│   ├── tools/          # mise_hooks, test_runner, zsh_profile
+│   └── boulanger/      # boulanger_context
+├── themes/             # Themes Starship (flat .toml ou directory avec palette.zsh)
+│   ├── tokyo-night-pro/
+│   │   ├── prompt.toml
+│   │   └── palette.zsh
+│   └── minimal.toml
+├── env.d/              # Variables d'env dynamiques (*.zsh, *.sops.zsh)
+├── cli/                # CLI Rust companion (optionnel)
+│   ├── Cargo.toml
+│   └── src/
+├── site/               # Site de doc Astro Starlight (GitHub Pages, thème forge)
+│   └── src/content/docs/
+├── scripts/            # Scripts autonomes (clone-projects, trigger-jobs)
+└── install.sh          # Bootstrapper cross-platform
+```
+
+Le site (`site/`) est un projet Astro Starlight déployé sur GitHub Pages via `.github/workflows/pages.yml`. Contenu Markdown sous `site/src/content/docs/`.
+
+### Flux de chargement
+
+1. `.zshrc` source `rc.zsh` via `$ZSH_ENV_DIR`
+2. `rc.zsh` charge : config.zsh, secrets, `core/variables.zsh`, `env.d/*.zsh`
+3. compinit (completions zsh)
+4. `core/loader.zsh` : charge `core/ui.zsh` en premier, puis core/*.zsh, puis modules/*/init.zsh + completions.zsh
+5. `core/aliases.zsh`
+6. plugins.zsh
+7. `core/hooks.zsh` (starship, fzf, mise, zoxide, direnv, .zsh-env.local)
+
+### Module Loader (core/loader.zsh)
+
+- Decouvre automatiquement les modules dans `modules/*/init.zsh`
+- Module guards : `ZSH_ENV_MODULE_<NAME>` (derive du nom du dossier, uppercased)
+- Lazy loading : modules avec fichier `.lazy` (liste les fonctions publiques a stub)
+- Completions par module : `modules/*/completions.zsh`
+
+### CLI Rust (cli/)
+
+Binary optionnel `zsh-env-cli` qui accelere les commandes lourdes. Les fonctions zsh delegent au CLI quand disponible, fallback au zsh sinon.
+
+Commandes implementees : `theme list|apply|current`, `doctor`, `audit`, `context`, `modules list|enable|disable`
+
+Pattern de delegation :
+```zsh
+zsh-env-function() {
+    if command -v zsh-env-cli &>/dev/null; then
+        zsh-env-cli subcommand "$@"; return $?
+    fi
+    # ... fallback zsh ...
+}
+```
+
+### Systeme de themes unifie
+
+Un theme controle a la fois le prompt Starship ET les couleurs des commandes zsh-env-*.
+
+- **Flat .toml** : theme Starship uniquement (couleurs UI par defaut)
+- **Directory** : `prompt.toml` + `palette.zsh` (override des `_ui_*` variables en true color)
+- Etat stocke dans `.current_theme`, lu par `core/ui.zsh` au startup
+
+### Kube aliases
+
+`~/.kube/.context_aliases` mappe des noms courts vers les contextes complets :
+```
+blg-dev=aks-blg-caasplatform-dev-common-001
+```
+Utilise par : `kube_switch`, `k` (k9s), `zsh-env-cli context` (prompt Starship)
+
+### .zsh-env.local (direnv-like)
+
+Fichier `.zsh-env.local` a la racine d'un projet, auto-source au `cd`.
+Trust hash-based (sha256). Auto-unload en sortant du dossier.
+
+## Systeme UI (`core/ui.zsh`)
+
+Toutes les commandes `zsh-env-*` utilisent un style visuel coherent via les fonctions UI :
+
+**Variables disponibles :**
+- Couleurs : `$_ui_green`, `$_ui_red`, `$_ui_yellow`, `$_ui_blue`, `$_ui_cyan`
+- Styles : `$_ui_bold`, `$_ui_dim`, `$_ui_nc` (reset)
+- Symboles : `$_ui_check`, `$_ui_cross`, `$_ui_circle`
+- Version : `$ZSH_ENV_VERSION`
+
+**Fonctions de formatage :**
+- `_ui_header "Titre"` - Header boxed avec version
+- `_ui_section "Label" contenu` - Section avec label aligne (14 chars)
+- `_ui_separator [largeur]` - Ligne de separation
+- `_ui_summary $issues $warnings` - Resume final
+
+**Indicateurs inline :**
+- `_ui_ok "nom" ["version"]` / `_ui_fail "nom" ["detail"]` / `_ui_warn "nom"` / `_ui_skip "nom"`
+
+**Messages :**
+- `_ui_msg_ok` / `_ui_msg_fail` / `_ui_msg_warn` / `_ui_msg_info`
+- `_ui_tag_ok` / `_ui_tag_fail` / `_ui_tag_warn`
+
+## Conventions
+
+### General
+- Les alias et fonctions verifient la presence des outils avant utilisation (`command -v`)
+- Les secrets doivent aller dans `~/.secrets`, `~/.gitlab_secrets` ou `env.d/*.sops.zsh`
+- Module guards dans config.zsh (ex: `ZSH_ENV_MODULE_GITLAB=true`)
+- Recharger la config : `ss` ou `source ~/.zshrc`
+
+### Developpement UI
+- **Toujours utiliser les fonctions `_ui_*`** pour les couleurs et le formatage
+- **Ne jamais coder les couleurs en dur** (`\033[...`) dans les nouveaux fichiers
+- Les commandes `zsh-env-*` doivent avoir un header avec `_ui_header "Titre"`
+- Les palettes de themes overrident les `_ui_*` via `themes/<name>/palette.zsh`
+
+### Modules
+- Chaque module a `init.zsh` (fonctions) + `completions.zsh` (compdef)
+- Fichier `.lazy` pour le lazy loading (liste les fonctions publiques)
+- Les guards de module restent dans les fichiers source (defense-in-depth)
+
+### CLI Rust
+- Code dans `cli/src/cmd/<command>.rs`
+- Utilise `clap` derive pour le parsing, `colored` pour les couleurs
+- Decouvre `$ZSH_ENV_DIR` depuis l'env, fallback `~/.zsh_env`
+- Les commandes zsh gardent le fallback complet si le binaire est absent

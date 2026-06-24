@@ -1,0 +1,40 @@
+/* Thème forge pour Starlight — fer froid + braise sur charbon */
+
+/* Accent forge — s'applique dans les deux modes */
+:root {
+  --sl-color-accent-low: #2f2620;
+  --sl-color-accent: #ff8a3d;
+  --sl-color-accent-high: #ffd479;
+}
+
+/*
+ * Mode sombre (défaut Starlight — :root sans data-theme)
+ * Note Starlight 0.41.0 : --sl-color-bg = var(--sl-color-black)
+ * On surcharge --sl-color-black + toute l'échelle gray pour la palette charbon.
+ * --sl-color-hairline = var(--sl-color-gray-6), pas de variable séparée.
+ */
+:root[data-theme='dark'],
+:root:not([data-theme='light']) {
+  --sl-color-black:  #1a1613;   /* charbon — fond principal */
+  --sl-color-gray-6: #241d18;   /* panel — nav + hairline */
+  --sl-color-gray-5: #3d322a;   /* séparateurs internes */
+  --sl-color-gray-4: #5a4437;
+  --sl-color-gray-3: #8896a3;   /* acier — texte secondaire */
+  --sl-color-gray-2: #d8cdbf;   /* cendre — texte principal */
+  --sl-color-gray-1: #f0e9df;
+  --sl-color-white:  #f0e9df;   /* titres/blanc */
+
+  /* Accent braise direct sur les variables sémantiques */
+  --sl-color-text-accent: #ff8a3d;
+
+  /* Sidebar charbon (bg-sidebar = bg-sidebar, pas redéfinie → hérite bg-nav par défaut en dark) */
+  --sl-color-bg-sidebar: #1a1613;
+  --sl-color-bg-nav: #241d18;
+}
+
+/* Mode clair : accent forge conservé (teinte plus sombre pour lisibilité) */
+:root[data-theme='light'] {
+  --sl-color-accent-low: #ffe9d6;
+  --sl-color-accent: #d4541e;
+  --sl-color-accent-high: #7a2f12;
+}

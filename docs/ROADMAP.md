@@ -10,6 +10,7 @@
 |------|---------|-------|
 | Modern CLI replacements (rg/fd/dust/duf/procs/btop/gping/tldr) | v3.8.0 | hybride : drop-in + outils sous nom propre |
 | Identité visuelle zanvil (logo ASCII, bannière, tagline « craft your shell ») | v3.9.0 | cosmétique, non-breaking |
+| Site de doc Astro Starlight (incrément 1) | v4.0.0 | déployé sur GitHub Pages, thème forge, pages essentielles migrées |
 
 ## Backlog
 
@@ -44,8 +45,9 @@
 
 Livrer les **non-breaking d'abord** (forge #2, assets #3, prérequis CI #3b), **puis le rename #4 en capstone v4.0.0** — après quoi A/B/D se construisent directement avec le nommage zanvil (plus de couches transitionnelles). Le site/wiki (#5) peut s'intercaler dès que l'identité visuelle est figée.
 
-## Site / Wiki (#5) — à brainstormer
+## Site / Wiki (#5) — en cours
 
-État actuel : dossier `wiki/` synchronisé vers le GitHub Wiki par `.github/workflows/wiki.yml` (déclenché sur push `wiki/**`). À revoir :
-- Migrer/compléter vers un **site GitHub Pages** (identité visuelle zanvil, guide d'install, galerie de thèmes, doc des modules, branding).
-- Décider : Pages **remplace** le wiki, ou **coexiste** ; générateur (MkDocs / Astro / pages statiques) ; thème aux couleurs forge.
+État actuel : dossier `wiki/` synchronisé vers le GitHub Wiki par `.github/workflows/wiki.yml` (déclenché sur push `wiki/**`). Site GitHub Pages (Astro Starlight) en construction :
+- **Incrément 1 ✅** : site déployé sur GitHub Pages via `.github/workflows/pages.yml`, pages essentielles migrées, thème forge.
+- **Incrément 2** : migration des 13 pages restantes du wiki, **audit de complétude documentaire** (vérifier que toutes les pages wiki sont migrées et à jour, rien d'obsolète, liens valides), puis retrait du `wiki.yml`.
+- Décision finale : Pages **remplace** le wiki une fois l'audit terminé et approuvé.
