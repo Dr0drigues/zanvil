@@ -191,3 +191,11 @@ bindkey '^[OB' history-beginning-search-forward-end   # Fleche bas (mode applica
 if [[ "${ZSH_ENV_MODULE_ATUIN:-}" == "true" ]] && command -v atuin &>/dev/null; then
     eval "$(atuin init zsh --disable-up-arrow)"
 fi
+
+# =======================================================
+# BANNIERE DE DEMARRAGE (zanvil)
+# =======================================================
+# Ligne compacte a chaque shell interactif. Opt-out : ZSH_ENV_STARTUP_BANNER=false
+if [[ -o interactive && "${ZSH_ENV_STARTUP_BANNER:-true}" != "false" ]]; then
+    _zanvil_banner_compact
+fi
