@@ -720,7 +720,7 @@ ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
 ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
 
 # Banniere de demarrage
-# ZSH_ENV_STARTUP_BANNER=false   # Banniere zanvil a chaque shell (defaut: true)
+# ZSH_ENV_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
 
 # Contexte Work (detecte a l'installation)
 ZSH_ENV_WORK_DETECTED=$WORK_DETECTED
@@ -824,6 +824,8 @@ if [[ -f "$TARGET_DIR/assets/zanvil-logo.txt" ]]; then
     echo ""
     echo -e "${BOLD}${CYAN}"
     cat "$TARGET_DIR/assets/zanvil-logo.txt"
+    _zanvil_ver=$(grep -m1 'ZSH_ENV_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
+    echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"
 fi
 
