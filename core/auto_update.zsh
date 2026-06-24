@@ -90,6 +90,9 @@ _zsh_env_do_update() {
             fi
         fi
 
+        # Splash zanvil apres une mise a jour reussie
+        _zanvil_logo
+
         return 0
     else
         echo -e "${_ui_yellow}[zsh_env]${_ui_nc} Erreur lors de la mise a jour."
