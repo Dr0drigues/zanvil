@@ -76,7 +76,8 @@ Toutes les occurrences des séparateurs powerline (`[](fg:X bg:Y)`) doivent voir
 
 - **Pas de variante claire** (`forge-light`) : la forge est intrinsèquement sombre/chaude (YAGNI).
 - Aucun changement au moteur de thèmes, au loader `core/ui.zsh`, ni au CLI.
-- Aucun rename de tuyauterie. Le thème n'est PAS appliqué par défaut (l'utilisateur l'active via `zsh-env-theme apply forge`).
+- Aucun rename de tuyauterie.
+- **MAJ** : forge devient le **thème par défaut des nouveaux installs** (`install.sh` : option recommandée + mode `--default`). Les utilisateurs **existants ne sont pas affectés** (`.current_theme` n'est posé qu'à l'install, jamais par l'auto-update) — ils gardent leur thème et peuvent basculer via `zsh-env-theme apply forge`. Aucune migration.
 - Logos / assets graphiques : hors de ce sous-projet (branding assets séparé).
 
 ## Migration
