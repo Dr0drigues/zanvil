@@ -1,9 +1,19 @@
-# ZSH Environment & Productivity Suite
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="assets/branding/logo-mark-light.svg">
+    <img src="assets/branding/logo-mark.svg" alt="zanvil" width="128" height="128">
+  </picture>
+</p>
 
-Configuration Zsh modulaire et orientee productivite pour developpeurs (macOS & Linux).
-Architecture hybride **Rust CLI + modules zsh** pour des performances optimales.
+<h1 align="center">zanvil</h1>
+<p align="center"><em>craft your shell</em></p>
 
-**[Documentation complete sur le Wiki](https://github.com/Dr0drigues/zsh_env/wiki)**
+<p align="center">
+Configuration Zsh modulaire et orientee productivite pour developpeurs (macOS &amp; Linux).<br>
+Architecture hybride <strong>Rust CLI + modules zsh</strong> pour des performances optimales.
+</p>
+
+<p align="center"><strong><a href="https://github.com/Dr0drigues/zsh_env/wiki">Documentation complete sur le Wiki</a></strong></p>
 
 ## Installation
 
