@@ -230,6 +230,16 @@ install_tool "direnv"   "direnv"    "direnv"    "direnv"  # Charge .envrc automa
 # Note: Sur Linux (trash-cli), la commande est souvent 'trash-put'
 install_tool "trash"    "trash"     "trash-cli" "trash-cli"
 
+# Remplacements de commandes modernes (alias dans core/aliases.zsh)
+install_tool "rg"    "ripgrep" "ripgrep" "ripgrep"  # grep moderne (nom propre, pas d'alias)
+install_tool "fd"    "fd"      "fd-find" "fd-find"   # find moderne (nom propre, pas d'alias)
+install_tool "dust"  "dust"    ""        ""          # du arborescent (brew only)
+install_tool "duf"   "duf"     "duf"     "duf"       # df colore
+install_tool "procs" "procs"   ""        "procs"     # ps moderne
+install_tool "btop"  "btop"    "btop"    "btop"      # top / moniteur TUI
+install_tool "gping" "gping"   ""        ""          # ping graphique (brew only)
+install_tool "tldr"  "tldr"    "tldr"    "tldr"      # exemples concrets (complement man)
+
 # 5. Gestionnaire de versions (mise - remplace NVM + SDKMAN)
 install_tool "mise"     "mise"      ""          ""
 
@@ -320,6 +330,12 @@ if ! command -v nu &> /dev/null; then
     trap - EXIT
 fi
 
+# fd : sur Debian/Ubuntu le binaire installe par 'fd-find' s'appelle 'fdfind'
+if ! command -v fd &> /dev/null && command -v fdfind &> /dev/null; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    log_success "Symlink fd -> fdfind cree dans ~/.local/bin"
+fi
 
 # --- Configuration Automatique du .zshrc ---
 echo ""
