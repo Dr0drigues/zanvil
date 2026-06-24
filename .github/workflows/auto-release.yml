@@ -17,7 +17,9 @@ jobs:
         with:
           # Token admin (Dr0drigues) : bypass la protection de main (enforce_admins=false).
           # Le GITHUB_TOKEN par defaut est bloque par la regle "require a pull request".
-          token: ${{ secrets.RELEASE_TOKEN }}
+          # Fallback sur github.token si le secret est absent : checkout OK + skip OK,
+          # seul le push du bump echouera (comme avant) tant que RELEASE_TOKEN n'existe pas.
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
           fetch-depth: 0
           fetch-tags: true
 
