@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Token admin (Dr0drigues) : bypass la protection de main (enforce_admins=false).
+          # Le GITHUB_TOKEN par defaut est bloque par la regle "require a pull request".
+          token: ${{ secrets.RELEASE_TOKEN }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -27,10 +30,10 @@ jobs:
 
           if [[ "$BRANCH" == hotfix/* ]]; then
             echo "type=patch" >> $GITHUB_OUTPUT
-          elif [[ "$BRANCH" == feature/* ]]; then
+          elif [[ "$BRANCH" == feature/* || "$BRANCH" == feat/* ]]; then
             echo "type=minor" >> $GITHUB_OUTPUT
           else
-            echo "Branch '$BRANCH' does not match feature/* or hotfix/* — skipping release."
+            echo "Branch '$BRANCH' does not match feature/*, feat/* or hotfix/* — skipping release."
             echo "type=skip" >> $GITHUB_OUTPUT
           fi
 
