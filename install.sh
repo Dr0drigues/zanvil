@@ -816,6 +816,14 @@ else
     echo -e "  ${YELLOW}○${NC} Non configure (utilisez 'age-keygen' pour creer une cle)"
 fi
 
+# Splash zanvil (logo enclume partage avec core/ui.zsh)
+if [[ -f "$TARGET_DIR/assets/zanvil-logo.txt" ]]; then
+    echo ""
+    echo -e "${BOLD}${CYAN}"
+    cat "$TARGET_DIR/assets/zanvil-logo.txt"
+    echo -e "${NC}"
+fi
+
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"
 echo -e "Redemarrez votre terminal ou lancez : ${BOLD}source ~/.zshrc${NC}"
 echo -e "Pour modifier les modules : ${BOLD}nano ~/.zsh_env/config.zsh${NC}"
