@@ -37,7 +37,7 @@ ZSH_ENV_UPDATE_MODE="prompt"    # "prompt" = demander, "auto" = mise a jour sile
 # ZSH_ENV_WORK_TIMEOUT=2             # Timeout test reseau Work (defaut: 2s)
 # ZSH_ENV_WORK_NEXUS_URL=""          # URL de probe pour detecter le contexte interne (voir env.d/work.zsh)
 # ZSH_ENV_AI_CHARS_PER_TOKEN=4      # Ratio caracteres/token pour estimation AI
-# ZSH_ENV_STARTUP_BANNER=false       # Banniere zanvil au demarrage (defaut: true ; false = silencieux)
+# ZSH_ENV_STARTUP_BANNER=false       # Coupe la banniere de demarrage (le splash install/update reste affiche)
 
 # ==============================================================================
 # Chargement des plugins
