@@ -326,23 +326,40 @@ fi
 # Banner de reload
 # ==============================================================================
 
-# Affiche un banner ASCII art compact au reload
+# Ligne compacte zanvil (1 ligne, sans infos)
+# Usage: _zanvil_banner_compact
+_zanvil_banner_compact() {
+    echo -e "  ${_ui_dim}░▒▓${_ui_nc}${_ui_bold}${_ui_cyan}█ zanvil █${_ui_nc}${_ui_dim}▓▒░${_ui_nc}  ${_ui_bold}⚒${_ui_nc}  ${_ui_dim}craft your shell${_ui_nc}"
+}
+
+# Splash complet (logo enclume + tagline + version) — install / update
+# Usage: _zanvil_logo
+_zanvil_logo() {
+    local logo_file="${ZSH_ENV_DIR}/assets/zanvil-logo.txt"
+    echo ""
+    if [[ -f "$logo_file" ]]; then
+        # Enclume + wordmark en cyan/bold, lus depuis l'asset partage
+        echo -e "${_ui_bold}${_ui_cyan}$(cat "$logo_file")${_ui_nc}"
+    else
+        _zanvil_banner_compact
+    fi
+    echo -e "  ${_ui_dim}${ZSH_ENV_VERSION}${_ui_nc}"
+    echo ""
+}
+
+# Affiche un banner compact au reload (ligne compacte + infos)
 # Usage: _zsh_env_banner
 _zsh_env_banner() {
     local branch hash plugin_count info_line
 
-    # Branche git et short hash du repo zsh-env
     branch=$(git -C "$ZSH_ENV_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
     hash=$(git -C "$ZSH_ENV_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
-
-    # Nombre de plugins actifs
     plugin_count=${#ZSH_ENV_PLUGINS[@]}
 
-    # Ligne d'infos
     info_line="${branch} ${_ui_dim}·${_ui_nc} ${hash} ${_ui_dim}·${_ui_nc} ${plugin_count} plugins ${_ui_dim}·${_ui_nc} ${_ui_green}${_ui_check} reloaded${_ui_nc}"
 
     echo ""
-    echo -e "  ${_ui_dim}░▒▓${_ui_nc}${_ui_bold}${_ui_cyan}█ zsh-env █${_ui_nc}${_ui_dim}▓▒░${_ui_nc}  ${_ui_dim}${ZSH_ENV_VERSION}${_ui_nc}"
+    _zanvil_banner_compact
     echo -e "  ${info_line}"
     echo ""
 }
