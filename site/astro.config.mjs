@@ -7,7 +7,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'zanvil',
-      logo: { src: './src/assets/logo-mark.svg', alt: 'zanvil' },
+      logo: { dark: './src/assets/logo-mark.svg', light: './src/assets/logo-mark-light.svg', alt: 'zanvil' },
       customCss: ['./src/styles/forge.css'],
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/Dr0drigues/zsh_env' },
