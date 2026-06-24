@@ -1,6 +1,10 @@
 export WORK_DIR="$HOME/work"
 export SCRIPTS_DIR="$ZSH_ENV_DIR/scripts"
 
+# Ajouter ~/.local/bin au PATH pour les outils installes localement
+typeset -U path
+path=("$HOME/.local/bin" $path)
+
 # Fix XDG_DATA_DIRS : Homebrew ARM utilise /opt/homebrew/share, pas /usr/local/share
 # Sans ce fix, k9s et d'autres outils XDG cherchent dans un chemin inaccessible sur macOS ARM
 if [[ -d /opt/homebrew/share && "${XDG_DATA_DIRS:-}" == *"/usr/local/share"* ]]; then
