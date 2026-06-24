@@ -719,6 +719,9 @@ ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
 ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
 ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
 
+# Banniere de demarrage
+# ZSH_ENV_STARTUP_BANNER=false   # Banniere zanvil a chaque shell (defaut: true)
+
 # Contexte Work (detecte a l'installation)
 ZSH_ENV_WORK_DETECTED=$WORK_DETECTED
 EOF
