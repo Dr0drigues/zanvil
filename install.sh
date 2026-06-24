@@ -522,10 +522,11 @@ if [[ "$INTERACTIVE" = true ]]; then
     if command -v starship &> /dev/null; then
         echo -e "  Choisissez un theme pour votre prompt:" >&2
         echo -e "    ${CYAN}1)${NC} minimal   - Prompt minimaliste" >&2
-        echo -e "    ${CYAN}2)${NC} default   - Configuration equilibree (recommande)" >&2
+        echo -e "    ${CYAN}2)${NC} forge     - Theme signature zanvil (recommande)" >&2
         echo -e "    ${CYAN}3)${NC} powerline - Style powerline avec separateurs" >&2
         echo -e "    ${CYAN}4)${NC} plain     - Sans icones (compatible tous terminaux)" >&2
         echo -e "    ${CYAN}5)${NC} Garder ma configuration actuelle" >&2
+        echo -e "    ${CYAN}6)${NC} default   - Configuration equilibree" >&2
         printf "  Choix [2]: " >&2
         read -r theme_choice
         case "$theme_choice" in
@@ -533,7 +534,8 @@ if [[ "$INTERACTIVE" = true ]]; then
             3) STARSHIP_THEME="powerline" ;;
             4) STARSHIP_THEME="plain" ;;
             5) STARSHIP_THEME="" ;;
-            *) STARSHIP_THEME="default" ;;
+            6) STARSHIP_THEME="default" ;;
+            *) STARSHIP_THEME="forge" ;;
         esac
     else
         echo -e "  ${YELLOW}Starship non installe, theme ignore${NC}" >&2
@@ -578,7 +580,7 @@ else
     MODULE_MISE="true"
     MODULE_NUSHELL="true"
     MODULE_KUBE="true"
-    STARSHIP_THEME="default"
+    STARSHIP_THEME="forge"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
     UPDATE_MODE="prompt"
