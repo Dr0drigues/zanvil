@@ -16,7 +16,8 @@ _env_pkg_install_cmd() {
 }
 
 check_env_health() {
-    local dependencies=(git curl jq fzf eza starship zoxide python3 node)
+    local dependencies=(git curl jq fzf eza starship zoxide python3 node \
+                        rg fd dust duf procs btop gping tldr)
     local missing=()
     local pkg_cmd
     pkg_cmd="$(_env_pkg_install_cmd)"
@@ -31,6 +32,10 @@ check_env_health() {
 
         if [[ "$dep" == "bat" && "$(uname)" == "Linux" ]]; then
             if command -v batcat &> /dev/null; then cmd_to_check="batcat"; fi
+        fi
+
+        if [[ "$dep" == "fd" && "$(uname)" == "Linux" ]]; then
+            if command -v fdfind &> /dev/null; then cmd_to_check="fdfind"; fi
         fi
 
         if ! command -v "$cmd_to_check" &> /dev/null; then
