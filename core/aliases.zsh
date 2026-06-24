@@ -119,12 +119,12 @@ fi
 # Echappatoire pour les usages avances : 'command du', '\ps', etc.
 # grep/find/sed NE sont PAS aliases : rg et fd s'utilisent sous leurs vrais noms.
 
-command -v dust  &>/dev/null && alias du='dust'
-command -v duf   &>/dev/null && alias df='duf'
-command -v btop  &>/dev/null && alias top='btop'
-command -v gping &>/dev/null && alias ping='gping'
+command -v dust  &> /dev/null && alias du='dust'
+command -v duf   &> /dev/null && alias df='duf'
+command -v btop  &> /dev/null && alias top='btop'
+command -v gping &> /dev/null && alias ping='gping'
 # Attention: 'procs aux' n'est pas equivalent a 'ps aux'. Usage interactif simple.
-command -v procs &>/dev/null && alias ps='procs'
+command -v procs &> /dev/null && alias ps='procs'
 
 # Sécurité suppression
 # Nettoyage préalable pour éviter les conflits au reload
