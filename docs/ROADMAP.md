@@ -1,8 +1,7 @@
 # Roadmap — zanvil
 
 > Programme de rebranding (`zsh_env` → **zanvil**) + nouvelles fonctionnalités.
-> Chaque item = une PR (`feature/*`/`feat/*` → minor, `hotfix/*` → patch) = une release auto via `auto-release.yml`.
-> ⚠️ Pas encore de chemin **major** dans le workflow (cf. #3b) — requis pour la v4.0.0.
+> Chaque item = une PR (`feature/*`/`feat/*` → minor, `hotfix/*` → patch, `breaking/*` → major) = une release auto via `auto-release.yml`.
 > Version actuelle : voir `core/ui.zsh` (`ZSH_ENV_VERSION`).
 
 ## Livré
@@ -14,12 +13,12 @@
 | Branding assets (logos SVG sombre/clair/mono + favicon + en-tête README) | v3.10.0 | mark vectoriel reconstruit depuis l'export design |
 | Thème signature **forge** | v3.11.0 | défaut des nouveaux installs ; existants non affectés |
 | Site de doc Astro Starlight — **incrément 1** | v3.12.0 | Pages live, thème forge, landing + 3 pages migrées |
+| Chemin de bump major (`breaking/*`) dans `auto-release.yml` | v3.13.0 | prérequis #3b pour la v4.0.0 |
 
 ## Backlog
 
 | # | Item | Version visée | Type | Statut | Breaking |
 |---|------|---------------|------|--------|----------|
-| 3b | Prérequis CI : chemin de bump **major** dans `auto-release.yml` | v3.x | feat | 🧠 à faire avant le #4 | non |
 | 4 | **🔴 Rename technique complet (+ repo GitHub)** | **v4.0.0** | major | 🧠 à brainstormer | **OUI** |
 | 5 | Site Pages — **incrément 2** (migration complète + audit doc + retrait `wiki.yml`) | v4.x | feat | 🧠 inc1 ✅, inc2 à brainstormer | non |
 | 6 | Piste A — productivité shell (×7) | v4.x | feat | 💡 idées | non |
@@ -55,7 +54,7 @@
 
 **Séquencement :** le rename de repo est **interdépendant** avec le reste (le base path Pages dépend du nom du repo) → à faire **dans le même sous-projet v4.0.0**, pas isolément. Le **prérequis CI #3b** (chemin major) doit être livré **avant**.
 
-**Prérequis CI (#3b) :** `auto-release.yml` ne gère que `minor` (`feature/*`/`feat/*`) et `patch` (`hotfix/*`) — **aucun chemin major**. Avant la 4.0.0 : ajouter un déclencheur major (ex. préfixe `breaking/*` ou label PR `major`), sinon tag manuel.
+**Prérequis CI (#3b) :** ✅ Livré en v3.13.0 — `auto-release.yml` gère désormais `major` (`breaking/*`), `minor` (`feature/*`/`feat/*`) et `patch` (`hotfix/*`). Une PR sur branche `breaking/*` déclenche automatiquement un bump major.
 
 ## Ordre conseillé
 
