@@ -70,7 +70,7 @@ _bench_detailed() {
     _bench_source "$zanvil_dir/core/ui.zsh" "core/ui.zsh"
 
     local skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
-    for core_file in "$zanvil_dir/core"/*.zsh(N); do
+    for core_file in "$zanvil_dir/core"/*.zsh(N) "$zanvil_dir/core"/*/*.zsh(N); do
         local core_name=$(basename "$core_file")
         (( ${skip_core[(Ie)$core_name]} )) && continue
         _bench_source "$core_file" "core/$core_name"

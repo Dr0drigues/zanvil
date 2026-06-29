@@ -46,7 +46,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile
 │   └── boulanger/      # boulanger_context
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
-├── secrets/            # Fichiers sensibles (gitignored)
+├── secrets/            # .enc versionnés, plaintext déchiffré gitignored
 │   ├── secrets/kube/   # Kubeconfigs + .context_aliases
 │   └── secrets/work/   # Certificats et settings dechiffres
 ├── examples/           # Templates de config utilisateur

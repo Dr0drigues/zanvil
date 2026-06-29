@@ -1200,7 +1200,7 @@ kube_k9s_setup() {
         cp "$hotkeys_src" "$k9s_dir/hotkeys.yaml"
         _ui_msg_ok "hotkeys.yaml deploye"
     else
-        _ui_msg_warn "k9s/hotkeys.yaml absent dans $ZANVIL_DIR"
+        _ui_msg_warn "config/k9s/hotkeys.yaml absent dans $ZANVIL_DIR"
     fi
 
     # Deployer plugins
@@ -1209,7 +1209,7 @@ kube_k9s_setup() {
         cp "$plugins_src" "$k9s_dir/plugins.yaml"
         _ui_msg_ok "plugins.yaml deploye"
     else
-        _ui_msg_warn "k9s/plugins.yaml absent dans $ZANVIL_DIR"
+        _ui_msg_warn "config/k9s/plugins.yaml absent dans $ZANVIL_DIR"
     fi
 
     # Appliquer le skin du theme actif
