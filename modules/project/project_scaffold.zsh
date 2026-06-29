@@ -122,19 +122,19 @@ indent_style = tab
 EOF
     _proj_scaffold_log ".editorconfig"
 
-    # .proj (zsh-env project file)
+    # .proj (zanvil project file)
     cat > "$dir/.proj" <<EOF
 name: $name
 path: $dir
 EOF
     _proj_scaffold_log ".proj"
 
-    # .zsh-env.local (vide, pret a remplir)
-    cat > "$dir/.zsh-env.local" <<EOF
+    # .zanvil.local (vide, pret a remplir)
+    cat > "$dir/.zanvil.local" <<EOF
 # Variables d'environnement locales pour $name
-# Sera auto-source par zsh-env au cd
+# Sera auto-source par zanvil au cd
 EOF
-    _proj_scaffold_log ".zsh-env.local"
+    _proj_scaffold_log ".zanvil.local"
 
     # README.md
     cat > "$dir/README.md" <<EOF
@@ -455,5 +455,5 @@ _proj_scaffold_help() {
     echo "  -d <dir>             Dossier parent (defaut: .)"
     echo ""
     printf "${_ui_bold}Fichiers communs:${_ui_nc}\n"
-    echo "  .editorconfig, .proj, .zsh-env.local, README.md, git init"
+    echo "  .editorconfig, .proj, .zanvil.local, README.md, git init"
 }

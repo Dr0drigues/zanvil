@@ -3,20 +3,20 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Returns the path to the zsh_env directory.
-/// Uses $ZSH_ENV_DIR if set, otherwise falls back to ~/.zsh_env.
-pub fn zsh_env_dir() -> PathBuf {
-    if let Ok(dir) = env::var("ZSH_ENV_DIR") {
+/// Returns the path to the zanvil directory.
+/// Uses $ZANVIL_DIR if set, otherwise falls back to ~/.zanvil.
+pub fn zanvil_dir() -> PathBuf {
+    if let Ok(dir) = env::var("ZANVIL_DIR") {
         PathBuf::from(dir)
     } else {
         let home = env::var("HOME").unwrap_or_else(|_| String::from("~"));
-        PathBuf::from(home).join(".zsh_env")
+        PathBuf::from(home).join(".zanvil")
     }
 }
 
 /// Returns the path to config.zsh.
 pub fn config_path() -> PathBuf {
-    zsh_env_dir().join("config.zsh")
+    zanvil_dir().join("config.zsh")
 }
 
 /// Reads config.zsh and returns its content as a String.
@@ -88,12 +88,12 @@ pub fn scan_module_metas(env_dir: &Path) -> Vec<ModuleMeta> {
     result
 }
 
-/// Parses all ZSH_ENV_MODULE_*=true|false lines from config.zsh content.
+/// Parses all ZANVIL_MODULE_*=true|false lines from config.zsh content.
 pub fn parse_modules(content: &str) -> Vec<ModuleEntry> {
     let mut modules = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix("ZSH_ENV_MODULE_") {
+        if let Some(rest) = trimmed.strip_prefix("ZANVIL_MODULE_") {
             if let Some((name, value)) = rest.split_once('=') {
                 let enabled = value.trim() == "true";
                 modules.push(ModuleEntry {
@@ -109,7 +109,7 @@ pub fn parse_modules(content: &str) -> Vec<ModuleEntry> {
 /// Sets a module to enabled or disabled in the config content.
 /// Returns the updated content, or an error if the module was not found.
 pub fn set_module(content: &str, name: &str, enabled: bool) -> Result<String, String> {
-    let key = format!("ZSH_ENV_MODULE_{}", name.to_uppercase());
+    let key = format!("ZANVIL_MODULE_{}", name.to_uppercase());
     let target = format!("{}=", key);
     let replacement = format!("{}={}", key, if enabled { "true" } else { "false" });
 

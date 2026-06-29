@@ -7,10 +7,10 @@
 # ==============================================================================
 
 # --- Configuration (surchargeable via env.d/work.zsh) ---
-_WORK_NEXUS_URL="${ZSH_ENV_WORK_NEXUS_URL:-}"
-_WORK_CACHE_FILE="${ZSH_ENV_DIR:-$HOME/.zsh_env}/.work_context_cache"
-_WORK_CACHE_TTL="${ZSH_ENV_WORK_CACHE_TTL:-300}"       # 5 minutes en secondes
-_WORK_TIMEOUT="${ZSH_ENV_WORK_TIMEOUT:-2}"              # Timeout en secondes pour le test
+_WORK_NEXUS_URL="${ZANVIL_WORK_NEXUS_URL:-}"
+_WORK_CACHE_FILE="${ZANVIL_DIR:-$HOME/.zanvil}/.work_context_cache"
+_WORK_CACHE_TTL="${ZANVIL_WORK_CACHE_TTL:-300}"       # 5 minutes en secondes
+_WORK_TIMEOUT="${ZANVIL_WORK_TIMEOUT:-2}"              # Timeout en secondes pour le test
 
 # --- Fonctions internes ---
 
@@ -108,7 +108,7 @@ work_refresh() {
 
 # Initialise le contexte Work (dechiffre les fichiers si necessaire)
 work_init() {
-    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+    local zanvil_dir="${ZANVIL_DIR:-$HOME/.zanvil}"
     local decrypted_count=0
 
     # Verifier que sops est disponible
@@ -116,7 +116,7 @@ work_init() {
         return 1
     fi
 
-    local work_dir="$zsh_env_dir/work"
+    local work_dir="$zanvil_dir/work"
 
     # Dechiffrer settings.xml.enc si existe et pas deja dechiffre
     if [[ -f "$work_dir/settings.xml.enc" && ! -f "$work_dir/settings.xml" ]]; then
@@ -134,14 +134,14 @@ work_init() {
     fi
 
     # Activer le module GitLab si en contexte
-    export ZSH_ENV_MODULE_GITLAB=true
+    export ZANVIL_MODULE_GITLAB=true
 
     return 0
 }
 
 # Affiche l'etat du contexte Work
 work_status() {
-    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+    local zanvil_dir="${ZANVIL_DIR:-$HOME/.zanvil}"
 
     _ui_header "Contexte Work"
 
@@ -175,7 +175,7 @@ work_status() {
     _ui_separator 44
 
     # Statut des fichiers chiffres/dechiffres
-    local work_dir="$zsh_env_dir/work"
+    local work_dir="$zanvil_dir/work"
     local files=("settings.xml" "certificates_unix.sh")
     for file in "${files[@]}"; do
         local enc_file="$work_dir/${file}.enc"
@@ -195,7 +195,7 @@ work_status() {
     echo ""
     echo -e "${_ui_bold}Modules${_ui_nc}"
     _ui_separator 44
-    _ui_section "GitLab" "${ZSH_ENV_MODULE_GITLAB:-false}"
+    _ui_section "GitLab" "${ZANVIL_MODULE_GITLAB:-false}"
 
     # Mise
     if command -v mise &> /dev/null; then

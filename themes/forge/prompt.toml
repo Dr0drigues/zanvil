@@ -21,7 +21,7 @@ $nodejs\
 $rust\
 $golang\
 $php\
-\$kubernetes\\\n${custom.zproject}${custom.zsh_env_context}\\
+\$kubernetes\\\n${custom.zproject}${custom.zanvil_context}\\
 [](fg:#241d18 bg:#1a1613)\
 $time\
 [ ](fg:#1a1613)\
@@ -80,7 +80,7 @@ style = "bg:#241d18"
 format = '[[ $symbol ($version) ](fg:#e2533a bg:#241d18)]($style)'
 detect_files = ["pom.xml", "build.gradle", "build.gradle.kts", ".java-version"]
 
-# Kubernetes natif desactive — remplace par [custom.zsh_env_context] (plus rapide, plus compact)
+# Kubernetes natif desactive — remplace par [custom.zanvil_context] (plus rapide, plus compact)
 [kubernetes]
 disabled = true
 
@@ -88,7 +88,7 @@ disabled = true
 [custom.work]
 description = "Indicateur contexte Work"
 command = "echo '󰋜'"
-when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
+when = "test -f ~/.zanvil/.work_context_cache && tail -1 ~/.zanvil/.work_context_cache | grep -q true"
 format = "[$output ](bg:#8896a3 fg:#ffd479)"
 shell = ["bash", "--noprofile", "--norc"]
 
@@ -101,10 +101,10 @@ format = "[ 󰏗 $output ](fg:#a87fa0 bg:#241d18)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # === Module Custom: Contexte Dev (Kube) ===
-[custom.zsh_env_context]
-description = "Kubernetes context and namespace via zsh-env-cli"
-command = "zsh-env-cli context"
-when = "test -x ${HOME}/.local/bin/zsh-env-cli"
+[custom.zanvil_context]
+description = "Kubernetes context and namespace via zanvil"
+command = "zanvil context"
+when = "test -x ${HOME}/.local/bin/zanvil"
 format = "[[ $output ](fg:#5fae9f bg:#241d18)]($style)"
 style = "bg:#241d18"
 shell = ["bash", "--noprofile", "--norc"]

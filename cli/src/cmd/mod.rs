@@ -14,12 +14,12 @@ pub mod update;
 use colored::*;
 use std::fs;
 
-/// Read ZSH_ENV_VERSION from core/ui.zsh
+/// Read ZANVIL_VERSION from core/ui.zsh
 pub fn read_version() -> String {
-    let ui_path = crate::config::zsh_env_dir().join("core").join("ui.zsh");
+    let ui_path = crate::config::zanvil_dir().join("core").join("ui.zsh");
     if let Ok(content) = fs::read_to_string(&ui_path) {
         for line in content.lines() {
-            if let Some(rest) = line.strip_prefix("export ZSH_ENV_VERSION=\"") {
+            if let Some(rest) = line.strip_prefix("export ZANVIL_VERSION=\"") {
                 if let Some(ver) = rest.strip_suffix('"') {
                     return ver.to_string();
                 }

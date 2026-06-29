@@ -1,4 +1,4 @@
-[[ "${ZSH_ENV_MODULE_SECURITY:-true}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_SECURITY:-true}" != "true" ]] && return 0
 
 # ==============================================================================
 # Secrets Scan - Detection de secrets dans les repos Git
@@ -11,7 +11,7 @@
 typeset -ga _secrets_include_globs
 typeset -ga _secrets_exclude_globs
 
-zsh-env-secrets-scan() {
+zanvil-secrets-scan() {
     local target_dir="."
     local mode="current"
     local bulk=false
@@ -401,9 +401,9 @@ _secrets_scan_help() {
     _ui_header "Secrets Scan"
     echo ""
     printf "${_ui_bold}Usage:${_ui_nc}\n"
-    echo "  zsh-env-secrets-scan [dir]               Scan le working tree (defaut)"
-    echo "  zsh-env-secrets-scan --history [dir]      Scan l'historique git"
-    echo "  zsh-env-secrets-scan --bulk [dir]         Scan tous les repos d'un dossier"
+    echo "  zanvil-secrets-scan [dir]               Scan le working tree (defaut)"
+    echo "  zanvil-secrets-scan --history [dir]      Scan l'historique git"
+    echo "  zanvil-secrets-scan --bulk [dir]         Scan tous les repos d'un dossier"
     echo ""
     printf "${_ui_bold}Filtres:${_ui_nc}\n"
     echo "  --include \"*.ts\"          Scanner uniquement ces fichiers"
@@ -424,7 +424,7 @@ _secrets_scan_help() {
     echo "  -d <dir>      Dossier a scanner"
     echo ""
     printf "${_ui_bold}Exemples:${_ui_nc}\n"
-    echo "  zsh-env-secrets-scan --include '*.ts' --exclude '*.spec.ts'"
-    echo "  zsh-env-secrets-scan --bulk -d ~/projects"
-    echo "  zsh-env-secrets-scan --history --include 'src/**'"
+    echo "  zanvil-secrets-scan --include '*.ts' --exclude '*.spec.ts'"
+    echo "  zanvil-secrets-scan --bulk -d ~/projects"
+    echo "  zanvil-secrets-scan --history --include 'src/**'"
 }

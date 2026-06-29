@@ -3,7 +3,7 @@ use std::process::Command;
 use std::time::Instant;
 
 pub fn run(runs: u32) {
-    super::print_header("ZSH_ENV Benchmark");
+    super::print_header("Zanvil Benchmark");
     println!();
     println!("{:<14} {}", "Runs".bold(), runs);
     println!();

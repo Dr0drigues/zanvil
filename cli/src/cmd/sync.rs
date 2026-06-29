@@ -72,32 +72,32 @@ fn export(output: &str) {
     }
 
     // Read current theme
-    let theme_file = config::zsh_env_dir().join(".current_theme");
+    let theme_file = config::zanvil_dir().join(".current_theme");
     let theme = fs::read_to_string(&theme_file)
         .unwrap_or_else(|_| "default".to_string())
         .trim()
         .to_string();
 
     // Read theme light/dark
-    let theme_light = extract_value(&content, "ZSH_ENV_THEME_LIGHT");
-    let theme_dark = extract_value(&content, "ZSH_ENV_THEME_DARK");
+    let theme_light = extract_value(&content, "ZANVIL_THEME_LIGHT");
+    let theme_dark = extract_value(&content, "ZANVIL_THEME_DARK");
 
     // Read auto-update settings
-    let au_enabled = extract_value(&content, "ZSH_ENV_AUTO_UPDATE") == "true";
-    let au_freq: u32 = extract_value(&content, "ZSH_ENV_UPDATE_FREQUENCY")
+    let au_enabled = extract_value(&content, "ZANVIL_AUTO_UPDATE") == "true";
+    let au_freq: u32 = extract_value(&content, "ZANVIL_UPDATE_FREQUENCY")
         .parse()
         .unwrap_or(7);
-    let au_mode = extract_value(&content, "ZSH_ENV_UPDATE_MODE")
+    let au_mode = extract_value(&content, "ZANVIL_UPDATE_MODE")
         .trim_matches('"')
         .to_string();
 
     // Version
-    let ui_path = config::zsh_env_dir().join("core/ui.zsh");
+    let ui_path = config::zanvil_dir().join("core/ui.zsh");
     let version = fs::read_to_string(&ui_path)
         .ok()
         .and_then(|c| {
             c.lines()
-                .find(|l| l.contains("ZSH_ENV_VERSION="))
+                .find(|l| l.contains("ZANVIL_VERSION="))
                 .map(|l| {
                     l.split('=')
                         .nth(1)
@@ -130,7 +130,7 @@ fn export(output: &str) {
     let output_path = if output.starts_with('/') {
         PathBuf::from(output)
     } else {
-        config::zsh_env_dir().join(output)
+        config::zanvil_dir().join(output)
     };
 
     match serde_json::to_string_pretty(&sync) {
@@ -180,10 +180,10 @@ fn import(file: &str) {
         match config::set_module(&config_content, name, *enabled) {
             Ok(new) => {
                 config_content = new;
-                println!("  {} ZSH_ENV_MODULE_{}={}", "✓".green(), name, enabled);
+                println!("  {} ZANVIL_MODULE_{}={}", "✓".green(), name, enabled);
             }
             Err(_) => {
-                println!("  {} ZSH_ENV_MODULE_{} (absent)", "−".dimmed(), name);
+                println!("  {} ZANVIL_MODULE_{} (absent)", "−".dimmed(), name);
             }
         }
     }
@@ -195,7 +195,7 @@ fn import(file: &str) {
 
     // Apply theme
     if !sync.theme.is_empty() {
-        let _ = fs::write(config::zsh_env_dir().join(".current_theme"), &sync.theme);
+        let _ = fs::write(config::zanvil_dir().join(".current_theme"), &sync.theme);
         println!("  {} Theme: {}", "✓".green(), sync.theme);
     }
 
@@ -253,7 +253,7 @@ fn diff(file: &str) {
         if local_str != remote_str {
             println!(
                 "  {:<28} {:<12} {}",
-                format!("ZSH_ENV_MODULE_{}", name).yellow(),
+                format!("ZANVIL_MODULE_{}", name).yellow(),
                 local_str,
                 remote_str.cyan()
             );
@@ -261,7 +261,7 @@ fn diff(file: &str) {
         } else {
             println!(
                 "  {}",
-                format!("  {:<28} {:<12} {}", format!("ZSH_ENV_MODULE_{}", name), local_str, remote_str).dimmed()
+                format!("  {:<28} {:<12} {}", format!("ZANVIL_MODULE_{}", name), local_str, remote_str).dimmed()
             );
         }
     }
@@ -271,7 +271,7 @@ fn diff(file: &str) {
         println!(
             "{} difference(s)  {}",
             diffs.to_string().yellow(),
-            format!("(zsh-env-cli sync import {})", file).dimmed()
+            format!("(zanvil sync import {})", file).dimmed()
         );
     } else {
         println!("{} Configurations identiques", "✓".green());

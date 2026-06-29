@@ -11,10 +11,10 @@
 
 ```bash
 # Cloner le repo
-git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
+git clone git@github.com:Dr0drigues/zanvil.git ~/.zanvil
 
 # Lancer l'installation
-cd ~/.zsh_env
+cd ~/.zanvil
 ./install.sh
 ```
 
@@ -53,24 +53,24 @@ Installe tout avec les parametres par defaut.
 6. **Cree `config.zsh`** avec vos preferences
 7. **Initialise `env.d/`** pour les variables dynamiques
 
-## CLI Rust (zsh-env-cli)
+## CLI Rust (zanvil)
 
 Le CLI Rust est optionnel mais recommande pour des performances optimales :
 
 ```bash
-cd ~/.zsh_env/zsh-env-cli
+cd ~/.zanvil/zanvil
 cargo build --release
 
 # Le binaire est installe dans le PATH automatiquement
 # Ou copier manuellement :
-cp target/release/zsh-env-cli ~/.local/bin/
+cp target/release/zanvil ~/.local/bin/
 ```
 
 Le CLI fournit les commandes : `theme`, `doctor`, `audit`, `context`, `modules`.
 
 ```bash
 # Verifier l'installation du CLI
-zsh-env-cli --version
+zanvil --version
 ```
 
 ## Configuration de env.d/
@@ -79,13 +79,13 @@ Le dossier `env.d/` permet de charger des variables d'environnement dynamiques :
 
 ```bash
 # Creer le dossier (fait automatiquement par install.sh)
-mkdir -p ~/.zsh_env/env.d
+mkdir -p ~/.zanvil/env.d
 
 # Ajouter des variables
-echo 'export MY_VAR=value' > ~/.zsh_env/env.d/custom.env
+echo 'export MY_VAR=value' > ~/.zanvil/env.d/custom.env
 
 # Pour les secrets, utiliser sops
-sops ~/.zsh_env/env.d/secrets.env
+sops ~/.zanvil/env.d/secrets.env
 ```
 
 ## Post-installation
@@ -97,20 +97,20 @@ Apres l'installation :
 source ~/.zshrc
 
 # Verifier l'installation
-zsh-env-doctor
+zanvil-doctor
 
 # Lister les modules disponibles
-zsh-env-modules list
+zanvil-modules list
 
 # Appliquer un theme
-zsh-env-theme list
-zsh-env-theme minimal
+zanvil-theme list
+zanvil-theme minimal
 ```
 
 ## Mise a jour
 
 ```bash
-cd ~/.zsh_env
+cd ~/.zanvil
 git pull
 ss  # Recharger
 ```
@@ -118,21 +118,21 @@ ss  # Recharger
 Pour mettre a jour le CLI Rust :
 
 ```bash
-cd ~/.zsh_env/zsh-env-cli
+cd ~/.zanvil/zanvil
 cargo build --release
 ```
 
 Ou activez l'auto-update dans `config.zsh` :
 
 ```zsh
-ZSH_ENV_AUTO_UPDATE=true
-ZSH_ENV_UPDATE_FREQUENCY=7  # jours
+ZANVIL_AUTO_UPDATE=true
+ZANVIL_UPDATE_FREQUENCY=7  # jours
 ```
 
 ## Desinstallation
 
 ```bash
-~/.zsh_env/uninstall.sh
+~/.zanvil/uninstall.sh
 ```
 
 Options :

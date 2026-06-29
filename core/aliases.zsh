@@ -8,7 +8,7 @@ alias s='source'
 
 # Rechargement rapide de la configuration
 # Avec un petit feedback visuel pour confirmer que ça a marché
-alias ss='source $HOME/.zshrc && _zsh_env_banner'
+alias ss='source $HOME/.zshrc && _zanvil_banner'
 
 # =======================================================
 # NAVIGATION & LISTING
@@ -77,7 +77,7 @@ fi
 # =======================================================
 # NUSHELL INTEGRATION
 # =======================================================
-if [[ "$ZSH_ENV_MODULE_NUSHELL" == "true" ]] && command -v nu &> /dev/null; then
+if [[ "$ZANVIL_MODULE_NUSHELL" == "true" ]] && command -v nu &> /dev/null; then
     # Lancer nushell rapidement
     alias nush='nu'
 

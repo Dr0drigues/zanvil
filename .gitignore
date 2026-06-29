@@ -8,10 +8,10 @@
 .idea
 .vscode
 
-# Config personnalisee (utiliser config.zsh.example comme base)
+# Config personnalisee (utiliser examples/config.zsh.example comme base)
 config.zsh
 
-# Aliases locaux (utiliser aliases.local.zsh.example comme base)
+# Aliases locaux (utiliser examples/aliases.local.zsh.example comme base)
 aliases.local.zsh
 
 # Fichier de tracking auto-update
@@ -39,7 +39,7 @@ GEMINI.md
 .current_theme
 profiles/
 
-# Trust store pour .zsh-env.local
+# Trust store pour .zanvil.local
 .trusted/
 
 # env.d : fichiers en clair (les .sops.zsh peuvent etre versionnes)
@@ -50,7 +50,7 @@ env.d/*.zsh
 # Backups
 backups/
 
-# Sync export (genere par zsh-env-sync)
+# Sync export (genere par zanvil-sync)
 sync.json
 
 # Migration state
@@ -63,9 +63,12 @@ cli/target/
 *_context_cache
 
 # Fichiers Work dechiffres (generes a partir des .enc)
-work/settings.xml
-work/certificates_unix.sh
+secrets/work/settings.xml
+secrets/work/certificates_unix.sh
 .work_context_cache
 
 # Superpowers files
 docs/superpowers
+
+# Faux HOME des tests de chargement (test_load.sh)
+.fakehome/

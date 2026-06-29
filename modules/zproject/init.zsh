@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
-[[ "${ZSH_ENV_MODULE_ZPROJECT:-true}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_ZPROJECT:-true}" != "true" ]] && return 0
 
 # zproject — active un contexte projet (kube, env, path, runtimes) par shell.
-# Delegue la resolution au CLI Rust (zsh-env-cli project ...).
+# Delegue la resolution au CLI Rust (zanvil project ...).
 
 typeset -g ZPROJECT_STATE_DIR="${TMPDIR:-/tmp}"
 typeset -g ZPROJECT_STATE_FILE="${ZPROJECT_STATE_DIR}/zproject-$$.env"
@@ -117,36 +117,36 @@ zproject() {
             return $?
             ;;
         list)
-            zsh-env-cli project list
+            zanvil project list
             return $?
             ;;
         config)
             shift
-            zsh-env-cli project config "$@"
+            zanvil project config "$@"
             return $?
             ;;
         doctor)
             shift
-            zsh-env-cli project doctor "$@"
+            zanvil project doctor "$@"
             return $?
             ;;
         diff)
             shift
-            zsh-env-cli project diff "$@"
+            zanvil project diff "$@"
             return $?
             ;;
         scan)
             shift
-            zsh-env-cli project scan "$@"
+            zanvil project scan "$@"
             return $?
             ;;
         status)
-            zsh-env-cli project status
+            zanvil project status
             return $?
             ;;
         envs)
             shift
-            zsh-env-cli project envs "$@"
+            zanvil project envs "$@"
             return $?
             ;;
         edit)
@@ -162,7 +162,7 @@ zproject() {
                 return 1
             fi
             local cmd_line
-            cmd_line="$(zsh-env-cli project run "$cmd_name" 2>&1)"
+            cmd_line="$(zanvil project run "$cmd_name" 2>&1)"
             if (( $? != 0 )); then
                 _ui_msg_fail "$cmd_line"
                 return 1
@@ -185,11 +185,11 @@ zproject() {
 # ── picker fzf interactif (zproject sans args, aucun projet actif) ────
 
 __zproject_pick() {
-    if ! command -v zsh-env-cli &>/dev/null; then
-        _ui_msg_fail "zsh-env-cli requis"
+    if ! command -v zanvil &>/dev/null; then
+        _ui_msg_fail "zanvil requis"
         return 1
     fi
-    local projects_dir="${HOME}/.zsh-env/projects"
+    local projects_dir="${HOME}/.zanvil/projects"
     local -a projects
     projects=($(ls -1 "$projects_dir" 2>/dev/null | grep -v '^_' | grep -v '^stacks$' | grep -v '^local$' | grep -v '\.'))
     if [[ ${#projects[@]} -eq 0 ]]; then
@@ -204,13 +204,13 @@ __zproject_pick() {
             --prompt="projet> " \
             --height=40% \
             --reverse \
-            --preview="zsh-env-cli project config {} 2>/dev/null | head -30" \
+            --preview="zanvil project config {} 2>/dev/null | head -30" \
             --preview-window=right:50% \
             --header="ENTER pour activer, TAB pour preview")
         [[ -z "$selected" ]] && return 0
 
         local -a envs
-        envs=($(zsh-env-cli project envs "$selected" 2>/dev/null))
+        envs=($(zanvil project envs "$selected" 2>/dev/null))
         if [[ ${#envs[@]} -gt 1 ]]; then
             env_selected=$(printf '%s\n' "${envs[@]}" | fzf \
                 --prompt="env> " \
@@ -249,7 +249,7 @@ __zproject_pick() {
 
 __zproject_status_inline() {
     _ui_header "zproject status"
-    zsh-env-cli project status
+    zanvil project status
 }
 
 # ── edit ──────────────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ __zproject_edit() {
         _ui_msg_fail "usage: zproject edit <name>  (ou activer un projet d'abord)"
         return 1
     fi
-    local manifest="${HOME}/.zsh-env/projects/${name}/project.toml"
+    local manifest="${HOME}/.zanvil/projects/${name}/project.toml"
     if [[ ! -f "$manifest" ]]; then
         _ui_msg_fail "Manifest introuvable: $manifest"
         return 1
@@ -283,9 +283,9 @@ __zproject_activate() {
     __zproject_state_init
     local activate_script
     if [[ -n "$env" ]]; then
-        activate_script="$(zsh-env-cli project activate "$name" -e "$env" 2>&1)"
+        activate_script="$(zanvil project activate "$name" -e "$env" 2>&1)"
     else
-        activate_script="$(zsh-env-cli project activate "$name" 2>&1)"
+        activate_script="$(zanvil project activate "$name" 2>&1)"
     fi
     local rc=$?
     if (( rc != 0 )); then
@@ -384,9 +384,9 @@ zproject-auto() {
 
 __zproject_chpwd() {
     [[ "$ZPROJECT_AUTO" != "on" ]] && return 0
-    command -v zsh-env-cli &>/dev/null || return 0
+    command -v zanvil &>/dev/null || return 0
     local target
-    target="$(zsh-env-cli project find-path "$PWD" 2>/dev/null)"
+    target="$(zanvil project find-path "$PWD" 2>/dev/null)"
     if [[ -z "$target" ]]; then
         [[ -n "${ZPROJECT_NAME:-}" ]] && __zproject_exit
         return 0
@@ -443,7 +443,7 @@ kunpin() {
     unset ZPROJECT_KUBE_OVERRIDE_NS
     if [[ -n "${ZPROJECT_NAME:-}" ]]; then
         local _script _ctx
-        _script="$(zsh-env-cli project activate "${ZPROJECT_NAME}" ${ZPROJECT_ENV:+-e "$ZPROJECT_ENV"} 2>/dev/null)"
+        _script="$(zanvil project activate "${ZPROJECT_NAME}" ${ZPROJECT_ENV:+-e "$ZPROJECT_ENV"} 2>/dev/null)"
         _ctx="$(echo "$_script" | grep -m1 '^__zproject_kube_context' | sed "s/__zproject_kube_context '\\([^']*\\)'.*/\\1/")"
         if [[ -n "$_ctx" ]]; then
             if (( $+functions[kube_switch] )); then
@@ -467,7 +467,7 @@ zpenv() {
     local target="${1:-}"
     if [[ -z "$target" ]]; then
         local envs
-        envs="$(zsh-env-cli project envs "${ZPROJECT_NAME}" 2>/dev/null)"
+        envs="$(zanvil project envs "${ZPROJECT_NAME}" 2>/dev/null)"
         if [[ -z "$envs" ]]; then
             _ui_msg_fail "Aucun environnement défini pour ${ZPROJECT_NAME}"
             return 1
@@ -491,12 +491,12 @@ zpenv() {
 cdp() {
     local target="${1:-}"
     if [[ -z "$target" ]]; then
-        if ! command -v zsh-env-cli &>/dev/null; then
-            _ui_msg_fail "zsh-env-cli requis"
+        if ! command -v zanvil &>/dev/null; then
+            _ui_msg_fail "zanvil requis"
             return 1
         fi
         local list
-        list="$(zsh-env-cli project list 2>/dev/null | awk '{print $1}')"
+        list="$(zanvil project list 2>/dev/null | awk '{print $1}')"
         if command -v fzf &>/dev/null; then
             target="$(echo "$list" | fzf --prompt="Project > ")"
         else
@@ -507,7 +507,7 @@ cdp() {
         [[ -z "$target" ]] && return 0
     fi
     local script path
-    script="$(zsh-env-cli project activate "$target" 2>/dev/null)"
+    script="$(zanvil project activate "$target" 2>/dev/null)"
     path="$(echo "$script" | grep "^export ZPROJECT_PATH=" | sed "s/export ZPROJECT_PATH='\\(.*\\)'/\\1/")"
     if [[ -z "$path" || ! -d "$path" ]]; then
         _ui_msg_fail "Chemin introuvable pour '$target'"

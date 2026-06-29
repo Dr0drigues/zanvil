@@ -1,4 +1,4 @@
-guard = "ZSH_ENV_MODULE_ATUIN"
+guard = "ZANVIL_MODULE_ATUIN"
 binary = "atuin"
 install = "brew install atuin"
 description = "Historique shell enrichi SQLite (fuzzy search)"

@@ -1,1 +1,1 @@
-source "$ZSH_ENV_DIR/modules/ssh/ssh_manager.zsh"
+source "$ZANVIL_DIR/modules/ssh/ssh_manager.zsh"
