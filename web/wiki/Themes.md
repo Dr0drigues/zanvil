@@ -18,10 +18,10 @@ zanvil theme apply minimal
 
 ## Structure d'un theme
 
-Chaque theme est un repertoire dans `~/.zanvil/themes/` :
+Chaque theme est un repertoire dans `~/.zanvil/config/themes/` :
 
 ```
-themes/
+config/themes/
 ├── minimal/
 │   ├── prompt.toml       # Configuration Starship
 │   └── palette.zsh       # Palette de couleurs terminal
@@ -97,17 +97,17 @@ cat ~/.zanvil/.current_theme
 
 ## Creer un theme personnalise
 
-1. Creez un repertoire dans `~/.zanvil/themes/` :
+1. Creez un repertoire dans `~/.zanvil/config/themes/` :
 
 ```bash
-mkdir -p ~/.zanvil/themes/custom
+mkdir -p ~/.zanvil/config/themes/custom
 ```
 
 2. Copiez un theme existant comme base :
 
 ```bash
-cp ~/.zanvil/themes/minimal/prompt.toml ~/.zanvil/themes/custom/
-cp ~/.zanvil/themes/minimal/palette.zsh ~/.zanvil/themes/custom/
+cp ~/.zanvil/config/themes/minimal/prompt.toml ~/.zanvil/config/themes/custom/
+cp ~/.zanvil/config/themes/minimal/palette.zsh ~/.zanvil/config/themes/custom/
 ```
 
 3. Editez les fichiers selon vos preferences :

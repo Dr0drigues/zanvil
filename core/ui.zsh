@@ -335,7 +335,7 @@ _zanvil_banner_compact() {
 # Splash complet (logo enclume + tagline + version) — install / update
 # Usage: _zanvil_logo
 _zanvil_logo() {
-    local logo_file="${ZANVIL_DIR}/assets/zanvil-logo.txt"
+    local logo_file="${ZANVIL_DIR}/web/assets/zanvil-logo.txt"
     echo ""
     if [[ -f "$logo_file" ]]; then
         # Enclume + wordmark en cyan/bold, lus depuis l'asset partage

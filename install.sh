@@ -822,10 +822,10 @@ else
 fi
 
 # Splash zanvil (logo enclume partage avec core/ui.zsh)
-if [[ -f "$TARGET_DIR/assets/zanvil-logo.txt" ]]; then
+if [[ -f "$TARGET_DIR/web/assets/zanvil-logo.txt" ]]; then
     echo ""
     echo -e "${BOLD}${CYAN}"
-    cat "$TARGET_DIR/assets/zanvil-logo.txt"
+    cat "$TARGET_DIR/web/assets/zanvil-logo.txt"
     _zanvil_ver=$(grep -m1 'ZANVIL_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
     echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"
