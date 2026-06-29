@@ -93,7 +93,7 @@ zanvil-theme() {
     fi
 
     # --- Fallback zsh ---
-    local themes_dir="$ZANVIL_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/config/themes"
     local starship_config="$HOME/.config/starship.toml"
     local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
@@ -192,7 +192,7 @@ zanvil-theme() {
 # ==============================================================================
 _zanvil_theme_preview() {
     local theme="$1"
-    local themes_dir="$ZANVIL_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/config/themes"
 
     if [[ -z "$theme" ]]; then
         _ui_msg_fail "Usage: zanvil-theme preview <nom>"
