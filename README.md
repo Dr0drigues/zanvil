@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="assets/branding/logo-mark-light.svg">
-    <img src="assets/branding/logo-mark.svg" alt="zanvil" width="128" height="128">
+    <source media="(prefers-color-scheme: light)" srcset="web/assets/branding/logo-mark-light.svg">
+    <img src="web/assets/branding/logo-mark.svg" alt="zanvil" width="128" height="128">
   </picture>
 </p>
 

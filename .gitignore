@@ -68,7 +68,7 @@ secrets/work/certificates_unix.sh
 .work_context_cache
 
 # Superpowers files
-docs/superpowers
+web/docs/superpowers
 
 # Faux HOME des tests de chargement (test_load.sh)
 .fakehome/
