@@ -741,14 +741,14 @@ if [[ "$SOPS_CONFIGURED" = "true" ]] && [[ -n "$AGE_PUBLIC_KEY" ]]; then
 creation_rules:
   - path_regex: .*\.sops\.ya?ml$
     age: $AGE_PUBLIC_KEY
-  - path_regex: kube/.*\.sops$
+  - path_regex: secrets/kube/.*\.sops$
     age: $AGE_PUBLIC_KEY
 SOPSEOF
         log_success "Configuration SOPS creee"
     fi
 
-    # Cree le dossier kube/ pour les configs chiffrees
-    mkdir -p "$TARGET_DIR/kube"
+    # Cree le dossier secrets/kube/ pour les configs chiffrees
+    mkdir -p "$TARGET_DIR/secrets/kube"
 fi
 
 # Appliquer le theme Starship si choisi
