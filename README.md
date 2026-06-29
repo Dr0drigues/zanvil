@@ -84,12 +84,16 @@ hooks_install              # Installer les hooks Git
 ├── modules/            # Features modulaires
 │   ├── git/            # bulk, hooks, change-author
 │   ├── gitlab/         # clone, pipelines, PAT, browse
-│   ├── kube/           # config, switch, ns, k9s, aliases
 │   ├── docker/         # dex, dstop
 │   ├── ssh/            # select, add, remove, test
 │   ├── tmux/           # sessions (lazy loaded)
 │   ├── ai/             # context, tokens (lazy loaded)
-│   └── ...
+│   └── ...             # kube, project, security, utils, tools (guard: ZANVIL_MODULE_*)
+├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit)
+├── secrets/            # Fichiers sensibles (gitignored)
+│   ├── secrets/kube/   # Kubeconfigs + .context_aliases
+│   └── secrets/work/   # Certificats et settings dechiffres
+├── examples/           # Templates de config (config.zsh, aliases.local.zsh)
 ├── themes/             # Flat .toml ou directory (prompt.toml + palette.zsh)
 ├── env.d/              # Variables dynamiques (*.zsh, *.sops.zsh)
 ├── cli/                # CLI Rust companion (optionnel)

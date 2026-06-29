@@ -29,13 +29,9 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── variables.zsh   # Variables d'environnement
 │   ├── aliases.zsh     # Alias globaux
 │   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zanvil.local)
-│   ├── commands.zsh    # zanvil-list, doctor, status, help
-│   ├── admin.zsh       # zanvil-modules, backup, restore, switch, completions
-│   ├── theme.zsh       # zanvil-theme, ghostty
-│   ├── setup.zsh       # zanvil-ssl-setup
-│   ├── auto_update.zsh # Systeme d'auto-update
-│   ├── check_env_deps.zsh
-│   └── completions.zsh # Completions des commandes core
+│   ├── completions.zsh # Completions des commandes core
+│   ├── commands/       # Commandes zanvil-* (admin, commands, theme, setup, check_env_deps)
+│   └── lifecycle/      # Migration, sync, auto-update (auto_update, migrate, sync)
 ├── modules/            # Features modulaires (init.zsh + completions.zsh par module)
 │   ├── git/            # git_bulk, git_hooks, git_change_author, git_root
 │   ├── gitlab/         # gitlab_logic, pipeline_bulk (guard: ZANVIL_MODULE_GITLAB)
@@ -49,6 +45,13 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── utils/          # utils, extract, fkill, net_utils (lazy)
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile
 │   └── boulanger/      # boulanger_context
+├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
+├── secrets/            # Fichiers sensibles (gitignored)
+│   ├── secrets/kube/   # Kubeconfigs + .context_aliases
+│   └── secrets/work/   # Certificats et settings dechiffres
+├── examples/           # Templates de config utilisateur
+│   ├── config.zsh.example
+│   └── aliases.local.zsh.example
 ├── themes/             # Themes Starship (flat .toml ou directory avec palette.zsh)
 │   ├── tokyo-night-pro/
 │   │   ├── prompt.toml
@@ -58,7 +61,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 ├── cli/                # CLI Rust companion (optionnel)
 │   ├── Cargo.toml
 │   └── src/
-├── site/               # Site de doc Astro Starlight (GitHub Pages, thème forge)
+├── site/               # Site de doc Astro Starlight (GitHub Pages, theme forge)
 │   └── src/content/docs/
 ├── scripts/            # Scripts autonomes (clone-projects, trigger-jobs)
 └── install.sh          # Bootstrapper cross-platform

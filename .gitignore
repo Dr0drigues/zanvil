@@ -8,10 +8,10 @@
 .idea
 .vscode
 
-# Config personnalisee (utiliser config.zsh.example comme base)
+# Config personnalisee (utiliser examples/config.zsh.example comme base)
 config.zsh
 
-# Aliases locaux (utiliser aliases.local.zsh.example comme base)
+# Aliases locaux (utiliser examples/aliases.local.zsh.example comme base)
 aliases.local.zsh
 
 # Fichier de tracking auto-update
@@ -63,8 +63,8 @@ cli/target/
 *_context_cache
 
 # Fichiers Work dechiffres (generes a partir des .enc)
-work/settings.xml
-work/certificates_unix.sh
+secrets/work/settings.xml
+secrets/work/certificates_unix.sh
 .work_context_cache
 
 # Superpowers files

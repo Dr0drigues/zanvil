@@ -9,7 +9,7 @@ La configuration se fait via `~/.zanvil/config.zsh`.
 
 ```bash
 # Créer depuis le template
-cp ~/.zanvil/config.zsh.example ~/.zanvil/config.zsh
+cp ~/.zanvil/examples/config.zsh.example ~/.zanvil/config.zsh
 ```
 
 ## Architecture v2
