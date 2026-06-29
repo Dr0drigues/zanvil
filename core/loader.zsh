@@ -12,7 +12,7 @@ source "$ZANVIL_DIR/core/ui.zsh"
 
 # --- 2. Charger les fichiers core (commandes, admin, theme, setup) ---
 local _skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
-for _core_file in "$ZANVIL_DIR/core"/*.zsh; do
+for _core_file in "$ZANVIL_DIR/core"/*.zsh(N) "$ZANVIL_DIR/core"/*/*.zsh(N); do
     [[ ! -f "$_core_file" ]] && continue
     local _core_name="$(basename "$_core_file")"
     (( ${_skip_core[(Ie)$_core_name]} )) && continue

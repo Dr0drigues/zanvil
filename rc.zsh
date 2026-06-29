@@ -15,7 +15,7 @@
 
 # --- Migration one-shot zsh_env -> zanvil (avant tout chargement) ---
 if [[ -z "$ZANVIL_DIR" && -d "$HOME/.zsh_env" && ! -d "$HOME/.zanvil" ]]; then
-    source "${${(%):-%x}:A:h}/core/migrate_zanvil.zsh"
+    source "${${(%):-%x}:A:h}/core/lifecycle/migrate_zanvil.zsh"
 fi
 
 # --- Verification ZANVIL_DIR ---
