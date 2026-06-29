@@ -14,12 +14,12 @@
 | Thème signature **forge** | v3.11.0 | défaut des nouveaux installs ; existants non affectés |
 | Site de doc Astro Starlight — **incrément 1** | v3.12.0 | Pages live, thème forge, landing + 3 pages migrées |
 | Chemin de bump major (`breaking/*`) dans `auto-release.yml` | v3.13.0 | prérequis #3b pour la v4.0.0 |
+| **Rename technique complet** (`zsh_env` → `zanvil`, repo GitHub, migration auto) | **v4.0.0** | **🔴 hard cut** (pas de shims) ; migration auto via garde précoce de `rc.zsh` |
 
 ## Backlog
 
 | # | Item | Version visée | Type | Statut | Breaking |
 |---|------|---------------|------|--------|----------|
-| 4 | **🔴 Rename technique complet (+ repo GitHub)** | **v4.0.0** | major | 🧠 à brainstormer | **OUI** |
 | 5 | Site Pages — **incrément 2** (migration complète + audit doc + retrait `wiki.yml`) | v4.x | feat | 🧠 inc1 ✅, inc2 à brainstormer | non |
 | 6 | Piste A — productivité shell (×7) | v4.x | feat | 💡 idées | non |
 | 7 | Piste B — onboarding / DX (×3) | v4.x | feat | 💡 idées | non |
@@ -30,14 +30,16 @@
 - **B — onboarding/DX** : wizard `zanvil init` · dashboard / MOTD · `zanvil profile` (breakdown startup)
 - **D — méta** : registre de modules + `module install` · profils/presets (work / perso / minimal)
 
-## 🔴 Passage en v4.0.0 (rename technique)
+## ✅ v4.0.0 — Rename technique (LIVRÉ)
 
-**Périmètre breaking :**
+**Périmètre breaking — hard cut** (pas de shims de compat ; migration auto via garde précoce de `rc.zsh`) :
 - `~/.zsh_env` → `~/.zanvil` (dossier d'install)
 - variables `ZSH_ENV_*` → `ZANVIL_*` (guards de modules, `ZSH_ENV_DIR`, `ZSH_ENV_STARTUP_BANNER`, etc.)
 - binaire `zsh-env-cli` → `zanvil` ; commandes `zsh-env-*` → `zanvil-*`
 - **repo GitHub `Dr0drigues/zsh_env` → `Dr0drigues/zanvil`** (action manuelle, propriétaire uniquement, réversible)
-- **script de migration** (renommer le dossier, réécrire `.zshrc`, migrer `config.zsh`) + **shims de compat** (alias dépréciés `zsh-env-*` → `zanvil-*` avec avertissement)
+- **script de migration automatique** : détecte ancien install en `~/.zsh_env`, renomme le dossier, réécrire `.zshrc`, migre `config.zsh` ; invoque la migration au prochain shell après upgrade
+
+**Note utilisateur :** les fichiers `.zsh-env.local` dans les projets doivent être renommés manuellement en `.zanvil.local` (la migration auto couvre uniquement `~/.zsh_env` → `~/.zanvil`)
 
 ### Rename du repo GitHub — effets en cascade
 
