@@ -1,8 +1,8 @@
-#compdef zsh-env-cli
+#compdef zanvil
 
 autoload -U is-at-least
 
-_zsh-env-cli() {
+_zanvil() {
     typeset -A opt_args
     typeset -a _arguments_options
     local ret=1
@@ -19,20 +19,20 @@ _zsh-env-cli() {
 '--help[Print help]' \
 '-V[Print version]' \
 '--version[Print version]' \
-":: :_zsh-env-cli_commands" \
-"*::: :->zsh-env" \
+":: :_zanvil_commands" \
+"*::: :->zanvil" \
 && ret=0
     case $state in
-    (zsh-env)
+    (zanvil)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-command-$line[1]:"
         case $line[1] in
             (theme)
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_zsh-env-cli__theme_commands" \
+":: :_zanvil__theme_commands" \
 "*::: :->theme" \
 && ret=0
 
@@ -40,7 +40,7 @@ _arguments "${_arguments_options[@]}" : \
     (theme)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-theme-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-theme-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -63,7 +63,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__theme__help_commands" \
+":: :_zanvil__theme__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -71,7 +71,7 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-theme-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-theme-help-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -119,7 +119,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_zsh-env-cli__modules_commands" \
+":: :_zanvil__modules_commands" \
 "*::: :->modules" \
 && ret=0
 
@@ -127,7 +127,7 @@ _arguments "${_arguments_options[@]}" : \
     (modules)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-modules-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-modules-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -151,7 +151,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__modules__help_commands" \
+":: :_zanvil__modules__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -159,7 +159,7 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-modules-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-modules-help-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -197,7 +197,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_zsh-env-cli__sync_commands" \
+":: :_zanvil__sync_commands" \
 "*::: :->sync" \
 && ret=0
 
@@ -205,7 +205,7 @@ _arguments "${_arguments_options[@]}" : \
     (sync)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-sync-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-sync-command-$line[1]:"
         case $line[1] in
             (export)
 _arguments "${_arguments_options[@]}" : \
@@ -230,7 +230,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__sync__help_commands" \
+":: :_zanvil__sync__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -238,7 +238,7 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-sync-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-sync-help-command-$line[1]:"
         case $line[1] in
             (export)
 _arguments "${_arguments_options[@]}" : \
@@ -284,7 +284,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_zsh-env-cli__project_commands" \
+":: :_zanvil__project_commands" \
 "*::: :->project" \
 && ret=0
 
@@ -292,7 +292,7 @@ _arguments "${_arguments_options[@]}" : \
     (project)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-project-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-project-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -390,7 +390,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__project__help_commands" \
+":: :_zanvil__project__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -398,7 +398,7 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-project-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-project-help-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -503,7 +503,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__help_commands" \
+":: :_zanvil__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -511,11 +511,11 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-command-$line[1]:"
         case $line[1] in
             (theme)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__help__theme_commands" \
+":: :_zanvil__help__theme_commands" \
 "*::: :->theme" \
 && ret=0
 
@@ -523,7 +523,7 @@ _arguments "${_arguments_options[@]}" : \
     (theme)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-help-theme-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-theme-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -555,7 +555,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (modules)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__help__modules_commands" \
+":: :_zanvil__help__modules_commands" \
 "*::: :->modules" \
 && ret=0
 
@@ -563,7 +563,7 @@ _arguments "${_arguments_options[@]}" : \
     (modules)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-help-modules-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-modules-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -587,7 +587,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (sync)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__help__sync_commands" \
+":: :_zanvil__help__sync_commands" \
 "*::: :->sync" \
 && ret=0
 
@@ -595,7 +595,7 @@ _arguments "${_arguments_options[@]}" : \
     (sync)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-help-sync-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-sync-command-$line[1]:"
         case $line[1] in
             (export)
 _arguments "${_arguments_options[@]}" : \
@@ -623,7 +623,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (project)
 _arguments "${_arguments_options[@]}" : \
-":: :_zsh-env-cli__help__project_commands" \
+":: :_zanvil__help__project_commands" \
 "*::: :->project" \
 && ret=0
 
@@ -631,7 +631,7 @@ _arguments "${_arguments_options[@]}" : \
     (project)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zsh-env-cli-help-project-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-project-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -710,17 +710,17 @@ esac
 esac
 }
 
-(( $+functions[_zsh-env-cli_commands] )) ||
-_zsh-env-cli_commands() {
+(( $+functions[_zanvil_commands] )) ||
+_zanvil_commands() {
     local commands; commands=(
 'theme:Manage Starship themes' \
 'doctor:Check system health' \
 'audit:Run security audit' \
 'context:Show current context' \
-'modules:Manage zsh_env modules' \
+'modules:Manage zanvil modules' \
 'bench:Benchmark shell startup time' \
 'sync:Sync configuration between machines' \
-'update:Self-update zsh_env' \
+'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
 'project:Manage projects (zproject)' \
 'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
@@ -728,49 +728,49 @@ _zsh-env-cli_commands() {
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli commands' commands "$@"
+    _describe -t commands 'zanvil commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__audit_commands] )) ||
-_zsh-env-cli__audit_commands() {
+(( $+functions[_zanvil__audit_commands] )) ||
+_zanvil__audit_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli audit commands' commands "$@"
+    _describe -t commands 'zanvil audit commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__bench_commands] )) ||
-_zsh-env-cli__bench_commands() {
+(( $+functions[_zanvil__bench_commands] )) ||
+_zanvil__bench_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli bench commands' commands "$@"
+    _describe -t commands 'zanvil bench commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__completions_commands] )) ||
-_zsh-env-cli__completions_commands() {
+(( $+functions[_zanvil__completions_commands] )) ||
+_zanvil__completions_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli completions commands' commands "$@"
+    _describe -t commands 'zanvil completions commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__config_commands] )) ||
-_zsh-env-cli__config_commands() {
+(( $+functions[_zanvil__config_commands] )) ||
+_zanvil__config_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli config commands' commands "$@"
+    _describe -t commands 'zanvil config commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__context_commands] )) ||
-_zsh-env-cli__context_commands() {
+(( $+functions[_zanvil__context_commands] )) ||
+_zanvil__context_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli context commands' commands "$@"
+    _describe -t commands 'zanvil context commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__doctor_commands] )) ||
-_zsh-env-cli__doctor_commands() {
+(( $+functions[_zanvil__doctor_commands] )) ||
+_zanvil__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli doctor commands' commands "$@"
+    _describe -t commands 'zanvil doctor commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help_commands] )) ||
-_zsh-env-cli__help_commands() {
+(( $+functions[_zanvil__help_commands] )) ||
+_zanvil__help_commands() {
     local commands; commands=(
 'theme:Manage Starship themes' \
 'doctor:Check system health' \
 'audit:Run security audit' \
 'context:Show current context' \
-'modules:Manage zsh_env modules' \
+'modules:Manage zanvil modules' \
 'bench:Benchmark shell startup time' \
 'sync:Sync configuration between machines' \
-'update:Self-update zsh_env' \
+'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
 'project:Manage projects (zproject)' \
 'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
@@ -778,74 +778,74 @@ _zsh-env-cli__help_commands() {
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli help commands' commands "$@"
+    _describe -t commands 'zanvil help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__audit_commands] )) ||
-_zsh-env-cli__help__audit_commands() {
+(( $+functions[_zanvil__help__audit_commands] )) ||
+_zanvil__help__audit_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help audit commands' commands "$@"
+    _describe -t commands 'zanvil help audit commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__bench_commands] )) ||
-_zsh-env-cli__help__bench_commands() {
+(( $+functions[_zanvil__help__bench_commands] )) ||
+_zanvil__help__bench_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help bench commands' commands "$@"
+    _describe -t commands 'zanvil help bench commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__completions_commands] )) ||
-_zsh-env-cli__help__completions_commands() {
+(( $+functions[_zanvil__help__completions_commands] )) ||
+_zanvil__help__completions_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help completions commands' commands "$@"
+    _describe -t commands 'zanvil help completions commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__config_commands] )) ||
-_zsh-env-cli__help__config_commands() {
+(( $+functions[_zanvil__help__config_commands] )) ||
+_zanvil__help__config_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help config commands' commands "$@"
+    _describe -t commands 'zanvil help config commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__context_commands] )) ||
-_zsh-env-cli__help__context_commands() {
+(( $+functions[_zanvil__help__context_commands] )) ||
+_zanvil__help__context_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help context commands' commands "$@"
+    _describe -t commands 'zanvil help context commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__doctor_commands] )) ||
-_zsh-env-cli__help__doctor_commands() {
+(( $+functions[_zanvil__help__doctor_commands] )) ||
+_zanvil__help__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help doctor commands' commands "$@"
+    _describe -t commands 'zanvil help doctor commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__help_commands] )) ||
-_zsh-env-cli__help__help_commands() {
+(( $+functions[_zanvil__help__help_commands] )) ||
+_zanvil__help__help_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help help commands' commands "$@"
+    _describe -t commands 'zanvil help help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__modules_commands] )) ||
-_zsh-env-cli__help__modules_commands() {
+(( $+functions[_zanvil__help__modules_commands] )) ||
+_zanvil__help__modules_commands() {
     local commands; commands=(
 'list:List available modules' \
 'enable:Enable a module' \
 'disable:Disable a module' \
     )
-    _describe -t commands 'zsh-env-cli help modules commands' commands "$@"
+    _describe -t commands 'zanvil help modules commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__modules__disable_commands] )) ||
-_zsh-env-cli__help__modules__disable_commands() {
+(( $+functions[_zanvil__help__modules__disable_commands] )) ||
+_zanvil__help__modules__disable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help modules disable commands' commands "$@"
+    _describe -t commands 'zanvil help modules disable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__modules__enable_commands] )) ||
-_zsh-env-cli__help__modules__enable_commands() {
+(( $+functions[_zanvil__help__modules__enable_commands] )) ||
+_zanvil__help__modules__enable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help modules enable commands' commands "$@"
+    _describe -t commands 'zanvil help modules enable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__modules__list_commands] )) ||
-_zsh-env-cli__help__modules__list_commands() {
+(( $+functions[_zanvil__help__modules__list_commands] )) ||
+_zanvil__help__modules__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help modules list commands' commands "$@"
+    _describe -t commands 'zanvil help modules list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__mr-fanout_commands] )) ||
-_zsh-env-cli__help__mr-fanout_commands() {
+(( $+functions[_zanvil__help__mr-fanout_commands] )) ||
+_zanvil__help__mr-fanout_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help mr-fanout commands' commands "$@"
+    _describe -t commands 'zanvil help mr-fanout commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project_commands] )) ||
-_zsh-env-cli__help__project_commands() {
+(( $+functions[_zanvil__help__project_commands] )) ||
+_zanvil__help__project_commands() {
     local commands; commands=(
 'list:List all known projects' \
 'config:Show resolved configuration for a project' \
@@ -860,237 +860,188 @@ _zsh-env-cli__help__project_commands() {
 'envs:List available environments for a project' \
 'status:Show active project status (reads shell env vars)' \
     )
-    _describe -t commands 'zsh-env-cli help project commands' commands "$@"
+    _describe -t commands 'zanvil help project commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__activate_commands] )) ||
-_zsh-env-cli__help__project__activate_commands() {
+(( $+functions[_zanvil__help__project__activate_commands] )) ||
+_zanvil__help__project__activate_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project activate commands' commands "$@"
+    _describe -t commands 'zanvil help project activate commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__config_commands] )) ||
-_zsh-env-cli__help__project__config_commands() {
+(( $+functions[_zanvil__help__project__config_commands] )) ||
+_zanvil__help__project__config_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project config commands' commands "$@"
+    _describe -t commands 'zanvil help project config commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__diff_commands] )) ||
-_zsh-env-cli__help__project__diff_commands() {
+(( $+functions[_zanvil__help__project__diff_commands] )) ||
+_zanvil__help__project__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project diff commands' commands "$@"
+    _describe -t commands 'zanvil help project diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__doctor_commands] )) ||
-_zsh-env-cli__help__project__doctor_commands() {
+(( $+functions[_zanvil__help__project__doctor_commands] )) ||
+_zanvil__help__project__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project doctor commands' commands "$@"
+    _describe -t commands 'zanvil help project doctor commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__envs_commands] )) ||
-_zsh-env-cli__help__project__envs_commands() {
+(( $+functions[_zanvil__help__project__envs_commands] )) ||
+_zanvil__help__project__envs_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project envs commands' commands "$@"
+    _describe -t commands 'zanvil help project envs commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__find-path_commands] )) ||
-_zsh-env-cli__help__project__find-path_commands() {
+(( $+functions[_zanvil__help__project__find-path_commands] )) ||
+_zanvil__help__project__find-path_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project find-path commands' commands "$@"
+    _describe -t commands 'zanvil help project find-path commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__list_commands] )) ||
-_zsh-env-cli__help__project__list_commands() {
+(( $+functions[_zanvil__help__project__list_commands] )) ||
+_zanvil__help__project__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project list commands' commands "$@"
+    _describe -t commands 'zanvil help project list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__run_commands] )) ||
-_zsh-env-cli__help__project__run_commands() {
+(( $+functions[_zanvil__help__project__run_commands] )) ||
+_zanvil__help__project__run_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project run commands' commands "$@"
+    _describe -t commands 'zanvil help project run commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__scan_commands] )) ||
-_zsh-env-cli__help__project__scan_commands() {
+(( $+functions[_zanvil__help__project__scan_commands] )) ||
+_zanvil__help__project__scan_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project scan commands' commands "$@"
+    _describe -t commands 'zanvil help project scan commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__stack-resolve_commands] )) ||
-_zsh-env-cli__help__project__stack-resolve_commands() {
+(( $+functions[_zanvil__help__project__stack-resolve_commands] )) ||
+_zanvil__help__project__stack-resolve_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project stack-resolve commands' commands "$@"
+    _describe -t commands 'zanvil help project stack-resolve commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__stacks_commands] )) ||
-_zsh-env-cli__help__project__stacks_commands() {
+(( $+functions[_zanvil__help__project__stacks_commands] )) ||
+_zanvil__help__project__stacks_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project stacks commands' commands "$@"
+    _describe -t commands 'zanvil help project stacks commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__project__status_commands] )) ||
-_zsh-env-cli__help__project__status_commands() {
+(( $+functions[_zanvil__help__project__status_commands] )) ||
+_zanvil__help__project__status_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help project status commands' commands "$@"
+    _describe -t commands 'zanvil help project status commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__secrets_commands] )) ||
-_zsh-env-cli__help__secrets_commands() {
+(( $+functions[_zanvil__help__secrets_commands] )) ||
+_zanvil__help__secrets_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help secrets commands' commands "$@"
+    _describe -t commands 'zanvil help secrets commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__sync_commands] )) ||
-_zsh-env-cli__help__sync_commands() {
+(( $+functions[_zanvil__help__sync_commands] )) ||
+_zanvil__help__sync_commands() {
     local commands; commands=(
 'export:Export configuration to JSON' \
 'import:Import configuration from JSON' \
 'diff:Compare local config with exported file' \
     )
-    _describe -t commands 'zsh-env-cli help sync commands' commands "$@"
+    _describe -t commands 'zanvil help sync commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__sync__diff_commands] )) ||
-_zsh-env-cli__help__sync__diff_commands() {
+(( $+functions[_zanvil__help__sync__diff_commands] )) ||
+_zanvil__help__sync__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help sync diff commands' commands "$@"
+    _describe -t commands 'zanvil help sync diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__sync__export_commands] )) ||
-_zsh-env-cli__help__sync__export_commands() {
+(( $+functions[_zanvil__help__sync__export_commands] )) ||
+_zanvil__help__sync__export_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help sync export commands' commands "$@"
+    _describe -t commands 'zanvil help sync export commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__sync__import_commands] )) ||
-_zsh-env-cli__help__sync__import_commands() {
+(( $+functions[_zanvil__help__sync__import_commands] )) ||
+_zanvil__help__sync__import_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help sync import commands' commands "$@"
+    _describe -t commands 'zanvil help sync import commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__theme_commands] )) ||
-_zsh-env-cli__help__theme_commands() {
+(( $+functions[_zanvil__help__theme_commands] )) ||
+_zanvil__help__theme_commands() {
     local commands; commands=(
 'list:List available themes' \
 'apply:Apply a theme' \
 'current:Show current theme' \
     )
-    _describe -t commands 'zsh-env-cli help theme commands' commands "$@"
+    _describe -t commands 'zanvil help theme commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__theme__apply_commands] )) ||
-_zsh-env-cli__help__theme__apply_commands() {
+(( $+functions[_zanvil__help__theme__apply_commands] )) ||
+_zanvil__help__theme__apply_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help theme apply commands' commands "$@"
+    _describe -t commands 'zanvil help theme apply commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__theme__current_commands] )) ||
-_zsh-env-cli__help__theme__current_commands() {
+(( $+functions[_zanvil__help__theme__current_commands] )) ||
+_zanvil__help__theme__current_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help theme current commands' commands "$@"
+    _describe -t commands 'zanvil help theme current commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__theme__list_commands] )) ||
-_zsh-env-cli__help__theme__list_commands() {
+(( $+functions[_zanvil__help__theme__list_commands] )) ||
+_zanvil__help__theme__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help theme list commands' commands "$@"
+    _describe -t commands 'zanvil help theme list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__help__update_commands] )) ||
-_zsh-env-cli__help__update_commands() {
+(( $+functions[_zanvil__help__update_commands] )) ||
+_zanvil__help__update_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli help update commands' commands "$@"
+    _describe -t commands 'zanvil help update commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules_commands] )) ||
-_zsh-env-cli__modules_commands() {
+(( $+functions[_zanvil__modules_commands] )) ||
+_zanvil__modules_commands() {
     local commands; commands=(
 'list:List available modules' \
 'enable:Enable a module' \
 'disable:Disable a module' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli modules commands' commands "$@"
+    _describe -t commands 'zanvil modules commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__disable_commands] )) ||
-_zsh-env-cli__modules__disable_commands() {
+(( $+functions[_zanvil__modules__disable_commands] )) ||
+_zanvil__modules__disable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules disable commands' commands "$@"
+    _describe -t commands 'zanvil modules disable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__enable_commands] )) ||
-_zsh-env-cli__modules__enable_commands() {
+(( $+functions[_zanvil__modules__enable_commands] )) ||
+_zanvil__modules__enable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules enable commands' commands "$@"
+    _describe -t commands 'zanvil modules enable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__help_commands] )) ||
-_zsh-env-cli__modules__help_commands() {
+(( $+functions[_zanvil__modules__help_commands] )) ||
+_zanvil__modules__help_commands() {
     local commands; commands=(
 'list:List available modules' \
 'enable:Enable a module' \
 'disable:Disable a module' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli modules help commands' commands "$@"
+    _describe -t commands 'zanvil modules help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__help__disable_commands] )) ||
-_zsh-env-cli__modules__help__disable_commands() {
+(( $+functions[_zanvil__modules__help__disable_commands] )) ||
+_zanvil__modules__help__disable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules help disable commands' commands "$@"
+    _describe -t commands 'zanvil modules help disable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__help__enable_commands] )) ||
-_zsh-env-cli__modules__help__enable_commands() {
+(( $+functions[_zanvil__modules__help__enable_commands] )) ||
+_zanvil__modules__help__enable_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules help enable commands' commands "$@"
+    _describe -t commands 'zanvil modules help enable commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__help__help_commands] )) ||
-_zsh-env-cli__modules__help__help_commands() {
+(( $+functions[_zanvil__modules__help__help_commands] )) ||
+_zanvil__modules__help__help_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules help help commands' commands "$@"
+    _describe -t commands 'zanvil modules help help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__help__list_commands] )) ||
-_zsh-env-cli__modules__help__list_commands() {
+(( $+functions[_zanvil__modules__help__list_commands] )) ||
+_zanvil__modules__help__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules help list commands' commands "$@"
+    _describe -t commands 'zanvil modules help list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__modules__list_commands] )) ||
-_zsh-env-cli__modules__list_commands() {
+(( $+functions[_zanvil__modules__list_commands] )) ||
+_zanvil__modules__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli modules list commands' commands "$@"
+    _describe -t commands 'zanvil modules list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__mr-fanout_commands] )) ||
-_zsh-env-cli__mr-fanout_commands() {
+(( $+functions[_zanvil__mr-fanout_commands] )) ||
+_zanvil__mr-fanout_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli mr-fanout commands' commands "$@"
+    _describe -t commands 'zanvil mr-fanout commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project_commands] )) ||
-_zsh-env-cli__project_commands() {
-    local commands; commands=(
-'list:List all known projects' \
-'config:Show resolved configuration for a project' \
-'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
-'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
-'find-path:Print project name whose path contains the given directory (or current dir)' \
-'stacks:List defined stacks' \
-'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
-'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
-'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
-'scan:Auto-fill a project manifest from a path' \
-'envs:List available environments for a project' \
-'status:Show active project status (reads shell env vars)' \
-'help:Print this message or the help of the given subcommand(s)' \
-    )
-    _describe -t commands 'zsh-env-cli project commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__activate_commands] )) ||
-_zsh-env-cli__project__activate_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project activate commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__config_commands] )) ||
-_zsh-env-cli__project__config_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project config commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__diff_commands] )) ||
-_zsh-env-cli__project__diff_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project diff commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__doctor_commands] )) ||
-_zsh-env-cli__project__doctor_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project doctor commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__envs_commands] )) ||
-_zsh-env-cli__project__envs_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project envs commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__find-path_commands] )) ||
-_zsh-env-cli__project__find-path_commands() {
-    local commands; commands=()
-    _describe -t commands 'zsh-env-cli project find-path commands' commands "$@"
-}
-(( $+functions[_zsh-env-cli__project__help_commands] )) ||
-_zsh-env-cli__project__help_commands() {
+(( $+functions[_zanvil__project_commands] )) ||
+_zanvil__project_commands() {
     local commands; commands=(
 'list:List all known projects' \
 'config:Show resolved configuration for a project' \
@@ -1106,226 +1057,275 @@ _zsh-env-cli__project__help_commands() {
 'status:Show active project status (reads shell env vars)' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli project help commands' commands "$@"
+    _describe -t commands 'zanvil project commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__activate_commands] )) ||
-_zsh-env-cli__project__help__activate_commands() {
+(( $+functions[_zanvil__project__activate_commands] )) ||
+_zanvil__project__activate_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help activate commands' commands "$@"
+    _describe -t commands 'zanvil project activate commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__config_commands] )) ||
-_zsh-env-cli__project__help__config_commands() {
+(( $+functions[_zanvil__project__config_commands] )) ||
+_zanvil__project__config_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help config commands' commands "$@"
+    _describe -t commands 'zanvil project config commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__diff_commands] )) ||
-_zsh-env-cli__project__help__diff_commands() {
+(( $+functions[_zanvil__project__diff_commands] )) ||
+_zanvil__project__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help diff commands' commands "$@"
+    _describe -t commands 'zanvil project diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__doctor_commands] )) ||
-_zsh-env-cli__project__help__doctor_commands() {
+(( $+functions[_zanvil__project__doctor_commands] )) ||
+_zanvil__project__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help doctor commands' commands "$@"
+    _describe -t commands 'zanvil project doctor commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__envs_commands] )) ||
-_zsh-env-cli__project__help__envs_commands() {
+(( $+functions[_zanvil__project__envs_commands] )) ||
+_zanvil__project__envs_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help envs commands' commands "$@"
+    _describe -t commands 'zanvil project envs commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__find-path_commands] )) ||
-_zsh-env-cli__project__help__find-path_commands() {
+(( $+functions[_zanvil__project__find-path_commands] )) ||
+_zanvil__project__find-path_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help find-path commands' commands "$@"
+    _describe -t commands 'zanvil project find-path commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__help_commands] )) ||
-_zsh-env-cli__project__help__help_commands() {
+(( $+functions[_zanvil__project__help_commands] )) ||
+_zanvil__project__help_commands() {
+    local commands; commands=(
+'list:List all known projects' \
+'config:Show resolved configuration for a project' \
+'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
+'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
+'find-path:Print project name whose path contains the given directory (or current dir)' \
+'stacks:List defined stacks' \
+'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
+'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
+'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
+'scan:Auto-fill a project manifest from a path' \
+'envs:List available environments for a project' \
+'status:Show active project status (reads shell env vars)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zanvil project help commands' commands "$@"
+}
+(( $+functions[_zanvil__project__help__activate_commands] )) ||
+_zanvil__project__help__activate_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help help commands' commands "$@"
+    _describe -t commands 'zanvil project help activate commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__list_commands] )) ||
-_zsh-env-cli__project__help__list_commands() {
+(( $+functions[_zanvil__project__help__config_commands] )) ||
+_zanvil__project__help__config_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help list commands' commands "$@"
+    _describe -t commands 'zanvil project help config commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__run_commands] )) ||
-_zsh-env-cli__project__help__run_commands() {
+(( $+functions[_zanvil__project__help__diff_commands] )) ||
+_zanvil__project__help__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help run commands' commands "$@"
+    _describe -t commands 'zanvil project help diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__scan_commands] )) ||
-_zsh-env-cli__project__help__scan_commands() {
+(( $+functions[_zanvil__project__help__doctor_commands] )) ||
+_zanvil__project__help__doctor_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help scan commands' commands "$@"
+    _describe -t commands 'zanvil project help doctor commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__stack-resolve_commands] )) ||
-_zsh-env-cli__project__help__stack-resolve_commands() {
+(( $+functions[_zanvil__project__help__envs_commands] )) ||
+_zanvil__project__help__envs_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help stack-resolve commands' commands "$@"
+    _describe -t commands 'zanvil project help envs commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__stacks_commands] )) ||
-_zsh-env-cli__project__help__stacks_commands() {
+(( $+functions[_zanvil__project__help__find-path_commands] )) ||
+_zanvil__project__help__find-path_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help stacks commands' commands "$@"
+    _describe -t commands 'zanvil project help find-path commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__help__status_commands] )) ||
-_zsh-env-cli__project__help__status_commands() {
+(( $+functions[_zanvil__project__help__help_commands] )) ||
+_zanvil__project__help__help_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project help status commands' commands "$@"
+    _describe -t commands 'zanvil project help help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__list_commands] )) ||
-_zsh-env-cli__project__list_commands() {
+(( $+functions[_zanvil__project__help__list_commands] )) ||
+_zanvil__project__help__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project list commands' commands "$@"
+    _describe -t commands 'zanvil project help list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__run_commands] )) ||
-_zsh-env-cli__project__run_commands() {
+(( $+functions[_zanvil__project__help__run_commands] )) ||
+_zanvil__project__help__run_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project run commands' commands "$@"
+    _describe -t commands 'zanvil project help run commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__scan_commands] )) ||
-_zsh-env-cli__project__scan_commands() {
+(( $+functions[_zanvil__project__help__scan_commands] )) ||
+_zanvil__project__help__scan_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project scan commands' commands "$@"
+    _describe -t commands 'zanvil project help scan commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__stack-resolve_commands] )) ||
-_zsh-env-cli__project__stack-resolve_commands() {
+(( $+functions[_zanvil__project__help__stack-resolve_commands] )) ||
+_zanvil__project__help__stack-resolve_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project stack-resolve commands' commands "$@"
+    _describe -t commands 'zanvil project help stack-resolve commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__stacks_commands] )) ||
-_zsh-env-cli__project__stacks_commands() {
+(( $+functions[_zanvil__project__help__stacks_commands] )) ||
+_zanvil__project__help__stacks_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project stacks commands' commands "$@"
+    _describe -t commands 'zanvil project help stacks commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__project__status_commands] )) ||
-_zsh-env-cli__project__status_commands() {
+(( $+functions[_zanvil__project__help__status_commands] )) ||
+_zanvil__project__help__status_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli project status commands' commands "$@"
+    _describe -t commands 'zanvil project help status commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__secrets_commands] )) ||
-_zsh-env-cli__secrets_commands() {
+(( $+functions[_zanvil__project__list_commands] )) ||
+_zanvil__project__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli secrets commands' commands "$@"
+    _describe -t commands 'zanvil project list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync_commands] )) ||
-_zsh-env-cli__sync_commands() {
+(( $+functions[_zanvil__project__run_commands] )) ||
+_zanvil__project__run_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil project run commands' commands "$@"
+}
+(( $+functions[_zanvil__project__scan_commands] )) ||
+_zanvil__project__scan_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil project scan commands' commands "$@"
+}
+(( $+functions[_zanvil__project__stack-resolve_commands] )) ||
+_zanvil__project__stack-resolve_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil project stack-resolve commands' commands "$@"
+}
+(( $+functions[_zanvil__project__stacks_commands] )) ||
+_zanvil__project__stacks_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil project stacks commands' commands "$@"
+}
+(( $+functions[_zanvil__project__status_commands] )) ||
+_zanvil__project__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil project status commands' commands "$@"
+}
+(( $+functions[_zanvil__secrets_commands] )) ||
+_zanvil__secrets_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil secrets commands' commands "$@"
+}
+(( $+functions[_zanvil__sync_commands] )) ||
+_zanvil__sync_commands() {
     local commands; commands=(
 'export:Export configuration to JSON' \
 'import:Import configuration from JSON' \
 'diff:Compare local config with exported file' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli sync commands' commands "$@"
+    _describe -t commands 'zanvil sync commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__diff_commands] )) ||
-_zsh-env-cli__sync__diff_commands() {
+(( $+functions[_zanvil__sync__diff_commands] )) ||
+_zanvil__sync__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync diff commands' commands "$@"
+    _describe -t commands 'zanvil sync diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__export_commands] )) ||
-_zsh-env-cli__sync__export_commands() {
+(( $+functions[_zanvil__sync__export_commands] )) ||
+_zanvil__sync__export_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync export commands' commands "$@"
+    _describe -t commands 'zanvil sync export commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__help_commands] )) ||
-_zsh-env-cli__sync__help_commands() {
+(( $+functions[_zanvil__sync__help_commands] )) ||
+_zanvil__sync__help_commands() {
     local commands; commands=(
 'export:Export configuration to JSON' \
 'import:Import configuration from JSON' \
 'diff:Compare local config with exported file' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli sync help commands' commands "$@"
+    _describe -t commands 'zanvil sync help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__help__diff_commands] )) ||
-_zsh-env-cli__sync__help__diff_commands() {
+(( $+functions[_zanvil__sync__help__diff_commands] )) ||
+_zanvil__sync__help__diff_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync help diff commands' commands "$@"
+    _describe -t commands 'zanvil sync help diff commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__help__export_commands] )) ||
-_zsh-env-cli__sync__help__export_commands() {
+(( $+functions[_zanvil__sync__help__export_commands] )) ||
+_zanvil__sync__help__export_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync help export commands' commands "$@"
+    _describe -t commands 'zanvil sync help export commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__help__help_commands] )) ||
-_zsh-env-cli__sync__help__help_commands() {
+(( $+functions[_zanvil__sync__help__help_commands] )) ||
+_zanvil__sync__help__help_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync help help commands' commands "$@"
+    _describe -t commands 'zanvil sync help help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__help__import_commands] )) ||
-_zsh-env-cli__sync__help__import_commands() {
+(( $+functions[_zanvil__sync__help__import_commands] )) ||
+_zanvil__sync__help__import_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync help import commands' commands "$@"
+    _describe -t commands 'zanvil sync help import commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__sync__import_commands] )) ||
-_zsh-env-cli__sync__import_commands() {
+(( $+functions[_zanvil__sync__import_commands] )) ||
+_zanvil__sync__import_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli sync import commands' commands "$@"
+    _describe -t commands 'zanvil sync import commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme_commands] )) ||
-_zsh-env-cli__theme_commands() {
+(( $+functions[_zanvil__theme_commands] )) ||
+_zanvil__theme_commands() {
     local commands; commands=(
 'list:List available themes' \
 'apply:Apply a theme' \
 'current:Show current theme' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli theme commands' commands "$@"
+    _describe -t commands 'zanvil theme commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__apply_commands] )) ||
-_zsh-env-cli__theme__apply_commands() {
+(( $+functions[_zanvil__theme__apply_commands] )) ||
+_zanvil__theme__apply_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme apply commands' commands "$@"
+    _describe -t commands 'zanvil theme apply commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__current_commands] )) ||
-_zsh-env-cli__theme__current_commands() {
+(( $+functions[_zanvil__theme__current_commands] )) ||
+_zanvil__theme__current_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme current commands' commands "$@"
+    _describe -t commands 'zanvil theme current commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__help_commands] )) ||
-_zsh-env-cli__theme__help_commands() {
+(( $+functions[_zanvil__theme__help_commands] )) ||
+_zanvil__theme__help_commands() {
     local commands; commands=(
 'list:List available themes' \
 'apply:Apply a theme' \
 'current:Show current theme' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
-    _describe -t commands 'zsh-env-cli theme help commands' commands "$@"
+    _describe -t commands 'zanvil theme help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__help__apply_commands] )) ||
-_zsh-env-cli__theme__help__apply_commands() {
+(( $+functions[_zanvil__theme__help__apply_commands] )) ||
+_zanvil__theme__help__apply_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme help apply commands' commands "$@"
+    _describe -t commands 'zanvil theme help apply commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__help__current_commands] )) ||
-_zsh-env-cli__theme__help__current_commands() {
+(( $+functions[_zanvil__theme__help__current_commands] )) ||
+_zanvil__theme__help__current_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme help current commands' commands "$@"
+    _describe -t commands 'zanvil theme help current commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__help__help_commands] )) ||
-_zsh-env-cli__theme__help__help_commands() {
+(( $+functions[_zanvil__theme__help__help_commands] )) ||
+_zanvil__theme__help__help_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme help help commands' commands "$@"
+    _describe -t commands 'zanvil theme help help commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__help__list_commands] )) ||
-_zsh-env-cli__theme__help__list_commands() {
+(( $+functions[_zanvil__theme__help__list_commands] )) ||
+_zanvil__theme__help__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme help list commands' commands "$@"
+    _describe -t commands 'zanvil theme help list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__theme__list_commands] )) ||
-_zsh-env-cli__theme__list_commands() {
+(( $+functions[_zanvil__theme__list_commands] )) ||
+_zanvil__theme__list_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli theme list commands' commands "$@"
+    _describe -t commands 'zanvil theme list commands' commands "$@"
 }
-(( $+functions[_zsh-env-cli__update_commands] )) ||
-_zsh-env-cli__update_commands() {
+(( $+functions[_zanvil__update_commands] )) ||
+_zanvil__update_commands() {
     local commands; commands=()
-    _describe -t commands 'zsh-env-cli update commands' commands "$@"
+    _describe -t commands 'zanvil update commands' commands "$@"
 }
 
-if [ "$funcstack[1]" = "_zsh-env-cli" ]; then
-    _zsh-env-cli "$@"
+if [ "$funcstack[1]" = "_zanvil" ]; then
+    _zanvil "$@"
 else
-    compdef _zsh-env-cli zsh-env-cli
+    compdef _zanvil zanvil
 fi

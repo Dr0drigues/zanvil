@@ -46,7 +46,7 @@ post_cmd: echo "Projet chargé!"
 
 ## Registre des projets
 
-Les projets sont enregistrés dans `~/.config/zsh_env/projects.yml` :
+Les projets sont enregistrés dans `~/.config/zanvil/projects.yml` :
 
 ```yaml
 mon-projet: "/Users/user/work/mon-projet"
@@ -64,7 +64,7 @@ proj --scan ~/work 3
 ```
 
 Le scan détecte les marqueurs de projet :
-- `.proj`, `.project.yml` - Configuration zsh_env
+- `.proj`, `.project.yml` - Configuration zanvil
 - `.git` - Repository Git
 - `package.json` - Projet Node.js
 - `Cargo.toml` - Projet Rust

@@ -1,11 +1,11 @@
 # Contributing
 
-Guide pour contribuer au projet zsh_env.
+Guide pour contribuer au projet zanvil.
 
 ## Structure du projet
 
 ```
-~/.zsh_env/
+~/.zanvil/
 ├── functions/          # Fonctions modulaires
 ├── scripts/            # Scripts autonomes
 ├── themes/             # Thèmes Starship
@@ -162,12 +162,12 @@ Le wiki GitHub est un repo git séparé :
 
 ```bash
 # Cloner le wiki
-git clone https://github.com/Dr0drigues/zsh_env.wiki.git
+git clone https://github.com/Dr0drigues/zanvil.wiki.git
 
 # Copier les fichiers
-cp ~/.zsh_env/wiki/*.md zsh_env.wiki/
+cp ~/.zanvil/wiki/*.md zanvil.wiki/
 
 # Commit et push
-cd zsh_env.wiki
+cd zanvil.wiki
 git add . && git commit -m "docs: update wiki" && git push
 ```

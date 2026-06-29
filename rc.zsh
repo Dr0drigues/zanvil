@@ -1,7 +1,7 @@
 # ==============================================================================
 # ZSH_ENV - Point d'entree principal
 # ==============================================================================
-# Source par .zshrc via $ZSH_ENV_DIR
+# Source par .zshrc via $ZANVIL_DIR
 # Ordre de chargement:
 #   1. Configuration (modules, options)
 #   2. Secrets
@@ -13,45 +13,45 @@
 #   8. Hooks (outils externes: starship, mise, zoxide, direnv)
 # ==============================================================================
 
-# --- Verification ZSH_ENV_DIR ---
-if [[ -z "$ZSH_ENV_DIR" ]]; then
-    echo "WARNING: ZSH_ENV_DIR is not set. Assuming default location."
-    export ZSH_ENV_DIR="$HOME/.zsh_env"
+# --- Verification ZANVIL_DIR ---
+if [[ -z "$ZANVIL_DIR" ]]; then
+    echo "WARNING: ZANVIL_DIR is not set. Assuming default location."
+    export ZANVIL_DIR="$HOME/.zanvil"
 fi
 
 # --- 1. Configuration ---
 # Valeurs par defaut des modules
-ZSH_ENV_MODULE_GITLAB=${ZSH_ENV_MODULE_GITLAB:-true}
-ZSH_ENV_MODULE_DOCKER=${ZSH_ENV_MODULE_DOCKER:-true}
-ZSH_ENV_MODULE_MISE=${ZSH_ENV_MODULE_MISE:-true}
-ZSH_ENV_MODULE_NUSHELL=${ZSH_ENV_MODULE_NUSHELL:-true}
-ZSH_ENV_MODULE_KUBE=${ZSH_ENV_MODULE_KUBE:-false}
-ZSH_ENV_MODULE_SECURITY=${ZSH_ENV_MODULE_SECURITY:-true}
-ZSH_ENV_MODULE_AI=${ZSH_ENV_MODULE_AI:-true}
-ZSH_ENV_MODULE_ZPROJECT=${ZSH_ENV_MODULE_ZPROJECT:-true}
+ZANVIL_MODULE_GITLAB=${ZANVIL_MODULE_GITLAB:-true}
+ZANVIL_MODULE_DOCKER=${ZANVIL_MODULE_DOCKER:-true}
+ZANVIL_MODULE_MISE=${ZANVIL_MODULE_MISE:-true}
+ZANVIL_MODULE_NUSHELL=${ZANVIL_MODULE_NUSHELL:-true}
+ZANVIL_MODULE_KUBE=${ZANVIL_MODULE_KUBE:-false}
+ZANVIL_MODULE_SECURITY=${ZANVIL_MODULE_SECURITY:-true}
+ZANVIL_MODULE_AI=${ZANVIL_MODULE_AI:-true}
+ZANVIL_MODULE_ZPROJECT=${ZANVIL_MODULE_ZPROJECT:-true}
 
 # Auto-update
-ZSH_ENV_AUTO_UPDATE=${ZSH_ENV_AUTO_UPDATE:-true}
-ZSH_ENV_UPDATE_FREQUENCY=${ZSH_ENV_UPDATE_FREQUENCY:-7}
-ZSH_ENV_UPDATE_MODE=${ZSH_ENV_UPDATE_MODE:-prompt}
+ZANVIL_AUTO_UPDATE=${ZANVIL_AUTO_UPDATE:-true}
+ZANVIL_UPDATE_FREQUENCY=${ZANVIL_UPDATE_FREQUENCY:-7}
+ZANVIL_UPDATE_MODE=${ZANVIL_UPDATE_MODE:-prompt}
 
 # Charger config personnalisee si presente
-[[ -f "$ZSH_ENV_DIR/config.zsh" ]] && source "$ZSH_ENV_DIR/config.zsh"
+[[ -f "$ZANVIL_DIR/config.zsh" ]] && source "$ZANVIL_DIR/config.zsh"
 
 # Backward compat: NVM -> mise (pour les anciens config.zsh)
-if [[ -n "$ZSH_ENV_MODULE_NVM" && -z "$ZSH_ENV_MODULE_MISE" ]]; then
-    ZSH_ENV_MODULE_MISE="$ZSH_ENV_MODULE_NVM"
-    unset ZSH_ENV_MODULE_NVM ZSH_ENV_NVM_LAZY
+if [[ -n "$ZANVIL_MODULE_NVM" && -z "$ZANVIL_MODULE_MISE" ]]; then
+    ZANVIL_MODULE_MISE="$ZANVIL_MODULE_NVM"
+    unset ZANVIL_MODULE_NVM ZANVIL_NVM_LAZY
 fi
 
 # --- 2. Secrets ---
 [[ -f "$HOME/.secrets" ]] && source "$HOME/.secrets"
 
 # --- 3. Variables ---
-if [[ -f "$ZSH_ENV_DIR/core/variables.zsh" ]]; then
-    source "$ZSH_ENV_DIR/core/variables.zsh"
+if [[ -f "$ZANVIL_DIR/core/variables.zsh" ]]; then
+    source "$ZANVIL_DIR/core/variables.zsh"
 else
-    echo "ERROR: core/variables.zsh not found in $ZSH_ENV_DIR"
+    echo "ERROR: core/variables.zsh not found in $ZANVIL_DIR"
 fi
 
 export PATH="$SCRIPTS_DIR:$PATH"
@@ -59,8 +59,8 @@ export PATH="$SCRIPTS_DIR:$PATH"
 # --- 3b. Variables dynamiques (env.d/) ---
 # Charge tous les fichiers .zsh dans env.d/ (variables d'env thematiques)
 # Les fichiers .sops.zsh sont dechiffres automatiquement si sops/age sont disponibles
-if [[ -d "$ZSH_ENV_DIR/env.d" ]]; then
-    for _env_file in "$ZSH_ENV_DIR/env.d"/*.zsh(N); do
+if [[ -d "$ZANVIL_DIR/env.d" ]]; then
+    for _env_file in "$ZANVIL_DIR/env.d"/*.zsh(N); do
         local _base="${_env_file:t}"
         # Fichiers sops : dechiffrer a la volee
         if [[ "$_base" == *.sops.zsh ]]; then
@@ -76,14 +76,14 @@ fi
 
 # --- 4. Completions ---
 autoload -Uz compinit
-# Cache des completions (surchargeable via ZSH_ENV_ZCOMPDUMP_CACHE_HOURS)
-_zsh_env_zcompdump_hours="${ZSH_ENV_ZCOMPDUMP_CACHE_HOURS:-24}"
-if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+${_zsh_env_zcompdump_hours}) ]]; then
+# Cache des completions (surchargeable via ZANVIL_ZCOMPDUMP_CACHE_HOURS)
+_zanvil_zcompdump_hours="${ZANVIL_ZCOMPDUMP_CACHE_HOURS:-24}"
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+${_zanvil_zcompdump_hours}) ]]; then
     compinit -u
 else
     compinit -u -C
 fi
-unset _zsh_env_zcompdump_hours
+unset _zanvil_zcompdump_hours
 
 # Menu interactif : navigation avec les fleches, highlight de la selection
 zmodload zsh/complist
@@ -105,17 +105,17 @@ bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 
 # --- 5. Module Loader ---
-source "$ZSH_ENV_DIR/core/loader.zsh"
+source "$ZANVIL_DIR/core/loader.zsh"
 
 # --- 6. Aliases ---
-source "$ZSH_ENV_DIR/core/aliases.zsh"
-[[ -f "$ZSH_ENV_DIR/aliases.local.zsh" ]] && source "$ZSH_ENV_DIR/aliases.local.zsh"
+source "$ZANVIL_DIR/core/aliases.zsh"
+[[ -f "$ZANVIL_DIR/aliases.local.zsh" ]] && source "$ZANVIL_DIR/aliases.local.zsh"
 
 # --- 7. Plugins ---
-[[ -f "$ZSH_ENV_DIR/plugins.zsh" ]] && source "$ZSH_ENV_DIR/plugins.zsh"
+[[ -f "$ZANVIL_DIR/plugins.zsh" ]] && source "$ZANVIL_DIR/plugins.zsh"
 
 # --- 8. Hooks (outils externes) ---
-source "$ZSH_ENV_DIR/core/hooks.zsh"
+source "$ZANVIL_DIR/core/hooks.zsh"
 
 # --- Options ZSH ---
 setopt AUTO_CD

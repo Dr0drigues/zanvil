@@ -14,7 +14,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
+      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh | less -R +G'
       - dummy-arg
       - kubectl
       - logs
@@ -39,7 +39,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | $ZSH_ENV_DIR/scripts/k9s-log-fmt.sh | less -R +G'
+      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh | less -R +G'
       - dummy-arg
       - kubectl
       - logs

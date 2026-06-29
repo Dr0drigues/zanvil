@@ -1,5 +1,5 @@
 export WORK_DIR="$HOME/work"
-export SCRIPTS_DIR="$ZSH_ENV_DIR/scripts"
+export SCRIPTS_DIR="$ZANVIL_DIR/scripts"
 
 # Ajouter ~/.local/bin au PATH pour les outils installes localement
 typeset -U path
@@ -37,6 +37,6 @@ required_dirs=(
 
 for dir in "${required_dirs[@]}"; do
     if [[ ! -d "$dir" ]]; then
-        mkdir -p "$dir" 2>/dev/null || echo "[zsh-env] Impossible de creer $dir" >&2
+        mkdir -p "$dir" 2>/dev/null || echo "[zanvil] Impossible de creer $dir" >&2
     fi
 done

@@ -6,19 +6,19 @@ En v2, le systeme de themes est unifie : chaque theme est un repertoire contenan
 
 ```bash
 # Lister les themes disponibles
-zsh-env-theme list
+zanvil-theme list
 
 # Appliquer un theme
-zsh-env-theme minimal
+zanvil-theme minimal
 
 # Via le CLI Rust
-zsh-env-cli theme list
-zsh-env-cli theme apply minimal
+zanvil theme list
+zanvil theme apply minimal
 ```
 
 ## Structure d'un theme
 
-Chaque theme est un repertoire dans `~/.zsh_env/themes/` :
+Chaque theme est un repertoire dans `~/.zanvil/themes/` :
 
 ```
 themes/
@@ -62,7 +62,7 @@ style = "red"
 
 ### palette.zsh
 
-Le fichier `palette.zsh` definit les couleurs utilisees par les commandes `zsh-env-*` et peut configurer les couleurs du terminal :
+Le fichier `palette.zsh` definit les couleurs utilisees par les commandes `zanvil-*` et peut configurer les couleurs du terminal :
 
 ```zsh
 # Couleurs du theme
@@ -85,11 +85,11 @@ _THEME_WARNING="yellow"
 
 ## Theme actif
 
-Le theme actif est enregistre dans `~/.zsh_env/.current_theme`.
+Le theme actif est enregistre dans `~/.zanvil/.current_theme`.
 
 ```bash
 # Voir le theme actuel
-cat ~/.zsh_env/.current_theme
+cat ~/.zanvil/.current_theme
 
 # Le prompt Starship utilise le prompt.toml du theme actif
 # La palette est sourcee automatiquement
@@ -97,17 +97,17 @@ cat ~/.zsh_env/.current_theme
 
 ## Creer un theme personnalise
 
-1. Creez un repertoire dans `~/.zsh_env/themes/` :
+1. Creez un repertoire dans `~/.zanvil/themes/` :
 
 ```bash
-mkdir -p ~/.zsh_env/themes/custom
+mkdir -p ~/.zanvil/themes/custom
 ```
 
 2. Copiez un theme existant comme base :
 
 ```bash
-cp ~/.zsh_env/themes/minimal/prompt.toml ~/.zsh_env/themes/custom/
-cp ~/.zsh_env/themes/minimal/palette.zsh ~/.zsh_env/themes/custom/
+cp ~/.zanvil/themes/minimal/prompt.toml ~/.zanvil/themes/custom/
+cp ~/.zanvil/themes/minimal/palette.zsh ~/.zanvil/themes/custom/
 ```
 
 3. Editez les fichiers selon vos preferences :
@@ -117,17 +117,17 @@ cp ~/.zsh_env/themes/minimal/palette.zsh ~/.zsh_env/themes/custom/
 4. Appliquez :
 
 ```bash
-zsh-env-theme custom
+zanvil-theme custom
 ```
 
 ## Integration Ghostty
 
-Le theme Ghostty peut etre synchronise avec le theme zsh-env :
+Le theme Ghostty peut etre synchronise avec le theme zanvil :
 
 ```bash
 # Appliquer un theme Ghostty
-zsh-env-ghostty gruvbox
+zanvil-ghostty gruvbox
 
-# Synchroniser avec le theme zsh-env actif
-zsh-env-ghostty sync
+# Synchroniser avec le theme zanvil actif
+zanvil-ghostty sync
 ```

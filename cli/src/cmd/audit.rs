@@ -3,10 +3,10 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-fn _zsh_env_dir() -> PathBuf {
+fn _zanvil_dir() -> PathBuf {
     PathBuf::from(
-        std::env::var("ZSH_ENV_DIR")
-            .unwrap_or_else(|_| format!("{}/.zsh_env", std::env::var("HOME").unwrap_or_default())),
+        std::env::var("ZANVIL_DIR")
+            .unwrap_or_else(|_| format!("{}/.zanvil", std::env::var("HOME").unwrap_or_default())),
     )
 }
 
@@ -45,7 +45,7 @@ pub fn run() {
     let mut issues: u32 = 0;
     let mut warnings: u32 = 0;
 
-    super::print_header("ZSH_ENV Security Audit");
+    super::print_header("Zanvil Security Audit");
     println!();
 
     // --- SSH ---

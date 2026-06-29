@@ -256,13 +256,13 @@ install_tool "helm"       "helm"        "helm"        "helm"
 
 # --- Outils optionnels modules/tools/* ---
 # Installés automatiquement si le module est activé dans config.zsh mais le binaire absent.
-_config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+_config_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
 if [[ -f "${_config_file}" ]]; then
     _optional_tools=(
-        "ZSH_ENV_MODULE_ATUIN:atuin:atuin:atuin:atuin"
-        "ZSH_ENV_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
-        "ZSH_ENV_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
-        "ZSH_ENV_MODULE_POSTING:posting:posting:posting:posting"
+        "ZANVIL_MODULE_ATUIN:atuin:atuin:atuin:atuin"
+        "ZANVIL_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
+        "ZANVIL_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
+        "ZANVIL_MODULE_POSTING:posting:posting:posting:posting"
     )
     for _entry in "${_optional_tools[@]}"; do
         _guard=$(echo "$_entry" | cut -d: -f1)
@@ -346,18 +346,18 @@ ZSHRC="$HOME/.zshrc"
 
 # Dossier où se trouve ce script actuellement
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_DIR="$HOME/.zsh_env"
+TARGET_DIR="$HOME/.zanvil"
 
 # 1. Vérification de l'emplacement
 if [[ "$CURRENT_DIR" != "$TARGET_DIR" ]]; then
     log_warn "Le repo n'est pas dans $TARGET_DIR (Actuel: $CURRENT_DIR)"
-    log_warn "Pour une installation standard, il est recommandé de cloner dans ~/.zsh_env"
+    log_warn "Pour une installation standard, il est recommandé de cloner dans ~/.zanvil"
     # On continue quand même en utilisant le chemin actuel pour la config
     TARGET_DIR="$CURRENT_DIR"
 fi
 
 # 2. Injection dans .zshrc
-if grep -q "ZSH_ENV_DIR" "$ZSHRC"; then
+if grep -q "ZANVIL_DIR" "$ZSHRC"; then
     log_success "Votre .zshrc est déjà configuré."
 else
     log_info "Modification de $ZSHRC..."
@@ -370,15 +370,15 @@ else
     cat <<EOF >> "$ZSHRC"
 
 # =======================================================
-# ZSH ENV CONFIGURATION
+# ZANVIL CONFIGURATION
 # =======================================================
-# Init from zsh_env/install.sh
-export ZSH_ENV_DIR="$TARGET_DIR"
+# Init from zanvil/install.sh
+export ZANVIL_DIR="$TARGET_DIR"
 
-if [[ -f "\$ZSH_ENV_DIR/rc.zsh" ]]; then
-    source "\$ZSH_ENV_DIR/rc.zsh"
+if [[ -f "\$ZANVIL_DIR/rc.zsh" ]]; then
+    source "\$ZANVIL_DIR/rc.zsh"
 else
-    echo "WARNING: ZSH_ENV_DIR not found at \$ZSH_ENV_DIR"
+    echo "WARNING: ZANVIL_DIR not found at \$ZANVIL_DIR"
 fi
 # =======================================================
 EOF
@@ -404,8 +404,8 @@ fi
 # --- Detection Contexte Work (reseau interne) ---
 echo ""
 
-# URL de probe interne (definir ZSH_ENV_WORK_NEXUS_URL dans env.d/work.zsh ou env)
-NEXUS_URL="${ZSH_ENV_WORK_NEXUS_URL:-}"
+# URL de probe interne (definir ZANVIL_WORK_NEXUS_URL dans env.d/work.zsh ou env)
+NEXUS_URL="${ZANVIL_WORK_NEXUS_URL:-}"
 WORK_DETECTED="false"
 
 if [[ -n "$NEXUS_URL" ]]; then
@@ -640,7 +640,7 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
     # --- Configuration Colima pour contexte Work ---
     if [[ "$WORK_DETECTED" = "true" ]] && command -v colima &>/dev/null; then
         local colima_config="$HOME/.colima/default/colima.yaml"
-        local colima_pool="${ZSH_ENV_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
+        local colima_pool="${ZANVIL_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
         local colima_pool_escaped="${colima_pool//\//\\/}"
 
         if [[ -f "$colima_config" ]]; then
@@ -696,36 +696,36 @@ log_info "Generation de $CONFIG_FILE..."
 
 cat > "$CONFIG_FILE" << EOF
 # ==============================================================================
-# Configuration ZSH_ENV - Generee par install.sh
+# Configuration ZANVIL - Generee par install.sh
 # ==============================================================================
 # Modifiez ce fichier pour activer/desactiver des modules
 # Rechargez avec: ss (ou source ~/.zshrc)
 # ==============================================================================
 
 # Modules (true = active, false = desactive)
-ZSH_ENV_MODULE_GITLAB=$MODULE_GITLAB
-ZSH_ENV_MODULE_DOCKER=$MODULE_DOCKER
-ZSH_ENV_MODULE_MISE=$MODULE_MISE
-ZSH_ENV_MODULE_NUSHELL=$MODULE_NUSHELL
-ZSH_ENV_MODULE_KUBE=$MODULE_KUBE
+ZANVIL_MODULE_GITLAB=$MODULE_GITLAB
+ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
+ZANVIL_MODULE_MISE=$MODULE_MISE
+ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
+ZANVIL_MODULE_KUBE=$MODULE_KUBE
 
 # Plugins
-ZSH_ENV_PLUGINS_ORG=zsh-users
-ZSH_ENV_PLUGINS=(
+ZANVIL_PLUGINS_ORG=zsh-users
+ZANVIL_PLUGINS=(
     zsh-syntax-highlighting
     zsh-autosuggestions
 )
 
 # Auto-Update
-ZSH_ENV_AUTO_UPDATE=$AUTO_UPDATE
-ZSH_ENV_UPDATE_FREQUENCY=$UPDATE_FREQ
-ZSH_ENV_UPDATE_MODE="$UPDATE_MODE"
+ZANVIL_AUTO_UPDATE=$AUTO_UPDATE
+ZANVIL_UPDATE_FREQUENCY=$UPDATE_FREQ
+ZANVIL_UPDATE_MODE="$UPDATE_MODE"
 
 # Banniere de demarrage
-# ZSH_ENV_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
+# ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
 
 # Contexte Work (detecte a l'installation)
-ZSH_ENV_WORK_DETECTED=$WORK_DETECTED
+ZANVIL_WORK_DETECTED=$WORK_DETECTED
 EOF
 
 log_success "Configuration sauvegardee"
@@ -765,16 +765,16 @@ fi
 
 # Build du CLI Rust (optionnel, necessite cargo)
 if command -v cargo &>/dev/null; then
-    log_info "Build de zsh-env-cli..."
+    log_info "Build de zanvil..."
     if (cd "$TARGET_DIR/cli" && cargo build --release 2>/dev/null); then
         mkdir -p "$HOME/.local/bin"
-        cp "$TARGET_DIR/cli/target/release/zsh-env-cli" "$HOME/.local/bin/"
-        log_success "zsh-env-cli installe dans ~/.local/bin/"
+        cp "$TARGET_DIR/cli/target/release/zanvil" "$HOME/.local/bin/"
+        log_success "zanvil installe dans ~/.local/bin/"
     else
-        log_warn "Build de zsh-env-cli echoue (optionnel, les commandes zsh fonctionnent sans)"
+        log_warn "Build de zanvil echoue (optionnel, les commandes zsh fonctionnent sans)"
     fi
 else
-    log_info "cargo non trouve — zsh-env-cli non installe (optionnel)"
+    log_info "cargo non trouve — zanvil non installe (optionnel)"
 fi
 
 # Resume
@@ -826,11 +826,11 @@ if [[ -f "$TARGET_DIR/assets/zanvil-logo.txt" ]]; then
     echo ""
     echo -e "${BOLD}${CYAN}"
     cat "$TARGET_DIR/assets/zanvil-logo.txt"
-    _zanvil_ver=$(grep -m1 'ZSH_ENV_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
+    _zanvil_ver=$(grep -m1 'ZANVIL_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
     echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"
 fi
 
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"
 echo -e "Redemarrez votre terminal ou lancez : ${BOLD}source ~/.zshrc${NC}"
-echo -e "Pour modifier les modules : ${BOLD}nano ~/.zsh_env/config.zsh${NC}"
+echo -e "Pour modifier les modules : ${BOLD}nano ~/.zanvil/config.zsh${NC}"

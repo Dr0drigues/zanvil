@@ -5,7 +5,7 @@
 # ==============================================================================
 
 # Configuration (surchargeable via config.zsh)
-AI_TOKENS_CHARS_PER_TOKEN="${ZSH_ENV_AI_CHARS_PER_TOKEN:-4}"
+AI_TOKENS_CHARS_PER_TOKEN="${ZANVIL_AI_CHARS_PER_TOKEN:-4}"
 
 # Patterns a ignorer par defaut
 AI_TOKENS_IGNORE_DIRS=(
@@ -48,7 +48,7 @@ AI_TOKENS_PRIORITY=(
     [vue]=8 [svelte]=8
 )
 
-# Prix par million de tokens (input) - surchargeable via ZSH_ENV_AI_TOKENS_PRICES
+# Prix par million de tokens (input) - surchargeable via ZANVIL_AI_TOKENS_PRICES
 # Definir dans config.zsh pour mettre a jour les prix
 if [[ -z "${AI_TOKENS_PRICES+x}" ]]; then
     typeset -A AI_TOKENS_PRICES

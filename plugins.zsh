@@ -1,33 +1,33 @@
 # =======================================================
-# ZSH-ENV PLUGINS MANAGER
+# ZANVIL PLUGINS MANAGER
 # Gestionnaire de plugins léger et flexible
 # =======================================================
 
-ZSH_ENV_PLUGINS_DIR="$ZSH_ENV_DIR/plugins"
+ZANVIL_PLUGINS_DIR="$ZANVIL_DIR/plugins"
 
 # Organisation par défaut (optionnel)
 # Si défini, les plugins sans "/" seront préfixés par cette org
-# Exemple: ZSH_ENV_PLUGINS_ORG="zsh-users"
-ZSH_ENV_PLUGINS_ORG=${ZSH_ENV_PLUGINS_ORG:-""}
+# Exemple: ZANVIL_PLUGINS_ORG="zsh-users"
+ZANVIL_PLUGINS_ORG=${ZANVIL_PLUGINS_ORG:-""}
 
 # Plugins à charger (définir dans config.zsh)
-# Format: "repo" (utilise ZSH_ENV_PLUGINS_ORG), "owner/repo", ou URL complète
+# Format: "repo" (utilise ZANVIL_PLUGINS_ORG), "owner/repo", ou URL complète
 # Exemple:
-#   ZSH_ENV_PLUGINS_ORG=zsh-users
-#   ZSH_ENV_PLUGINS=(
+#   ZANVIL_PLUGINS_ORG=zsh-users
+#   ZANVIL_PLUGINS=(
 #       zsh-autosuggestions        # -> zsh-users/zsh-autosuggestions
 #       zsh-syntax-highlighting    # -> zsh-users/zsh-syntax-highlighting
 #       Aloxaf/fzf-tab             # -> Aloxaf/fzf-tab (org explicite)
 #   )
 # Initialiser comme tableau vide si non défini
-(( ${+ZSH_ENV_PLUGINS} )) || ZSH_ENV_PLUGINS=()
+(( ${+ZANVIL_PLUGINS} )) || ZANVIL_PLUGINS=()
 
 # =======================================================
 # FONCTIONS INTERNES
 # =======================================================
 
 # Extraire le nom du plugin depuis une URL ou un shorthand
-_zsh_env_plugin_name() {
+_zanvil_plugin_name() {
     local input="$1"
     # Retirer .git si présent
     input="${input%.git}"
@@ -36,7 +36,7 @@ _zsh_env_plugin_name() {
 }
 
 # Construire l'URL de clonage
-_zsh_env_plugin_url() {
+_zanvil_plugin_url() {
     local input="$1"
 
     # URL complète : utiliser telle quelle
@@ -46,8 +46,8 @@ _zsh_env_plugin_url() {
     fi
 
     # Si pas de "/" et org par défaut définie, préfixer
-    if [[ ! "$input" =~ / ]] && [[ -n "$ZSH_ENV_PLUGINS_ORG" ]]; then
-        input="${ZSH_ENV_PLUGINS_ORG}/${input}"
+    if [[ ! "$input" =~ / ]] && [[ -n "$ZANVIL_PLUGINS_ORG" ]]; then
+        input="${ZANVIL_PLUGINS_ORG}/${input}"
     fi
 
     # GitHub shorthand: owner/repo
@@ -55,7 +55,7 @@ _zsh_env_plugin_url() {
 }
 
 # Détecter automatiquement le fichier à sourcer
-_zsh_env_find_plugin_file() {
+_zanvil_find_plugin_file() {
     local plugin_dir="$1"
     local name=$(basename "$plugin_dir")
 
@@ -81,10 +81,10 @@ _zsh_env_find_plugin_file() {
 }
 
 # Charger un plugin
-_zsh_env_load_plugin() {
+_zanvil_load_plugin() {
     local input="$1"
-    local name=$(_zsh_env_plugin_name "$input")
-    local plugin_dir="$ZSH_ENV_PLUGINS_DIR/$name"
+    local name=$(_zanvil_plugin_name "$input")
+    local plugin_dir="$ZANVIL_PLUGINS_DIR/$name"
 
     if [[ ! -d "$plugin_dir" ]]; then
         return 1
@@ -97,7 +97,7 @@ _zsh_env_load_plugin() {
 
     # Trouver et sourcer le fichier principal
     local source_file
-    source_file=$(_zsh_env_find_plugin_file "$plugin_dir")
+    source_file=$(_zanvil_find_plugin_file "$plugin_dir")
     if [[ -n "$source_file" && -f "$source_file" ]]; then
         source "$source_file"
     fi
@@ -122,11 +122,11 @@ zsh-plugin-install() {
         return 1
     fi
 
-    local name=$(_zsh_env_plugin_name "$input")
-    local url=$(_zsh_env_plugin_url "$input")
-    local target="$ZSH_ENV_PLUGINS_DIR/$name"
+    local name=$(_zanvil_plugin_name "$input")
+    local url=$(_zanvil_plugin_url "$input")
+    local target="$ZANVIL_PLUGINS_DIR/$name"
 
-    mkdir -p "$ZSH_ENV_PLUGINS_DIR"
+    mkdir -p "$ZANVIL_PLUGINS_DIR"
 
     if [[ -d "$target" ]]; then
         echo "[plugins] $name déjà installé, mise à jour..."
@@ -151,13 +151,13 @@ zsh-plugin-remove() {
         return 1
     fi
 
-    local name=$(_zsh_env_plugin_name "$input")
-    local target="$ZSH_ENV_PLUGINS_DIR/$name"
+    local name=$(_zanvil_plugin_name "$input")
+    local target="$ZANVIL_PLUGINS_DIR/$name"
 
     if [[ -d "$target" ]]; then
         rm -rf "$target"
         echo "[plugins] $name supprimé"
-        echo "[plugins] Pensez à le retirer de ZSH_ENV_PLUGINS dans config.zsh"
+        echo "[plugins] Pensez à le retirer de ZANVIL_PLUGINS dans config.zsh"
     else
         echo "[plugins] Plugin non trouvé: $name"
         return 1
@@ -166,13 +166,13 @@ zsh-plugin-remove() {
 
 # Mettre à jour tous les plugins
 zsh-plugin-update() {
-    if [[ ! -d "$ZSH_ENV_PLUGINS_DIR" ]] || [[ -z "$(ls -A "$ZSH_ENV_PLUGINS_DIR" 2>/dev/null)" ]]; then
+    if [[ ! -d "$ZANVIL_PLUGINS_DIR" ]] || [[ -z "$(ls -A "$ZANVIL_PLUGINS_DIR" 2>/dev/null)" ]]; then
         echo "[plugins] Aucun plugin installé"
         return 0
     fi
 
     echo "[plugins] Mise à jour des plugins..."
-    for dir in "$ZSH_ENV_PLUGINS_DIR"/*/; do
+    for dir in "$ZANVIL_PLUGINS_DIR"/*/; do
         if [[ -d "$dir/.git" ]]; then
             local name=$(basename "$dir")
             printf "  → %-30s " "$name"
@@ -191,17 +191,17 @@ zsh-plugin-list() {
     echo "Plugins installés:"
     echo ""
 
-    if [[ ! -d "$ZSH_ENV_PLUGINS_DIR" ]] || [[ -z "$(ls -A "$ZSH_ENV_PLUGINS_DIR" 2>/dev/null)" ]]; then
+    if [[ ! -d "$ZANVIL_PLUGINS_DIR" ]] || [[ -z "$(ls -A "$ZANVIL_PLUGINS_DIR" 2>/dev/null)" ]]; then
         echo "  (aucun)"
         echo ""
     else
-        for dir in "$ZSH_ENV_PLUGINS_DIR"/*/; do
+        for dir in "$ZANVIL_PLUGINS_DIR"/*/; do
             if [[ -d "$dir" ]]; then
                 local name=$(basename "$dir")
                 local active="○"
-                # Vérifier si le plugin est dans ZSH_ENV_PLUGINS
-                for p in "${ZSH_ENV_PLUGINS[@]}"; do
-                    [[ "$(_zsh_env_plugin_name "$p")" == "$name" ]] && { active="●"; break; }
+                # Vérifier si le plugin est dans ZANVIL_PLUGINS
+                for p in "${ZANVIL_PLUGINS[@]}"; do
+                    [[ "$(_zanvil_plugin_name "$p")" == "$name" ]] && { active="●"; break; }
                 done
                 echo "  $active $name"
             fi
@@ -225,11 +225,11 @@ zsh-plugin-list() {
 # CHARGEMENT DES PLUGINS
 # =======================================================
 
-# Charger tous les plugins définis dans ZSH_ENV_PLUGINS
-for _plugin in "${ZSH_ENV_PLUGINS[@]}"; do
-    if ! _zsh_env_load_plugin "$_plugin"; then
+# Charger tous les plugins définis dans ZANVIL_PLUGINS
+for _plugin in "${ZANVIL_PLUGINS[@]}"; do
+    if ! _zanvil_load_plugin "$_plugin"; then
         # Plugin non installé, proposer l'installation automatique
-        zsh-plugin-install "$_plugin" && _zsh_env_load_plugin "$_plugin"
+        zsh-plugin-install "$_plugin" && _zanvil_load_plugin "$_plugin"
     fi
 done
 unset _plugin

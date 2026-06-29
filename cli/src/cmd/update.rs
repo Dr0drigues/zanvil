@@ -3,16 +3,16 @@ use colored::*;
 use std::process::Command;
 
 pub fn run(check_only: bool) {
-    let zsh_env_dir = config::zsh_env_dir();
+    let zanvil_dir = config::zanvil_dir();
 
-    super::print_header("ZSH_ENV Update");
+    super::print_header("Zanvil Update");
     println!();
 
     // Fetch latest
     print!("  Fetch origin...  ");
     let fetch = Command::new("git")
         .args(["fetch", "--quiet", "origin"])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output();
 
     match fetch {
@@ -27,7 +27,7 @@ pub fn run(check_only: bool) {
     // Detect current branch and its remote counterpart
     let current_branch = Command::new("git")
         .args(["branch", "--show-current"])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -37,8 +37,8 @@ pub fn run(check_only: bool) {
     let remote_ref = format!("origin/{}", current_branch);
 
     // Compare HEAD vs remote
-    let local_sha = git_rev_parse(&zsh_env_dir, "HEAD");
-    let remote_sha = git_rev_parse(&zsh_env_dir, &remote_ref);
+    let local_sha = git_rev_parse(&zanvil_dir, "HEAD");
+    let remote_sha = git_rev_parse(&zanvil_dir, &remote_ref);
 
     if local_sha == remote_sha {
         println!("  {} Deja a jour ({})", "✓".green(), current_branch);
@@ -49,7 +49,7 @@ pub fn run(check_only: bool) {
     let range = format!("HEAD..{}", remote_ref);
     let behind = Command::new("git")
         .args(["rev-list", "--count", &range])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -79,7 +79,7 @@ pub fn run(check_only: bool) {
             "5",
             &log_range,
         ])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -97,7 +97,7 @@ pub fn run(check_only: bool) {
         println!(
             "  {} Lancez {} pour mettre a jour",
             "ℹ".cyan(),
-            "zsh-env-cli update".bold()
+            "zanvil update".bold()
         );
         return;
     }
@@ -106,7 +106,7 @@ pub fn run(check_only: bool) {
     print!("  Pull...  ");
     let pull = Command::new("git")
         .args(["pull", "--quiet", "origin", &current_branch])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output();
 
     match pull {
@@ -127,7 +127,7 @@ pub fn run(check_only: bool) {
     // Check if CLI source changed
     let cli_changed = Command::new("git")
         .args(["diff", "--name-only", &local_sha, "HEAD", "--", "cli/"])
-        .current_dir(&zsh_env_dir)
+        .current_dir(&zanvil_dir)
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -140,7 +140,7 @@ pub fn run(check_only: bool) {
 
         let build = Command::new("cargo")
             .args(["build", "--release", "--quiet"])
-            .current_dir(zsh_env_dir.join("cli"))
+            .current_dir(zanvil_dir.join("cli"))
             .output();
 
         match build {
@@ -148,7 +148,7 @@ pub fn run(check_only: bool) {
                 println!("{}", "✓".green());
 
                 // Install binary
-                let src = zsh_env_dir.join("cli/target/release/zsh-env-cli");
+                let src = zanvil_dir.join("cli/target/release/zanvil");
                 if let Some(path) = which_cli() {
                     if let Err(e) = std::fs::copy(&src, &path) {
                         println!(
@@ -174,9 +174,9 @@ pub fn run(check_only: bool) {
     }
 
     // Check for pending migrations
-    let migrations_dir = zsh_env_dir.join("migrations");
+    let migrations_dir = zanvil_dir.join("migrations");
     if migrations_dir.is_dir() {
-        let state_file = zsh_env_dir.join(".migration_version");
+        let state_file = zanvil_dir.join(".migration_version");
         let current_ver: u32 = std::fs::read_to_string(&state_file)
             .ok()
             .and_then(|s| s.trim().parse().ok())
@@ -201,7 +201,7 @@ pub fn run(check_only: bool) {
             println!(
                 "  {} Migrations en attente — lancez {}",
                 "⚠".yellow(),
-                "zsh-env-migrate".bold()
+                "zanvil-migrate".bold()
             );
         }
     }
@@ -227,7 +227,7 @@ fn git_rev_parse(dir: &std::path::Path, rev: &str) -> String {
 
 fn which_cli() -> Option<std::path::PathBuf> {
     Command::new("which")
-        .arg("zsh-env-cli")
+        .arg("zanvil")
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())

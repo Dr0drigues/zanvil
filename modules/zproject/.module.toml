@@ -1,2 +1,2 @@
-guard = "ZSH_ENV_MODULE_ZPROJECT"
+guard = "ZANVIL_MODULE_ZPROJECT"
 description = "Contexte projet par shell (kube, env, path, runtimes) via CLI Rust"

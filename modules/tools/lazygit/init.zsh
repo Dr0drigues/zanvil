@@ -1,12 +1,12 @@
 # ==============================================================================
 # lazygit — TUI Git ergonomique
-# Guard: ZSH_ENV_MODULE_LAZYGIT=true dans config.zsh
+# Guard: ZANVIL_MODULE_LAZYGIT=true dans config.zsh
 # ==============================================================================
 
-[[ "${ZSH_ENV_MODULE_LAZYGIT:-}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_LAZYGIT:-}" != "true" ]] && return 0
 
 if command -v lazygit &>/dev/null; then
-    local _lg_config="${ZSH_ENV_DIR}/lazygit/config.yml"
+    local _lg_config="${ZANVIL_DIR}/lazygit/config.yml"
     local _lg_local="${HOME}/.config/lazygit/config-local.yml"
     if [[ -f "$_lg_local" ]]; then
         export LG_CONFIG_FILE="${_lg_config},${_lg_local}"
@@ -43,5 +43,5 @@ if command -v lazygit &>/dev/null; then
         fi
     }
 else
-    echo "[zsh-env] lazygit: module activé mais binaire absent — brew install lazygit"
+    echo "[zanvil] lazygit: module activé mais binaire absent — brew install lazygit"
 fi

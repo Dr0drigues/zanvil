@@ -1,2 +1,2 @@
-guard = "ZSH_ENV_MODULE_AI"
+guard = "ZANVIL_MODULE_AI"
 description = "Estimation de tokens LLM et contexte repo pour prompts IA"

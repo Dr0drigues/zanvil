@@ -1,8 +1,8 @@
 # ==============================================================================
-# ZSH_ENV UI - Fonctions utilitaires d'affichage
+# zanvil UI - Fonctions utilitaires d'affichage
 # ==============================================================================
 # Ce fichier centralise toutes les fonctions de formatage et d'affichage
-# pour garantir un style cohérent dans toutes les commandes zsh-env-*.
+# pour garantir un style cohérent dans toutes les commandes zanvil-*.
 #
 # Usage dans les autres fichiers:
 #   Les fonctions sont automatiquement disponibles car ui.zsh est chargé
@@ -10,9 +10,9 @@
 # ==============================================================================
 
 # ==============================================================================
-# Version ZSH_ENV
+# Version zanvil
 # ==============================================================================
-export ZSH_ENV_VERSION="v3.13.0"
+export ZANVIL_VERSION="v3.13.0"
 
 # ==============================================================================
 # Couleurs ANSI
@@ -34,7 +34,7 @@ _ui_italic=$'\033[3m'
 _ui_underline=$'\033[4m'
 _ui_nc=$'\033[0m'  # No Color / Reset
 
-# Aliases pour compatibilité (utilisés dans zsh_env_commands.zsh)
+# Aliases pour compatibilité (utilisés dans zanvil_commands.zsh)
 _zsh_cmd_green=$_ui_green
 _zsh_cmd_red=$_ui_red
 _zsh_cmd_yellow=$_ui_yellow
@@ -77,7 +77,7 @@ _ui_header() {
     local title="$1"
     local width="${2:-44}"
     local inner=$((width - 2))
-    local version="$ZSH_ENV_VERSION"
+    local version="$ZANVIL_VERSION"
     local content="  $title"
     local padding=$((inner - ${#content} - ${#version} - 2))
     local spaces=$(printf '%*s' $padding '')
@@ -300,12 +300,12 @@ _ui_truncate() {
 # Theme palette override
 # ==============================================================================
 # Source la palette du theme actif pour harmoniser les couleurs
-# entre le prompt Starship et les commandes zsh-env-*
-if [[ -f "$ZSH_ENV_DIR/.current_theme" ]]; then
+# entre le prompt Starship et les commandes zanvil-*
+if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
-    _theme_name=$(<"$ZSH_ENV_DIR/.current_theme")
+    _theme_name=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$_theme_name" ]]; then
-        local _palette="$ZSH_ENV_DIR/themes/$_theme_name/palette.zsh"
+        local _palette="$ZANVIL_DIR/themes/$_theme_name/palette.zsh"
         if [[ -f "$_palette" ]]; then
             source "$_palette"
             # Refresh compat aliases
@@ -335,7 +335,7 @@ _zanvil_banner_compact() {
 # Splash complet (logo enclume + tagline + version) — install / update
 # Usage: _zanvil_logo
 _zanvil_logo() {
-    local logo_file="${ZSH_ENV_DIR}/assets/zanvil-logo.txt"
+    local logo_file="${ZANVIL_DIR}/assets/zanvil-logo.txt"
     echo ""
     if [[ -f "$logo_file" ]]; then
         # Enclume + wordmark en cyan/bold, lus depuis l'asset partage
@@ -343,18 +343,18 @@ _zanvil_logo() {
     else
         _zanvil_banner_compact
     fi
-    echo -e "  ${_ui_dim}${ZSH_ENV_VERSION}${_ui_nc}"
+    echo -e "  ${_ui_dim}${ZANVIL_VERSION}${_ui_nc}"
     echo ""
 }
 
 # Affiche un banner compact au reload (ligne compacte + infos)
-# Usage: _zsh_env_banner
-_zsh_env_banner() {
+# Usage: _zanvil_banner
+_zanvil_banner() {
     local branch hash plugin_count info_line
 
-    branch=$(git -C "$ZSH_ENV_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
-    hash=$(git -C "$ZSH_ENV_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
-    plugin_count=${#ZSH_ENV_PLUGINS[@]}
+    branch=$(git -C "$ZANVIL_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    hash=$(git -C "$ZANVIL_DIR" rev-parse --short HEAD 2>/dev/null || echo "?")
+    plugin_count=${#ZANVIL_PLUGINS[@]}
 
     info_line="${branch} ${_ui_dim}·${_ui_nc} ${hash} ${_ui_dim}·${_ui_nc} ${plugin_count} plugins ${_ui_dim}·${_ui_nc} ${_ui_green}${_ui_check} reloaded${_ui_nc}"
 

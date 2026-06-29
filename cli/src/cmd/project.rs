@@ -81,7 +81,7 @@ pub enum ProjectAction {
 
 fn projects_root() -> PathBuf {
     let home = std::env::var("HOME").expect("HOME not set");
-    PathBuf::from(home).join(".zsh-env").join("projects")
+    PathBuf::from(home).join(".zanvil").join("projects")
 }
 
 fn load_toml(path: &Path) -> Option<Value> {

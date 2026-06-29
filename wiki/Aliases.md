@@ -4,7 +4,7 @@ Aliases globaux et personnalisation.
 
 ## Aliases globaux
 
-Définis dans `~/.zsh_env/aliases.zsh` :
+Définis dans `~/.zanvil/aliases.zsh` :
 
 ### Configuration
 
@@ -63,10 +63,10 @@ Définis dans `~/.zsh_env/aliases.zsh` :
 
 ## Aliases locaux
 
-Créez `~/.zsh_env/aliases.local.zsh` pour vos aliases personnels (non versionnés) :
+Créez `~/.zanvil/aliases.local.zsh` pour vos aliases personnels (non versionnés) :
 
 ```bash
-cp ~/.zsh_env/aliases.local.zsh.example ~/.zsh_env/aliases.local.zsh
+cp ~/.zanvil/aliases.local.zsh.example ~/.zanvil/aliases.local.zsh
 ```
 
 Exemple :

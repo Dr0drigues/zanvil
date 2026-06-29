@@ -2,7 +2,7 @@
 # Work Elasticsearch — Fetch logs depuis l'Elasticsearch interne
 # ==============================================================================
 
-_WORK_FETCH_LOGS_SCRIPT="${ZSH_ENV_DIR:-$HOME/.zsh_env}/modules/work/fetch_es_logs.sh"
+_WORK_FETCH_LOGS_SCRIPT="${ZANVIL_DIR:-$HOME/.zanvil}/modules/work/fetch_es_logs.sh"
 
 work_fetch_logs() {
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then

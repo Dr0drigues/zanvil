@@ -1,52 +1,52 @@
 ---
 title: Référence des commandes
-description: Toutes les commandes zanvil (zsh-env-*) et le CLI Rust
+description: Toutes les commandes zanvil (zanvil-*) et le CLI Rust
 ---
 
-## Commandes zsh-env
+## Commandes zanvil
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-list` | Liste les outils installés avec versions (format tableau) |
-| `zsh-env-doctor` | Diagnostic complet de l'installation (compact) |
-| `zsh-env-status` | Statut rapide (version, modules, git) |
-| `zsh-env-profile` | Profile le temps de démarrage par module |
-| `zsh-env-benchmark [n]` | Benchmark sur n exécutions (défaut: 5) |
-| `zsh-env-audit` | Audit de sécurité des permissions (compact) |
-| `zsh-env-audit-fix` | Corrige automatiquement les permissions |
-| `zsh-env-theme [nom]` | Gère les thèmes unifiés (Starship + palette) |
-| `zsh-env-ghostty [nom\|sync]` | Gère les thèmes Ghostty |
-| `zsh-env-completions` | Charge les auto-complétions |
-| `zsh-env-completion-add` | Ajoute une complétion personnalisée |
-| `zsh-env-completion-remove` | Supprime une complétion personnalisée |
-| `zsh-env-update` | Force la mise à jour |
-| `zsh-env-help` | Affiche l'aide (format tableau) |
-| `zsh-env-modules list` | Liste les modules disponibles et leur statut |
-| `zsh-env-modules enable <nom>` | Active un module |
-| `zsh-env-modules disable <nom>` | Désactive un module |
-| `zsh-env-backup` | Sauvegarde la configuration zsh-env |
-| `zsh-env-restore` | Restaure une sauvegarde |
-| `zsh-env-switch <profil>` | Change de profil d'environnement |
-| `zsh-env-config-reset` | Réinitialise la configuration |
+| `zanvil-list` | Liste les outils installés avec versions (format tableau) |
+| `zanvil-doctor` | Diagnostic complet de l'installation (compact) |
+| `zanvil-status` | Statut rapide (version, modules, git) |
+| `zanvil-profile` | Profile le temps de démarrage par module |
+| `zanvil-benchmark [n]` | Benchmark sur n exécutions (défaut: 5) |
+| `zanvil-audit` | Audit de sécurité des permissions (compact) |
+| `zanvil-audit-fix` | Corrige automatiquement les permissions |
+| `zanvil-theme [nom]` | Gère les thèmes unifiés (Starship + palette) |
+| `zanvil-ghostty [nom\|sync]` | Gère les thèmes Ghostty |
+| `zanvil-completions` | Charge les auto-complétions |
+| `zanvil-completion-add` | Ajoute une complétion personnalisée |
+| `zanvil-completion-remove` | Supprime une complétion personnalisée |
+| `zanvil-update` | Force la mise à jour |
+| `zanvil-help` | Affiche l'aide (format tableau) |
+| `zanvil-modules list` | Liste les modules disponibles et leur statut |
+| `zanvil-modules enable <nom>` | Active un module |
+| `zanvil-modules disable <nom>` | Désactive un module |
+| `zanvil-backup` | Sauvegarde la configuration zanvil |
+| `zanvil-restore` | Restaure une sauvegarde |
+| `zanvil-switch <profil>` | Change de profil d'environnement |
+| `zanvil-config-reset` | Réinitialise la configuration |
 
-Toutes les commandes `zsh-env-*` utilisent un style visuel moderne et compact via le système UI.
+Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via le système UI.
 
-## CLI Rust (zsh-env-cli)
+## CLI Rust (zanvil)
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-cli theme` | Gestion des thèmes (list, apply, preview) |
-| `zsh-env-cli doctor` | Diagnostic complet en Rust (rapide) |
-| `zsh-env-cli audit` | Audit de sécurité avancé |
-| `zsh-env-cli context` | Génération de contexte projet |
-| `zsh-env-cli modules` | Gestion des modules (list, enable, disable) |
+| `zanvil theme` | Gestion des thèmes (list, apply, preview) |
+| `zanvil doctor` | Diagnostic complet en Rust (rapide) |
+| `zanvil audit` | Audit de sécurité avancé |
+| `zanvil context` | Génération de contexte projet |
+| `zanvil modules` | Gestion des modules (list, enable, disable) |
 
 ## GitLab
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-gitlab-status` | Affiche le statut des pipelines GitLab |
-| `zsh-env-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
+| `zanvil-gitlab-status` | Affiche le statut des pipelines GitLab |
+| `zanvil-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
 | `gpr` | Alias pour créer une merge request GitLab |
 | `clone-projects [--dry-run] [--parallel]` | Clone en masse des projets GitLab |
 | `git-bulk [--dry-run]` | Opérations Git en masse sur plusieurs repos |

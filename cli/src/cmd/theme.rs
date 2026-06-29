@@ -16,11 +16,11 @@ pub enum ThemeAction {
     Current,
 }
 
-fn zsh_env_dir() -> PathBuf {
-    std::env::var("ZSH_ENV_DIR")
+fn zanvil_dir() -> PathBuf {
+    std::env::var("ZANVIL_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
-            dirs_fallback().join(".zsh_env")
+            dirs_fallback().join(".zanvil")
         })
 }
 
@@ -31,11 +31,11 @@ fn dirs_fallback() -> PathBuf {
 }
 
 fn themes_dir() -> PathBuf {
-    zsh_env_dir().join("themes")
+    zanvil_dir().join("themes")
 }
 
 fn current_theme_file() -> PathBuf {
-    zsh_env_dir().join(".current_theme")
+    zanvil_dir().join(".current_theme")
 }
 
 fn starship_config() -> PathBuf {

@@ -10,7 +10,7 @@ use cmd::project::ProjectAction;
 use cmd::sync::SyncAction;
 
 #[derive(Parser)]
-#[command(name = "zsh-env", version, about = "CLI companion for zsh_env")]
+#[command(name = "zanvil", version, about = "CLI companion for zanvil")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -29,7 +29,7 @@ enum Commands {
     Audit,
     /// Show current context
     Context,
-    /// Manage zsh_env modules
+    /// Manage zanvil modules
     Modules {
         #[command(subcommand)]
         action: ModulesAction,
@@ -45,7 +45,7 @@ enum Commands {
         #[command(subcommand)]
         action: SyncAction,
     },
-    /// Self-update zsh_env
+    /// Self-update zanvil
     Update {
         /// Only check for updates, don't apply
         #[arg(long)]
@@ -95,7 +95,7 @@ fn main() {
         Commands::Sync { action } => cmd::sync::run(action),
         Commands::Secrets { dir, include, exclude } => cmd::secrets::run(&dir, &include, &exclude),
         Commands::Completions => {
-            generate(Shell::Zsh, &mut Cli::command(), "zsh-env-cli", &mut std::io::stdout());
+            generate(Shell::Zsh, &mut Cli::command(), "zanvil", &mut std::io::stdout());
         }
     }
 }

@@ -4,7 +4,7 @@
 
 (( $+functions[compdef] )) || return 0
 
-# Completion pour zsh-env-git-bulk
+# Completion pour zanvil-git-bulk
 _git_bulk_cmd() {
     local -a actions
     actions=(
@@ -43,7 +43,7 @@ _git_bulk_cmd() {
             ;;
     esac
 }
-compdef _git_bulk_cmd zsh-env-git-bulk gbulk gbco gbst gbbr gbl gbm gbprune
+compdef _git_bulk_cmd zanvil-git-bulk gbulk gbco gbst gbbr gbl gbm gbprune
 
 _hooks_cmd() {
     local hooks_dir

@@ -9,8 +9,8 @@ Suite de configuration Zsh modulaire et orientee productivite pour macOS et Linu
 ## Installation
 
 ```bash
-git clone git@github.com:Dr0drigues/zsh_env.git ~/.zsh_env
-cd ~/.zsh_env
+git clone git@github.com:Dr0drigues/zanvil.git ~/.zanvil
+cd ~/.zanvil
 ./install.sh
 ```
 
@@ -19,7 +19,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 ## Architecture
 
 ```
-~/.zsh_env/
+~/.zanvil/
 ├── rc.zsh              # Point d'entree principal (source par .zshrc)
 ├── config.zsh          # Configuration modules (gitignored)
 ├── completions.zsh     # Completions custom utilisateur
@@ -28,19 +28,19 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── loader.zsh      # Module loader (decouverte auto modules/)
 │   ├── variables.zsh   # Variables d'environnement
 │   ├── aliases.zsh     # Alias globaux
-│   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zsh-env.local)
-│   ├── commands.zsh    # zsh-env-list, doctor, status, help
-│   ├── admin.zsh       # zsh-env-modules, backup, restore, switch, completions
-│   ├── theme.zsh       # zsh-env-theme, ghostty
-│   ├── setup.zsh       # zsh-env-ssl-setup
+│   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zanvil.local)
+│   ├── commands.zsh    # zanvil-list, doctor, status, help
+│   ├── admin.zsh       # zanvil-modules, backup, restore, switch, completions
+│   ├── theme.zsh       # zanvil-theme, ghostty
+│   ├── setup.zsh       # zanvil-ssl-setup
 │   ├── auto_update.zsh # Systeme d'auto-update
 │   ├── check_env_deps.zsh
 │   └── completions.zsh # Completions des commandes core
 ├── modules/            # Features modulaires (init.zsh + completions.zsh par module)
 │   ├── git/            # git_bulk, git_hooks, git_change_author, git_root
-│   ├── gitlab/         # gitlab_logic, pipeline_bulk (guard: ZSH_ENV_MODULE_GITLAB)
-│   ├── kube/           # kube_config, kube_switch, kube_ns, k (guard: ZSH_ENV_MODULE_KUBE)
-│   ├── docker/         # docker_utils (guard: ZSH_ENV_MODULE_DOCKER)
+│   ├── gitlab/         # gitlab_logic, pipeline_bulk (guard: ZANVIL_MODULE_GITLAB)
+│   ├── kube/           # kube_config, kube_switch, kube_ns, k (guard: ZANVIL_MODULE_KUBE)
+│   ├── docker/         # docker_utils (guard: ZANVIL_MODULE_DOCKER)
 │   ├── ssh/            # ssh_manager
 │   ├── tmux/           # tmux_manager (lazy loaded)
 │   ├── ai/             # ai_context, ai_tokens (lazy loaded)
@@ -68,32 +68,32 @@ Le site (`site/`) est un projet Astro Starlight déployé sur GitHub Pages via `
 
 ### Flux de chargement
 
-1. `.zshrc` source `rc.zsh` via `$ZSH_ENV_DIR`
+1. `.zshrc` source `rc.zsh` via `$ZANVIL_DIR`
 2. `rc.zsh` charge : config.zsh, secrets, `core/variables.zsh`, `env.d/*.zsh`
 3. compinit (completions zsh)
 4. `core/loader.zsh` : charge `core/ui.zsh` en premier, puis core/*.zsh, puis modules/*/init.zsh + completions.zsh
 5. `core/aliases.zsh`
 6. plugins.zsh
-7. `core/hooks.zsh` (starship, fzf, mise, zoxide, direnv, .zsh-env.local)
+7. `core/hooks.zsh` (starship, fzf, mise, zoxide, direnv, .zanvil.local)
 
 ### Module Loader (core/loader.zsh)
 
 - Decouvre automatiquement les modules dans `modules/*/init.zsh`
-- Module guards : `ZSH_ENV_MODULE_<NAME>` (derive du nom du dossier, uppercased)
+- Module guards : `ZANVIL_MODULE_<NAME>` (derive du nom du dossier, uppercased)
 - Lazy loading : modules avec fichier `.lazy` (liste les fonctions publiques a stub)
 - Completions par module : `modules/*/completions.zsh`
 
 ### CLI Rust (cli/)
 
-Binary optionnel `zsh-env-cli` qui accelere les commandes lourdes. Les fonctions zsh delegent au CLI quand disponible, fallback au zsh sinon.
+Binary optionnel `zanvil` qui accelere les commandes lourdes. Les fonctions zsh delegent au CLI quand disponible, fallback au zsh sinon.
 
 Commandes implementees : `theme list|apply|current`, `doctor`, `audit`, `context`, `modules list|enable|disable`
 
 Pattern de delegation :
 ```zsh
-zsh-env-function() {
-    if command -v zsh-env-cli &>/dev/null; then
-        zsh-env-cli subcommand "$@"; return $?
+zanvil-function() {
+    if command -v zanvil &>/dev/null; then
+        zanvil subcommand "$@"; return $?
     fi
     # ... fallback zsh ...
 }
@@ -101,7 +101,7 @@ zsh-env-function() {
 
 ### Systeme de themes unifie
 
-Un theme controle a la fois le prompt Starship ET les couleurs des commandes zsh-env-*.
+Un theme controle a la fois le prompt Starship ET les couleurs des commandes zanvil-*.
 
 - **Flat .toml** : theme Starship uniquement (couleurs UI par defaut)
 - **Directory** : `prompt.toml` + `palette.zsh` (override des `_ui_*` variables en true color)
@@ -113,22 +113,22 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zsh
 ```
 blg-dev=aks-blg-caasplatform-dev-common-001
 ```
-Utilise par : `kube_switch`, `k` (k9s), `zsh-env-cli context` (prompt Starship)
+Utilise par : `kube_switch`, `k` (k9s), `zanvil context` (prompt Starship)
 
-### .zsh-env.local (direnv-like)
+### .zanvil.local (direnv-like)
 
-Fichier `.zsh-env.local` a la racine d'un projet, auto-source au `cd`.
+Fichier `.zanvil.local` a la racine d'un projet, auto-source au `cd`.
 Trust hash-based (sha256). Auto-unload en sortant du dossier.
 
 ## Systeme UI (`core/ui.zsh`)
 
-Toutes les commandes `zsh-env-*` utilisent un style visuel coherent via les fonctions UI :
+Toutes les commandes `zanvil-*` utilisent un style visuel coherent via les fonctions UI :
 
 **Variables disponibles :**
 - Couleurs : `$_ui_green`, `$_ui_red`, `$_ui_yellow`, `$_ui_blue`, `$_ui_cyan`
 - Styles : `$_ui_bold`, `$_ui_dim`, `$_ui_nc` (reset)
 - Symboles : `$_ui_check`, `$_ui_cross`, `$_ui_circle`
-- Version : `$ZSH_ENV_VERSION`
+- Version : `$ZANVIL_VERSION`
 
 **Fonctions de formatage :**
 - `_ui_header "Titre"` - Header boxed avec version
@@ -148,13 +148,13 @@ Toutes les commandes `zsh-env-*` utilisent un style visuel coherent via les fonc
 ### General
 - Les alias et fonctions verifient la presence des outils avant utilisation (`command -v`)
 - Les secrets doivent aller dans `~/.secrets`, `~/.gitlab_secrets` ou `env.d/*.sops.zsh`
-- Module guards dans config.zsh (ex: `ZSH_ENV_MODULE_GITLAB=true`)
+- Module guards dans config.zsh (ex: `ZANVIL_MODULE_GITLAB=true`)
 - Recharger la config : `ss` ou `source ~/.zshrc`
 
 ### Developpement UI
 - **Toujours utiliser les fonctions `_ui_*`** pour les couleurs et le formatage
 - **Ne jamais coder les couleurs en dur** (`\033[...`) dans les nouveaux fichiers
-- Les commandes `zsh-env-*` doivent avoir un header avec `_ui_header "Titre"`
+- Les commandes `zanvil-*` doivent avoir un header avec `_ui_header "Titre"`
 - Les palettes de themes overrident les `_ui_*` via `themes/<name>/palette.zsh`
 
 ### Modules
@@ -165,5 +165,5 @@ Toutes les commandes `zsh-env-*` utilisent un style visuel coherent via les fonc
 ### CLI Rust
 - Code dans `cli/src/cmd/<command>.rs`
 - Utilise `clap` derive pour le parsing, `colored` pour les couleurs
-- Decouvre `$ZSH_ENV_DIR` depuis l'env, fallback `~/.zsh_env`
+- Decouvre `$ZANVIL_DIR` depuis l'env, fallback `~/.zanvil`
 - Les commandes zsh gardent le fallback complet si le binaire est absent
