@@ -16,12 +16,16 @@ _zanvil_migrate_from_zsh_env() {
 
     local zshrc="$HOME/.zshrc"
     if [[ -f "$zshrc" ]]; then
-        cp "$zshrc" "${zshrc}.bak-${ts}"
-        sed -i '' -e 's/ZSH_ENV_DIR/ZANVIL_DIR/g' -e 's#\.zsh_env#.zanvil#g' "$zshrc"
+        cp "$zshrc" "${zshrc}.bak-${ts}" || { echo "zanvil: backup .zshrc echoue, abandon"; return 1; }
+        sed -i '' -e 's/ZSH_ENV_DIR/ZANVIL_DIR/g' -e 's#\.zsh_env#.zanvil#g' "$zshrc" \
+            || echo "zanvil: avertissement: reecriture .zshrc echouee"
     fi
 
     local cfg="$new/config.zsh"
-    [[ -f "$cfg" ]] && sed -i '' 's/ZSH_ENV_/ZANVIL_/g' "$cfg"
+    if [[ -f "$cfg" ]]; then
+        cp "$cfg" "${cfg}.bak-${ts}"
+        sed -i '' 's/ZSH_ENV_/ZANVIL_/g' "$cfg"
+    fi
 
     echo "zanvil: migration terminee (backup: ${old}.bak-${ts}). Rechargement..."
     export ZANVIL_DIR="$new"
