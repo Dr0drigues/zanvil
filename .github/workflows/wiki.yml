@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'wiki/**'
+      - 'web/wiki/**'
   workflow_dispatch:
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
           find wiki-repo -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
           # Copy new wiki content
-          cp -r wiki/* wiki-repo/
+          cp -r web/wiki/* wiki-repo/
 
           # List what will be deployed
           echo "Wiki files to deploy:"
@@ -69,7 +69,7 @@ jobs:
           echo "**Wiki URL:** https://github.com/${{ github.repository }}/wiki" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pages Updated" >> $GITHUB_STEP_SUMMARY
-          for f in wiki/*.md; do
+          for f in web/wiki/*.md; do
             name=$(basename "$f" .md)
             echo "- [$name](https://github.com/${{ github.repository }}/wiki/$name)" >> $GITHUB_STEP_SUMMARY
           done
