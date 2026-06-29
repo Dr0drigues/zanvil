@@ -5,7 +5,7 @@
 #               d'un CA bundle unifie pour les outils CLI
 # Support : macOS (Keychain), Linux (cert stores), WSL (Windows cert store)
 # Usage : ./ssl-setup.sh [--quiet] [--force]
-# Commande : zsh-env-ssl-setup
+# Commande : zanvil-ssl-setup
 # ==============================================================================
 
 # --- Couleurs & UI ---
@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
             echo "    -h, --help     Affiche cette aide"
             echo ""
             echo -e "${BOLD}CERTIFICATS DETECTES${NC}"
-            echo "    Issuers charges depuis ZSH_ENV_ENTERPRISE_CA_ISSUERS (env.d/work.zsh)"
+            echo "    Issuers charges depuis ZANVIL_ENTERPRISE_CA_ISSUERS (env.d/work.zsh)"
             exit 0
             ;;
         *) log_error "Option inconnue: $1"; exit 1 ;;
@@ -57,9 +57,9 @@ BUNDLE_FILE="$SSL_DIR/ca-bundle.pem"
 ENTERPRISE_DIR="$SSL_DIR/enterprise"
 
 # Issuers entreprise a rechercher (CN exact)
-# Configurer ZSH_ENV_ENTERPRISE_CA_ISSUERS dans env.d/work.zsh (valeurs separees par ':')
-if [[ -n "${ZSH_ENV_ENTERPRISE_CA_ISSUERS:-}" ]]; then
-    IFS=':' read -ra ENTERPRISE_ISSUERS <<< "$ZSH_ENV_ENTERPRISE_CA_ISSUERS"
+# Configurer ZANVIL_ENTERPRISE_CA_ISSUERS dans env.d/work.zsh (valeurs separees par ':')
+if [[ -n "${ZANVIL_ENTERPRISE_CA_ISSUERS:-}" ]]; then
+    IFS=':' read -ra ENTERPRISE_ISSUERS <<< "$ZANVIL_ENTERPRISE_CA_ISSUERS"
 else
     ENTERPRISE_ISSUERS=()
 fi

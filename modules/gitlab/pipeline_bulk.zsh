@@ -7,10 +7,10 @@
 # ==============================================================================
 
 # ==============================================================================
-# zsh-env-pipeline-bulk : Point d'entree principal
+# zanvil-pipeline-bulk : Point d'entree principal
 # ==============================================================================
 # Usage:
-#   zsh-env-pipeline-bulk [action] [options] [dossier]
+#   zanvil-pipeline-bulk [action] [options] [dossier]
 #
 # Actions:
 #   status   (defaut) Affiche le dernier pipeline de chaque repo
@@ -25,7 +25,7 @@
 #   -w           Watch apres trigger (combine trigger + watch)
 #   -h           Aide
 # ==============================================================================
-zsh-env-pipeline-bulk() {
+zanvil-pipeline-bulk() {
     # Verifier que glab est installe
     if ! command -v glab &>/dev/null; then
         _ui_msg_fail "glab (GitLab CLI) n'est pas installe"
@@ -573,25 +573,25 @@ _pipeline_bulk_help() {
     _ui_separator 58
     echo ""
     echo -e "  ${_ui_dim}# Statut des pipelines dans ~/work${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk ~/work"
+    echo -e "  zanvil-pipeline-bulk ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Trigger tous les repos sur develop${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk trigger -b develop ~/work"
+    echo -e "  zanvil-pipeline-bulk trigger -b develop ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Trigger + watch enchaine${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk trigger -w ~/work"
+    echo -e "  zanvil-pipeline-bulk trigger -w ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Watch les pipelines en cours${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk watch ~/work"
+    echo -e "  zanvil-pipeline-bulk watch ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Filtrer par nom de repo${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk status -f 'front*' ~/work"
+    echo -e "  zanvil-pipeline-bulk status -f 'front*' ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Exclure des repos${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk trigger -s 'runner*' ~/work"
+    echo -e "  zanvil-pipeline-bulk trigger -s 'runner*' ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Combiner filtre et skip${_ui_nc}"
-    echo -e "  zsh-env-pipeline-bulk status -f 'api*' -s '*legacy*' ~/work"
+    echo -e "  zanvil-pipeline-bulk status -f 'api*' -s '*legacy*' ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Alias courts${_ui_nc}"
     echo -e "  gpbulk ~/work            ${_ui_dim}# = status${_ui_nc}"
@@ -599,7 +599,7 @@ _pipeline_bulk_help() {
 }
 
 # Alias courts
-alias gpbulk='zsh-env-pipeline-bulk'
-alias gpbs='zsh-env-pipeline-bulk status'
-alias gpbt='zsh-env-pipeline-bulk trigger'
-alias gpbw='zsh-env-pipeline-bulk watch'
+alias gpbulk='zanvil-pipeline-bulk'
+alias gpbs='zanvil-pipeline-bulk status'
+alias gpbt='zanvil-pipeline-bulk trigger'
+alias gpbw='zanvil-pipeline-bulk watch'

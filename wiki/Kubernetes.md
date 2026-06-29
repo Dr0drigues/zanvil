@@ -163,13 +163,13 @@ Pour versionner des kubeconfigs de maniere securisee :
 ```bash
 # Chiffrer une config
 kube_encrypt ~/.kube/config.minimal.yml
-# -> Cree ~/.zsh_env/kube/config.minimal.sops.yml
+# -> Cree ~/.zanvil/kube/config.minimal.sops.yml
 
 # Dechiffrer au demarrage (automatique si sops/age installes)
 kube_init
 ```
 
-Configuration SOPS dans `~/.zsh_env/.sops.yaml` :
+Configuration SOPS dans `~/.zanvil/.sops.yaml` :
 
 ```yaml
 creation_rules:

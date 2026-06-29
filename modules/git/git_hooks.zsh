@@ -5,7 +5,7 @@
 # ==============================================================================
 
 # Dossier des templates de hooks
-GIT_HOOKS_TEMPLATES="${ZSH_ENV_DIR:-$HOME/.zsh_env}/hooks-templates"
+GIT_HOOKS_TEMPLATES="${ZANVIL_DIR:-$HOME/.zanvil}/hooks-templates"
 
 # Verifie qu'on est dans un repo git
 _hooks_check_repo() {
@@ -72,7 +72,7 @@ hooks_install_precommit() {
 
     cat > "$hook_file" << 'HOOK'
 #!/bin/sh
-# Hook pre-commit genere par zsh_env
+# Hook pre-commit genere par zanvil
 
 set -e
 
@@ -135,7 +135,7 @@ hooks_install_commitmsg() {
 
     cat > "$hook_file" << 'HOOK'
 #!/bin/sh
-# Hook commit-msg genere par zsh_env
+# Hook commit-msg genere par zanvil
 # Verifie le format du message de commit (Conventional Commits)
 
 commit_msg_file="$1"
@@ -197,7 +197,7 @@ hooks_install_prepush() {
 
     cat > "$hook_file" << 'HOOK'
 #!/bin/sh
-# Hook pre-push genere par zsh_env
+# Hook pre-push genere par zanvil
 
 set -e
 

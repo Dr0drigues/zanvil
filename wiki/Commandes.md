@@ -1,49 +1,49 @@
 # Reference des commandes
 
-## Commandes zsh-env
+## Commandes zanvil
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-list` | Liste les outils installes avec versions (format tableau) |
-| `zsh-env-doctor` | Diagnostic complet de l'installation (compact) |
-| `zsh-env-status` | Statut rapide (version, modules, git) |
-| `zsh-env-profile` | Profile le temps de demarrage par module |
-| `zsh-env-benchmark [n]` | Benchmark sur n executions (defaut: 5) |
-| `zsh-env-audit` | Audit de securite des permissions (compact) |
-| `zsh-env-audit-fix` | Corrige automatiquement les permissions |
-| `zsh-env-theme [nom]` | Gere les themes unifies (Starship + palette) |
-| `zsh-env-ghostty [nom\|sync]` | Gere les themes Ghostty |
-| `zsh-env-completions` | Charge les auto-completions |
-| `zsh-env-completion-add` | Ajoute une completion personnalisee |
-| `zsh-env-completion-remove` | Supprime une completion personnalisee |
-| `zsh-env-update` | Force la mise a jour |
-| `zsh-env-help` | Affiche l'aide (format tableau) |
-| `zsh-env-modules list` | Liste les modules disponibles et leur statut |
-| `zsh-env-modules enable <nom>` | Active un module |
-| `zsh-env-modules disable <nom>` | Desactive un module |
-| `zsh-env-backup` | Sauvegarde la configuration zsh-env |
-| `zsh-env-restore` | Restaure une sauvegarde |
-| `zsh-env-switch <profil>` | Change de profil d'environnement |
-| `zsh-env-config-reset` | Reinitialise la configuration |
+| `zanvil-list` | Liste les outils installes avec versions (format tableau) |
+| `zanvil-doctor` | Diagnostic complet de l'installation (compact) |
+| `zanvil-status` | Statut rapide (version, modules, git) |
+| `zanvil-profile` | Profile le temps de demarrage par module |
+| `zanvil-benchmark [n]` | Benchmark sur n executions (defaut: 5) |
+| `zanvil-audit` | Audit de securite des permissions (compact) |
+| `zanvil-audit-fix` | Corrige automatiquement les permissions |
+| `zanvil-theme [nom]` | Gere les themes unifies (Starship + palette) |
+| `zanvil-ghostty [nom\|sync]` | Gere les themes Ghostty |
+| `zanvil-completions` | Charge les auto-completions |
+| `zanvil-completion-add` | Ajoute une completion personnalisee |
+| `zanvil-completion-remove` | Supprime une completion personnalisee |
+| `zanvil-update` | Force la mise a jour |
+| `zanvil-help` | Affiche l'aide (format tableau) |
+| `zanvil-modules list` | Liste les modules disponibles et leur statut |
+| `zanvil-modules enable <nom>` | Active un module |
+| `zanvil-modules disable <nom>` | Desactive un module |
+| `zanvil-backup` | Sauvegarde la configuration zanvil |
+| `zanvil-restore` | Restaure une sauvegarde |
+| `zanvil-switch <profil>` | Change de profil d'environnement |
+| `zanvil-config-reset` | Reinitialise la configuration |
 
-Toutes les commandes `zsh-env-*` utilisent un style visuel moderne et compact via le systeme UI.
+Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via le systeme UI.
 
-## CLI Rust (zsh-env-cli)
+## CLI Rust (zanvil)
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-cli theme` | Gestion des themes (list, apply, preview) |
-| `zsh-env-cli doctor` | Diagnostic complet en Rust (rapide) |
-| `zsh-env-cli audit` | Audit de securite avance |
-| `zsh-env-cli context` | Generation de contexte projet |
-| `zsh-env-cli modules` | Gestion des modules (list, enable, disable) |
+| `zanvil theme` | Gestion des themes (list, apply, preview) |
+| `zanvil doctor` | Diagnostic complet en Rust (rapide) |
+| `zanvil audit` | Audit de securite avance |
+| `zanvil context` | Generation de contexte projet |
+| `zanvil modules` | Gestion des modules (list, enable, disable) |
 
 ## GitLab
 
 | Commande | Description |
 |----------|-------------|
-| `zsh-env-gitlab-status` | Affiche le statut des pipelines GitLab |
-| `zsh-env-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
+| `zanvil-gitlab-status` | Affiche le statut des pipelines GitLab |
+| `zanvil-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
 | `gpr` | Alias pour creer une merge request GitLab |
 | `clone-projects [--dry-run] [--parallel]` | Clone en masse des projets GitLab |
 | `git-bulk [--dry-run]` | Operations Git en masse sur plusieurs repos |

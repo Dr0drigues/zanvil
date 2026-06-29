@@ -28,7 +28,7 @@ fn list_modules() {
         }
     };
 
-    let metas = config::scan_module_metas(&config::zsh_env_dir());
+    let metas = config::scan_module_metas(&config::zanvil_dir());
     let config_modules = config::parse_modules(&content);
 
     println!(
@@ -43,7 +43,7 @@ fn list_modules() {
     for meta in &metas {
         let guard_var = meta.guard.as_deref().unwrap_or("");
         let name = guard_var
-            .strip_prefix("ZSH_ENV_MODULE_")
+            .strip_prefix("ZANVIL_MODULE_")
             .unwrap_or(guard_var);
         let enabled = content.lines().any(|line| {
             let t = line.trim();
@@ -61,7 +61,7 @@ fn list_modules() {
 
     // Show remaining config.zsh guards without .module.toml
     for m in &config_modules {
-        let guard_var = format!("ZSH_ENV_MODULE_{}", m.name);
+        let guard_var = format!("ZANVIL_MODULE_{}", m.name);
         if shown_guards.contains(&guard_var) {
             continue;
         }

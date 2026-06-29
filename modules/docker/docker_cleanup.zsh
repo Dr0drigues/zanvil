@@ -4,7 +4,7 @@
 # Dry-run par defaut, --apply pour executer
 # ==============================================================================
 
-zsh-env-docker-clean() {
+zanvil-docker-clean() {
     command -v docker &>/dev/null || { _ui_msg_fail "Docker n'est pas installe"; return 1; }
     docker info &>/dev/null 2>&1 || { _ui_msg_fail "Docker daemon non accessible"; return 1; }
 
@@ -191,13 +191,13 @@ _docker_clean_help() {
     _ui_header "Docker Clean"
     echo ""
     printf "${_ui_bold}Usage:${_ui_nc}\n"
-    echo "  zsh-env-docker-clean              Lister ce qui peut etre nettoye (dry-run)"
-    echo "  zsh-env-docker-clean --apply      Executer le nettoyage"
-    echo "  zsh-env-docker-clean --all        Inclure images non-dangling et build cache"
+    echo "  zanvil-docker-clean              Lister ce qui peut etre nettoye (dry-run)"
+    echo "  zanvil-docker-clean --apply      Executer le nettoyage"
+    echo "  zanvil-docker-clean --all        Inclure images non-dangling et build cache"
     echo ""
     printf "${_ui_bold}Elements nettoyes:${_ui_nc}\n"
     echo "  Containers stoppes, images dangling, volumes orphelins, networks inutilises"
     echo "  Avec --all : toutes les images inutilisees + build cache"
 }
 
-alias dclean='zsh-env-docker-clean'
+alias dclean='zanvil-docker-clean'

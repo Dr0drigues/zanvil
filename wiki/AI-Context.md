@@ -56,7 +56,7 @@ ai-context generate -f
 ai-context templates
 ```
 
-Les templates sont stockes dans `~/.config/zsh_env/ai-contexts/templates/`.
+Les templates sont stockes dans `~/.config/zanvil/ai-contexts/templates/`.
 
 ## Configuration locale
 
@@ -154,11 +154,11 @@ This project uses **Conventional Commits**.
 
 ## Creer un template
 
-Creez un fichier YAML dans `~/.config/zsh_env/ai-contexts/templates/`:
+Creez un fichier YAML dans `~/.config/zanvil/ai-contexts/templates/`:
 
 ```bash
 # Exemple: template pour API REST Node.js
-cat > ~/.config/zsh_env/ai-contexts/templates/nodejs-api.yml << 'EOF'
+cat > ~/.config/zanvil/ai-contexts/templates/nodejs-api.yml << 'EOF'
 name: ""
 stack:
   - nodejs

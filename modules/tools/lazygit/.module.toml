@@ -1,4 +1,4 @@
-guard = "ZSH_ENV_MODULE_LAZYGIT"
+guard = "ZANVIL_MODULE_LAZYGIT"
 binary = "lazygit"
 install = "brew install lazygit"
 description = "TUI Git ergonomique (alias lg)"

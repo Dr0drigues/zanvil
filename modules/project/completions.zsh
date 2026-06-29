@@ -6,7 +6,7 @@
 
 _proj() {
     local projects=()
-    local registry="$HOME/.config/zsh_env/projects.yml"
+    local registry="$HOME/.config/zanvil/projects.yml"
 
     if [[ -f "$registry" ]]; then
         projects=(${(f)"$(grep -E '^[a-zA-Z0-9_-]+:' "$registry" | sed 's/:.*//')"})
@@ -19,7 +19,7 @@ compdef _proj proj
 
 _proj_remove() {
     local projects=()
-    local registry="$HOME/.config/zsh_env/projects.yml"
+    local registry="$HOME/.config/zanvil/projects.yml"
 
     if [[ -f "$registry" ]]; then
         projects=(${(f)"$(grep -E '^[a-zA-Z0-9_-]+:' "$registry" | sed 's/:.*//')"})

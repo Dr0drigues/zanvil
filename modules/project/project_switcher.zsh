@@ -8,7 +8,7 @@
 PROJ_CONFIG_NAMES=(".proj" ".project.yml" ".project.yaml")
 
 # Registre des projets connus
-PROJ_REGISTRY_FILE="$HOME/.config/zsh_env/projects.yml"
+PROJ_REGISTRY_FILE="$HOME/.config/zanvil/projects.yml"
 
 # Cherche un fichier de config projet
 _proj_find_config() {
@@ -449,7 +449,7 @@ proj_init() {
 
     local default_name=$(basename "$PWD")
     cat > "$config_file" << EOF
-# Configuration projet zsh_env
+# Configuration projet zanvil
 # Utilisez 'proj' pour charger ce contexte
 
 # Nom du projet (utilise pour l'enregistrement auto)
@@ -668,6 +668,6 @@ Fichier .proj:
   env_file: .env.local   Charge un fichier d'environnement
   post_cmd: "cmd"        Execute une commande apres chargement
 
-Registre: ~/.config/zsh_env/projects.yml
+Registre: ~/.config/zanvil/projects.yml
 EOF
 }

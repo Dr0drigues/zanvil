@@ -1,4 +1,4 @@
-[[ "${ZSH_ENV_MODULE_SECURITY:-true}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_SECURITY:-true}" != "true" ]] && return 0
 
 # ==============================================================================
 # Security Audit - Verification de la securite des configs
@@ -33,11 +33,11 @@ _audit_check_perms() {
 }
 
 # Audit principal
-zsh-env-audit() {
-    if command -v zsh-env-cli &>/dev/null; then
-        zsh-env-cli audit; return $?
+zanvil-audit() {
+    if command -v zanvil &>/dev/null; then
+        zanvil audit; return $?
     fi
-    _zsh_header "ZSH_ENV Security Audit"
+    _zsh_header "Zanvil Security Audit"
 
     local issues=0
     local warnings=0
@@ -209,15 +209,15 @@ zsh-env-audit() {
         echo -e "${_zsh_cmd_green}✓ OK${_zsh_cmd_nc} ${_zsh_cmd_dim}($warnings avertissement(s))${_zsh_cmd_nc}"
     else
         echo -e "${_zsh_cmd_red}✗ $issues erreur(s)${_zsh_cmd_nc}, ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Correction auto: zsh-env-audit-fix${_zsh_cmd_nc}"
+        echo -e "${_zsh_cmd_dim}Correction auto: zanvil-audit-fix${_zsh_cmd_nc}"
     fi
 
     return $issues
 }
 
 # Corrige automatiquement les permissions
-zsh-env-audit-fix() {
-    _zsh_header "ZSH_ENV Security Fix"
+zanvil-audit-fix() {
+    _zsh_header "Zanvil Security Fix"
 
     local fixed=0
 
@@ -277,5 +277,5 @@ zsh-env-audit-fix() {
     echo ""
     _zsh_separator 44
     echo -e "${_zsh_cmd_green}$fixed${_zsh_cmd_nc} fichier(s) corrige(s)"
-    echo -e "${_zsh_cmd_dim}Verification: zsh-env-audit${_zsh_cmd_nc}"
+    echo -e "${_zsh_cmd_dim}Verification: zanvil-audit${_zsh_cmd_nc}"
 }

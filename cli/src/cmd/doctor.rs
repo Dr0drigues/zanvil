@@ -14,18 +14,18 @@ fn home_dir() -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from("/tmp"))
 }
 
-fn zsh_env_dir() -> PathBuf {
-    std::env::var("ZSH_ENV_DIR")
+fn zanvil_dir() -> PathBuf {
+    std::env::var("ZANVIL_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| home_dir().join(".zsh_env"))
+        .unwrap_or_else(|_| home_dir().join(".zanvil"))
 }
 
-/// Read ZSH_ENV_VERSION from core/ui.zsh
+/// Read ZANVIL_VERSION from core/ui.zsh
 fn read_version() -> String {
-    let ui_path = zsh_env_dir().join("core").join("ui.zsh");
+    let ui_path = zanvil_dir().join("core").join("ui.zsh");
     if let Ok(content) = fs::read_to_string(&ui_path) {
         for line in content.lines() {
-            if let Some(rest) = line.strip_prefix("export ZSH_ENV_VERSION=\"") {
+            if let Some(rest) = line.strip_prefix("export ZANVIL_VERSION=\"") {
                 if let Some(ver) = rest.strip_suffix('"') {
                     return ver.to_string();
                 }
@@ -145,13 +145,13 @@ fn helm_version() -> Option<String> {
 // ---------------------------------------------------------------------------
 
 pub fn run() {
-    let env_dir = zsh_env_dir();
+    let env_dir = zanvil_dir();
     let home = home_dir();
 
     let mut issues: u32 = 0;
     let mut warnings: u32 = 0;
 
-    print_header("ZSH_ENV Doctor");
+    print_header("Zanvil Doctor");
 
     // ── Config files ──────────────────────────────────────────────────────
     let config_files: Vec<(&str, PathBuf)> = vec![
@@ -175,7 +175,7 @@ pub fn run() {
     // ── .zshrc integration ────────────────────────────────────────────────
     let zshrc_path = home.join(".zshrc");
     let zshrc_ok = fs::read_to_string(&zshrc_path)
-        .map(|content| content.contains("ZSH_ENV_DIR"))
+        .map(|content| content.contains("ZANVIL_DIR"))
         .unwrap_or(false);
 
     if zshrc_ok {
@@ -252,7 +252,7 @@ pub fn run() {
         });
 
         let label = guard_var
-            .strip_prefix("ZSH_ENV_MODULE_")
+            .strip_prefix("ZANVIL_MODULE_")
             .unwrap_or(guard_var);
 
         if let Some(binary) = meta.binary.as_deref() {
@@ -291,7 +291,7 @@ pub fn run() {
         .collect();
     let config_modules = crate::config::parse_modules(&config_content);
     for m in &config_modules {
-        let guard_var = format!("ZSH_ENV_MODULE_{}", m.name);
+        let guard_var = format!("ZANVIL_MODULE_{}", m.name);
         if shown_guards.contains(&guard_var) {
             continue;
         }
@@ -362,7 +362,7 @@ pub fn run() {
         format!(
             "bundle {} {}",
             "○".yellow(),
-            "(zsh-env-ssl-setup)".dimmed()
+            "(zanvil-ssl-setup)".dimmed()
         )
     };
     print_section("SSL/TLS", &ssl_info);
@@ -385,6 +385,6 @@ pub fn run() {
             format!("✗ {} erreur(s)", issues).red(),
             format!("{} avertissement(s)", warnings).yellow()
         );
-        println!("{}", "Lancez ~/.zsh_env/install.sh pour corriger".dimmed());
+        println!("{}", "Lancez ~/.zanvil/install.sh pour corriger".dimmed());
     }
 }

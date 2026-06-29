@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Script : uninstall.sh
-# Description : Desinstallation de l'environnement zsh_env
+# Description : Desinstallation de l'environnement zanvil
 # ==============================================================================
 
 # --- Couleurs & UI ---
@@ -20,7 +20,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --- Variables ---
 ZSHRC="$HOME/.zshrc"
-ZSH_ENV_DIR="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+ZANVIL_DIR="${ZANVIL_DIR:-$HOME/.zanvil}"
 
 # --- Fonctions ---
 
@@ -30,11 +30,11 @@ ${BOLD}USAGE${NC}
     $0 [OPTIONS]
 
 ${BOLD}DESCRIPTION${NC}
-    Desinstalle zsh_env en restaurant le .zshrc original
+    Desinstalle zanvil en restaurant le .zshrc original
     ou en nettoyant les lignes ajoutees.
 
 ${BOLD}OPTIONS${NC}
-    --keep-dir      Ne supprime pas le dossier ~/.zsh_env
+    --keep-dir      Ne supprime pas le dossier ~/.zanvil
     --keep-secrets  Ne supprime pas les fichiers secrets
     --force         Pas de confirmation
     -h, --help      Affiche cette aide
@@ -92,7 +92,7 @@ select_backup() {
 # Fonction pour nettoyer le zshrc sans backup
 clean_zshrc() {
     if [ -f "$ZSHRC" ]; then
-        log_info "Suppression des lignes zsh_env..."
+        log_info "Suppression des lignes zanvil..."
 
         # Creer un backup avant modification
         cp "$ZSHRC" "$ZSHRC.before_uninstall.$(date +%Y%m%d_%H%M%S)"
@@ -100,13 +100,13 @@ clean_zshrc() {
         # Supprimer le bloc complet (entre les marqueurs ===)
         awk '
             /^# =+$/ { if (block) { block=0; next } }
-            /ZSH.ENV|ZSH_ENV/ { block=1; next }
+            /ZANVIL/ { block=1; next }
             !block { print }
         ' "$ZSHRC" > "$ZSHRC.tmp"
 
         # Si awk n'a pas bien fonctionne, fallback avec grep
-        if grep -q "ZSH_ENV" "$ZSHRC.tmp" 2>/dev/null; then
-            grep -v "ZSH_ENV" "$ZSHRC" | grep -v "rc.zsh" > "$ZSHRC.tmp"
+        if grep -q "ZANVIL" "$ZSHRC.tmp" 2>/dev/null; then
+            grep -v "ZANVIL" "$ZSHRC" | grep -v "rc.zsh" > "$ZSHRC.tmp"
         fi
 
         mv "$ZSHRC.tmp" "$ZSHRC"
@@ -114,7 +114,7 @@ clean_zshrc() {
         # Nettoyer les lignes vides consecutives
         cat -s "$ZSHRC" > "$ZSHRC.tmp" && mv "$ZSHRC.tmp" "$ZSHRC"
 
-        log_success "Lignes zsh_env supprimees de $ZSHRC"
+        log_success "Lignes zanvil supprimees de $ZSHRC"
     else
         log_warn "$ZSHRC non trouve"
     fi
@@ -152,13 +152,13 @@ done
 
 # --- Main ---
 
-echo -e "${BOLD}=== Desinstallation de zsh_env ===${NC}\n"
+echo -e "${BOLD}=== Desinstallation de zanvil ===${NC}\n"
 
 # Confirmation
 if [ "$FORCE" = false ]; then
     echo -e "Cette action va:"
     echo -e "  ${RED}*${NC} Restaurer ou nettoyer $ZSHRC"
-    [ "$KEEP_DIR" = false ] && echo -e "  ${RED}*${NC} Supprimer le dossier $ZSH_ENV_DIR"
+    [ "$KEEP_DIR" = false ] && echo -e "  ${RED}*${NC} Supprimer le dossier $ZANVIL_DIR"
     [ "$KEEP_SECRETS" = false ] && echo -e "  ${RED}*${NC} Supprimer ~/.secrets et ~/.gitlab_secrets"
     echo ""
     read -p "Continuer ? [y/N] " confirm
@@ -176,7 +176,7 @@ SELECTED_BACKUP=""
 
 if [ ${#BACKUPS[@]} -gt 0 ] && [ "$FORCE" = false ]; then
     echo -e "\nDes backups de votre .zshrc ont ete trouves."
-    echo -e "Voulez-vous restaurer un backup ou simplement supprimer les lignes zsh_env ?"
+    echo -e "Voulez-vous restaurer un backup ou simplement supprimer les lignes zanvil ?"
 
     if select_backup "${BACKUPS[@]}"; then
         # Restaurer le backup selectionne
@@ -217,9 +217,9 @@ fi
 
 # 3. Supprimer le dossier
 if [ "$KEEP_DIR" = false ]; then
-    log_info "Suppression de $ZSH_ENV_DIR..."
-    if [ -d "$ZSH_ENV_DIR" ]; then
-        rm -rf "$ZSH_ENV_DIR"
+    log_info "Suppression de $ZANVIL_DIR..."
+    if [ -d "$ZANVIL_DIR" ]; then
+        rm -rf "$ZANVIL_DIR"
         log_success "Dossier supprime"
     else
         log_warn "Dossier non trouve"

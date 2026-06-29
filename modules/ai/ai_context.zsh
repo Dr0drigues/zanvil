@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Repertoires de configuration
-AI_CONTEXT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh_env/ai-contexts"
+AI_CONTEXT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/ai-contexts"
 AI_CONTEXT_TEMPLATES_DIR="$AI_CONTEXT_CONFIG_DIR/templates"
 AI_CONTEXT_LOCAL_FILE=".ai-context.yml"
 
@@ -639,7 +639,7 @@ Detection automatique:
   - Configuration Git (conventional commits, etc.)
 
 Configuration locale: .ai-context.yml
-Templates globaux: ~/.config/zsh_env/ai-contexts/templates/
+Templates globaux: ~/.config/zanvil/ai-contexts/templates/
 EOF
 }
 

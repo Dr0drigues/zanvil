@@ -45,7 +45,7 @@ struct ModuleItem {
 impl App {
     fn new() -> Self {
         let config_content = config::read_config().unwrap_or_default();
-        let zsh_env_dir = config::zsh_env_dir();
+        let zanvil_dir = config::zanvil_dir();
 
         // Parse modules
         let parsed = config::parse_modules(&config_content);
@@ -58,7 +58,7 @@ impl App {
             .collect();
 
         // Parse themes
-        let themes_dir = zsh_env_dir.join("themes");
+        let themes_dir = zanvil_dir.join("themes");
         let mut themes: Vec<String> = Vec::new();
         if let Ok(entries) = fs::read_dir(&themes_dir) {
             for entry in entries.flatten() {
@@ -76,17 +76,17 @@ impl App {
         themes.sort();
 
         // Current theme
-        let current_theme = fs::read_to_string(zsh_env_dir.join(".current_theme"))
+        let current_theme = fs::read_to_string(zanvil_dir.join(".current_theme"))
             .unwrap_or_else(|_| "default".to_string())
             .trim()
             .to_string();
 
         // Auto-update
-        let au_enabled = extract_bool(&config_content, "ZSH_ENV_AUTO_UPDATE", true);
-        let au_frequency: u32 = extract_value(&config_content, "ZSH_ENV_UPDATE_FREQUENCY")
+        let au_enabled = extract_bool(&config_content, "ZANVIL_AUTO_UPDATE", true);
+        let au_frequency: u32 = extract_value(&config_content, "ZANVIL_UPDATE_FREQUENCY")
             .parse()
             .unwrap_or(7);
-        let au_mode = extract_value(&config_content, "ZSH_ENV_UPDATE_MODE")
+        let au_mode = extract_value(&config_content, "ZANVIL_UPDATE_MODE")
             .trim_matches('"')
             .to_string();
 
@@ -129,15 +129,15 @@ impl App {
         }
 
         // Save auto-update settings
-        content = set_config_value(&content, "ZSH_ENV_AUTO_UPDATE", &self.au_enabled.to_string());
+        content = set_config_value(&content, "ZANVIL_AUTO_UPDATE", &self.au_enabled.to_string());
         content = set_config_value(
             &content,
-            "ZSH_ENV_UPDATE_FREQUENCY",
+            "ZANVIL_UPDATE_FREQUENCY",
             &self.au_frequency.to_string(),
         );
         content = set_config_value(
             &content,
-            "ZSH_ENV_UPDATE_MODE",
+            "ZANVIL_UPDATE_MODE",
             &format!("\"{}\"", self.au_mode),
         );
 
@@ -145,7 +145,7 @@ impl App {
 
         // Save theme
         let _ = fs::write(
-            config::zsh_env_dir().join(".current_theme"),
+            config::zanvil_dir().join(".current_theme"),
             &self.current_theme,
         );
     }
@@ -290,7 +290,7 @@ fn ui(f: &mut ratatui::Frame, app: &App) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(" zsh-env config "),
+                .title(" zanvil config "),
         )
         .select(app.active_tab)
         .highlight_style(
@@ -338,7 +338,7 @@ fn render_modules(f: &mut ratatui::Frame, app: &App, area: Rect) {
             ListItem::new(Line::from(vec![
                 Span::styled(format!(" {} ", symbol), style),
                 Span::styled(
-                    format!("ZSH_ENV_MODULE_{}", m.name),
+                    format!("ZANVIL_MODULE_{}", m.name),
                     if m.enabled {
                         Style::default()
                     } else {

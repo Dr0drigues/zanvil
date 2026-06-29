@@ -1,4 +1,4 @@
-[[ "${ZSH_ENV_MODULE_KUBE:-}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_KUBE:-}" != "true" ]] && return 0
 
 # ==============================================================================
 # Kube Config Manager - Gestion des fichiers kubeconfig
@@ -11,7 +11,7 @@
 KUBE_DIR="$HOME/.kube"
 KUBE_CONFIGS_DIR="$KUBE_DIR/configs.d"
 KUBE_MINIMAL_CONFIG="$KUBE_DIR/config.minimal.yml"
-KUBE_SOPS_SOURCE="$ZSH_ENV_DIR/kube"
+KUBE_SOPS_SOURCE="$ZANVIL_DIR/secrets/kube"
 KUBE_SELECTION_FILE="$KUBE_DIR/.kubeconfig_selection"
 KUBE_ALIASES_FILE="$KUBE_DIR/.context_aliases"
 
@@ -451,7 +451,7 @@ kube_encrypt() {
         return 1
     fi
 
-    # Cree le dossier kube/ dans zsh_env si necessaire
+    # Cree le dossier kube/ dans zanvil si necessaire
     [[ ! -d "$KUBE_SOPS_SOURCE" ]] && mkdir -p "$KUBE_SOPS_SOURCE"
 
     local basename="${config_file:t}"
@@ -474,7 +474,7 @@ kube_encrypt() {
 
 # Configuration des clusters Azure AKS (surchargeable via config.zsh)
 # Format: "label:subscription:resource-group:cluster-name"
-# Definir ZSH_ENV_KUBE_AZ_CLUSTERS dans config.zsh pour personnaliser
+# Definir ZANVIL_KUBE_AZ_CLUSTERS dans config.zsh pour personnaliser
 if [[ -z "${_KUBE_AZ_CLUSTERS+x}" ]]; then
     # Aucun cluster preconfigure par defaut.
     # Definir _KUBE_AZ_CLUSTERS dans env.d/kube.zsh ou config.zsh.
@@ -1195,31 +1195,31 @@ kube_k9s_setup() {
     _ui_header "k9s Setup"
 
     # Deployer hotkeys
-    local hotkeys_src="$ZSH_ENV_DIR/k9s/hotkeys.yaml"
+    local hotkeys_src="$ZANVIL_DIR/config/k9s/hotkeys.yaml"
     if [[ -f "$hotkeys_src" ]]; then
         cp "$hotkeys_src" "$k9s_dir/hotkeys.yaml"
         _ui_msg_ok "hotkeys.yaml deploye"
     else
-        _ui_msg_warn "k9s/hotkeys.yaml absent dans $ZSH_ENV_DIR"
+        _ui_msg_warn "config/k9s/hotkeys.yaml absent dans $ZANVIL_DIR"
     fi
 
     # Deployer plugins
-    local plugins_src="$ZSH_ENV_DIR/k9s/plugins.yaml"
+    local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
     if [[ -f "$plugins_src" ]]; then
         cp "$plugins_src" "$k9s_dir/plugins.yaml"
         _ui_msg_ok "plugins.yaml deploye"
     else
-        _ui_msg_warn "k9s/plugins.yaml absent dans $ZSH_ENV_DIR"
+        _ui_msg_warn "config/k9s/plugins.yaml absent dans $ZANVIL_DIR"
     fi
 
     # Appliquer le skin du theme actif
     local current_theme=""
-    [[ -f "$ZSH_ENV_DIR/.current_theme" ]] && current_theme=$(<"$ZSH_ENV_DIR/.current_theme")
+    [[ -f "$ZANVIL_DIR/.current_theme" ]] && current_theme=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$current_theme" ]]; then
-        _zsh_env_k9s_apply_skin "$current_theme"
+        _zanvil_k9s_apply_skin "$current_theme"
         _ui_msg_ok "skin '$current_theme' applique"
     else
-        _ui_msg_warn "Aucun theme actif — lancez 'zsh-env-theme <nom>' pour appliquer un skin"
+        _ui_msg_warn "Aucun theme actif — lancez 'zanvil-theme <nom>' pour appliquer un skin"
     fi
 
     _ui_separator
@@ -1260,7 +1260,7 @@ GCP GKE:
 Emplacements:
   Config minimale : ~/.kube/config.minimal.yml
   Configs add.    : ~/.kube/configs.d/
-  Fichiers sops   : ~/.zsh_env/kube/
+  Fichiers sops   : ~/.zanvil/kube/
 EOF
 }
 

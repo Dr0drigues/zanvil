@@ -1,2 +1,2 @@
-guard = "ZSH_ENV_MODULE_GITLAB"
+guard = "ZANVIL_MODULE_GITLAB"
 description = "Alias GitLab, clone groupes, statut PAT"

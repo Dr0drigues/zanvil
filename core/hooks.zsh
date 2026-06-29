@@ -41,7 +41,7 @@ fi
 # =======================================================
 # MISE (Gestionnaire de versions: Node, Java, Maven, etc.)
 # =======================================================
-if [[ "$ZSH_ENV_MODULE_MISE" = "true" ]]; then
+if [[ "$ZANVIL_MODULE_MISE" = "true" ]]; then
     if command -v mise &> /dev/null; then
         eval "$(mise activate zsh)"
     fi
@@ -65,48 +65,48 @@ if command -v direnv &> /dev/null; then
 fi
 
 # =======================================================
-# ZSH-ENV LOCAL (auto-chargement par projet, style direnv)
+# ZANVIL LOCAL (auto-chargement par projet, style direnv)
 # =======================================================
-# Detecte .zsh-env.local dans le repertoire courant au cd
+# Detecte .zanvil.local dans le repertoire courant au cd
 # Trust hash-based : demande confirmation la premiere fois ou si modifie
-_ZSH_ENV_LOCAL_TRUST_DIR="${ZSH_ENV_DIR:-$HOME/.zsh_env}/.trusted"
-_ZSH_ENV_LOCAL_LOADED=""
-_ZSH_ENV_LOCAL_VARS=()
+_ZANVIL_LOCAL_TRUST_DIR="${ZANVIL_DIR:-$HOME/.zanvil}/.trusted"
+_ZANVIL_LOCAL_LOADED=""
+_ZANVIL_LOCAL_VARS=()
 
-_zsh_env_local_hash() {
+_zanvil_local_hash() {
     shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
 }
 
-_zsh_env_local_is_trusted() {
+_zanvil_local_is_trusted() {
     local file="$1"
-    local hash=$(_zsh_env_local_hash "$file")
-    local trust_file="$_ZSH_ENV_LOCAL_TRUST_DIR/${hash}"
+    local hash=$(_zanvil_local_hash "$file")
+    local trust_file="$_ZANVIL_LOCAL_TRUST_DIR/${hash}"
     [[ -f "$trust_file" ]]
 }
 
-_zsh_env_local_trust() {
+_zanvil_local_trust() {
     local file="$1"
-    local hash=$(_zsh_env_local_hash "$file")
-    mkdir -p "$_ZSH_ENV_LOCAL_TRUST_DIR"
-    echo "$file" > "$_ZSH_ENV_LOCAL_TRUST_DIR/${hash}"
+    local hash=$(_zanvil_local_hash "$file")
+    mkdir -p "$_ZANVIL_LOCAL_TRUST_DIR"
+    echo "$file" > "$_ZANVIL_LOCAL_TRUST_DIR/${hash}"
 }
 
-_zsh_env_local_load() {
+_zanvil_local_load() {
     local file="$1"
 
-    if ! _zsh_env_local_is_trusted "$file"; then
+    if ! _zanvil_local_is_trusted "$file"; then
         echo ""
-        echo -e "${_ui_yellow}[zsh-env]${_ui_nc} Fichier .zsh-env.local detecte dans ${_ui_bold}$(dirname "$file")${_ui_nc}"
+        echo -e "${_ui_yellow}[zanvil]${_ui_nc} Fichier .zanvil.local detecte dans ${_ui_bold}$(dirname "$file")${_ui_nc}"
         echo -e "  ${_ui_dim}$(head -3 "$file" | sed 's/^/  /')${_ui_nc}"
         echo ""
         local response
         read -q "response?Autoriser ce fichier ? [y/N] "
         echo ""
         if [[ "$response" != "y" ]]; then
-            echo -e "${_ui_dim}Ignore. Lancez 'zsh-env-trust' pour autoriser plus tard.${_ui_nc}"
+            echo -e "${_ui_dim}Ignore. Lancez 'zanvil-trust' pour autoriser plus tard.${_ui_nc}"
             return 1
         fi
-        _zsh_env_local_trust "$file"
+        _zanvil_local_trust "$file"
     fi
 
     # Capturer les variables avant/apres pour le unload
@@ -115,59 +115,59 @@ _zsh_env_local_load() {
     local after_vars=$(env | sort)
 
     # Stocker les nouvelles variables pour cleanup
-    _ZSH_ENV_LOCAL_VARS=($(comm -13 <(echo "$before_vars") <(echo "$after_vars") | cut -d= -f1))
-    _ZSH_ENV_LOCAL_LOADED="$file"
+    _ZANVIL_LOCAL_VARS=($(comm -13 <(echo "$before_vars") <(echo "$after_vars") | cut -d= -f1))
+    _ZANVIL_LOCAL_LOADED="$file"
 
-    echo -e "${_ui_green}[zsh-env]${_ui_nc} Charge: ${_ui_dim}$(dirname "$file")/.zsh-env.local${_ui_nc}"
+    echo -e "${_ui_green}[zanvil]${_ui_nc} Charge: ${_ui_dim}$(dirname "$file")/.zanvil.local${_ui_nc}"
 }
 
-_zsh_env_local_unload() {
-    if [[ -n "$_ZSH_ENV_LOCAL_LOADED" ]]; then
+_zanvil_local_unload() {
+    if [[ -n "$_ZANVIL_LOCAL_LOADED" ]]; then
         # Unset les variables ajoutees par le fichier
-        for var in "${_ZSH_ENV_LOCAL_VARS[@]}"; do
+        for var in "${_ZANVIL_LOCAL_VARS[@]}"; do
             unset "$var" 2>/dev/null
         done
-        echo -e "${_ui_dim}[zsh-env] Decharge: $(dirname "$_ZSH_ENV_LOCAL_LOADED")/.zsh-env.local${_ui_nc}"
-        _ZSH_ENV_LOCAL_LOADED=""
-        _ZSH_ENV_LOCAL_VARS=()
+        echo -e "${_ui_dim}[zanvil] Decharge: $(dirname "$_ZANVIL_LOCAL_LOADED")/.zanvil.local${_ui_nc}"
+        _ZANVIL_LOCAL_LOADED=""
+        _ZANVIL_LOCAL_VARS=()
     fi
 }
 
-_zsh_env_local_chpwd() {
-    local local_file="$PWD/.zsh-env.local"
+_zanvil_local_chpwd() {
+    local local_file="$PWD/.zanvil.local"
 
     # Si on a un fichier charge et on est sorti du dossier
-    if [[ -n "$_ZSH_ENV_LOCAL_LOADED" ]]; then
-        local loaded_dir="$(dirname "$_ZSH_ENV_LOCAL_LOADED")"
+    if [[ -n "$_ZANVIL_LOCAL_LOADED" ]]; then
+        local loaded_dir="$(dirname "$_ZANVIL_LOCAL_LOADED")"
         if [[ "$PWD" != "$loaded_dir"* ]]; then
-            _zsh_env_local_unload
+            _zanvil_local_unload
         fi
     fi
 
-    # Si un .zsh-env.local existe dans le nouveau dossier
-    if [[ -f "$local_file" && "$local_file" != "$_ZSH_ENV_LOCAL_LOADED" ]]; then
-        _zsh_env_local_load "$local_file"
+    # Si un .zanvil.local existe dans le nouveau dossier
+    if [[ -f "$local_file" && "$local_file" != "$_ZANVIL_LOCAL_LOADED" ]]; then
+        _zanvil_local_load "$local_file"
     fi
 }
 
 # Commande manuelle pour trust le fichier courant
-zsh-env-trust() {
-    local file="${1:-$PWD/.zsh-env.local}"
+zanvil-trust() {
+    local file="${1:-$PWD/.zanvil.local}"
     if [[ ! -f "$file" ]]; then
-        _ui_msg_fail "Aucun .zsh-env.local dans le repertoire courant"
+        _ui_msg_fail "Aucun .zanvil.local dans le repertoire courant"
         return 1
     fi
-    _zsh_env_local_trust "$file"
+    _zanvil_local_trust "$file"
     _ui_msg_ok "Fichier autorise: $file"
-    _zsh_env_local_load "$file"
+    _zanvil_local_load "$file"
 }
 
 # Enregistrer le hook chpwd
 autoload -Uz add-zsh-hook
-add-zsh-hook chpwd _zsh_env_local_chpwd
+add-zsh-hook chpwd _zanvil_local_chpwd
 
-# Charger si on est deja dans un dossier avec .zsh-env.local
-[[ -f "$PWD/.zsh-env.local" ]] && _zsh_env_local_load "$PWD/.zsh-env.local"
+# Charger si on est deja dans un dossier avec .zanvil.local
+[[ -f "$PWD/.zanvil.local" ]] && _zanvil_local_load "$PWD/.zanvil.local"
 
 # =======================================================
 # KEYBINDINGS
@@ -188,14 +188,14 @@ bindkey '^[OB' history-beginning-search-forward-end   # Fleche bas (mode applica
 # =======================================================
 # Chargé en dernier pour que Ctrl+R override celui de fzf.
 # --disable-up-arrow : les flèches ↑↓ restent en recherche par préfixe.
-if [[ "${ZSH_ENV_MODULE_ATUIN:-}" == "true" ]] && command -v atuin &>/dev/null; then
+if [[ "${ZANVIL_MODULE_ATUIN:-}" == "true" ]] && command -v atuin &>/dev/null; then
     eval "$(atuin init zsh --disable-up-arrow)"
 fi
 
 # =======================================================
 # BANNIERE DE DEMARRAGE (zanvil)
 # =======================================================
-# Ligne compacte a chaque shell interactif. Opt-out : ZSH_ENV_STARTUP_BANNER=false
-if [[ -o interactive && "${ZSH_ENV_STARTUP_BANNER:-true}" != "false" ]]; then
+# Ligne compacte a chaque shell interactif. Opt-out : ZANVIL_STARTUP_BANNER=false
+if [[ -o interactive && "${ZANVIL_STARTUP_BANNER:-true}" != "false" ]]; then
     _zanvil_banner_compact
 fi
