@@ -352,7 +352,7 @@ fi
 # zanvil-ghostty : Gestion des themes Ghostty
 # ==============================================================================
 zanvil-ghostty() {
-    local themes_dir="$ZANVIL_DIR/ghostty/themes"
+    local themes_dir="$ZANVIL_DIR/config/ghostty/themes"
     local ghostty_config="$HOME/.config/ghostty/config"
     local theme="$1"
 
@@ -391,7 +391,7 @@ zanvil-ghostty() {
 
     # Commande "sync" : déployer la config de zanvil vers ~/.config/ghostty
     if [[ "$theme" = "sync" ]]; then
-        local src_config="$ZANVIL_DIR/ghostty/config"
+        local src_config="$ZANVIL_DIR/config/ghostty/config"
         local dest_dir="$HOME/.config/ghostty"
 
         if [[ ! -f "$src_config" ]]; then
@@ -426,7 +426,7 @@ zanvil-ghostty() {
     fi
 
     # Mettre à jour le fichier config local (dans zanvil)
-    local local_config="$ZANVIL_DIR/ghostty/config"
+    local local_config="$ZANVIL_DIR/config/ghostty/config"
 
     if [[ -f "$local_config" ]]; then
         # Remplacer la ligne config-file

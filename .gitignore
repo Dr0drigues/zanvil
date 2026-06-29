@@ -69,3 +69,6 @@ work/certificates_unix.sh
 
 # Superpowers files
 docs/superpowers
+
+# Faux HOME des tests de chargement (test_load.sh)
+.fakehome/

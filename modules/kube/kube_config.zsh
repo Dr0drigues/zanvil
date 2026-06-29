@@ -1195,7 +1195,7 @@ kube_k9s_setup() {
     _ui_header "k9s Setup"
 
     # Deployer hotkeys
-    local hotkeys_src="$ZANVIL_DIR/k9s/hotkeys.yaml"
+    local hotkeys_src="$ZANVIL_DIR/config/k9s/hotkeys.yaml"
     if [[ -f "$hotkeys_src" ]]; then
         cp "$hotkeys_src" "$k9s_dir/hotkeys.yaml"
         _ui_msg_ok "hotkeys.yaml deploye"
@@ -1204,7 +1204,7 @@ kube_k9s_setup() {
     fi
 
     # Deployer plugins
-    local plugins_src="$ZANVIL_DIR/k9s/plugins.yaml"
+    local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
     if [[ -f "$plugins_src" ]]; then
         cp "$plugins_src" "$k9s_dir/plugins.yaml"
         _ui_msg_ok "plugins.yaml deploye"

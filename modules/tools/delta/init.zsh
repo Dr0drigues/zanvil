@@ -12,11 +12,11 @@ if command -v delta &>/dev/null; then
         local gitconfig="${HOME}/.gitconfig"
 
         mkdir -p "${HOME}/.gitconfig.d"
-        if [[ ! -f "${ZANVIL_DIR}/delta/gitconfig" ]]; then
-            _ui_msg_fail "Source manquante: ${ZANVIL_DIR}/delta/gitconfig"
+        if [[ ! -f "${ZANVIL_DIR}/config/delta/gitconfig" ]]; then
+            _ui_msg_fail "Source manquante: ${ZANVIL_DIR}/config/delta/gitconfig"
             return 1
         fi
-        cp "${ZANVIL_DIR}/delta/gitconfig" "${include_file}"
+        cp "${ZANVIL_DIR}/config/delta/gitconfig" "${include_file}"
 
         if ! grep -q "gitconfig.d/delta" "${gitconfig}" 2>/dev/null; then
             printf '\n[include]\n\tpath = %s\n' "${include_file}" >> "${gitconfig}"
@@ -25,7 +25,7 @@ if command -v delta &>/dev/null; then
             _ui_msg_ok "include déjà présent"
         fi
 
-        local lg_config="${ZANVIL_DIR}/lazygit/config.yml"
+        local lg_config="${ZANVIL_DIR}/config/lazygit/config.yml"
         if [[ -f "${lg_config}" ]]; then
             if ! grep -q "pager: delta" "${lg_config}"; then
                 awk '/colorArg: always/{print; print "    pager: delta --dark --paging=never"; next}1' \

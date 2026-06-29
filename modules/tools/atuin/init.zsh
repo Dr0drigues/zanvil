@@ -9,7 +9,7 @@
 if command -v atuin &>/dev/null; then
     atuin_setup() {
         _ui_header "atuin"
-        local config_src="${ZANVIL_DIR}/atuin/config.toml"
+        local config_src="${ZANVIL_DIR}/config/atuin/config.toml"
         local config_dst="${HOME}/.config/atuin/config.toml"
 
         if [[ ! -f "${config_src}" ]]; then

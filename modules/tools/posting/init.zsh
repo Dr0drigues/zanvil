@@ -3,7 +3,7 @@
 if command -v posting &>/dev/null; then
     posting_setup() {
         _ui_header "posting"
-        local config_src="${ZANVIL_DIR}/posting/config.yaml"
+        local config_src="${ZANVIL_DIR}/config/posting/config.yaml"
         local config_dst="${HOME}/.config/posting/config.yaml"
 
         if [[ ! -f "${config_src}" ]]; then
