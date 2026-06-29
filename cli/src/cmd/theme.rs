@@ -31,7 +31,7 @@ fn dirs_fallback() -> PathBuf {
 }
 
 fn themes_dir() -> PathBuf {
-    zanvil_dir().join("themes")
+    zanvil_dir().join("config").join("themes")
 }
 
 fn current_theme_file() -> PathBuf {
