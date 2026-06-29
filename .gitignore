@@ -59,7 +59,13 @@ sync.json
 # Rust CLI build artifacts
 cli/target/
 
+# Cache
+*_context_cache
+
 # Fichiers Work dechiffres (generes a partir des .enc)
 work/settings.xml
 work/certificates_unix.sh
 .work_context_cache
+
+# Superpowers files
+docs/superpowers
