@@ -41,7 +41,7 @@ jobs:
 
       - name: Verify core files exist
         run: |
-          for f in rc.zsh core/ui.zsh core/loader.zsh core/variables.zsh core/aliases.zsh core/hooks.zsh core/commands.zsh core/admin.zsh core/theme.zsh; do
+          for f in rc.zsh core/ui.zsh core/loader.zsh core/variables.zsh core/aliases.zsh core/hooks.zsh core/commands/commands.zsh core/commands/admin.zsh core/commands/theme.zsh; do
             if [ -f "$f" ]; then
               echo "OK: $f"
             else
