@@ -131,9 +131,9 @@ else
   LTE=$(epoch_to_iso "$TO_EPOCH")
 fi
 
-ES_URL="${ES_URL:-${ZSH_ENV_WORK_ES_URL:-}}"
+ES_URL="${ES_URL:-${ZANVIL_WORK_ES_URL:-}}"
 if [[ -z "$ES_URL" ]]; then
-  echo "Erreur: ES_URL non defini (voir env.d/work.zsh ou ZSH_ENV_WORK_ES_URL)"
+  echo "Erreur: ES_URL non defini (voir env.d/work.zsh ou ZANVIL_WORK_ES_URL)"
   exit 1
 fi
 INDEX="${ES_INDEX:-es-apis-*}"

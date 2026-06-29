@@ -39,7 +39,7 @@ GEMINI.md
 .current_theme
 profiles/
 
-# Trust store pour .zsh-env.local
+# Trust store pour .zanvil.local
 .trusted/
 
 # env.d : fichiers en clair (les .sops.zsh peuvent etre versionnes)
@@ -50,7 +50,7 @@ env.d/*.zsh
 # Backups
 backups/
 
-# Sync export (genere par zsh-env-sync)
+# Sync export (genere par zanvil-sync)
 sync.json
 
 # Migration state

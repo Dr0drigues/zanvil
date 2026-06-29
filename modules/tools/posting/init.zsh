@@ -1,9 +1,9 @@
-[[ "${ZSH_ENV_MODULE_POSTING:-}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_POSTING:-}" != "true" ]] && return 0
 
 if command -v posting &>/dev/null; then
     posting_setup() {
         _ui_header "posting"
-        local config_src="${ZSH_ENV_DIR}/posting/config.yaml"
+        local config_src="${ZANVIL_DIR}/posting/config.yaml"
         local config_dst="${HOME}/.config/posting/config.yaml"
 
         if [[ ! -f "${config_src}" ]]; then
@@ -21,5 +21,5 @@ if command -v posting &>/dev/null; then
 
     alias po='posting'
 else
-    echo "[zsh-env] posting: module activé mais binaire absent — brew install posting"
+    echo "[zanvil] posting: module activé mais binaire absent — brew install posting"
 fi

@@ -1,32 +1,32 @@
 # ==============================================================================
-# core/admin.zsh — Fonctions d'administration ZSH_ENV
+# core/admin.zsh — Fonctions d'administration zanvil
 # ==============================================================================
-# Fonctions : zsh-env-completions, zsh-env-completion-add,
-#             zsh-env-completion-remove, zsh-env-modules, zsh-env-backup,
-#             zsh-env-restore, zsh-env-config-reset
+# Fonctions : zanvil-completions, zanvil-completion-add,
+#             zanvil-completion-remove, zanvil-modules, zanvil-backup,
+#             zanvil-restore, zanvil-config-reset
 # Utilise les fonctions UI de ui.zsh (charge automatiquement avant ce fichier)
 # ==============================================================================
 
 # ==============================================================================
-# zsh-env-completion-add : Ajouter une completion personnalisee
+# zanvil-completion-add : Ajouter une completion personnalisee
 # ==============================================================================
-zsh-env-completion-add() {
+zanvil-completion-add() {
     local name="$1"
     local cmd="$2"
 
     if [[ -z "$name" ]] || [[ -z "$cmd" ]]; then
-        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zsh-env-completion-add <nom> <commande>"
+        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zanvil-completion-add <nom> <commande>"
         echo ""
         echo -e "${_zsh_cmd_cyan}Exemples:${_zsh_cmd_nc}"
-        echo "  zsh-env-completion-add bun \"bun completions\""
-        echo "  zsh-env-completion-add deno \"deno completions zsh\""
-        echo "  zsh-env-completion-add turbo \"turbo completion zsh\""
+        echo "  zanvil-completion-add bun \"bun completions\""
+        echo "  zanvil-completion-add deno \"deno completions zsh\""
+        echo "  zanvil-completion-add turbo \"turbo completion zsh\""
         echo ""
-        echo -e "Les completions sont stockees dans: ${_zsh_cmd_bold}~/.zsh_env/completions.zsh${_zsh_cmd_nc}"
+        echo -e "Les completions sont stockees dans: ${_zsh_cmd_bold}~/.zanvil/completions.zsh${_zsh_cmd_nc}"
         return 1
     fi
 
-    local config_file="$ZSH_ENV_DIR/completions.zsh"
+    local config_file="$ZANVIL_DIR/completions.zsh"
 
     # Vérifier si la completion existe déjà
     if grep -q "\"$name:" "$config_file" 2>/dev/null; then
@@ -47,20 +47,20 @@ zsh-env-completion-add() {
     fi
 
     echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Completion '$name' ajoutee."
-    echo -e "Lancez ${_zsh_cmd_bold}zsh-env-completions${_zsh_cmd_nc} pour la charger."
+    echo -e "Lancez ${_zsh_cmd_bold}zanvil-completions${_zsh_cmd_nc} pour la charger."
 }
 
 # ==============================================================================
-# zsh-env-completion-remove : Supprimer une completion personnalisee
+# zanvil-completion-remove : Supprimer une completion personnalisee
 # ==============================================================================
-zsh-env-completion-remove() {
+zanvil-completion-remove() {
     local name="$1"
 
     if [[ -z "$name" ]]; then
-        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zsh-env-completion-remove <nom>"
+        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zanvil-completion-remove <nom>"
         echo ""
         # Lister les completions disponibles
-        local config_file="$ZSH_ENV_DIR/completions.zsh"
+        local config_file="$ZANVIL_DIR/completions.zsh"
         if [[ -f "$config_file" ]]; then
             local available
             available=$(grep -oP '"\K[^:]+(?=:)' "$config_file" 2>/dev/null)
@@ -74,7 +74,7 @@ zsh-env-completion-remove() {
         return 1
     fi
 
-    local config_file="$ZSH_ENV_DIR/completions.zsh"
+    local config_file="$ZANVIL_DIR/completions.zsh"
 
     if ! grep -q "\"$name:" "$config_file" 2>/dev/null; then
         echo -e "${_zsh_cmd_yellow}[WARN]${_zsh_cmd_nc} La completion '$name' n'existe pas."
@@ -92,13 +92,13 @@ zsh-env-completion-remove() {
 }
 
 # ==============================================================================
-# zsh-env-completions : Charger les auto-completions
+# zanvil-completions : Charger les auto-completions
 # ==============================================================================
-zsh-env-completions() {
+zanvil-completions() {
     # Initialiser le système de completion AVANT de charger les completions
     autoload -Uz compinit && compinit -u -C
 
-    _zsh_header "ZSH_ENV Completions"
+    _zsh_header "Zanvil Completions"
 
     local loaded=0
 
@@ -183,12 +183,12 @@ zsh-env-completions() {
     fi
 
     # Completions personnalisées
-    local custom_file="$ZSH_ENV_DIR/completions.zsh"
+    local custom_file="$ZANVIL_DIR/completions.zsh"
     if [[ -f "$custom_file" ]]; then
         source "$custom_file"
 
         local custom_loaded=0
-        for entry in "${_ZSH_ENV_CUSTOM_COMPLETIONS[@]}"; do
+        for entry in "${_ZANVIL_CUSTOM_COMPLETIONS[@]}"; do
             # Ignorer les lignes vides ou commentées
             [[ -z "$entry" || "$entry" == \#* ]] && continue
 
@@ -222,13 +222,13 @@ zsh-env-completions() {
 }
 
 # ==============================================================================
-# zsh-env-modules : Gestion des modules
+# zanvil-modules : Gestion des modules
 # ==============================================================================
-zsh-env-modules() {
-    if command -v zsh-env-cli &>/dev/null; then
-        zsh-env-cli modules "$@"; return $?
+zanvil-modules() {
+    if command -v zanvil &>/dev/null; then
+        zanvil modules "$@"; return $?
     fi
-    local config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
+    local config_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
 
     # Description de chaque module
     typeset -A module_desc
@@ -245,12 +245,12 @@ zsh-env-modules() {
 
     case "$action" in
         list|ls)
-            _ui_header "Modules ZSH_ENV"
+            _ui_header "Modules zanvil"
             printf "${_ui_bold}%-12s %-8s %s${_ui_nc}\n" "Module" "Statut" "Description"
             _ui_separator
 
             for mod in GITLAB DOCKER MISE NUSHELL KUBE; do
-                local var_name="ZSH_ENV_MODULE_${mod}"
+                local var_name="ZANVIL_MODULE_${mod}"
                 local mod_state="${(P)var_name}"
                 local desc="${module_desc[$mod]}"
                 if [[ "$mod_state" == "true" ]]; then
@@ -260,12 +260,12 @@ zsh-env-modules() {
                 fi
             done
             _ui_separator
-            echo -e "  ${_ui_dim}Modifier: zsh-env-modules enable|disable <module>${_ui_nc}"
+            echo -e "  ${_ui_dim}Modifier: zanvil-modules enable|disable <module>${_ui_nc}"
             ;;
 
         enable|on)
             if [[ -z "$module_name" ]]; then
-                _ui_msg_fail "Usage: zsh-env-modules enable <module>"
+                _ui_msg_fail "Usage: zanvil-modules enable <module>"
                 return 1
             fi
             if [[ -z "${module_desc[$module_name]}" ]]; then
@@ -278,9 +278,9 @@ zsh-env-modules() {
                 return 1
             fi
             if [[ "$OSTYPE" == darwin* ]]; then
-                sed -i '' "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=true/" "$config_file"
+                sed -i '' "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=true/" "$config_file"
             else
-                sed -i "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=true/" "$config_file"
+                sed -i "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=true/" "$config_file"
             fi
             _ui_msg_ok "Module $module_name active"
             _ui_msg_info "Rechargez avec: ss"
@@ -288,7 +288,7 @@ zsh-env-modules() {
 
         disable|off)
             if [[ -z "$module_name" ]]; then
-                _ui_msg_fail "Usage: zsh-env-modules disable <module>"
+                _ui_msg_fail "Usage: zanvil-modules disable <module>"
                 return 1
             fi
             if [[ -z "${module_desc[$module_name]}" ]]; then
@@ -301,9 +301,9 @@ zsh-env-modules() {
                 return 1
             fi
             if [[ "$OSTYPE" == darwin* ]]; then
-                sed -i '' "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=false/" "$config_file"
+                sed -i '' "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=false/" "$config_file"
             else
-                sed -i "s/^ZSH_ENV_MODULE_${module_name}=.*/ZSH_ENV_MODULE_${module_name}=false/" "$config_file"
+                sed -i "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=false/" "$config_file"
             fi
             _ui_msg_ok "Module $module_name desactive"
             _ui_msg_info "Rechargez avec: ss"
@@ -311,17 +311,17 @@ zsh-env-modules() {
 
         *)
             _ui_msg_fail "Action inconnue: $action"
-            echo "Usage: zsh-env-modules [list|enable|disable] [module]"
+            echo "Usage: zanvil-modules [list|enable|disable] [module]"
             return 1
             ;;
     esac
 }
 
 # ==============================================================================
-# zsh-env-backup / zsh-env-restore : Sauvegarde et restauration
+# zanvil-backup / zanvil-restore : Sauvegarde et restauration
 # ==============================================================================
-zsh-env-backup() {
-    local backup_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/backups"
+zanvil-backup() {
+    local backup_dir="${ZANVIL_DIR:-$HOME/.zanvil}/backups"
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local dest="$backup_dir/$timestamp"
 
@@ -329,13 +329,13 @@ zsh-env-backup() {
 
     # Fichiers a sauvegarder
     local -a files=(
-        "${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
-        "${ZSH_ENV_DIR:-$HOME/.zsh_env}/completions.zsh"
+        "${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
+        "${ZANVIL_DIR:-$HOME/.zanvil}/completions.zsh"
         "$HOME/.secrets"
         "$HOME/.gitlab_secrets"
     )
 
-    _ui_header "ZSH_ENV Backup"
+    _ui_header "Zanvil Backup"
 
     local count=0
     for f in "${files[@]}"; do
@@ -358,15 +358,15 @@ zsh-env-backup() {
     fi
 }
 
-zsh-env-restore() {
-    local backup_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/backups"
+zanvil-restore() {
+    local backup_dir="${ZANVIL_DIR:-$HOME/.zanvil}/backups"
 
     if [[ ! -d "$backup_dir" ]] || [[ -z "$(ls -A "$backup_dir" 2>/dev/null)" ]]; then
         _ui_msg_fail "Aucun backup disponible dans $backup_dir"
         return 1
     fi
 
-    _ui_header "ZSH_ENV Restore"
+    _ui_header "Zanvil Restore"
 
     local selected="$1"
 
@@ -409,11 +409,11 @@ zsh-env-restore() {
 
         case "$name" in
             config.zsh|completions.zsh)
-                target="${ZSH_ENV_DIR:-$HOME/.zsh_env}/$name" ;;
+                target="${ZANVIL_DIR:-$HOME/.zanvil}/$name" ;;
             .secrets|.gitlab_secrets)
                 target="$HOME/$name" ;;
             *)
-                target="${ZSH_ENV_DIR:-$HOME/.zsh_env}/$name" ;;
+                target="${ZANVIL_DIR:-$HOME/.zanvil}/$name" ;;
         esac
 
         if [[ -f "$target" ]]; then
@@ -434,11 +434,11 @@ zsh-env-restore() {
 }
 
 # ==============================================================================
-# zsh-env-config-reset : Restaurer la config par defaut
+# zanvil-config-reset : Restaurer la config par defaut
 # ==============================================================================
-zsh-env-config-reset() {
-    local config_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh"
-    local default_file="${ZSH_ENV_DIR:-$HOME/.zsh_env}/config.zsh.example"
+zanvil-config-reset() {
+    local config_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
+    local default_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh.example"
 
     if [[ ! -f "$default_file" ]]; then
         _ui_msg_fail "Template introuvable: $default_file"
@@ -479,12 +479,12 @@ zsh-env-config-reset() {
 }
 
 # ==============================================================================
-# zsh-env-switch : Switch rapide d'environnement
+# zanvil-switch : Switch rapide d'environnement
 # ==============================================================================
 # Combine kubeconfig + variables en un seul geste
-# Profiles definis dans ~/.zsh_env/profiles/*.zsh
-zsh-env-switch() {
-    local profiles_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}/profiles"
+# Profiles definis dans ~/.zanvil/profiles/*.zsh
+zanvil-switch() {
+    local profiles_dir="${ZANVIL_DIR:-$HOME/.zanvil}/profiles"
     local profile="$1"
 
     if [[ ! -d "$profiles_dir" ]]; then

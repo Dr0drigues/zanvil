@@ -6,13 +6,13 @@ Guide de dépannage pour les problèmes courants.
 
 ```bash
 # Diagnostic complet
-zsh-env-doctor
+zanvil-doctor
 
 # Profiler le démarrage
-zsh-env-profile
+zanvil-profile
 
 # Audit de sécurité
-zsh-env-audit
+zanvil-audit
 ```
 
 ## Problèmes courants
@@ -21,14 +21,14 @@ zsh-env-audit
 
 1. **Profiler** :
    ```bash
-   zsh-env-profile
+   zanvil-profile
    ```
 
 2. **Solutions** :
    - Activer le lazy loading NVM :
      ```zsh
      # Dans config.zsh
-     ZSH_ENV_NVM_LAZY=true
+     ZANVIL_NVM_LAZY=true
      ```
    - Désactiver les modules inutilisés
    - Réduire le nombre de plugins
@@ -66,7 +66,7 @@ source ~/.zshrc
 2. Vérifier le module :
    ```zsh
    # Dans config.zsh
-   ZSH_ENV_MODULE_NVM=true
+   ZANVIL_MODULE_NVM=true
    ```
 
 3. Vérifier le fichier `.nvmrc` dans le projet
@@ -101,10 +101,10 @@ kube_status
 
 ```bash
 # Audit
-zsh-env-audit
+zanvil-audit
 
 # Correction automatique
-zsh-env-audit-fix
+zanvil-audit-fix
 ```
 
 ### Problème avec un plugin
@@ -135,7 +135,7 @@ zsh-plugin-install owner/nom-plugin
 
 3. Réappliquer un thème :
    ```bash
-   zsh-env-theme default
+   zanvil-theme default
    ```
 
 ## Réinitialisation
@@ -144,20 +144,20 @@ zsh-plugin-install owner/nom-plugin
 
 ```bash
 # Backup
-cp ~/.zsh_env/config.zsh ~/.zsh_env/config.zsh.bak
+cp ~/.zanvil/config.zsh ~/.zanvil/config.zsh.bak
 
 # Recréer depuis le template
-cp ~/.zsh_env/config.zsh.example ~/.zsh_env/config.zsh
+cp ~/.zanvil/config.zsh.example ~/.zanvil/config.zsh
 ```
 
 ### Réinstallation complète
 
 ```bash
 # Désinstaller
-~/.zsh_env/uninstall.sh --keep-dir
+~/.zanvil/uninstall.sh --keep-dir
 
 # Réinstaller
-~/.zsh_env/install.sh
+~/.zanvil/install.sh
 ```
 
 ## Logs et debug
@@ -174,14 +174,14 @@ unsetopt XTRACE
 ### Tester un fichier isolément
 
 ```bash
-zsh -c 'source ~/.zsh_env/functions/kube_config.zsh && kube_status'
+zsh -c 'source ~/.zanvil/functions/kube_config.zsh && kube_status'
 ```
 
 ## Obtenir de l'aide
 
 1. Consulter ce wiki
-2. Lancer `zsh-env-doctor`
+2. Lancer `zanvil-doctor`
 3. Ouvrir une issue sur GitHub avec :
-   - Output de `zsh-env-doctor`
+   - Output de `zanvil-doctor`
    - Message d'erreur complet
    - Étapes pour reproduire

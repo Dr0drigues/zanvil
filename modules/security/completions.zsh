@@ -1,6 +1,6 @@
 (( $+functions[compdef] )) || return 0
 
-_zsh_env_audit() {
+_zanvil_audit() {
     local -a subcmds
     subcmds=(
         'perms:Vérifie les permissions des fichiers sensibles'
@@ -10,10 +10,10 @@ _zsh_env_audit() {
     _describe 'subcommand' subcmds
 }
 
-compdef _zsh_env_audit zsh-env-audit
-compdef _zsh_env_audit zsh-env-audit-fix
+compdef _zanvil_audit zanvil-audit
+compdef _zanvil_audit zanvil-audit-fix
 
-_zsh_env_secrets_scan() {
+_zanvil_secrets_scan() {
     local -a subcmds
     subcmds=(
         'repo:Scanner le repo courant'
@@ -25,4 +25,4 @@ _zsh_env_secrets_scan() {
     _describe 'subcommand' subcmds
 }
 
-compdef _zsh_env_secrets_scan zsh-env-secrets-scan
+compdef _zanvil_secrets_scan zanvil-secrets-scan

@@ -1,5 +1,5 @@
 # Skip si module desactive
-[[ "$ZSH_ENV_MODULE_GITLAB" != "true" ]] && return
+[[ "$ZANVIL_MODULE_GITLAB" != "true" ]] && return
 
 ### SECURITY & CONFIGURATION ###
 
@@ -63,7 +63,7 @@ alias help-clone="list-gitlab-cmds"
 ### GITLAB STATUS & BROWSE ###
 
 # Vérifie le statut du Personal Access Token GitLab
-function zsh-env-gitlab-status() {
+function zanvil-gitlab-status() {
     [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
     local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
 
@@ -138,7 +138,7 @@ function zsh-env-gitlab-status() {
 }
 
 # Ouvre le dépôt GitLab courant dans le navigateur
-function zsh-env-gitlab-browse() {
+function zanvil-gitlab-browse() {
     if ! git rev-parse --is-inside-work-tree &>/dev/null; then
         _ui_msg_fail "Pas dans un dépôt Git"
         return 1
@@ -153,7 +153,7 @@ function zsh-env-gitlab-browse() {
             -p|--pipelines) suffix="/-/pipelines" ;;
             -i|--issues)   suffix="/-/issues" ;;
             -h|--help)
-                echo "Usage: zsh-env-gitlab-browse [-m|-p|-i]"
+                echo "Usage: zanvil-gitlab-browse [-m|-p|-i]"
                 echo "  -m  Merge Requests"
                 echo "  -p  Pipelines"
                 echo "  -i  Issues"
@@ -199,7 +199,7 @@ for key id in "${(@kv)GITLAB_PROJECTS}"; do
 done
 
 # Alias gpr : ouvre la page de creation de MR pour la branche courante
-alias gpr='zsh-env-gitlab-browse -m'
+alias gpr='zanvil-gitlab-browse -m'
 
 # Nettoyage de la fonction pour ne pas polluer l'espace de noms global
 unfunction load_gitlab_aliases
@@ -207,7 +207,7 @@ unfunction load_gitlab_aliases
 ### PAT EXPIRATION CHECK (silencieux au startup) ###
 # Alerte une seule fois par session si le token expire dans < 14 jours
 if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
-    _zsh_env_pat_check() {
+    _zanvil_pat_check() {
         [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
     local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
         local response expires_at
@@ -232,5 +232,5 @@ if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
             fi
         fi
     }
-    _zsh_env_pat_check &!
+    _zanvil_pat_check &!
 fi

@@ -3,7 +3,7 @@
 
 _zproject_projects() {
     local -a projects
-    local pdir="$HOME/.zsh-env/projects"
+    local pdir="$HOME/.zanvil/projects"
     [[ -d "$pdir" ]] || return 0
     projects=(${(f)"$(command ls -1 "$pdir" 2>/dev/null | grep -v '^_' | grep -v '^stacks$' | grep -v '^local$' | grep -v '\.')"})
     _describe 'project' projects
@@ -11,7 +11,7 @@ _zproject_projects() {
 
 _zproject_envs_for() {
     local project="${1:-${words[2]}}"
-    local edir="$HOME/.zsh-env/projects/${project}/envs"
+    local edir="$HOME/.zanvil/projects/${project}/envs"
     [[ -d "$edir" ]] || return 0
     local -a envs
     envs=(${(f)"$(command ls -1 "$edir" 2>/dev/null | sed 's/\.toml$//')"})
@@ -20,7 +20,7 @@ _zproject_envs_for() {
 
 _zproject_stacks() {
     local -a stacks
-    local sdir="$HOME/.zsh-env/projects/stacks"
+    local sdir="$HOME/.zanvil/projects/stacks"
     [[ -d "$sdir" ]] || return 0
     stacks=(${(f)"$(command ls -1 "$sdir" 2>/dev/null | sed 's/\.toml$//')"})
     _describe 'stack' stacks
@@ -29,7 +29,7 @@ _zproject_stacks() {
 _zproject_commands_for() {
     local project="${1:-${ZPROJECT_NAME:-}}"
     [[ -z "$project" ]] && return 0
-    local manifest="$HOME/.zsh-env/projects/${project}/project.toml"
+    local manifest="$HOME/.zanvil/projects/${project}/project.toml"
     [[ -f "$manifest" ]] || return 0
     local -a cmds
     cmds=(${(f)"$(grep '^\[commands\]' -A 999 "$manifest" 2>/dev/null | grep '^[a-z]' | cut -d= -f1 | tr -d ' ')"})

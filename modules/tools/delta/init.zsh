@@ -1,9 +1,9 @@
 # ==============================================================================
 # delta — Pager syntaxique pour git diff
-# Guard: ZSH_ENV_MODULE_DELTA=true dans config.zsh
+# Guard: ZANVIL_MODULE_DELTA=true dans config.zsh
 # ==============================================================================
 
-[[ "${ZSH_ENV_MODULE_DELTA:-}" != "true" ]] && return 0
+[[ "${ZANVIL_MODULE_DELTA:-}" != "true" ]] && return 0
 
 if command -v delta &>/dev/null; then
     delta_setup() {
@@ -12,11 +12,11 @@ if command -v delta &>/dev/null; then
         local gitconfig="${HOME}/.gitconfig"
 
         mkdir -p "${HOME}/.gitconfig.d"
-        if [[ ! -f "${ZSH_ENV_DIR}/delta/gitconfig" ]]; then
-            _ui_msg_fail "Source manquante: ${ZSH_ENV_DIR}/delta/gitconfig"
+        if [[ ! -f "${ZANVIL_DIR}/delta/gitconfig" ]]; then
+            _ui_msg_fail "Source manquante: ${ZANVIL_DIR}/delta/gitconfig"
             return 1
         fi
-        cp "${ZSH_ENV_DIR}/delta/gitconfig" "${include_file}"
+        cp "${ZANVIL_DIR}/delta/gitconfig" "${include_file}"
 
         if ! grep -q "gitconfig.d/delta" "${gitconfig}" 2>/dev/null; then
             printf '\n[include]\n\tpath = %s\n' "${include_file}" >> "${gitconfig}"
@@ -25,7 +25,7 @@ if command -v delta &>/dev/null; then
             _ui_msg_ok "include déjà présent"
         fi
 
-        local lg_config="${ZSH_ENV_DIR}/lazygit/config.yml"
+        local lg_config="${ZANVIL_DIR}/lazygit/config.yml"
         if [[ -f "${lg_config}" ]]; then
             if ! grep -q "pager: delta" "${lg_config}"; then
                 awk '/colorArg: always/{print; print "    pager: delta --dark --paging=never"; next}1' \
@@ -46,5 +46,5 @@ if command -v delta &>/dev/null; then
         _ui_section "Config" "${include_file}"
     }
 else
-    echo "[zsh-env] delta: module activé mais binaire absent — brew install git-delta"
+    echo "[zanvil] delta: module activé mais binaire absent — brew install git-delta"
 fi

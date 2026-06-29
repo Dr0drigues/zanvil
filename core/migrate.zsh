@@ -5,17 +5,17 @@
 # Etat stocke dans .migration_version
 # ==============================================================================
 
-zsh-env-migrate() {
+zanvil-migrate() {
     local action="${1:-run}"
 
     case "$action" in
-        run)       _zsh_env_migrate_run ;;
-        --list)    _zsh_env_migrate_list ;;
-        --status)  _zsh_env_migrate_status ;;
-        -h|--help) _zsh_env_migrate_help ;;
+        run)       _zanvil_migrate_run ;;
+        --list)    _zanvil_migrate_list ;;
+        --status)  _zanvil_migrate_status ;;
+        -h|--help) _zanvil_migrate_help ;;
         *)
             _ui_msg_fail "Action inconnue: $action"
-            _zsh_env_migrate_help
+            _zanvil_migrate_help
             return 1
             ;;
     esac
@@ -24,9 +24,9 @@ zsh-env-migrate() {
 # ==============================================================================
 # Run : detecte et applique les migrations en attente
 # ==============================================================================
-_zsh_env_migrate_run() {
-    local migrations_dir="$ZSH_ENV_DIR/migrations"
-    local state_file="$ZSH_ENV_DIR/.migration_version"
+_zanvil_migrate_run() {
+    local migrations_dir="$ZANVIL_DIR/migrations"
+    local state_file="$ZANVIL_DIR/.migration_version"
     local current_version=0
 
     [[ -f "$state_file" ]] && current_version=$(<"$state_file")
@@ -54,7 +54,7 @@ _zsh_env_migrate_run() {
         return 0
     fi
 
-    _ui_header "ZSH_ENV Migration"
+    _ui_header "Zanvil Migration"
     _ui_section "Version" "$current_version"
     _ui_section "En attente" "${#pending[@]} migration(s)"
     echo ""
@@ -96,14 +96,14 @@ _zsh_env_migrate_run() {
 # ==============================================================================
 # List : affiche toutes les migrations
 # ==============================================================================
-_zsh_env_migrate_list() {
-    local migrations_dir="$ZSH_ENV_DIR/migrations"
-    local state_file="$ZSH_ENV_DIR/.migration_version"
+_zanvil_migrate_list() {
+    local migrations_dir="$ZANVIL_DIR/migrations"
+    local state_file="$ZANVIL_DIR/.migration_version"
     local current_version=0
 
     [[ -f "$state_file" ]] && current_version=$(<"$state_file")
 
-    _ui_header "ZSH_ENV Migrations"
+    _ui_header "Zanvil Migrations"
     _ui_section "Version" "$current_version"
     echo ""
 
@@ -134,12 +134,12 @@ _zsh_env_migrate_list() {
 # ==============================================================================
 # Status
 # ==============================================================================
-_zsh_env_migrate_status() {
-    local state_file="$ZSH_ENV_DIR/.migration_version"
+_zanvil_migrate_status() {
+    local state_file="$ZANVIL_DIR/.migration_version"
     local current_version=0
     [[ -f "$state_file" ]] && current_version=$(<"$state_file")
 
-    local migrations_dir="$ZSH_ENV_DIR/migrations"
+    local migrations_dir="$ZANVIL_DIR/migrations"
     local total=0 pending=0
 
     if [[ -d "$migrations_dir" ]]; then
@@ -161,13 +161,13 @@ _zsh_env_migrate_status() {
 # ==============================================================================
 # Aide
 # ==============================================================================
-_zsh_env_migrate_help() {
-    _ui_header "ZSH_ENV Migrate"
+_zanvil_migrate_help() {
+    _ui_header "Zanvil Migrate"
     echo ""
     printf "${_ui_bold}Usage:${_ui_nc}\n"
-    echo "  zsh-env-migrate              Appliquer les migrations en attente"
-    echo "  zsh-env-migrate --list       Lister toutes les migrations"
-    echo "  zsh-env-migrate --status     Afficher la version courante"
+    echo "  zanvil-migrate              Appliquer les migrations en attente"
+    echo "  zanvil-migrate --list       Lister toutes les migrations"
+    echo "  zanvil-migrate --status     Afficher la version courante"
     echo ""
     printf "${_ui_bold}Convention:${_ui_nc}\n"
     echo "  Fichiers dans migrations/ : NNN_description.zsh"

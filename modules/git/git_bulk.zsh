@@ -5,10 +5,10 @@
 # ==============================================================================
 
 # ==============================================================================
-# zsh-env-git-bulk : Point d'entree principal
+# zanvil-git-bulk : Point d'entree principal
 # ==============================================================================
 # Usage:
-#   zsh-env-git-bulk [action] [options] [dossier]
+#   zanvil-git-bulk [action] [options] [dossier]
 #
 # Actions:
 #   status   (defaut) Affiche le statut de tous les repos
@@ -37,7 +37,7 @@
 #   --author <name>  Filtrer par auteur (pour log)
 #   -h               Aide
 # ==============================================================================
-zsh-env-git-bulk() {
+zanvil-git-bulk() {
     local action="status"
     local target_dir="."
     local commit_msg=""
@@ -682,7 +682,7 @@ _git_bulk_checkout() {
     local repos=("$@")
 
     if [[ -z "$branch" ]]; then
-        _ui_msg_fail "Usage: zsh-env-git-bulk checkout <branche> [-b <branche> [base]]"
+        _ui_msg_fail "Usage: zanvil-git-bulk checkout <branche> [-b <branche> [base]]"
         return 1
     fi
 
@@ -767,7 +767,7 @@ _git_bulk_checkout_dry() {
     local repos=("$@")
 
     if [[ -z "$branch" ]]; then
-        _ui_msg_fail "Usage: zsh-env-git-bulk checkout <branche> [--dry-run]"
+        _ui_msg_fail "Usage: zanvil-git-bulk checkout <branche> [--dry-run]"
         return 1
     fi
 
@@ -1067,7 +1067,7 @@ _git_bulk_branch_delete() {
     local protected=("main" "master" "develop" "dev")
 
     if [[ -z "$target" ]]; then
-        _ui_msg_fail "Usage: zsh-env-git-bulk branch delete <branche> [--apply]"
+        _ui_msg_fail "Usage: zanvil-git-bulk branch delete <branche> [--apply]"
         return 1
     fi
 
@@ -1220,7 +1220,7 @@ _git_bulk_merge() {
     fi
 
     if [[ -z "$branch" ]]; then
-        _ui_msg_fail "Usage: zsh-env-git-bulk merge <branche>"
+        _ui_msg_fail "Usage: zanvil-git-bulk merge <branche>"
         return 1
     fi
 
@@ -1293,7 +1293,7 @@ _git_bulk_merge_dry() {
     local repos=("$@")
 
     if [[ -z "$branch" ]]; then
-        _ui_msg_fail "Usage: zsh-env-git-bulk merge <branche> --dry-run"
+        _ui_msg_fail "Usage: zanvil-git-bulk merge <branche> --dry-run"
         return 1
     fi
 
@@ -1657,52 +1657,52 @@ _git_bulk_help() {
     printf "${_ui_bold}Exemples:${_ui_nc}\n"
     _ui_separator 50
     echo -e "  ${_ui_dim}# Statut de tous les repos dans ~/projects${_ui_nc}"
-    echo -e "  zsh-env-git-bulk ~/projects"
+    echo -e "  zanvil-git-bulk ~/projects"
     echo ""
     echo -e "  ${_ui_dim}# Pull tous les repos du dossier courant${_ui_nc}"
-    echo -e "  zsh-env-git-bulk pull"
+    echo -e "  zanvil-git-bulk pull"
     echo ""
     echo -e "  ${_ui_dim}# Commit avec message commun${_ui_nc}"
-    echo -e "  zsh-env-git-bulk commit -m \"chore: update deps\""
+    echo -e "  zanvil-git-bulk commit -m \"chore: update deps\""
     echo ""
     echo -e "  ${_ui_dim}# Commit interactif (message par repo)${_ui_nc}"
-    echo -e "  zsh-env-git-bulk commit -d ~/work"
+    echo -e "  zanvil-git-bulk commit -d ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Scan recursif${_ui_nc}"
-    echo -e "  zsh-env-git-bulk status -r -d ~/projects"
+    echo -e "  zanvil-git-bulk status -r -d ~/projects"
     echo ""
     echo -e "  ${_ui_dim}# Dry-run: voir ce que pull ferait${_ui_nc}"
-    echo -e "  zsh-env-git-bulk pull --dry-run -d ~/work"
+    echo -e "  zanvil-git-bulk pull --dry-run -d ~/work"
     echo ""
     echo -e "  ${_ui_dim}# Lister les branches stale (dry-run par defaut)${_ui_nc}"
-    echo -e "  zsh-env-git-bulk prune -d ~/projects"
+    echo -e "  zanvil-git-bulk prune -d ~/projects"
     echo ""
     echo -e "  ${_ui_dim}# Supprimer les branches stale${_ui_nc}"
-    echo -e "  zsh-env-git-bulk prune --apply -d ~/projects"
+    echo -e "  zanvil-git-bulk prune --apply -d ~/projects"
     echo ""
     echo -e "  ${_ui_dim}# Switcher tous les repos sur develop${_ui_nc}"
-    echo -e "  zsh-env-git-bulk checkout develop"
+    echo -e "  zanvil-git-bulk checkout develop"
     echo ""
     echo -e "  ${_ui_dim}# Creer une branche feature sur tous les repos${_ui_nc}"
-    echo -e "  zsh-env-git-bulk checkout -b feature/new develop"
+    echo -e "  zanvil-git-bulk checkout -b feature/new develop"
     echo ""
     echo -e "  ${_ui_dim}# Stash avant un checkout${_ui_nc}"
-    echo -e "  zsh-env-git-bulk stash && zsh-env-git-bulk checkout main"
+    echo -e "  zanvil-git-bulk stash && zanvil-git-bulk checkout main"
     echo ""
     echo -e "  ${_ui_dim}# Historique recent filtre par auteur${_ui_nc}"
-    echo -e "  zsh-env-git-bulk log --since '1 week ago' --author dr0drigues"
+    echo -e "  zanvil-git-bulk log --since '1 week ago' --author dr0drigues"
     echo ""
     echo -e "  ${_ui_dim}# Merge develop avec detection de conflits${_ui_nc}"
-    echo -e "  zsh-env-git-bulk merge develop --dry-run"
+    echo -e "  zanvil-git-bulk merge develop --dry-run"
 }
 
 # Alias courts
-alias gbulk='zsh-env-git-bulk'
-alias gbs='zsh-env-git-bulk status'
-alias gbp='zsh-env-git-bulk pull'
-alias gbprune='zsh-env-git-bulk prune'
-alias gbco='zsh-env-git-bulk checkout'
-alias gbst='zsh-env-git-bulk stash'
-alias gbbr='zsh-env-git-bulk branch'
-alias gbl='zsh-env-git-bulk log'
-alias gbm='zsh-env-git-bulk merge'
+alias gbulk='zanvil-git-bulk'
+alias gbs='zanvil-git-bulk status'
+alias gbp='zanvil-git-bulk pull'
+alias gbprune='zanvil-git-bulk prune'
+alias gbco='zanvil-git-bulk checkout'
+alias gbst='zanvil-git-bulk stash'
+alias gbbr='zanvil-git-bulk branch'
+alias gbl='zanvil-git-bulk log'
+alias gbm='zanvil-git-bulk merge'

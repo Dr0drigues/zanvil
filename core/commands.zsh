@@ -1,15 +1,15 @@
 # ==============================================================================
-# core/commands.zsh — Commandes informatives ZSH_ENV
+# core/commands.zsh — Commandes informatives zanvil
 # ==============================================================================
-# Fonctions : zsh-env-list, zsh-env-doctor, zsh-env-status, zsh-env-help
+# Fonctions : zanvil-list, zanvil-doctor, zanvil-status, zanvil-help
 # Utilise les fonctions UI de ui.zsh (charge automatiquement avant ce fichier)
 # ==============================================================================
 
 # ==============================================================================
-# zsh-env-list : Lister les outils installes (format tableau)
+# zanvil-list : Lister les outils installes (format tableau)
 # ==============================================================================
-zsh-env-list() {
-    _zsh_header "ZSH_ENV Outils"
+zanvil-list() {
+    _zsh_header "Zanvil Outils"
 
     # Header du tableau
     printf "${_zsh_cmd_bold}%-14s %-12s %s${_zsh_cmd_nc}\n" "Outil" "Version" "Description"
@@ -80,33 +80,33 @@ zsh-env-list() {
     echo ""
 
     if [[ $missing -gt 0 ]]; then
-        echo -e "\n${_zsh_cmd_dim}Pour installer: ~/.zsh_env/install.sh${_zsh_cmd_nc}"
+        echo -e "\n${_zsh_cmd_dim}Pour installer: ~/.zanvil/install.sh${_zsh_cmd_nc}"
     fi
 }
 
 # ==============================================================================
-# zsh-env-doctor : Diagnostic compact de l'installation
+# zanvil-doctor : Diagnostic compact de l'installation
 # ==============================================================================
-zsh-env-doctor() {
-    if command -v zsh-env-cli &>/dev/null; then
-        zsh-env-cli doctor; return $?
+zanvil-doctor() {
+    if command -v zanvil &>/dev/null; then
+        zanvil doctor; return $?
     fi
-    _zsh_header "ZSH_ENV Doctor"
+    _zsh_header "Zanvil Doctor"
 
     local issues=0
     local warnings=0
 
     # --- Config files (inline) ---
     local config_status=""
-    [[ -f "$ZSH_ENV_DIR/rc.zsh" ]] && config_status+="rc.zsh ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="rc.zsh ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/core/aliases.zsh" ]] && config_status+="aliases ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="aliases ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/core/variables.zsh" ]] && config_status+="variables ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="variables ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZSH_ENV_DIR/core/loader.zsh" ]] && config_status+="loader ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || { config_status+="loader ${_zsh_cmd_red}✗${_zsh_cmd_nc}"; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/rc.zsh" ]] && config_status+="rc.zsh ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="rc.zsh ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/aliases.zsh" ]] && config_status+="aliases ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="aliases ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/variables.zsh" ]] && config_status+="variables ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="variables ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/loader.zsh" ]] && config_status+="loader ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || { config_status+="loader ${_zsh_cmd_red}✗${_zsh_cmd_nc}"; ((issues++)); }
     _zsh_section "Config" "$config_status"
 
     # --- .zshrc integration ---
     local zshrc_status=""
-    if [[ -f "$HOME/.zshrc" ]] && grep -q "ZSH_ENV_DIR" "$HOME/.zshrc"; then
+    if [[ -f "$HOME/.zshrc" ]] && grep -q "ZANVIL_DIR" "$HOME/.zshrc"; then
         zshrc_status=".zshrc ${_zsh_cmd_green}✓${_zsh_cmd_nc}"
     else
         zshrc_status=".zshrc ${_zsh_cmd_red}✗${_zsh_cmd_nc}"
@@ -165,15 +165,15 @@ zsh-env-doctor() {
 
     # --- Modules (inline) ---
     local mod_status=""
-    [[ "$ZSH_ENV_MODULE_GITLAB" = "true" ]] && mod_status+="GitLab ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}GitLab ○${_zsh_cmd_nc}  "
-    [[ "$ZSH_ENV_MODULE_DOCKER" = "true" ]] && mod_status+="Docker ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Docker ○${_zsh_cmd_nc}  "
-    [[ "$ZSH_ENV_MODULE_MISE" = "true" ]] && mod_status+="Mise ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Mise ○${_zsh_cmd_nc}  "
-    [[ "$ZSH_ENV_MODULE_NUSHELL" = "true" ]] && mod_status+="Nushell ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Nushell ○${_zsh_cmd_nc}  "
-    [[ "$ZSH_ENV_MODULE_KUBE" = "true" ]] && mod_status+="Kube ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || mod_status+="${_zsh_cmd_dim}Kube ○${_zsh_cmd_nc}"
+    [[ "$ZANVIL_MODULE_GITLAB" = "true" ]] && mod_status+="GitLab ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}GitLab ○${_zsh_cmd_nc}  "
+    [[ "$ZANVIL_MODULE_DOCKER" = "true" ]] && mod_status+="Docker ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Docker ○${_zsh_cmd_nc}  "
+    [[ "$ZANVIL_MODULE_MISE" = "true" ]] && mod_status+="Mise ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Mise ○${_zsh_cmd_nc}  "
+    [[ "$ZANVIL_MODULE_NUSHELL" = "true" ]] && mod_status+="Nushell ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Nushell ○${_zsh_cmd_nc}  "
+    [[ "$ZANVIL_MODULE_KUBE" = "true" ]] && mod_status+="Kube ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || mod_status+="${_zsh_cmd_dim}Kube ○${_zsh_cmd_nc}"
     _zsh_section "Modules" "$mod_status"
 
     # --- Mise details (if active) ---
-    if [[ "$ZSH_ENV_MODULE_MISE" = "true" ]]; then
+    if [[ "$ZANVIL_MODULE_MISE" = "true" ]]; then
         local mise_info=""
         if command -v mise &> /dev/null; then
             local mise_ver=$(mise --version 2>/dev/null | awk '{print $1}')
@@ -190,7 +190,7 @@ zsh-env-doctor() {
     fi
 
     # --- Kubernetes details (if active) ---
-    if [[ "$ZSH_ENV_MODULE_KUBE" = "true" ]]; then
+    if [[ "$ZANVIL_MODULE_KUBE" = "true" ]]; then
         local kube_info=""
         [[ -f "$HOME/.kube/config.minimal.yml" ]] && kube_info+="config.minimal ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || kube_info+="${_zsh_cmd_dim}config.minimal ○${_zsh_cmd_nc}  "
         if [[ -d "$HOME/.kube/configs.d" ]]; then
@@ -213,7 +213,7 @@ zsh-env-doctor() {
     fi
 
     # --- GitLab details (if active) ---
-    if [[ "$ZSH_ENV_MODULE_GITLAB" = "true" ]]; then
+    if [[ "$ZANVIL_MODULE_GITLAB" = "true" ]]; then
         local gl_info=""
         [[ -n "$GITLAB_TOKEN" ]] && gl_info+="TOKEN ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { gl_info+="TOKEN ${_zsh_cmd_yellow}○${_zsh_cmd_nc}  "; ((warnings++)); }
         [[ -n "$GITLAB_URL" ]] && gl_info+="${_zsh_cmd_dim}$GITLAB_URL${_zsh_cmd_nc}" || gl_info+="${_zsh_cmd_dim}gitlab.com${_zsh_cmd_nc}"
@@ -243,7 +243,7 @@ zsh-env-doctor() {
         ssl_info+="bundle ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
         ssl_info+="${_zsh_cmd_dim}${cert_count} CAs (${enterprise_count} entreprise)${_zsh_cmd_nc}"
     else
-        ssl_info+="bundle ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(zsh-env-ssl-setup)${_zsh_cmd_nc}"
+        ssl_info+="bundle ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(zanvil-ssl-setup)${_zsh_cmd_nc}"
         ((warnings++))
     fi
     _zsh_section "SSL/TLS" "$ssl_info"
@@ -258,38 +258,38 @@ zsh-env-doctor() {
         echo -e "${_zsh_cmd_green}✓ OK${_zsh_cmd_nc} ${_zsh_cmd_dim}($warnings avertissement(s))${_zsh_cmd_nc}"
     else
         echo -e "${_zsh_cmd_red}✗ $issues erreur(s)${_zsh_cmd_nc}, ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Lancez ~/.zsh_env/install.sh pour corriger${_zsh_cmd_nc}"
+        echo -e "${_zsh_cmd_dim}Lancez ~/.zanvil/install.sh pour corriger${_zsh_cmd_nc}"
     fi
 }
 
 # ==============================================================================
-# zsh-env-status : Statut compact de l'installation
+# zanvil-status : Statut compact de l'installation
 # ==============================================================================
-zsh-env-status() {
-    _zsh_header "ZSH_ENV Status"
+zanvil-status() {
+    _zsh_header "Zanvil Status"
 
     # Version et répertoire
-    _zsh_section "Repertoire" "$ZSH_ENV_DIR"
+    _zsh_section "Repertoire" "$ZANVIL_DIR"
 
     # Git info
-    if [[ -d "$ZSH_ENV_DIR/.git" ]]; then
-        local branch=$(git -C "$ZSH_ENV_DIR" branch --show-current 2>/dev/null)
-        local commit=$(git -C "$ZSH_ENV_DIR" rev-parse --short HEAD 2>/dev/null)
+    if [[ -d "$ZANVIL_DIR/.git" ]]; then
+        local branch=$(git -C "$ZANVIL_DIR" branch --show-current 2>/dev/null)
+        local commit=$(git -C "$ZANVIL_DIR" rev-parse --short HEAD 2>/dev/null)
         _zsh_section "Git" "${_zsh_cmd_cyan}$branch${_zsh_cmd_nc} ${_zsh_cmd_dim}($commit)${_zsh_cmd_nc}"
     fi
 
     # Modules actifs
     local modules=""
-    [[ "$ZSH_ENV_MODULE_GITLAB" = "true" ]] && modules+="GitLab "
-    [[ "$ZSH_ENV_MODULE_DOCKER" = "true" ]] && modules+="Docker "
-    [[ "$ZSH_ENV_MODULE_MISE" = "true" ]] && modules+="Mise "
-    [[ "$ZSH_ENV_MODULE_NUSHELL" = "true" ]] && modules+="Nushell "
-    [[ "$ZSH_ENV_MODULE_KUBE" = "true" ]] && modules+="Kube "
+    [[ "$ZANVIL_MODULE_GITLAB" = "true" ]] && modules+="GitLab "
+    [[ "$ZANVIL_MODULE_DOCKER" = "true" ]] && modules+="Docker "
+    [[ "$ZANVIL_MODULE_MISE" = "true" ]] && modules+="Mise "
+    [[ "$ZANVIL_MODULE_NUSHELL" = "true" ]] && modules+="Nushell "
+    [[ "$ZANVIL_MODULE_KUBE" = "true" ]] && modules+="Kube "
     [[ -z "$modules" ]] && modules="${_zsh_cmd_dim}aucun${_zsh_cmd_nc}"
     _zsh_section "Modules" "$modules"
 
     # Mise active tools
-    if [[ "$ZSH_ENV_MODULE_MISE" = "true" ]] && command -v mise &> /dev/null; then
+    if [[ "$ZANVIL_MODULE_MISE" = "true" ]] && command -v mise &> /dev/null; then
         local active_tools=$(mise current 2>/dev/null | head -3)
         [[ -n "$active_tools" ]] && _zsh_section "Mise" "$active_tools"
     fi
@@ -298,63 +298,63 @@ zsh-env-status() {
     _zsh_section "Shell" "zsh $ZSH_VERSION"
 
     echo ""
-    echo -e "${_zsh_cmd_dim}Diagnostic complet: zsh-env-doctor${_zsh_cmd_nc}"
+    echo -e "${_zsh_cmd_dim}Diagnostic complet: zanvil-doctor${_zsh_cmd_nc}"
 }
 
 # ==============================================================================
-# zsh-env-help : Afficher l'aide
+# zanvil-help : Afficher l'aide
 # ==============================================================================
-zsh-env-help() {
-    _zsh_header "ZSH_ENV Aide"
+zanvil-help() {
+    _zsh_header "Zanvil Aide"
 
     printf "${_zsh_cmd_bold}%-28s${_zsh_cmd_nc} %s\n" "Commande" "Description"
     _zsh_separator 50
 
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-list" "Liste les outils et versions"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-doctor" "Diagnostic de l'installation"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-status" "Statut rapide"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-completions" "Charge les auto-completions"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-completion-add" "Ajoute une completion"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-completion-remove" "Supprime une completion"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-theme [nom]" "Gestion themes Starship"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-ghostty [nom|sync]" "Gestion themes Ghostty"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-list" "Liste les outils et versions"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-doctor" "Diagnostic de l'installation"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-status" "Statut rapide"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completions" "Charge les auto-completions"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completion-add" "Ajoute une completion"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completion-remove" "Supprime une completion"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-theme [nom]" "Gestion themes Starship"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-ghostty [nom|sync]" "Gestion themes Ghostty"
     printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-git-bulk [action]" "Operations Git en masse"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-ssl-setup" "Configure les certificats SSL"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-gitlab-status" "Statut du token GitLab PAT"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-gitlab-browse" "Ouvre le repo GitLab dans le navigateur"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-modules [action]" "Gestion des modules (list/enable/disable)"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-config-reset" "Restaure la config par defaut"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-backup" "Sauvegarde configs personnalisees"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-restore" "Restaure depuis un backup"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-switch [env]" "Switch d'environnement rapide"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-update" "Mise a jour zsh_env"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zsh-env-help" "Cette aide"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-git-bulk [action]" "Operations Git en masse"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-ssl-setup" "Configure les certificats SSL"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-gitlab-status" "Statut du token GitLab PAT"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-gitlab-browse" "Ouvre le repo GitLab dans le navigateur"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-modules [action]" "Gestion des modules (list/enable/disable)"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-config-reset" "Restaure la config par defaut"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-backup" "Sauvegarde configs personnalisees"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-restore" "Restaure depuis un backup"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-switch [env]" "Switch d'environnement rapide"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-update" "Mise a jour zanvil"
+    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-help" "Cette aide"
 
     echo ""
     _zsh_separator 50
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Config" "~/.zsh_env/config.zsh"
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Completions" "~/.zsh_env/completions.zsh"
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Themes" "~/.zsh_env/themes/"
+    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Config" "~/.zanvil/config.zsh"
+    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Completions" "~/.zanvil/completions.zsh"
+    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Themes" "~/.zanvil/themes/"
     printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Recharger" "ss (ou source ~/.zshrc)"
 }
 
 # ==============================================================================
-# zsh-env-doctor-conflicts : Détection des conflits entre modules
+# zanvil-doctor-conflicts : Détection des conflits entre modules
 # ==============================================================================
-zsh-env-doctor-conflicts() {
+zanvil-doctor-conflicts() {
     _ui_header "Conflicts"
     local issues=0
 
     # --- Aliases en double ---
     _ui_section "Aliases" ""
     local alias_dups
-    alias_dups="$(grep -rh "^alias [a-z_]" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null \
+    alias_dups="$(grep -rh "^alias [a-z_]" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
         | sed "s/alias \([^=]*\)=.*/\1/" | sort | uniq -d)"
     if [[ -n "$alias_dups" ]]; then
         while IFS= read -r a; do
             local files
-            files="$(grep -rl "^alias ${a}=" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            files="$(grep -rl "^alias ${a}=" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${a}' → ${files}"
             ((issues++))
         done <<< "$alias_dups"
@@ -366,12 +366,12 @@ zsh-env-doctor-conflicts() {
     # --- Fonctions publiques en double ---
     _ui_section "Fonctions" ""
     local fn_dups
-    fn_dups="$(grep -rh "^[a-z][a-z0-9_-]*() {" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null \
+    fn_dups="$(grep -rh "^[a-z][a-z0-9_-]*() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
         | sed "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
     if [[ -n "$fn_dups" ]]; then
         while IFS= read -r f; do
             local files
-            files="$(grep -rl "^${f}() {" "$ZSH_ENV_DIR/modules" "$ZSH_ENV_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            files="$(grep -rl "^${f}() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${f}' → ${files}"
             ((issues++))
         done <<< "$fn_dups"
@@ -383,10 +383,10 @@ zsh-env-doctor-conflicts() {
     # --- Hooks chpwd concurrents ---
     _ui_section "Hooks" ""
     local chpwd_count
-    chpwd_count="$(grep -rh "add-zsh-hook chpwd" "$ZSH_ENV_DIR" --include="*.zsh" 2>/dev/null | grep -cv "^#")"
+    chpwd_count="$(grep -rh "add-zsh-hook chpwd" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | grep -cv "^#")"
     if [[ $chpwd_count -gt 1 ]]; then
         _ui_msg_warn "$chpwd_count hooks chpwd enregistrés (attention aux interactions)"
-        grep -rn "add-zsh-hook chpwd" "$ZSH_ENV_DIR" --include="*.zsh" 2>/dev/null | grep -v "^.*#" | sed "s|$ZSH_ENV_DIR/||"
+        grep -rn "add-zsh-hook chpwd" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | grep -v "^.*#" | sed "s|$ZANVIL_DIR/||"
         ((issues++))
     else
         _ui_msg_ok "${chpwd_count} hook chpwd"
@@ -396,12 +396,12 @@ zsh-env-doctor-conflicts() {
     # --- Exports en double ---
     _ui_section "Exports" ""
     local export_dups
-    export_dups="$(grep -rh "^export [A-Z_][A-Z0-9_]*=" "$ZSH_ENV_DIR/modules" --include="*.zsh" 2>/dev/null \
+    export_dups="$(grep -rh "^export [A-Z_][A-Z0-9_]*=" "$ZANVIL_DIR/modules" --include="*.zsh" 2>/dev/null \
         | sed "s/export \([^=]*\)=.*/\1/" | sort | uniq -d)"
     if [[ -n "$export_dups" ]]; then
         while IFS= read -r e; do
             local files
-            files="$(grep -rl "^export ${e}=" "$ZSH_ENV_DIR/modules" --include="*.zsh" 2>/dev/null | sed "s|$ZSH_ENV_DIR/||" | tr '\n' '  ')"
+            files="$(grep -rl "^export ${e}=" "$ZANVIL_DIR/modules" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${e}' → ${files}"
             ((issues++))
         done <<< "$export_dups"

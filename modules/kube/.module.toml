@@ -1,4 +1,4 @@
-guard = "ZSH_ENV_MODULE_KUBE"
+guard = "ZANVIL_MODULE_KUBE"
 binary = "kubectl"
 install = "brew install kubectl"
 description = "Gestion kubeconfig (kube_select, Azure/AWS/GCP)"

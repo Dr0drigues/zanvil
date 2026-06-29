@@ -13,14 +13,14 @@ Gestionnaire de plugins Zsh léger sans dépendance externe.
 
 ## Configuration
 
-Dans `~/.zsh_env/config.zsh` :
+Dans `~/.zanvil/config.zsh` :
 
 ```zsh
 # Organisation par défaut (optionnel)
-ZSH_ENV_PLUGINS_ORG=zsh-users
+ZANVIL_PLUGINS_ORG=zsh-users
 
 # Plugins à installer
-ZSH_ENV_PLUGINS=(
+ZANVIL_PLUGINS=(
     zsh-autosuggestions        # -> zsh-users/zsh-autosuggestions
     zsh-syntax-highlighting    # -> zsh-users/zsh-syntax-highlighting
     Aloxaf/fzf-tab             # org explicite
@@ -31,7 +31,7 @@ ZSH_ENV_PLUGINS=(
 ## Formats supportés
 
 ```zsh
-ZSH_ENV_PLUGINS=(
+ZANVIL_PLUGINS=(
     nom-plugin                              # Utilise l'org par défaut
     owner/repo                              # GitHub owner/repo
     https://github.com/owner/repo.git       # URL complète
@@ -75,4 +75,4 @@ zsh-plugin-remove zsh-autosuggestions
 
 ## Emplacement
 
-Les plugins sont installés dans `~/.zsh_env/plugins/` (ignoré par git).
+Les plugins sont installés dans `~/.zanvil/plugins/` (ignoré par git).

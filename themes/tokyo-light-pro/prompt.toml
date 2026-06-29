@@ -22,7 +22,7 @@ $rust\
 $golang\
 $php\
 $kubernetes\
-${custom.zsh_env_context}\
+${custom.zanvil_context}\
 [](fg:#d5d6db bg:#e1e2e7)\
 $time\
 [ ](fg:#e1e2e7)\
@@ -81,7 +81,7 @@ style = "bg:#d5d6db"
 format = '[[ $symbol ($version) ](fg:#f52a65 bg:#d5d6db)]($style)'
 detect_files = ["pom.xml", "build.gradle", "build.gradle.kts", ".java-version"]
 
-# Kubernetes natif desactive — remplace par [custom.zsh_env_context] (plus rapide, plus compact)
+# Kubernetes natif desactive — remplace par [custom.zanvil_context] (plus rapide, plus compact)
 [kubernetes]
 disabled = true
 
@@ -89,15 +89,15 @@ disabled = true
 [custom.work]
 description = "Indicateur contexte Work"
 command = "echo '󰋜'"
-when = "test -f ~/.zsh_env/.work_context_cache && tail -1 ~/.zsh_env/.work_context_cache | grep -q true"
+when = "test -f ~/.zanvil/.work_context_cache && tail -1 ~/.zanvil/.work_context_cache | grep -q true"
 format = "[$output ](bg:#2e7de9 fg:#ff6600)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # === Module Custom: Contexte Dev (Kube) ===
-[custom.zsh_env_context]
-description = "Kubernetes context and namespace via zsh-env-cli"
-command = "zsh-env-cli context"
-when = "test -x ${HOME}/.local/bin/zsh-env-cli"
+[custom.zanvil_context]
+description = "Kubernetes context and namespace via zanvil"
+command = "zanvil context"
+when = "test -x ${HOME}/.local/bin/zanvil"
 format = "[[ $output ](fg:#326ce5 bg:#d5d6db)]($style)"
 style = "bg:#d5d6db"
 shell = ["bash", "--noprofile", "--norc"]

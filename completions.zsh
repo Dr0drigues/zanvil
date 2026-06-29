@@ -1,7 +1,7 @@
 # ==============================================================================
 # Completions personnalisees
 # ==============================================================================
-# Ce fichier est charge automatiquement par zsh-env-completions
+# Ce fichier est charge automatiquement par zanvil-completions
 # Ajoutez vos completions personnalisees ici
 #
 # Format attendu pour chaque completion:
@@ -15,11 +15,11 @@
 
 # Liste des completions personnalisees (nom:commande)
 # Modifiez cette liste selon vos besoins
-_ZSH_ENV_CUSTOM_COMPLETIONS=(
+_ZANVIL_CUSTOM_COMPLETIONS=(
     # "bun:bun completions"
     # "deno:deno completions zsh"
     # "fly:flyctl completion zsh"
     # "turbo:turbo completion zsh"
-    # "rustup:rustup completions zsh"  # deja gere par zsh-env-completions
+    # "rustup:rustup completions zsh"  # deja gere par zanvil-completions
     "armadai:armadai completion zsh"
 )

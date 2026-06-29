@@ -1,12 +1,12 @@
 # ==============================================================================
 # core/theme.zsh — Gestion des themes (Starship et Ghostty)
 # ==============================================================================
-# Fonctions : zsh-env-theme, zsh-env-ghostty
+# Fonctions : zanvil-theme, zanvil-ghostty
 # Utilise les fonctions UI de ui.zsh (charge automatiquement avant ce fichier)
 # ==============================================================================
 
 # ==============================================================================
-# zsh-env-theme : Gestion des themes Starship
+# zanvil-theme : Gestion des themes Starship
 # ==============================================================================
 
 # Retourne le dossier de config k9s selon la plateforme.
@@ -19,12 +19,12 @@ _k9s_config_dir() {
 }
 
 # Applique le skin k9s correspondant au theme active.
-# Silent si k9s absent, ZSH_ENV_K9S_AUTO_THEME=false, ou pas de skin pour ce theme.
-_zsh_env_k9s_apply_skin() {
+# Silent si k9s absent, ZANVIL_K9S_AUTO_THEME=false, ou pas de skin pour ce theme.
+_zanvil_k9s_apply_skin() {
     local theme="$1"
-    [[ "${ZSH_ENV_K9S_AUTO_THEME:-true}" == "false" ]] && return 0
+    [[ "${ZANVIL_K9S_AUTO_THEME:-true}" == "false" ]] && return 0
     command -v k9s &>/dev/null || return 0
-    local skin_src="$ZSH_ENV_DIR/themes/$theme/k9s-skin.yaml"
+    local skin_src="$ZANVIL_DIR/themes/$theme/k9s-skin.yaml"
     [[ -f "$skin_src" ]] || return 0
 
     local k9s_dir
@@ -61,41 +61,41 @@ EOF
     fi
 }
 
-zsh-env-theme() {
+zanvil-theme() {
     # Intercepter preview et auto avant delegation CLI
     if [[ "$1" == "preview" ]]; then
         shift
-        _zsh_env_theme_preview "$@"
+        _zanvil_theme_preview "$@"
         return $?
     fi
     if [[ "$1" == "auto" ]]; then
-        _zsh_env_theme_auto
+        _zanvil_theme_auto
         return $?
     fi
 
     # Delegation au CLI Rust si disponible
-    if command -v zsh-env-cli &>/dev/null; then
+    if command -v zanvil &>/dev/null; then
         local cli_args=("$@")
-        # Mapper l'ancien usage: zsh-env-theme <name> -> zsh-env-cli theme apply <name>
+        # Mapper l'ancien usage: zanvil-theme <name> -> zanvil theme apply <name>
         if [[ -n "$1" && "$1" != "list" && "$1" != "current" && "$1" != "apply" ]]; then
             cli_args=(apply "$@")
         fi
-        zsh-env-cli theme "${cli_args[@]}"
+        zanvil theme "${cli_args[@]}"
         local rc=$?
         # Sourcer la palette pour la session courante apres apply
         local _theme_name="${cli_args[-1]}"
         if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
-            local _p="$ZSH_ENV_DIR/themes/$_theme_name/palette.zsh"
+            local _p="$ZANVIL_DIR/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
-            _zsh_env_k9s_apply_skin "$_theme_name"
+            _zanvil_k9s_apply_skin "$_theme_name"
         fi
         return $rc
     fi
 
     # --- Fallback zsh ---
-    local themes_dir="$ZSH_ENV_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/themes"
     local starship_config="$HOME/.config/starship.toml"
-    local state_file="$ZSH_ENV_DIR/.current_theme"
+    local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
 
     if ! command -v starship &> /dev/null; then
@@ -144,9 +144,9 @@ zsh-env-theme() {
         done
 
         echo ""
-        echo -e "  ${_ui_dim}Usage: zsh-env-theme <nom>          Appliquer un theme${_ui_nc}"
-        echo -e "  ${_ui_dim}       zsh-env-theme preview <nom>  Apercu sans appliquer${_ui_nc}"
-        echo -e "  ${_ui_dim}       zsh-env-theme auto            Auto dark/light${_ui_nc}"
+        echo -e "  ${_ui_dim}Usage: zanvil-theme <nom>          Appliquer un theme${_ui_nc}"
+        echo -e "  ${_ui_dim}       zanvil-theme preview <nom>  Apercu sans appliquer${_ui_nc}"
+        echo -e "  ${_ui_dim}       zanvil-theme auto            Auto dark/light${_ui_nc}"
         return 0
     fi
 
@@ -183,19 +183,19 @@ zsh-env-theme() {
     else
         _ui_tag_ok "Theme '$theme' applique"
     fi
-    _zsh_env_k9s_apply_skin "$theme"
+    _zanvil_k9s_apply_skin "$theme"
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
 
 # ==============================================================================
 # Theme Preview : apercu sans appliquer
 # ==============================================================================
-_zsh_env_theme_preview() {
+_zanvil_theme_preview() {
     local theme="$1"
-    local themes_dir="$ZSH_ENV_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/themes"
 
     if [[ -z "$theme" ]]; then
-        _ui_msg_fail "Usage: zsh-env-theme preview <nom>"
+        _ui_msg_fail "Usage: zanvil-theme preview <nom>"
         return 1
     fi
 
@@ -260,17 +260,17 @@ _zsh_env_theme_preview() {
     fi
 
     echo ""
-    _ui_msg_info "Appliquer: zsh-env-theme $theme"
+    _ui_msg_info "Appliquer: zanvil-theme $theme"
 }
 
 # ==============================================================================
 # Auto dark/light : detection du mode systeme
 # ==============================================================================
 # Config dans config.zsh :
-#   ZSH_ENV_THEME_LIGHT=tokyo-light-pro
-#   ZSH_ENV_THEME_DARK=tokyo-night-pro
+#   ZANVIL_THEME_LIGHT=tokyo-light-pro
+#   ZANVIL_THEME_DARK=tokyo-night-pro
 # ==============================================================================
-_zsh_env_detect_appearance() {
+_zanvil_detect_appearance() {
     # macOS : lire le mode systeme
     if [[ "$OSTYPE" == darwin* ]]; then
         if defaults read -g AppleInterfaceStyle &>/dev/null 2>&1; then
@@ -294,20 +294,20 @@ _zsh_env_detect_appearance() {
     echo "dark"
 }
 
-_zsh_env_theme_auto() {
-    local light_theme="${ZSH_ENV_THEME_LIGHT:-}"
-    local dark_theme="${ZSH_ENV_THEME_DARK:-}"
+_zanvil_theme_auto() {
+    local light_theme="${ZANVIL_THEME_LIGHT:-}"
+    local dark_theme="${ZANVIL_THEME_DARK:-}"
 
     if [[ -z "$light_theme" || -z "$dark_theme" ]]; then
-        _ui_msg_fail "Configurez ZSH_ENV_THEME_LIGHT et ZSH_ENV_THEME_DARK dans config.zsh"
+        _ui_msg_fail "Configurez ZANVIL_THEME_LIGHT et ZANVIL_THEME_DARK dans config.zsh"
         echo ""
         echo "  Exemple:"
-        echo "    ZSH_ENV_THEME_LIGHT=tokyo-light-pro"
-        echo "    ZSH_ENV_THEME_DARK=tokyo-night-pro"
+        echo "    ZANVIL_THEME_LIGHT=tokyo-light-pro"
+        echo "    ZANVIL_THEME_DARK=tokyo-night-pro"
         return 1
     fi
 
-    local appearance=$(_zsh_env_detect_appearance)
+    local appearance=$(_zanvil_detect_appearance)
     local target_theme=""
 
     if [[ "$appearance" == "dark" ]]; then
@@ -317,7 +317,7 @@ _zsh_env_theme_auto() {
     fi
 
     # Verifier si deja sur le bon theme
-    local state_file="$ZSH_ENV_DIR/.current_theme"
+    local state_file="$ZANVIL_DIR/.current_theme"
     local current=""
     [[ -f "$state_file" ]] && current=$(<"$state_file")
 
@@ -327,32 +327,32 @@ _zsh_env_theme_auto() {
     fi
 
     _ui_msg_info "Mode detecte: $appearance -> theme $target_theme"
-    zsh-env-theme "$target_theme"
+    zanvil-theme "$target_theme"
 }
 
 # Hook auto dark/light au startup (silencieux)
-if [[ -n "${ZSH_ENV_THEME_LIGHT}" && -n "${ZSH_ENV_THEME_DARK}" ]]; then
-    _zsh_env_theme_auto_startup() {
-        local appearance=$(_zsh_env_detect_appearance)
+if [[ -n "${ZANVIL_THEME_LIGHT}" && -n "${ZANVIL_THEME_DARK}" ]]; then
+    _zanvil_theme_auto_startup() {
+        local appearance=$(_zanvil_detect_appearance)
         local target=""
-        [[ "$appearance" == "dark" ]] && target="$ZSH_ENV_THEME_DARK" || target="$ZSH_ENV_THEME_LIGHT"
+        [[ "$appearance" == "dark" ]] && target="$ZANVIL_THEME_DARK" || target="$ZANVIL_THEME_LIGHT"
 
         local current=""
-        [[ -f "$ZSH_ENV_DIR/.current_theme" ]] && current=$(<"$ZSH_ENV_DIR/.current_theme")
+        [[ -f "$ZANVIL_DIR/.current_theme" ]] && current=$(<"$ZANVIL_DIR/.current_theme")
 
         if [[ "$current" != "$target" ]]; then
-            zsh-env-theme "$target" &>/dev/null
+            zanvil-theme "$target" &>/dev/null
         fi
     }
-    _zsh_env_theme_auto_startup
-    unfunction _zsh_env_theme_auto_startup 2>/dev/null
+    _zanvil_theme_auto_startup
+    unfunction _zanvil_theme_auto_startup 2>/dev/null
 fi
 
 # ==============================================================================
-# zsh-env-ghostty : Gestion des themes Ghostty
+# zanvil-ghostty : Gestion des themes Ghostty
 # ==============================================================================
-zsh-env-ghostty() {
-    local themes_dir="$ZSH_ENV_DIR/ghostty/themes"
+zanvil-ghostty() {
+    local themes_dir="$ZANVIL_DIR/ghostty/themes"
     local ghostty_config="$HOME/.config/ghostty/config"
     local theme="$1"
 
@@ -384,14 +384,14 @@ zsh-env-ghostty() {
         done
 
         echo ""
-        echo -e "${_zsh_cmd_dim}Usage: zsh-env-ghostty <nom>${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Sync:  zsh-env-ghostty sync${_zsh_cmd_nc}"
+        echo -e "${_zsh_cmd_dim}Usage: zanvil-ghostty <nom>${_zsh_cmd_nc}"
+        echo -e "${_zsh_cmd_dim}Sync:  zanvil-ghostty sync${_zsh_cmd_nc}"
         return 0
     fi
 
-    # Commande "sync" : déployer la config de zsh_env vers ~/.config/ghostty
+    # Commande "sync" : déployer la config de zanvil vers ~/.config/ghostty
     if [[ "$theme" = "sync" ]]; then
-        local src_config="$ZSH_ENV_DIR/ghostty/config"
+        local src_config="$ZANVIL_DIR/ghostty/config"
         local dest_dir="$HOME/.config/ghostty"
 
         if [[ ! -f "$src_config" ]]; then
@@ -425,8 +425,8 @@ zsh-env-ghostty() {
         return 1
     fi
 
-    # Mettre à jour le fichier config local (dans zsh_env)
-    local local_config="$ZSH_ENV_DIR/ghostty/config"
+    # Mettre à jour le fichier config local (dans zanvil)
+    local local_config="$ZANVIL_DIR/ghostty/config"
 
     if [[ -f "$local_config" ]]; then
         # Remplacer la ligne config-file
@@ -442,5 +442,5 @@ zsh-env-ghostty() {
     fi
 
     echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Theme '$theme' selectionne."
-    echo -e "Lancez ${_zsh_cmd_bold}zsh-env-ghostty sync${_zsh_cmd_nc} pour deployer vers ~/.config/ghostty"
+    echo -e "Lancez ${_zsh_cmd_bold}zanvil-ghostty sync${_zsh_cmd_nc} pour deployer vers ~/.config/ghostty"
 }

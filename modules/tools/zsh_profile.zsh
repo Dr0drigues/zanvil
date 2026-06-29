@@ -1,11 +1,11 @@
 # ==============================================================================
-# ZSH_ENV Bench - Profiling du temps de demarrage par module
+# zanvil Bench - Profiling du temps de demarrage par module
 # ==============================================================================
 # Mesure le temps de chargement de chaque core/*.zsh et modules/*/init.zsh
 # ==============================================================================
 
 # Profiling detaille par composant
-zsh-env-bench() {
+zanvil-bench() {
     local mode="detailed"
     local runs=5
 
@@ -25,7 +25,7 @@ zsh-env-bench() {
 }
 
 # Benchmark multi-runs
-zsh-env-benchmark() {
+zanvil-benchmark() {
     local runs=${1:-5}
     _bench_runs "$runs"
 }
@@ -34,9 +34,9 @@ zsh-env-benchmark() {
 # Profiling detaille
 # ==============================================================================
 _bench_detailed() {
-    _ui_header "ZSH_ENV Bench"
+    _ui_header "Zanvil Bench"
 
-    local zsh_env_dir="${ZSH_ENV_DIR:-$HOME/.zsh_env}"
+    local zanvil_dir="${ZANVIL_DIR:-$HOME/.zanvil}"
     local results=()
     local total_time=0
 
@@ -57,27 +57,27 @@ _bench_detailed() {
 
     # --- Phase 1 : Config & variables ---
     _ui_section "Phase" "config & variables"
-    _bench_source "$zsh_env_dir/config.zsh" "config.zsh"
+    _bench_source "$zanvil_dir/config.zsh" "config.zsh"
     _bench_source "$HOME/.secrets" "~/.secrets"
-    _bench_source "$zsh_env_dir/core/variables.zsh" "core/variables.zsh"
+    _bench_source "$zanvil_dir/core/variables.zsh" "core/variables.zsh"
 
     # --- Phase 2 : env.d ---
-    for envfile in "$zsh_env_dir/env.d"/*.zsh(N); do
+    for envfile in "$zanvil_dir/env.d"/*.zsh(N); do
         _bench_source "$envfile" "env.d/$(basename "$envfile")"
     done
 
     # --- Phase 3 : Core (ui.zsh first, then others) ---
-    _bench_source "$zsh_env_dir/core/ui.zsh" "core/ui.zsh"
+    _bench_source "$zanvil_dir/core/ui.zsh" "core/ui.zsh"
 
     local skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
-    for core_file in "$zsh_env_dir/core"/*.zsh(N); do
+    for core_file in "$zanvil_dir/core"/*.zsh(N); do
         local core_name=$(basename "$core_file")
         (( ${skip_core[(Ie)$core_name]} )) && continue
         _bench_source "$core_file" "core/$core_name"
     done
 
     # --- Phase 4 : Modules ---
-    for module_dir in "$zsh_env_dir/modules"/*/; do
+    for module_dir in "$zanvil_dir/modules"/*/; do
         [[ ! -d "$module_dir" ]] && continue
         local module_name=$(basename "$module_dir")
         local init_file="$module_dir/init.zsh"
@@ -89,7 +89,7 @@ _bench_detailed() {
         fi
 
         # Skip disabled modules
-        local guard_var="ZSH_ENV_MODULE_${(U)module_name}"
+        local guard_var="ZANVIL_MODULE_${(U)module_name}"
         if [[ -n "${(P)guard_var}" && "${(P)guard_var}" != "true" ]]; then
             continue
         fi
@@ -98,9 +98,9 @@ _bench_detailed() {
     done
 
     # --- Phase 5 : Aliases, plugins, hooks ---
-    _bench_source "$zsh_env_dir/core/aliases.zsh" "core/aliases.zsh"
-    _bench_source "$zsh_env_dir/plugins.zsh" "plugins.zsh"
-    _bench_source "$zsh_env_dir/core/hooks.zsh" "core/hooks.zsh"
+    _bench_source "$zanvil_dir/core/aliases.zsh" "core/aliases.zsh"
+    _bench_source "$zanvil_dir/plugins.zsh" "plugins.zsh"
+    _bench_source "$zanvil_dir/core/hooks.zsh" "core/hooks.zsh"
 
     local total_end=$EPOCHREALTIME
     local real_total=$(( (total_end - total_start) * 1000 ))
@@ -173,7 +173,7 @@ _bench_quick() {
 _bench_runs() {
     local runs=${1:-5}
 
-    _ui_header "ZSH_ENV Benchmark"
+    _ui_header "Zanvil Benchmark"
     _ui_section "Runs" "$runs"
     echo ""
 
@@ -222,11 +222,11 @@ _bench_runs() {
 # Aide
 # ==============================================================================
 _bench_help() {
-    _ui_header "ZSH_ENV Bench"
+    _ui_header "Zanvil Bench"
     echo ""
     printf "${_ui_bold}Usage:${_ui_nc}\n"
-    echo "  zsh-env-bench                 Profiling detaille par module"
-    echo "  zsh-env-bench --quick         Temps total uniquement"
-    echo "  zsh-env-bench --runs N        Benchmark sur N executions (defaut: 5)"
-    echo "  zsh-env-benchmark [N]         Alias pour --runs N"
+    echo "  zanvil-bench                 Profiling detaille par module"
+    echo "  zanvil-bench --quick         Temps total uniquement"
+    echo "  zanvil-bench --runs N        Benchmark sur N executions (defaut: 5)"
+    echo "  zanvil-benchmark [N]         Alias pour --runs N"
 }

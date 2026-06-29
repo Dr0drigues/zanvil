@@ -3,7 +3,7 @@
 # sur plusieurs branches d'environnement, en une commande.
 # ==============================================================================
 # Usage:
-#   zsh-env-mr-fanout [--mode cherry|range|patch] [--target <br>]... [--all]
+#   zanvil-mr-fanout [--mode cherry|range|patch] [--target <br>]... [--all]
 #                     [--title "..."] [--description "..."] [--draft]
 #                     [--no-push|--no-mr|--dry-run|--strict]
 #                     [--from <ref>] [--pattern <regex>] [--branch-prefix <s>]
@@ -12,14 +12,14 @@
 # La selection des branches cibles utilise fzf si dispo, sinon prompt textuel.
 # ==============================================================================
 
-zsh-env-mr-fanout() {
-    if ! command -v zsh-env-cli &>/dev/null; then
-        _ui_msg_fail "zsh-env-cli requis (cd ~/.zsh_env/cli && cargo install --path .)"
+zanvil-mr-fanout() {
+    if ! command -v zanvil &>/dev/null; then
+        _ui_msg_fail "zanvil requis (cd ~/.zanvil/cli && cargo install --path .)"
         return 1
     fi
-    zsh-env-cli mr-fanout "$@"
+    zanvil mr-fanout "$@"
 }
 
 # Alias courts
-alias mrfan='zsh-env-mr-fanout'
-alias mrfo='zsh-env-mr-fanout'
+alias mrfan='zanvil-mr-fanout'
+alias mrfo='zanvil-mr-fanout'
