@@ -754,10 +754,10 @@ fi
 # Appliquer le theme Starship si choisi
 if [[ -n "$STARSHIP_THEME" ]]; then
     mkdir -p "$HOME/.config"
-    if [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" ]]; then
-        cp "$TARGET_DIR/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
-    elif [[ -f "$TARGET_DIR/themes/$STARSHIP_THEME.toml" ]]; then
-        cp "$TARGET_DIR/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+    if [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" ]]; then
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
+    elif [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" ]]; then
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
     fi
     echo "$STARSHIP_THEME" > "$TARGET_DIR/.current_theme"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
@@ -822,10 +822,10 @@ else
 fi
 
 # Splash zanvil (logo enclume partage avec core/ui.zsh)
-if [[ -f "$TARGET_DIR/assets/zanvil-logo.txt" ]]; then
+if [[ -f "$TARGET_DIR/web/assets/zanvil-logo.txt" ]]; then
     echo ""
     echo -e "${BOLD}${CYAN}"
-    cat "$TARGET_DIR/assets/zanvil-logo.txt"
+    cat "$TARGET_DIR/web/assets/zanvil-logo.txt"
     _zanvil_ver=$(grep -m1 'ZANVIL_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
     echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"

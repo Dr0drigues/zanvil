@@ -8,7 +8,8 @@ Guide pour contribuer au projet zanvil.
 ~/.zanvil/
 ├── functions/          # Fonctions modulaires
 ├── scripts/            # Scripts autonomes
-├── themes/             # Thèmes Starship
+├── config/             # Configuration des outils
+│   └── themes/         # Thèmes Starship
 ├── wiki/               # Documentation (ce wiki)
 ├── install.sh          # Script d'installation
 ├── README.md           # Introduction rapide

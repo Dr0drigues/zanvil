@@ -24,7 +24,7 @@ _zanvil_k9s_apply_skin() {
     local theme="$1"
     [[ "${ZANVIL_K9S_AUTO_THEME:-true}" == "false" ]] && return 0
     command -v k9s &>/dev/null || return 0
-    local skin_src="$ZANVIL_DIR/themes/$theme/k9s-skin.yaml"
+    local skin_src="$ZANVIL_DIR/config/themes/$theme/k9s-skin.yaml"
     [[ -f "$skin_src" ]] || return 0
 
     local k9s_dir
@@ -85,7 +85,7 @@ zanvil-theme() {
         # Sourcer la palette pour la session courante apres apply
         local _theme_name="${cli_args[-1]}"
         if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
-            local _p="$ZANVIL_DIR/themes/$_theme_name/palette.zsh"
+            local _p="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
             _zanvil_k9s_apply_skin "$_theme_name"
         fi
@@ -93,7 +93,7 @@ zanvil-theme() {
     fi
 
     # --- Fallback zsh ---
-    local themes_dir="$ZANVIL_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/config/themes"
     local starship_config="$HOME/.config/starship.toml"
     local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
@@ -192,7 +192,7 @@ zanvil-theme() {
 # ==============================================================================
 _zanvil_theme_preview() {
     local theme="$1"
-    local themes_dir="$ZANVIL_DIR/themes"
+    local themes_dir="$ZANVIL_DIR/config/themes"
 
     if [[ -z "$theme" ]]; then
         _ui_msg_fail "Usage: zanvil-theme preview <nom>"

@@ -46,28 +46,32 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile
 │   └── boulanger/      # boulanger_context
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
+│   └── themes/         # Themes Starship (flat .toml ou directory avec palette.zsh)
+│       ├── tokyo-night-pro/
+│       │   ├── prompt.toml
+│       │   └── palette.zsh
+│       └── minimal.toml
 ├── secrets/            # .enc versionnés, plaintext déchiffré gitignored
 │   ├── secrets/kube/   # Kubeconfigs + .context_aliases
 │   └── secrets/work/   # Certificats et settings dechiffres
 ├── examples/           # Templates de config utilisateur
 │   ├── config.zsh.example
-│   └── aliases.local.zsh.example
-├── themes/             # Themes Starship (flat .toml ou directory avec palette.zsh)
-│   ├── tokyo-night-pro/
-│   │   ├── prompt.toml
-│   │   └── palette.zsh
-│   └── minimal.toml
+│   └── env.d/          # Exemples de variables d'env dynamiques
 ├── env.d/              # Variables d'env dynamiques (*.zsh, *.sops.zsh)
 ├── cli/                # CLI Rust companion (optionnel)
 │   ├── Cargo.toml
 │   └── src/
-├── site/               # Site de doc Astro Starlight (GitHub Pages, theme forge)
-│   └── src/content/docs/
+├── web/                # Assets web regroupes
+│   ├── site/           # Site de doc Astro Starlight (GitHub Pages, theme forge)
+│   │   └── src/content/docs/
+│   ├── wiki/           # Pages wiki GitHub (deploye via wiki.yml)
+│   ├── docs/           # Documentation interne (specs, roadmap, superpowers)
+│   └── assets/         # Assets statiques (branding, logo)
 ├── scripts/            # Scripts autonomes (clone-projects, trigger-jobs)
 └── install.sh          # Bootstrapper cross-platform
 ```
 
-Le site (`site/`) est un projet Astro Starlight déployé sur GitHub Pages via `.github/workflows/pages.yml`. Contenu Markdown sous `site/src/content/docs/`.
+Le site (`web/site/`) est un projet Astro Starlight déployé sur GitHub Pages via `.github/workflows/pages.yml`. Contenu Markdown sous `web/site/src/content/docs/`.
 
 ### Flux de chargement
 
@@ -158,7 +162,7 @@ Toutes les commandes `zanvil-*` utilisent un style visuel coherent via les fonct
 - **Toujours utiliser les fonctions `_ui_*`** pour les couleurs et le formatage
 - **Ne jamais coder les couleurs en dur** (`\033[...`) dans les nouveaux fichiers
 - Les commandes `zanvil-*` doivent avoir un header avec `_ui_header "Titre"`
-- Les palettes de themes overrident les `_ui_*` via `themes/<name>/palette.zsh`
+- Les palettes de themes overrident les `_ui_*` via `config/themes/<name>/palette.zsh`
 
 ### Modules
 - Chaque module a `init.zsh` (fonctions) + `completions.zsh` (compdef)

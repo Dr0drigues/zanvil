@@ -305,7 +305,7 @@ if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$_theme_name" ]]; then
-        local _palette="$ZANVIL_DIR/themes/$_theme_name/palette.zsh"
+        local _palette="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
         if [[ -f "$_palette" ]]; then
             source "$_palette"
             # Refresh compat aliases
@@ -335,7 +335,7 @@ _zanvil_banner_compact() {
 # Splash complet (logo enclume + tagline + version) — install / update
 # Usage: _zanvil_logo
 _zanvil_logo() {
-    local logo_file="${ZANVIL_DIR}/assets/zanvil-logo.txt"
+    local logo_file="${ZANVIL_DIR}/web/assets/zanvil-logo.txt"
     echo ""
     if [[ -f "$logo_file" ]]; then
         # Enclume + wordmark en cyan/bold, lus depuis l'asset partage

@@ -46,7 +46,10 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 │   └── <name>/
 │       ├── init.zsh          # Point d'entree du module
 │       └── completions.zsh   # Completions du module
-├── themes/                   # Themes (prompt.toml + palette.zsh)
+├── config/                   # Configuration des outils
+│   ├── themes/               # Themes (prompt.toml + palette.zsh)
+│   ├── k9s/                  # Configuration k9s
+│   └── ...                   # Autres outils (ghostty, lazygit, delta, etc)
 ├── env.d/                    # Variables d'env dynamiques (support sops)
 ├── profiles/                 # Profils d'environnement
 ├── scripts/                  # Scripts autonomes
