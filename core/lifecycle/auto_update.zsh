@@ -55,7 +55,7 @@ _zanvil_do_update() {
         echo -e "${_ui_green}[zanvil]${_ui_nc} Mise a jour terminee. Rechargez avec: ${_ui_bold}ss${_ui_nc}"
 
         # Detecter les nouvelles commandes apres reload du fichier
-        local new_help_file="$ZANVIL_DIR/core/commands.zsh"
+        local new_help_file="$ZANVIL_DIR/core/commands/commands.zsh"
         if [[ -f "$new_help_file" ]]; then
             local new_cmds=$(grep -oE 'zanvil-[a-z-]+' "$new_help_file" | sort -u)
             local added=$(comm -13 <(echo "$old_help") <(echo "$new_cmds") 2>/dev/null)
