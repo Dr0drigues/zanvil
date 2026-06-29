@@ -77,7 +77,7 @@ _mise_hook_java() {
         return 0
     fi
 
-    local cert_script="$_MISE_ZANVIL_DIR/work/certificates_unix.sh"
+    local cert_script="$_MISE_ZANVIL_DIR/secrets/work/certificates_unix.sh"
     if [[ ! -f "$cert_script" ]]; then
         echo -e "${_ui_yellow}[mise-hook]${_ui_nc} Script de certificats non trouve: $cert_script"
         return 1
@@ -107,8 +107,8 @@ _mise_hook_java() {
 # Hook pour Maven: deploie settings.xml dans ~/.m2/ et exporte MAVEN_HOME
 _mise_hook_maven() {
     local version=$1
-    local settings_enc="$_MISE_ZANVIL_DIR/work/settings.xml.enc"
-    local settings_plain="$_MISE_ZANVIL_DIR/work/settings.xml"
+    local settings_enc="$_MISE_ZANVIL_DIR/secrets/work/settings.xml.enc"
+    local settings_plain="$_MISE_ZANVIL_DIR/secrets/work/settings.xml"
     local settings_dest="$HOME/.m2/settings.xml"
 
     # Resoudre la source : decrypter le .enc si disponible, sinon le .xml en clair
@@ -319,7 +319,7 @@ _mise_configure_status() {
 
     # --- Maven ---
     version=$(command mise current maven 2>/dev/null)
-    local settings_enc="$_MISE_ZANVIL_DIR/work/settings.xml.enc"
+    local settings_enc="$_MISE_ZANVIL_DIR/secrets/work/settings.xml.enc"
     local settings_dest="$HOME/.m2/settings.xml"
 
     if [[ -n "$version" ]]; then

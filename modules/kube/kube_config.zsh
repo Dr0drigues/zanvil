@@ -11,7 +11,7 @@
 KUBE_DIR="$HOME/.kube"
 KUBE_CONFIGS_DIR="$KUBE_DIR/configs.d"
 KUBE_MINIMAL_CONFIG="$KUBE_DIR/config.minimal.yml"
-KUBE_SOPS_SOURCE="$ZANVIL_DIR/kube"
+KUBE_SOPS_SOURCE="$ZANVIL_DIR/secrets/kube"
 KUBE_SELECTION_FILE="$KUBE_DIR/.kubeconfig_selection"
 KUBE_ALIASES_FILE="$KUBE_DIR/.context_aliases"
 
