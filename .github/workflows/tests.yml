@@ -29,7 +29,7 @@ jobs:
           mkdir -p "$HOME/.config" "$HOME/.kube" "$HOME/work"
 
           # Create minimal config
-          cp config.zsh.example "$PWD/config.zsh"
+          cp examples/config.zsh.example "$PWD/config.zsh"
 
           # Source rc.zsh in zsh and check for errors
           zsh -c '

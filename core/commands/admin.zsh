@@ -438,7 +438,7 @@ zanvil-restore() {
 # ==============================================================================
 zanvil-config-reset() {
     local config_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
-    local default_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh.example"
+    local default_file="${ZANVIL_DIR:-$HOME/.zanvil}/examples/config.zsh.example"
 
     if [[ ! -f "$default_file" ]]; then
         _ui_msg_fail "Template introuvable: $default_file"
