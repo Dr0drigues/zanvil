@@ -305,7 +305,7 @@ if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$_theme_name" ]]; then
-        local _palette="$ZANVIL_DIR/themes/$_theme_name/palette.zsh"
+        local _palette="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
         if [[ -f "$_palette" ]]; then
             source "$_palette"
             # Refresh compat aliases

@@ -58,7 +58,7 @@ impl App {
             .collect();
 
         // Parse themes
-        let themes_dir = zanvil_dir.join("themes");
+        let themes_dir = zanvil_dir.join("config").join("themes");
         let mut themes: Vec<String> = Vec::new();
         if let Ok(entries) = fs::read_dir(&themes_dir) {
             for entry in entries.flatten() {
