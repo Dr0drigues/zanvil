@@ -1,5 +1,5 @@
 # ==============================================================================
-# ZSH_ENV - Point d'entree principal
+# zanvil - Point d'entree principal
 # ==============================================================================
 # Source par .zshrc via $ZANVIL_DIR
 # Ordre de chargement:
@@ -12,6 +12,11 @@
 #   7. Plugins
 #   8. Hooks (outils externes: starship, mise, zoxide, direnv)
 # ==============================================================================
+
+# --- Migration one-shot zsh_env -> zanvil (avant tout chargement) ---
+if [[ -z "$ZANVIL_DIR" && -d "$HOME/.zsh_env" && ! -d "$HOME/.zanvil" ]]; then
+    source "${${(%):-%x}:A:h}/core/migrate_zanvil.zsh"
+fi
 
 # --- Verification ZANVIL_DIR ---
 if [[ -z "$ZANVIL_DIR" ]]; then
