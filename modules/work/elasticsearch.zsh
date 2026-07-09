@@ -226,7 +226,7 @@ work_es_query() {
 }
 
 # Liste des applications par volume. Usage: work_es_apps [RANGE] [--refresh]
-# RANGE au format Xm/Xh/Xd (defaut 24h). Cache TTL: ZANVIL_WORK_ES_APPS_TTL (3600s).
+# RANGE au format Xs/Xm/Xh/Xd (defaut 24h). Cache TTL: ZANVIL_WORK_ES_APPS_TTL (3600s).
 work_es_apps() {
     emulate -L zsh
     _work_es_require || return 1
@@ -239,7 +239,7 @@ work_es_apps() {
                 if _work_es_parse_duration "$arg" >/dev/null 2>&1; then
                     range="$arg"
                 else
-                    _ui_msg_fail "Plage invalide: $arg (attendu: Xm/Xh/Xd)"
+                    _ui_msg_fail "Plage invalide: $arg (attendu: Xs/Xm/Xh/Xd)"
                     return 1
                 fi
                 ;;
@@ -280,6 +280,8 @@ work_es_apps() {
 # Usage: _work_es_count_query APP GTE LTE [SEARCH]. Sortie: JSON ES brut.
 _work_es_count_query() {
     local app=$1 gte=$2 lte=$3 search="${4:-}"
+    local app_esc="${app//\\/\\\\}"
+    app_esc="${app_esc//\"/\\\"}"
     local search_clause=""
     if [[ -n "$search" ]]; then
         local esc="${search//\\/\\\\}"
@@ -290,7 +292,7 @@ _work_es_count_query() {
       \"size\": 0,
       \"track_total_hits\": true,
       \"query\": { \"bool\": { \"must\": [
-        { \"term\": { \"application\": \"$app\" }},
+        { \"term\": { \"application\": \"$app_esc\" }},
         { \"range\": { \"@timestamp\": { \"gte\": \"$gte\", \"lte\": \"$lte\" }}}$search_clause
       ]}},
       \"aggs\": {
@@ -434,6 +436,9 @@ work_es_tail() {
         search_clause=", { \"match_phrase\": { \"message\": \"$esc\" }}"
     fi
 
+    local app_esc="${app//\\/\\\\}"
+    app_esc="${app_esc//\"/\\\"}"
+
     # Demarrage a now-1m (sort value = epoch millis)
     local last_sort=$(( ($(date -u +%s) - 60) * 1000 ))
     _ui_msg_info "Tail de $app — interval ${interval}s, Ctrl-C pour quitter"
@@ -445,7 +450,7 @@ work_es_tail() {
           \"sort\": [{\"@timestamp\": \"asc\"}],
           \"search_after\": [$last_sort],
           \"query\": { \"bool\": { \"must\": [
-            { \"term\": { \"application\": \"$app\" }}$search_clause
+            { \"term\": { \"application\": \"$app_esc\" }}$search_clause
           ]}}
         }" "$interval") || {
             _ui_msg_warn "ES injoignable — nouvel essai dans ${interval}s"
@@ -509,7 +514,7 @@ work_fetch_logs() {
         && command -v jq &>/dev/null; then
         local max_docs="${ZANVIL_WORK_ES_MAX_DOCS:-100000}"
         local total=""
-        if _work_es_window "$since" "$from" "$to" 2>/dev/null; then
+        if _work_es_window "$since" "$from" "$to" >/dev/null 2>&1; then
             local resp
             resp=$(_work_es_count_query "$app" "$_work_es_gte" "$_work_es_lte" "$search" 2>/dev/null) \
                 && total=$(print -r -- "$resp" | jq -r '.hits.total.value // .hits.total // empty' 2>/dev/null)
