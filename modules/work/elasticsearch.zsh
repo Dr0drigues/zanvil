@@ -490,7 +490,7 @@ work_fetch_logs() {
     # Extraction de --yes + capture des options utiles au comptage.
     # Tout le reste part tel quel au script (qui fait sa propre validation).
     local -a pass_args
-    local skip_guard=false app="" since="" from="" to="" search=""
+    local skip_guard=false app="" since="" from="" to="" search="" margin=""
     while (( $# > 0 )); do
         case "$1" in
             --yes) skip_guard=true; shift ;;
@@ -501,6 +501,7 @@ work_fetch_logs() {
                     --from)   from="${2:-}" ;;
                     --to)     to="${2:-}" ;;
                     --search) search="${2:-}" ;;
+                    --margin) margin="${2:-}" ;;
                 esac
                 pass_args+=("$1" "${2:-}")
                 if (( $# >= 2 )); then shift 2; else shift; fi
@@ -518,6 +519,20 @@ work_fetch_logs() {
             local resp
             resp=$(_work_es_count_query "$app" "$_work_es_gte" "$_work_es_lte" "$search" 2>/dev/null) \
                 && total=$(print -r -- "$resp" | jq -r '.hits.total.value // .hits.total // empty' 2>/dev/null)
+            # Avec --search, le script exporte la fenetre [min,max] +/- margin des matches,
+            # pas les seuls matches : re-compter sans clause search sur la fenetre elargie.
+            if [[ -n "$search" && "$total" == <-> ]] && (( total > 0 )); then
+                local min_iso max_iso margin_sec gte2 lte2
+                min_iso=$(print -r -- "$resp" | jq -r '.aggregations.min_ts.value_as_string // empty' 2>/dev/null)
+                max_iso=$(print -r -- "$resp" | jq -r '.aggregations.max_ts.value_as_string // empty' 2>/dev/null)
+                margin_sec=$(_work_es_parse_duration "${margin:-1m}" 2>/dev/null) || margin_sec=60
+                if [[ -n "$min_iso" && -n "$max_iso" ]]; then
+                    gte2=$(_work_es_epoch_to_iso $(( $(_work_es_iso_to_epoch "$min_iso") - margin_sec )))
+                    lte2=$(_work_es_epoch_to_iso $(( $(_work_es_iso_to_epoch "$max_iso") + margin_sec )))
+                    resp=$(_work_es_count_query "$app" "$gte2" "$lte2" "" 2>/dev/null) \
+                        && total=$(print -r -- "$resp" | jq -r '.hits.total.value // .hits.total // empty' 2>/dev/null)
+                fi
+            fi
         fi
         if [[ "$total" == <-> ]] && (( total > max_docs )); then
             _ui_msg_warn "Volume estime: $total documents (seuil: $max_docs)"
