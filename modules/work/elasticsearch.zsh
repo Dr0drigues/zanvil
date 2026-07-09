@@ -309,13 +309,14 @@ work_es_count() {
     local app="" since="" from="" to="" search=""
     while (( $# > 0 )); do
         case "$1" in
-            --app)    app="${2:-}";    shift 2 ;;
-            --since)  since="${2:-}";  shift 2 ;;
-            --from)   from="${2:-}";   shift 2 ;;
-            --to)     to="${2:-}";     shift 2 ;;
-            --search) search="${2:-}"; shift 2 ;;
+            --app)    app="${2:-}" ;;
+            --since)  since="${2:-}" ;;
+            --from)   from="${2:-}" ;;
+            --to)     to="${2:-}" ;;
+            --search) search="${2:-}" ;;
             *) _ui_msg_fail "Option inconnue: $1"; return 1 ;;
         esac
+        if (( $# >= 2 )); then shift 2; else shift; fi
     done
     if [[ -z "$app" ]]; then
         _ui_msg_fail "usage: work_es_count --app APP [--since X | --from D [--to D]] [--search TEXT]"
