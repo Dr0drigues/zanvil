@@ -456,10 +456,12 @@ work_es_tail() {
         count=$(print -r -- "$resp" | jq -r '.hits.hits | length' 2>/dev/null)
         if [[ "$count" == <-> ]] && (( count > 0 )); then
             width=${COLUMNS:-120}
+            [[ "$width" == <-> ]] && (( width >= 1 )) || width=120
             print -r -- "$resp" | jq -r '.hits.hits[]._source
                 | "\(.["@timestamp"] // "" | .[11:19]) [\(.level // "-")] \(.message // "" | gsub("[\r\n]+"; " "))"' \
                 2>/dev/null | cut -c1-$width
-            last_sort=$(print -r -- "$resp" | jq -r '.hits.hits[-1].sort[0]')
+            last_sort=$(print -r -- "$resp" | jq -r '.hits.hits[-1].sort[0]' 2>/dev/null)
+            [[ "$last_sort" == <-> ]] || last_sort=$(( $(date -u +%s) * 1000 ))
             if (( count >= 1000 )); then
                 _ui_msg_warn "Filtre trop large (>= 1000 docs/iteration) — saut a now"
                 last_sort=$(( $(date -u +%s) * 1000 ))
