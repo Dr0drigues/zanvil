@@ -175,6 +175,51 @@ _work_es_window() {
     return 0
 }
 
+# --- Commandes publiques ---
+
+# Requete ES generique. Usage: work_es_query [METHOD] PATH [BODY|-]
+# METHOD deduit si absent: GET sans body, POST avec body. BODY "-" = stdin.
+work_es_query() {
+    emulate -L zsh
+    _work_es_require || return 1
+
+    local method=""
+    if [[ "${1:u}" == (GET|POST|PUT|DELETE|HEAD) ]]; then
+        method="${1:u}"
+        shift
+    fi
+    local path="${1:-}" body="${2:-}"
+    if [[ -z "$path" ]]; then
+        _ui_msg_fail "usage: work_es_query [METHOD] PATH [BODY|-]"
+        return 1
+    fi
+    [[ "$body" == "-" ]] && body="$(cat)"
+    if [[ -z "$method" ]]; then
+        [[ -n "$body" ]] && method=POST || method=GET
+    fi
+
+    local out code resp
+    out=$(_work_es_curl "$method" "$path" "$body") || {
+        _ui_msg_fail "Elasticsearch injoignable: $(_work_es_url)"
+        return 1
+    }
+    code="${out%%$'\n'*}"
+    resp=""
+    [[ "$out" == *$'\n'* ]] && resp="${out#*$'\n'}"
+
+    if [[ "$code" == <-> ]] && (( code >= 400 )); then
+        _ui_msg_fail "HTTP $code"
+        [[ -n "$resp" ]] && { print -r -- "$resp" | jq . 2>/dev/null || print -r -- "$resp" }
+        return 1
+    fi
+    if [[ -t 1 && -n "$resp" ]]; then
+        print -r -- "$resp" | jq . 2>/dev/null || print -r -- "$resp"
+    elif [[ -n "$resp" ]]; then
+        print -r -- "$resp"
+    fi
+    return 0
+}
+
 work_fetch_logs() {
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
         _ui_msg_fail "Script introuvable ou non executable: $_WORK_FETCH_LOGS_SCRIPT"
