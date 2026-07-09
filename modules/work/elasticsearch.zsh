@@ -354,6 +354,52 @@ work_es_count() {
     return 0
 }
 
+# Volet Elasticsearch de work_status. Toujours non bloquant:
+# hors contexte work -> "hors reseau", echec requete -> "injoignable"/"n/a".
+_work_es_status_section() {
+    echo ""
+    echo -e "${_ui_bold}Elasticsearch${_ui_nc}"
+    _ui_separator 44
+
+    if ! work_is_context; then
+        _ui_section "Statut" "${_ui_yellow}hors reseau${_ui_nc}"
+        return 0
+    fi
+
+    if [[ -n "${ES_USER:-}" && -n "${ES_PASSWORD:-}" ]]; then
+        _ui_section "Credentials" "${_ui_green}definis${_ui_nc}"
+    else
+        _ui_section "Credentials" "${_ui_red}absents (env.d/work.zsh)${_ui_nc}"
+        return 0
+    fi
+    if ! command -v jq &>/dev/null; then
+        _ui_section "Cluster" "${_ui_yellow}jq absent${_ui_nc}"
+        return 0
+    fi
+
+    local health status
+    health=$(_work_es_json GET "_cluster/health" "" 2)
+    if [[ -n "$health" ]]; then
+        status=$(print -r -- "$health" | jq -r '.status // "inconnu"')
+        case "$status" in
+            green)  _ui_section "Cluster" "${_ui_green}green${_ui_nc}" ;;
+            yellow) _ui_section "Cluster" "${_ui_yellow}yellow${_ui_nc}" ;;
+            red)    _ui_section "Cluster" "${_ui_red}red${_ui_nc}" ;;
+            *)      _ui_section "Cluster" "$status" ;;
+        esac
+    else
+        _ui_section "Cluster" "${_ui_red}injoignable${_ui_nc}"
+        return 0
+    fi
+
+    local resp oldest
+    resp=$(_work_es_json POST "$(_work_es_index)/_search" \
+        '{"size":0,"aggs":{"oldest":{"min":{"field":"@timestamp"}}}}' 5)
+    oldest=$(print -r -- "$resp" | jq -r '.aggregations.oldest.value_as_string // empty' 2>/dev/null)
+    _ui_section "Retention" "${oldest:-n/a}"
+    return 0
+}
+
 work_fetch_logs() {
     emulate -L zsh
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
