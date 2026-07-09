@@ -276,6 +276,83 @@ work_es_apps() {
     print -r -- "$data"
 }
 
+# Requete de comptage (size 0 + track_total_hits + aggs min/max sur @timestamp).
+# Usage: _work_es_count_query APP GTE LTE [SEARCH]. Sortie: JSON ES brut.
+_work_es_count_query() {
+    local app=$1 gte=$2 lte=$3 search="${4:-}"
+    local search_clause=""
+    if [[ -n "$search" ]]; then
+        local esc="${search//\\/\\\\}"
+        esc="${esc//\"/\\\"}"
+        search_clause=", { \"match_phrase\": { \"message\": \"$esc\" }}"
+    fi
+    _work_es_json POST "$(_work_es_index)/_search" "{
+      \"size\": 0,
+      \"track_total_hits\": true,
+      \"query\": { \"bool\": { \"must\": [
+        { \"term\": { \"application\": \"$app\" }},
+        { \"range\": { \"@timestamp\": { \"gte\": \"$gte\", \"lte\": \"$lte\" }}}$search_clause
+      ]}},
+      \"aggs\": {
+        \"min_ts\": { \"min\": { \"field\": \"@timestamp\" }},
+        \"max_ts\": { \"max\": { \"field\": \"@timestamp\" }}
+      }
+    }"
+}
+
+# Pre-vol avant export: total + fenetre reelle des matches, sans scroll ni fichier.
+# Usage: work_es_count --app APP [--since X | --from D [--to D]] [--search TEXT]
+work_es_count() {
+    emulate -L zsh
+    _work_es_require || return 1
+
+    local app="" since="" from="" to="" search=""
+    while (( $# > 0 )); do
+        case "$1" in
+            --app)    app="${2:-}";    shift 2 ;;
+            --since)  since="${2:-}";  shift 2 ;;
+            --from)   from="${2:-}";   shift 2 ;;
+            --to)     to="${2:-}";     shift 2 ;;
+            --search) search="${2:-}"; shift 2 ;;
+            *) _ui_msg_fail "Option inconnue: $1"; return 1 ;;
+        esac
+    done
+    if [[ -z "$app" ]]; then
+        _ui_msg_fail "usage: work_es_count --app APP [--since X | --from D [--to D]] [--search TEXT]"
+        return 1
+    fi
+    if [[ -n "$since" && ( -n "$from" || -n "$to" ) ]]; then
+        _ui_msg_fail "--since est incompatible avec --from/--to"
+        return 1
+    fi
+    if [[ -z "$since" && -z "$from" ]]; then
+        _ui_msg_fail "fournir --since ou --from (--to optionnel)"
+        return 1
+    fi
+    _work_es_window "$since" "$from" "$to" || return 1
+
+    local resp
+    resp=$(_work_es_count_query "$app" "$_work_es_gte" "$_work_es_lte" "$search") || {
+        _ui_msg_fail "Requete ES en echec: $(_work_es_url)"
+        return 1
+    }
+    local total min_iso max_iso
+    total=$(print -r -- "$resp" | jq -r '.hits.total.value // .hits.total // 0')
+    min_iso=$(print -r -- "$resp" | jq -r '.aggregations.min_ts.value_as_string // empty')
+    max_iso=$(print -r -- "$resp" | jq -r '.aggregations.max_ts.value_as_string // empty')
+
+    _ui_section "App" "$app"
+    [[ -n "$search" ]] && _ui_section "Recherche" "$search"
+    _ui_section "Plage" "$_work_es_display"
+    _ui_section "Total" "$total documents"
+    if [[ -n "$min_iso" && -n "$max_iso" ]]; then
+        local dur=$(( $(_work_es_iso_to_epoch "$max_iso") - $(_work_es_iso_to_epoch "$min_iso") ))
+        _ui_section "Fenetre" "$min_iso -> $max_iso"
+        _ui_section "Duree" "${dur}s"
+    fi
+    return 0
+}
+
 work_fetch_logs() {
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
         _ui_msg_fail "Script introuvable ou non executable: $_WORK_FETCH_LOGS_SCRIPT"
