@@ -1,7 +1,7 @@
 # Module work — Outillage Elasticsearch générique — Design
 
 **Date** : 2026-07-09
-**Statut** : Validé (en attente d'implémentation)
+**Statut** : Implémenté
 **Release cible** : minor
 
 ## Contexte
