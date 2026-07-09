@@ -73,3 +73,4 @@ web/docs/superpowers
 
 # Faux HOME des tests de chargement (test_load.sh)
 .fakehome/
+modules/work/logs/
