@@ -400,6 +400,75 @@ _work_es_status_section() {
     return 0
 }
 
+# Suivi quasi temps reel. Usage: work_es_tail --app APP [--search TEXT] [--interval N]
+# Poll toutes les N secondes (defaut 5, min 2) via search_after sur @timestamp asc.
+# Aucun fichier temporaire: Ctrl-C interrompt proprement la boucle.
+work_es_tail() {
+    emulate -L zsh
+    _work_es_require || return 1
+
+    local app="" search="" interval=5
+    while (( $# > 0 )); do
+        case "$1" in
+            --app)      app="${2:-}" ;;
+            --search)   search="${2:-}" ;;
+            --interval) interval="${2:-}" ;;
+            *) _ui_msg_fail "Option inconnue: $1"; return 1 ;;
+        esac
+        if (( $# >= 2 )); then shift 2; else shift; fi
+    done
+    if [[ -z "$app" ]]; then
+        _ui_msg_fail "usage: work_es_tail --app APP [--search TEXT] [--interval N]"
+        return 1
+    fi
+    if [[ ! "$interval" == <-> ]]; then
+        _ui_msg_fail "--interval doit etre un entier (secondes)"
+        return 1
+    fi
+    (( interval < 2 )) && interval=2
+
+    local search_clause=""
+    if [[ -n "$search" ]]; then
+        local esc="${search//\\/\\\\}"
+        esc="${esc//\"/\\\"}"
+        search_clause=", { \"match_phrase\": { \"message\": \"$esc\" }}"
+    fi
+
+    # Demarrage a now-1m (sort value = epoch millis)
+    local last_sort=$(( ($(date -u +%s) - 60) * 1000 ))
+    _ui_msg_info "Tail de $app — interval ${interval}s, Ctrl-C pour quitter"
+
+    local resp count width
+    while true; do
+        resp=$(_work_es_json POST "$(_work_es_index)/_search" "{
+          \"size\": 1000,
+          \"sort\": [{\"@timestamp\": \"asc\"}],
+          \"search_after\": [$last_sort],
+          \"query\": { \"bool\": { \"must\": [
+            { \"term\": { \"application\": \"$app\" }}$search_clause
+          ]}}
+        }" "$interval") || {
+            _ui_msg_warn "ES injoignable — nouvel essai dans ${interval}s"
+            sleep "$interval"
+            continue
+        }
+
+        count=$(print -r -- "$resp" | jq -r '.hits.hits | length' 2>/dev/null)
+        if [[ "$count" == <-> ]] && (( count > 0 )); then
+            width=${COLUMNS:-120}
+            print -r -- "$resp" | jq -r '.hits.hits[]._source
+                | "\(.["@timestamp"] // "" | .[11:19]) [\(.level // "-")] \(.message // "" | gsub("[\r\n]+"; " "))"' \
+                2>/dev/null | cut -c1-$width
+            last_sort=$(print -r -- "$resp" | jq -r '.hits.hits[-1].sort[0]')
+            if (( count >= 1000 )); then
+                _ui_msg_warn "Filtre trop large (>= 1000 docs/iteration) — saut a now"
+                last_sort=$(( $(date -u +%s) * 1000 ))
+            fi
+        fi
+        sleep "$interval"
+    done
+}
+
 work_fetch_logs() {
     emulate -L zsh
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
