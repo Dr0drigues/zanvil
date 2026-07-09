@@ -73,6 +73,108 @@ _work_es_json() {
     return 0
 }
 
+# --- Dates et durees ---
+# Duplication annotee de modules/work/fetch_es_logs.sh (bash, BASH_REMATCH) :
+# reecrit en zsh ($match). Garder les deux versions synchronisees.
+
+typeset -g _WORK_ES_DATE_FLAVOR=""
+_work_es_date_flavor() {
+    if [[ -z "$_WORK_ES_DATE_FLAVOR" ]]; then
+        if date --version &>/dev/null; then
+            _WORK_ES_DATE_FLAVOR=gnu
+        else
+            _WORK_ES_DATE_FLAVOR=bsd
+        fi
+    fi
+    echo "$_WORK_ES_DATE_FLAVOR"
+}
+
+# Xs/Xm/Xh/Xd -> secondes
+_work_es_parse_duration() {
+    local d=$1
+    if [[ "$d" =~ '^([0-9]+)([smhd])$' ]]; then
+        local num=$match[1] unit=$match[2]
+        case $unit in
+            s) echo $num ;;
+            m) echo $((num * 60)) ;;
+            h) echo $((num * 3600)) ;;
+            d) echo $((num * 86400)) ;;
+        esac
+    else
+        return 1
+    fi
+}
+
+_work_es_epoch_to_iso() {
+    local epoch=$1
+    if [[ $(_work_es_date_flavor) == gnu ]]; then
+        date -u -d "@$epoch" +"%Y-%m-%dT%H:%M:%S.000Z"
+    else
+        date -u -j -f "%s" "$epoch" +"%Y-%m-%dT%H:%M:%S.000Z"
+    fi
+}
+
+# ISO UTC ("2026-05-30T14:00:00.000Z" ou sans ms) -> epoch
+_work_es_iso_to_epoch() {
+    local ts=$1
+    if [[ $(_work_es_date_flavor) == gnu ]]; then
+        date -u -d "$ts" +%s
+    else
+        local clean="${ts%.*}"
+        clean="${clean%Z}"
+        TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S" "$clean" +%s 2>/dev/null
+    fi
+}
+
+# Date Europe/Paris "YYYY-mm-ddTHH:MM:SS" -> epoch UTC (DST gere)
+_work_es_paris_to_epoch() {
+    local dt=$1
+    if [[ $(_work_es_date_flavor) == gnu ]]; then
+        TZ=Europe/Paris date -d "$dt" +%s
+    else
+        TZ=Europe/Paris date -j -f "%Y-%m-%dT%H:%M:%S" "$dt" +%s 2>/dev/null
+    fi
+}
+
+# Calcule la fenetre temporelle depuis --since / --from / --to.
+# Remplit les globales _work_es_gte, _work_es_lte (ISO UTC), _work_es_display.
+_work_es_window() {
+    local since="${1:-}" from="${2:-}" to="${3:-}"
+    typeset -g _work_es_gte="" _work_es_lte="" _work_es_display=""
+    if [[ -n "$since" ]]; then
+        local seconds now
+        seconds=$(_work_es_parse_duration "$since") || {
+            _ui_msg_fail "--since invalide: $since (attendu: Xs/Xm/Xh/Xd)"
+            return 1
+        }
+        now=$(date -u +%s)
+        _work_es_gte=$(_work_es_epoch_to_iso $((now - seconds)))
+        _work_es_lte=$(_work_es_epoch_to_iso $now)
+        _work_es_display="depuis $since (-> now)"
+    else
+        local from_epoch to_epoch
+        from_epoch=$(_work_es_paris_to_epoch "$from")
+        [[ "$from_epoch" == <-> ]] || {
+            _ui_msg_fail "--from invalide: $from (attendu: 2026-03-26T15:30:00)"
+            return 1
+        }
+        if [[ -n "$to" ]]; then
+            to_epoch=$(_work_es_paris_to_epoch "$to")
+            [[ "$to_epoch" == <-> ]] || {
+                _ui_msg_fail "--to invalide: $to (attendu: 2026-03-26T15:30:00)"
+                return 1
+            }
+            _work_es_display="$from -> $to (Europe/Paris)"
+        else
+            to_epoch=$(date -u +%s)
+            _work_es_display="$from -> now (Europe/Paris)"
+        fi
+        _work_es_gte=$(_work_es_epoch_to_iso $from_epoch)
+        _work_es_lte=$(_work_es_epoch_to_iso $to_epoch)
+    fi
+    return 0
+}
+
 work_fetch_logs() {
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
         _ui_msg_fail "Script introuvable ou non executable: $_WORK_FETCH_LOGS_SCRIPT"
