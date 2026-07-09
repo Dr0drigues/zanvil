@@ -11,6 +11,7 @@ _work_es_cached_apps() {
     if [[ -f "$cache" ]]; then
         local -a apps
         apps=(${(f)"$(tail -n +3 "$cache" 2>/dev/null | cut -f1)"})
+        apps=("${apps[@]//:/\\:}")
         if (( ${#apps} )); then
             _describe -t applications 'application' apps
             return
