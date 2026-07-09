@@ -355,15 +355,59 @@ work_es_count() {
 }
 
 work_fetch_logs() {
+    emulate -L zsh
     if [[ ! -x "$_WORK_FETCH_LOGS_SCRIPT" ]]; then
         _ui_msg_fail "Script introuvable ou non executable: $_WORK_FETCH_LOGS_SCRIPT"
         return 1
     fi
-
     if [[ -z "${ES_USER:-}" || -z "${ES_PASSWORD:-}" ]]; then
         _ui_msg_fail "ES_USER/ES_PASSWORD non definis (voir env.d/work.zsh)"
         return 1
     fi
 
-    "$_WORK_FETCH_LOGS_SCRIPT" "$@"
+    # Extraction de --yes + capture des options utiles au comptage.
+    # Tout le reste part tel quel au script (qui fait sa propre validation).
+    local -a pass_args
+    local skip_guard=false app="" since="" from="" to="" search=""
+    while (( $# > 0 )); do
+        case "$1" in
+            --yes) skip_guard=true; shift ;;
+            --app|--since|--from|--to|--search|--margin|--target-dir|--format)
+                case "$1" in
+                    --app)    app="${2:-}" ;;
+                    --since)  since="${2:-}" ;;
+                    --from)   from="${2:-}" ;;
+                    --to)     to="${2:-}" ;;
+                    --search) search="${2:-}" ;;
+                esac
+                pass_args+=("$1" "${2:-}")
+                if (( $# >= 2 )); then shift 2; else shift; fi
+                ;;
+            *) pass_args+=("$1"); shift ;;
+        esac
+    done
+
+    # Garde-fou volumetrique (fail-open: ne bloque jamais plus que le script)
+    if [[ "$skip_guard" == false && -n "$app" ]] && [[ -n "$since" || -n "$from" ]] \
+        && command -v jq &>/dev/null; then
+        local max_docs="${ZANVIL_WORK_ES_MAX_DOCS:-100000}"
+        local total=""
+        if _work_es_window "$since" "$from" "$to" 2>/dev/null; then
+            local resp
+            resp=$(_work_es_count_query "$app" "$_work_es_gte" "$_work_es_lte" "$search" 2>/dev/null) \
+                && total=$(print -r -- "$resp" | jq -r '.hits.total.value // .hits.total // empty' 2>/dev/null)
+        fi
+        if [[ "$total" == <-> ]] && (( total > max_docs )); then
+            _ui_msg_warn "Volume estime: $total documents (seuil: $max_docs)"
+            if ! read -q "?Continuer l'export ? [y/N] "; then
+                echo ""
+                return 1
+            fi
+            echo ""
+        elif [[ ! "$total" == <-> ]]; then
+            _ui_msg_warn "Comptage prealable impossible — export lance sans garde-fou (--yes pour passer ce controle)"
+        fi
+    fi
+
+    "$_WORK_FETCH_LOGS_SCRIPT" "${pass_args[@]}"
 }
