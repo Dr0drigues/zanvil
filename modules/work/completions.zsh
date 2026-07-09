@@ -46,7 +46,7 @@ compdef _work_es_query work_es_query
 _work_es_apps() {
     _arguments \
         '--refresh[Forcer le rafraichissement du cache]' \
-        '1:plage Xm/Xh/Xd (defaut 24h):(1h 6h 24h 7d)'
+        '1:plage Xs/Xm/Xh/Xd (defaut 24h):(1h 6h 24h 7d)'
 }
 compdef _work_es_apps work_es_apps
 
