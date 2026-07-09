@@ -209,7 +209,11 @@ work_es_query() {
 
     if [[ "$code" == <-> ]] && (( code >= 400 )); then
         _ui_msg_fail "HTTP $code"
-        [[ -n "$resp" ]] && { print -r -- "$resp" | jq . 2>/dev/null || print -r -- "$resp" }
+        if [[ -t 1 && -n "$resp" ]]; then
+            print -r -- "$resp" | jq . 2>/dev/null || print -r -- "$resp"
+        elif [[ -n "$resp" ]]; then
+            print -r -- "$resp"
+        fi
         return 1
     fi
     if [[ -t 1 && -n "$resp" ]]; then
