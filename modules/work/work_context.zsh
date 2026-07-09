@@ -203,6 +203,9 @@ work_status() {
     else
         _ui_section "Mise" "Non installe"
     fi
+
+    # Volet Elasticsearch (defini dans elasticsearch.zsh)
+    (( $+functions[_work_es_status_section] )) && _work_es_status_section
 }
 
 # --- Auto-initialisation au chargement ---
