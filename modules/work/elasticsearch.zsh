@@ -3,6 +3,7 @@
 # ==============================================================================
 
 _WORK_FETCH_LOGS_SCRIPT="${ZANVIL_DIR:-$HOME/.zanvil}/modules/work/fetch_es_logs.sh"
+_WORK_ES_APPS_CACHE="${ZANVIL_DIR:-$HOME/.zanvil}/.work_es_apps_cache"
 
 # --- Configuration ES (surchargeable via env.d/work.zsh) ---
 
@@ -222,6 +223,57 @@ work_es_query() {
         print -r -- "$resp"
     fi
     return 0
+}
+
+# Liste des applications par volume. Usage: work_es_apps [RANGE] [--refresh]
+# RANGE au format Xm/Xh/Xd (defaut 24h). Cache TTL: ZANVIL_WORK_ES_APPS_TTL (3600s).
+work_es_apps() {
+    emulate -L zsh
+    _work_es_require || return 1
+
+    local range="24h" refresh=false arg
+    for arg in "$@"; do
+        case "$arg" in
+            --refresh) refresh=true ;;
+            *)
+                if _work_es_parse_duration "$arg" >/dev/null 2>&1; then
+                    range="$arg"
+                else
+                    _ui_msg_fail "Plage invalide: $arg (attendu: Xm/Xh/Xd)"
+                    return 1
+                fi
+                ;;
+        esac
+    done
+
+    local ttl="${ZANVIL_WORK_ES_APPS_TTL:-3600}"
+    if [[ "$refresh" == false && -f "$_WORK_ES_APPS_CACHE" ]]; then
+        local cached_time cached_range age
+        cached_time=$(sed -n '1p' "$_WORK_ES_APPS_CACHE")
+        cached_range=$(sed -n '2p' "$_WORK_ES_APPS_CACHE")
+        [[ "$cached_time" == <-> ]] && age=$(( $(date +%s) - cached_time )) || age=$ttl
+        if (( age < ttl )) && [[ "$cached_range" == "$range" ]]; then
+            tail -n +3 "$_WORK_ES_APPS_CACHE"
+            return 0
+        fi
+    fi
+
+    local resp data
+    resp=$(_work_es_json POST "$(_work_es_index)/_search" '{
+      "size": 0,
+      "query": { "range": { "@timestamp": { "gte": "now-'"$range"'" }}},
+      "aggs": { "apps": { "terms": { "field": "application", "size": 500 }}}
+    }') || {
+        _ui_msg_fail "Requete ES en echec: $(_work_es_url)"
+        return 1
+    }
+    data=$(print -r -- "$resp" | jq -r '.aggregations.apps.buckets[] | "\(.key)\t\(.doc_count)"' 2>/dev/null)
+    if [[ -z "$data" ]]; then
+        _ui_msg_fail "Reponse ES sans agregation apps (index: $(_work_es_index))"
+        return 1
+    fi
+    { date +%s; echo "$range"; print -r -- "$data" } > "$_WORK_ES_APPS_CACHE"
+    print -r -- "$data"
 }
 
 work_fetch_logs() {
