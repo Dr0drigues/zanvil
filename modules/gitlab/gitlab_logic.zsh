@@ -39,13 +39,136 @@ function load_gitlab_aliases() {
         # Ex: ptf-frontco devient gc-frontco-ptf
         alias_name="gc-${component}-${env}"
 
-        # Création de l'alias
-        alias "$alias_name"="cd $WORK_DIR && clone-projects.sh $id $GITLAB_TOKEN"
+        # Création de l'alias (délègue à gclone : pas de token dans la définition)
+        alias "$alias_name"="gclone $key"
     done
 }
 
 # Exécution de la génération
 load_gitlab_aliases
+
+### CLONE DE GROUPE ###
+
+# Liste les clés GITLAB_PROJECTS configurées (usage interne : aide + erreurs)
+function _gclone_list_keys() {
+    local key id
+    if (( ${#GITLAB_PROJECTS[@]} == 0 )); then
+        echo "    (aucune — définir GITLAB_PROJECTS dans env.d/gitlab.zsh)"
+        return
+    fi
+    for key id in "${(@kv)GITLAB_PROJECTS}"; do
+        printf "    %-24s groupe %s\n" "$key" "$id"
+    done | sort
+}
+
+function _gclone_usage() {
+    echo -e "${_ui_bold}USAGE${_ui_nc}"
+    echo "    gclone <clé|group-id> [options de clone-projects.sh]"
+    echo ""
+    echo -e "${_ui_bold}DESCRIPTION${_ui_nc}"
+    echo "    Clone ou met à jour tous les projets d'un groupe GitLab depuis \$WORK_DIR,"
+    echo "    puis positionne le shell dans le répertoire du groupe."
+    echo ""
+    echo -e "${_ui_bold}CLÉS DISPONIBLES${_ui_nc}"
+    _gclone_list_keys
+    echo ""
+    echo -e "${_ui_bold}OPTIONS${_ui_nc}"
+    echo "    Transmises telles quelles à clone-projects.sh :"
+    echo "    ssh | https, full | shallow, --parallel N, --dry-run"
+    echo "    Voir 'clone-projects.sh --help' pour le détail."
+    echo ""
+    echo -e "${_ui_bold}EXEMPLES${_ui_nc}"
+    echo "    gclone ptf-frontco ssh --parallel 8"
+    echo "    gclone 35621 --dry-run"
+}
+
+###
+# Clone tous les projets d'un groupe GitLab depuis $WORK_DIR.
+#
+# Résout la clé GITLAB_PROJECTS (ou un ID numérique brut), se place dans
+# $WORK_DIR pour lancer clone-projects.sh, puis positionne le shell dans le
+# répertoire du groupe cloné ($WORK_DIR/<full_path>).
+###
+function gclone() {
+    local target="$1"
+    local group_id script full_path start_dir api_url rc
+    local -a curl_opts
+
+    if [[ -z "$target" ]]; then
+        _ui_msg_fail "Argument manquant : clé GITLAB_PROJECTS ou group-id"
+        echo ""
+        _gclone_usage
+        return 1
+    fi
+
+    if [[ "$target" == "--help" || "$target" == "-h" ]]; then
+        _gclone_usage
+        return 0
+    fi
+    shift
+
+    # Résolution de l'ID de groupe : numérique = ID brut, sinon clé GITLAB_PROJECTS
+    if [[ "$target" == <-> ]]; then
+        group_id="$target"
+    else
+        group_id="${GITLAB_PROJECTS[$target]}"
+        if [[ -z "$group_id" ]]; then
+            _ui_msg_fail "Clé inconnue : $target"
+            echo -e "${_ui_bold}Clés disponibles :${_ui_nc}"
+            _gclone_list_keys
+            return 1
+        fi
+    fi
+
+    # Préconditions
+    if [[ -z "$GITLAB_TOKEN" ]]; then
+        _ui_msg_fail "GITLAB_TOKEN non défini (voir ~/.gitlab_secrets)"
+        return 1
+    fi
+    if [[ -z "${GITLAB_BASE_DOMAIN:-}" ]]; then
+        _ui_msg_fail "GITLAB_BASE_DOMAIN non défini (voir env.d/gitlab.zsh)"
+        return 1
+    fi
+    if [[ -z "${WORK_DIR:-}" || ! -d "$WORK_DIR" ]]; then
+        _ui_msg_fail "WORK_DIR invalide ou inexistant : ${WORK_DIR:-<non défini>}"
+        return 1
+    fi
+    if [[ -x "$SCRIPTS_DIR/clone-projects.sh" ]]; then
+        script="$SCRIPTS_DIR/clone-projects.sh"
+    elif command -v clone-projects.sh &>/dev/null; then
+        script="clone-projects.sh"
+    else
+        _ui_msg_fail "clone-projects.sh introuvable (\$SCRIPTS_DIR ou \$PATH)"
+        return 1
+    fi
+
+    # Résolution du sous-répertoire du groupe (best-effort : sert au cd final)
+    api_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
+    curl_opts=(-s --max-time 5)
+    [[ "${GITLAB_IGNORE_SSL:-false}" == "true" ]] && curl_opts+=(-k)
+
+    if command -v jq &>/dev/null; then
+        full_path=$(curl "${curl_opts[@]}" --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "$api_url/groups/$group_id" 2>/dev/null | jq -r '.full_path // empty' 2>/dev/null)
+    fi
+
+    # Exécution depuis WORK_DIR
+    start_dir="$PWD"
+    cd "$WORK_DIR" || { _ui_msg_fail "Impossible d'accéder à $WORK_DIR"; return 1 }
+
+    "$script" "$group_id" "$GITLAB_TOKEN" "$@"
+    rc=$?
+
+    if (( rc != 0 )); then
+        cd "$start_dir"
+        return $rc
+    fi
+
+    # Positionnement final dans le groupe cloné
+    if [[ -n "$full_path" && -d "$WORK_DIR/$full_path" ]]; then
+        cd "$WORK_DIR/$full_path"
+    fi
+}
 
 # Fonction utilitaire pour lister les alias générés
 function list-gitlab-cmds() {
