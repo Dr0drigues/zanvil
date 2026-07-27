@@ -46,6 +46,7 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `zanvil-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
 | `gpr` | Alias pour creer une merge request GitLab |
 | `clone-projects [--dry-run] [--parallel]` | Clone en masse des projets GitLab |
+| `gclone <cle\|group-id>` | Clone un groupe GitLab depuis `$WORK_DIR` et s'y positionne |
 | `git-bulk [--dry-run]` | Operations Git en masse sur plusieurs repos |
 
 ## Navigation

@@ -3,3 +3,7 @@ work_refresh
 work_init
 work_status
 work_fetch_logs
+work_es_query
+work_es_apps
+work_es_count
+work_es_tail
