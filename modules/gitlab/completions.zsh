@@ -1,8 +1,34 @@
 # ==============================================================================
-# GitLab Completions - Completions pour les alias gc-*
+# GitLab Completions - Completions pour gclone et les alias gc-*
 # ==============================================================================
 
 (( $+functions[compdef] )) || return 0
+
+# gclone : cles GITLAB_PROJECTS en premier argument, options du script ensuite
+_gclone() {
+    local -a keys opts
+    local key id
+
+    if (( CURRENT == 2 )); then
+        for key id in "${(@kv)GITLAB_PROJECTS}"; do
+            keys+=("$key:groupe $id")
+        done
+        _describe 'groupe GitLab' keys
+        return
+    fi
+
+    opts=(
+        'ssh:clone via SSH'
+        'https:clone via HTTPS (defaut)'
+        'full:clone complet (defaut)'
+        'shallow:clone --depth 1'
+        '--parallel:N projets en parallele'
+        '--dry-run:liste sans cloner'
+        '--help:affiche l'"'"'aide'
+    )
+    _describe 'option' opts
+}
+compdef _gclone gclone
 
 _gc_gitlab_alias() {
     local -a gc_cmds
