@@ -66,9 +66,11 @@ cli/target/
 secrets/work/settings.xml
 secrets/work/certificates_unix.sh
 .work_context_cache
+.work_es_apps_cache
 
 # Superpowers files
 web/docs/superpowers
 
 # Faux HOME des tests de chargement (test_load.sh)
 .fakehome/
+modules/work/logs/
