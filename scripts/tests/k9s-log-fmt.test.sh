@@ -188,6 +188,16 @@ printf '%s\n' "$n_out" | assert_equals "$n_in ligne(s) en entree, autant en sort
 printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --oops 2>/dev/null
 printf '%s\n' "$?" | assert_equals "option inconnue : code de sortie 2" "2"
 
+printf '%s\n' '{"level":"ERROR","message":"x","stack_trace":"weird trace\tsans colon ni point\nmore"}' \
+    | "$FMT" --pairs | awk -F'\t' '{print NF}' \
+    | assert_equals "stack avec tabulation : champ rendu sans tab" "2"
+
+printf '%s\n' '{"level":"INFO","message":"Ligne1\rLigne2"}' | "$FMT" --pairs | cut -f1 | grep -c $'\r' \
+    | assert_equals "carriage return neutralise" "0"
+
+printf '%s\n' $'col1\tcol2 texte brut' | "$FMT" --pairs | cut -f2- \
+    | assert_equals "texte brut avec tabulation : source intacte" $'col1\tcol2 texte brut'
+
 echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
