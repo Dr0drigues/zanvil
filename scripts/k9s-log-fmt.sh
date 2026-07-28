@@ -62,6 +62,9 @@ def abbrev_logger($max):
 def short_exception:
   split("\n")[0] | split(":")[0] | split(".") | last;
 
+# Rend une chaine sure pour une ligne unique.
+def oneline: gsub("\n"; "↵") | gsub("\t"; " ");
+
 # --- rendu -------------------------------------------------------------------
 . as $line |
 try (
@@ -69,7 +72,7 @@ try (
 
   (.level // .severity // .lvl // "INFO" | ascii_upcase) as $lvl |
   (.["@timestamp"] // .timestamp // .time // "" | tostring | hhmmss) as $hh |
-  (.message // .msg // "" | tostring) as $msg |
+  (.message // .msg // "" | tostring | if $pairs then oneline else . end) as $msg |
   (.thread_name // "" | tostring) as $thr |
   (.logger_name // "" | tostring) as $log |
   (.stack_trace // .exception // .stacktrace // .throwable // "" | tostring) as $st |
@@ -97,16 +100,21 @@ try (
    + (if $log == "" then "" else c("36"; ($log | abbrev_logger(36))) + " " end)
    + $sep + $msg) as $head |
 
-  $head
-  + (if $extra == "" then ""
-     else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra)
-     end)
-  + (if $st == "" then ""
-     else "\n" + c("2";
-       ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n")))
-     end)
+  (if $pairs then
+     $head
+     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception)) end)
+     + (if $extra == "" then "" else "  " + c("2"; ($extra | oneline | trunc(120))) end)
+     + "\t" + $line
+   else
+     $head
+     + (if $extra == "" then ""
+        else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra) end)
+     + (if $st == "" then ""
+        else "\n" + c("2";
+          ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n"))) end)
+   end)
 
-) catch $line
+) catch (if $pairs then $line + "\t" + $line else $line end)
 '
 
 jq -Rr --argjson pairs "$pairs" "$JQ_FILTER"
