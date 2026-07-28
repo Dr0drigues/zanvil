@@ -49,7 +49,8 @@ if [[ -n "$clip" ]]; then
     header="ctrl-y copier   ctrl-o JSON   ⏎ evenement complet   ?  preview"
     opts+=(
         --header="$header"
-        # Copie le texte rendu, sans ANSI ni indicateur de stack.
+        # Copie le texte rendu, codes ANSI retires (le sed ne touche pas
+        # au texte lui-meme : un indicateur de stack "⤷ ..." est conserve).
         --bind="ctrl-y:execute-silent(printf '%s\n' {+1} | $strip_ansi | $clip)"
         --bind="ctrl-o:execute-silent(printf '%s\n' {+2..} | $clip)"
     )

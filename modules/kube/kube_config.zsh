@@ -1238,9 +1238,9 @@ Kube Config Manager - Commandes disponibles:
   kube_switch      Switch de contexte Kubernetes (interactif)
   kube_ns          Switch de namespace (interactif)
   k [ctx] [ns]     Ouvre k9s (supporte les alias, "all" pour tous ns)
-  k9s: Shift-L    Logs formatés (logback) dans less
-  k9s: Ctrl-L     Logs interactifs (fzf) — filtrer, copier
-  klog [pod] [ctn] Logs interactifs (fzf) — --follow, --previous, --tail N, -n ns
+  k9s: Shift-L     Logs formatés (logback) dans less
+  k9s: Ctrl-L      Logs interactifs (fzf) — filtrer, copier
+  klog [pod] [ctn] Logs d'un pod (selection fzf) — JSON brut, --follow, --previous, --tail N, -n ns
   kube_k9s_setup   Deploie hotkeys + skin k9s depuis le repo
   kube_status      Affiche les configs actuellement chargees
   kube_list        Liste toutes les configs disponibles
