@@ -37,6 +37,8 @@ Le projet n'a aucun harnais de test (shellspec écarté) : chaque fonction est v
 
 Modèle à reprendre : **`~/work/misc/armadai`, `tests/e2e/`** — un cas = un fichier YAML, un harnais qui les exécute et produit un rapport.
 
+> **Cadrage fait le 2026-07-28 :** l'outil ne sera pas construit dans zanvil. Il devient un **projet distinct**, réutilisable comme dépendance, dont armadai est le prototype et zanvil le second consommateur. Décisions d'architecture, découpage en incréments et critères de succès : `~/work/misc/e2e-harness/PROJECT-BRIEF.md` (dossier au nom provisoire). L'entrée #9 se réduit donc à « zanvil adopte cet outil », ce qui dépend de son incrément 2.
+
 ```yaml
 name: direct
 weight: 5
