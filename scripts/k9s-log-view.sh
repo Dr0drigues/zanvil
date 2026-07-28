@@ -19,12 +19,25 @@ elif command -v xclip >/dev/null 2>&1; then
     clip="xclip -selection clipboard"
 fi
 
+# --- normalisation du code de sortie -----------------------------------------
+# Quitter l explorateur est une sortie normale, pas un echec : fzf rend 130
+# (128 + SIGINT) sur Esc / Ctrl-C et 1 quand aucune ligne ne correspond au
+# filtre. k9s affiche une popup d erreur des que le plugin sort non nul
+# ("command failed ... exit status 130"), donc ces deux codes deviennent 0.
+# Le code 2 (vraie erreur fzf) et tout autre code sont conserves.
+_exit_normal() {
+    case "$1" in
+        130|1) exit 0 ;;
+        *)     exit "$1" ;;
+    esac
+}
+
 # --- repli sans fzf ----------------------------------------------------------
 # Seul le premier champ est affiche : le JSON source n a d interet qu en
 # interactif. sed retire tout ce qui suit la premiere tabulation.
 if ! command -v fzf >/dev/null 2>&1; then
     sed 's/\t.*$//' | less -R
-    exit $?
+    _exit_normal $?
 fi
 
 # --- construction des options ------------------------------------------------
@@ -59,3 +72,4 @@ else
 fi
 
 fzf "${opts[@]}" >/dev/null
+_exit_normal $?

@@ -99,8 +99,13 @@ try (
      | map("\(.key)=\(if (.value | type) == "string" then .value else (.value | tojson) end)")
      | join("  ")) as $extra |
 
-  ($thr | trunc(20)) as $thr_t |
-  ($log | abbrev_logger(36)) as $log_a |
+  # oneline est applique inconditionnellement : un nom de thread ou de logger est
+  # un identifiant, jamais du texte multi-ligne (contrairement au message, ou un
+  # retour a la ligne est signifiant et donc conserve en mode statique). Une
+  # tabulation ou un newline y casserait le contrat --pairs, et l alignement de
+  # la ligne d extras en mode statique.
+  ($thr | oneline | trunc(20)) as $thr_t |
+  ($log | oneline | abbrev_logger(36)) as $log_a |
 
   (if $thr == "" then "" else "[" + $thr_t + "] " end) as $thr_plain |
   (if $log == "" then "" else $log_a + " " end) as $log_plain |
