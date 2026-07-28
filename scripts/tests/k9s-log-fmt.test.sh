@@ -7,7 +7,9 @@ ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
 FMT="$ROOT/scripts/k9s-log-fmt.sh"
 FIXTURES="$ROOT/config/k9s/fixtures/logs-sample.jsonl"
 
-# Temp directory pour les compteurs (escape subshell issue)
+# Repertoire temporaire pour les compteurs : les assertions tournent en fin de
+# pipeline (donc dans une sous-shell) ou une simple variable ne survivrait pas
+# a l issue du pipe ; on passe donc par des fichiers.
 TEST_TMPDIR=$(mktemp -d) || { echo "mktemp failed" >&2; exit 2; }
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 echo 0 > "$TEST_TMPDIR/pass"
@@ -66,6 +68,22 @@ printf '%s\n' '{"level":"INFO","message":"accolade manquante"' \
 
 printf '%s\n' '{"@timestamp":"2026-07-28T08:00:03+02:00","level":"INFO","message":"Offset"}' \
     | "$FMT" | assert_contains "horodatage sans millisecondes" "08:00:03.000 INFO  Offset"
+
+echo
+echo "== niveau numerique (pino/bunyan) =="
+
+printf '%s\n' '{"level":30,"message":"hello"}' \
+    | "$FMT" | assert_contains "niveau numerique 30 rendu INFO" "             INFO  hello"
+
+printf '%s\n' '{"level":50,"message":"hello"}' \
+    | "$FMT" | assert_contains "niveau numerique 50 rendu ERROR" "             ERROR hello"
+
+printf '%s\n' '{"level":60,"message":"hello"}' \
+    | "$FMT" | assert_contains "niveau numerique 60 rendu FATAL" "             FATAL hello"
+
+printf '%s\n' '{"level":30,"message":"hello"}' \
+    | "$FMT" | assert_equals "niveau numerique : rendu complet, pas de passthrough JSON brut" \
+    "             INFO  hello"
 
 echo
 echo "== thread et logger =="
@@ -145,6 +163,10 @@ printf '%s\n' '{"level":"INFO","message":"x","trace_id":"4bf92f35","span_id":"00
     | "$FMT" | assert_equals "trace_id, span_id et trace_flags masques" \
     "             INFO  x"
 
+printf '%s\n' '{"level":"INFO","message":"x","mdc_field":"aaa\nbbb"}' \
+    | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "MDC avec newline : reste sur 2 lignes (extras aplatis)" "2"
+
 printf '%s\n' '{"level":"INFO","message":"x","nested":{"a":1}}' \
     | "$FMT" | assert_contains "valeur structuree serialisee" 'nested={"a":1}'
 
@@ -203,16 +225,26 @@ echo "== viewer (repli sans fzf) =="
 
 VIEW="$ROOT/scripts/k9s-log-view.sh"
 
-# PATH vide de fzf : le viewer doit se rabattre sur un affichage simple et
-# n afficher que le premier champ. LESS=-FX evite d ouvrir un pager interactif.
+# PATH minimal sans fzf : on ne peut pas se fier a /usr/bin:/bin pour exclure
+# fzf (apt l installe la-bas sur Debian/Ubuntu). On construit un bin dedie
+# avec uniquement ce dont le viewer et son repli ont besoin (bash pour le
+# shebang, dirname pour se localiser, sed et less pour l affichage simple).
+mkdir -p "$TEST_TMPDIR/bin"
+ln -s "$(command -v bash)" "$TEST_TMPDIR/bin/bash"
+ln -s "$(command -v dirname)" "$TEST_TMPDIR/bin/dirname"
+ln -s "$(command -v sed)" "$TEST_TMPDIR/bin/sed"
+ln -s "$(command -v less)" "$TEST_TMPDIR/bin/less"
+
+# Le viewer doit se rabattre sur un affichage simple et n afficher que le
+# premier champ. LESS=-FX evite d ouvrir un pager interactif.
 printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
     | "$FMT" --pairs \
-    | env PATH="/usr/bin:/bin" LESS="-FX" "$VIEW" \
+    | env PATH="$TEST_TMPDIR/bin" LESS="-FX" "$VIEW" \
     | assert_contains "repli sans fzf : premier champ affiche" "INFO  Bonjour"
 
 printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
     | "$FMT" --pairs \
-    | env PATH="/usr/bin:/bin" LESS="-FX" "$VIEW" \
+    | env PATH="$TEST_TMPDIR/bin" LESS="-FX" "$VIEW" \
     | assert_equals "repli sans fzf : JSON source masque" "             INFO  Bonjour"
 
 echo

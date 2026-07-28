@@ -22,6 +22,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if ! command -v jq &> /dev/null; then
+    printf "k9s-log-fmt.sh: 'jq' requis mais non installe.\n" >&2
+    exit 1
+fi
+
 JQ_FILTER='
 # --- helpers -----------------------------------------------------------------
 def c($code; $s): "\u001b[" + $code + "m" + $s + "\u001b[0m";
@@ -38,6 +43,12 @@ def hhmmss:
        then (($u | split("."))[0] + "." + (($u | split("."))[1][0:3]))
        else $u + ".000" end)
   end;
+
+def lvl_name:
+  if (type) == "number" then
+    (if . <= 10 then "TRACE" elif . <= 20 then "DEBUG" elif . <= 30 then "INFO"
+     elif . <= 40 then "WARN" elif . <= 50 then "ERROR" else "FATAL" end)
+  else (tostring | ascii_upcase) end;
 
 def level_color:
   if . == "ERROR" or . == "FATAL" or . == "CRITICAL" then "1;31"
@@ -70,7 +81,7 @@ def oneline: gsub("\n"; "↵") | gsub("\t"; " ") | gsub("\r"; "");
 try (
   $line | fromjson |
 
-  (.level // .severity // .lvl // "INFO" | ascii_upcase) as $lvl |
+  (.level // .severity // .lvl // "INFO" | lvl_name) as $lvl |
   (.["@timestamp"] // .timestamp // .time // "" | tostring | hhmmss) as $hh |
   (.message // .msg // "" | tostring | if $pairs then oneline else . end) as $msg |
   (.thread_name // "" | tostring) as $thr |
@@ -88,16 +99,19 @@ try (
      | map("\(.key)=\(if (.value | type) == "string" then .value else (.value | tojson) end)")
      | join("  ")) as $extra |
 
-  (if $thr == "" then "" else "[" + ($thr | trunc(20)) + "] " end) as $thr_plain |
-  (if $log == "" then "" else ($log | abbrev_logger(36)) + " " end) as $log_plain |
+  ($thr | trunc(20)) as $thr_t |
+  ($log | abbrev_logger(36)) as $log_a |
+
+  (if $thr == "" then "" else "[" + $thr_t + "] " end) as $thr_plain |
+  (if $log == "" then "" else $log_a + " " end) as $log_plain |
   (if $thr == "" and $log == "" then "" else "- " end) as $sep |
 
   # Prefixe sans ANSI : sert a calculer l indentation de la 2e ligne (Task 4).
   ($hh + " " + ($lvl | pad(5)) + " " + $thr_plain + $log_plain + $sep) as $pre_plain |
 
   (c("2"; $hh) + " " + c($lvl | level_color; $lvl | pad(5)) + " "
-   + (if $thr == "" then "" else c("2"; "[" + ($thr | trunc(20)) + "]") + " " end)
-   + (if $log == "" then "" else c("36"; ($log | abbrev_logger(36))) + " " end)
+   + (if $thr == "" then "" else c("2"; "[" + $thr_t + "]") + " " end)
+   + (if $log == "" then "" else c("36"; $log_a) + " " end)
    + $sep + $msg) as $head |
 
   (if $pairs then
@@ -108,7 +122,7 @@ try (
    else
      $head
      + (if $extra == "" then ""
-        else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra) end)
+        else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra | oneline) end)
      + (if $st == "" then ""
         else "\n" + c("2";
           ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n"))) end)
