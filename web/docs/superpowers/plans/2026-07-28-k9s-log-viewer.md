@@ -14,7 +14,7 @@
 - **Aucun caractère ESC littéral dans les sources.** Les couleurs sont produites par `jq` via l'échappement `\u001b` (validé sur jq 1.7). Le fichier actuel contient des ESC bruts invisibles : ils disparaissent en Task 1.
 - **Le rendu ne dépend jamais de la détection d'un TTY.** k9s exécute le plugin derrière deux pipes ; toute logique `[[ -t 1 ]]` casserait les couleurs.
 - **`k9s-log-fmt.sh` reste un filtre pur** : pas de fichier temporaire, pas de lecture de `/dev/tty`, pas d'appel réseau. C'est ce qui le rend testable et réutilisable par `klog`.
-- **Contrat `--pairs` :** le nombre de lignes en sortie est **strictement égal** au nombre de lignes en entrée. Tout le mode interactif en dépend (`fzf` indexe par ligne).
+- **Contrat `--pairs` :** le nombre de lignes en sortie est **strictement égal** au nombre de lignes en entrée — `fzf` indexe par ligne. De plus, le **premier champ ne contient jamais de tabulation** (`--with-nth=1` n'afficherait que le fragment qui la précède), et le **second champ reste identique octet pour octet à la ligne d'entrée** (`{2..}` récupère tous les champs à partir du second, donc une ligne d'entrée contenant elle-même une tabulation round-trip correctement même si le nombre de champs dépasse 2).
 - **Largeurs :** niveau complété à 5 caractères ; thread tronqué à 20 avec `…` ; logger abrégé à 36 selon la règle `%logger{36}`. **Ni le thread ni le logger ne sont complétés** à largeur fixe.
 - **Une ligne d'entrée non-JSON est réémise à l'identique**, sans préfixe ni couleur (comportement actuel, à préserver).
 - **Champs masqués :** `trace_id`, `span_id`, `trace_flags` ne sont jamais affichés dans la ligne rendue.
@@ -627,7 +627,7 @@ Dans `JQ_FILTER`, ajouter après `def short_exception` :
 
 ```jq
 # Rend une chaine sure pour une ligne unique.
-def oneline: gsub("\n"; "↵") | gsub("\t"; " ");
+def oneline: gsub("\n"; "↵") | gsub("\r"; "") | gsub("\t"; " ");
 ```
 
 Le message est déjà capturé par `(.message // .msg // "" | tostring) as $msg` ; en mode `--pairs`, il doit passer par `oneline`. Remplacer sa capture par :
@@ -641,7 +641,7 @@ Puis remplacer l'expression finale (celle construite en Task 4) par :
 ```jq
   (if $pairs then
      $head
-     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception)) end)
+     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception | oneline)) end)
      + (if $extra == "" then "" else "  " + c("2"; ($extra | oneline | trunc(120))) end)
      + "\t" + $line
    else
@@ -657,13 +657,13 @@ Puis remplacer l'expression finale (celle construite en Task 4) par :
 Et remplacer le `catch $line` final par :
 
 ```jq
-) catch (if $pairs then $line + "\t" + $line else $line end)
+) catch (if $pairs then ($line | oneline) + "\t" + $line else $line end)
 ```
 
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `36 ok, 0 echec(s)`.
+Expected: `39 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Commit**
 
@@ -790,7 +790,7 @@ Notes d'implémentation :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `38 ok, 0 echec(s)`.
+Expected: `41 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier l'interactif à la main**
 
@@ -947,7 +947,7 @@ bash -c '"$@" | '"$ZANVIL_DIR"'/scripts/k9s-log-fmt.sh | less -R +G' dummy-arg \
   cat "$ZANVIL_DIR/config/k9s/fixtures/logs-sample.jsonl"
 ```
 
-Expected: `38 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
+Expected: `41 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
 
 - [ ] **Step 8 : Commit**
 
@@ -994,4 +994,4 @@ humanlog alors que le formatage est assure par jq."
 
 **Cohérence des noms** — fonctions `jq` : `c`, `pad`, `trunc`, `hhmmss`, `level_color` (Task 1), `abbrev_logger` (Task 2), `short_exception` (Task 3), `oneline` (Task 5). Variables : `$lvl`, `$hh`, `$msg` (1), `$thr`, `$log`, `$thr_plain`, `$log_plain`, `$sep`, `$pre_plain`, `$head` (2), `$st` (3), `$extra` (4), `$pairs` (argument, déclaré en 1, consommé en 5). Scripts : `k9s-log-fmt.sh`, `k9s-log-view.sh`, `k9s-log-fmt.test.sh`. Aucun renommage entre tâches.
 
-**Comptage cumulé des assertions** : 7 (T1) → 14 (T2) → 22 (T3) → 27 (T4) → 36 (T5) → 38 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
+**Comptage cumulé des assertions** : 7 (T1) → 14 (T2) → 22 (T3) → 27 (T4) → 39 (T5) → 41 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
