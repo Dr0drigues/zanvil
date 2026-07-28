@@ -6,7 +6,7 @@ plugins:
   # Logs JSON depuis un pod (toutes les containers)
   log-json-pod:
     shortCut: Shift-L
-    description: Logs JSON formatés (humanlog)
+    description: Logs formatés (logback)
     scopes:
       - po
     command: bash
@@ -31,7 +31,7 @@ plugins:
   # Note: dans le scope containers, $NAME = container, $POD = pod
   log-json-container:
     shortCut: Shift-L
-    description: Logs JSON formatés (humanlog)
+    description: Logs formatés (logback)
     scopes:
       - containers
     command: bash
@@ -40,6 +40,55 @@ plugins:
     args:
       - -c
       - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh | less -R +G'
+      - dummy-arg
+      - kubectl
+      - logs
+      - -c
+      - $NAME
+      - $POD
+      - -n
+      - $NAMESPACE
+      - --context
+      - $CONTEXT
+      - --tail
+      - "500"
+
+  # Explorateur de logs interactif (fzf) — filtrer, rechercher, copier
+  log-view-pod:
+    shortCut: Ctrl-L
+    description: Logs interactifs (fzf)
+    scopes:
+      - po
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
+      - dummy-arg
+      - kubectl
+      - logs
+      - $NAME
+      - -n
+      - $NAMESPACE
+      - --context
+      - $CONTEXT
+      - --tail
+      - "500"
+      - --all-containers=true
+
+  # Note: dans le scope containers, $NAME = container, $POD = pod
+  log-view-container:
+    shortCut: Ctrl-L
+    description: Logs interactifs (fzf)
+    scopes:
+      - containers
+    command: bash
+    background: false
+    confirm: false
+    args:
+      - -c
+      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
       - dummy-arg
       - kubectl
       - logs
