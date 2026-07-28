@@ -99,6 +99,35 @@ printf '%s\n' '{"level":"DEBUG","logger_name":"UneClasseSansAucunPointDontLeNomD
     "…DontLeNomDepasseTrenteSixCaracteres - x"
 
 echo
+echo "== stack trace =="
+
+STACK_JSON='{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)\n\t... 24 more"}'
+
+printf '%s\n' "$STACK_JSON" \
+    | "$FMT" | assert_contains "premiere ligne de la stack indentee de 2 espaces" \
+    "  java.lang.IllegalStateException: Boom"
+
+printf '%s\n' "$STACK_JSON" \
+    | "$FMT" | assert_contains "cadres indentes, tabulations converties" \
+    "      at com.Foo.bar(Foo.java:17)"
+
+printf '%s\n' "$STACK_JSON" \
+    | "$FMT" | assert_contains "dernier cadre" "      ... 24 more"
+
+printf '%s\n' "$STACK_JSON" | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "un evenement avec stack occupe 4 lignes" "4"
+
+printf '%s\n' '{"level":"ERROR","message":"Boom","exception":"java.lang.NullPointerException: null"}' \
+    | "$FMT" | assert_contains "champ exception reconnu" "  java.lang.NullPointerException: null"
+
+printf '%s\n' '{"level":"ERROR","message":"Boom","throwable":"java.io.IOException: broken pipe"}' \
+    | "$FMT" | assert_contains "champ throwable reconnu" "  java.io.IOException: broken pipe"
+
+printf '%s\n' '{"level":"INFO","message":"Rien a signaler"}' \
+    | "$FMT" | assert_equals "sans stack : une seule ligne" \
+    "             INFO  Rien a signaler"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"

@@ -57,6 +57,11 @@ def abbrev_logger($max):
     | if ($s | length) <= $max then $s else "…" + $s[-($max-1):] end
   end;
 
+# Nom court de l exception, extrait de la premiere ligne de la stack.
+# "java.lang.IllegalStateException: Boom\n\tat ..." -> "IllegalStateException"
+def short_exception:
+  split("\n")[0] | split(":")[0] | split(".") | last;
+
 # --- rendu -------------------------------------------------------------------
 . as $line |
 try (
@@ -67,6 +72,7 @@ try (
   (.message // .msg // "" | tostring) as $msg |
   (.thread_name // "" | tostring) as $thr |
   (.logger_name // "" | tostring) as $log |
+  (.stack_trace // .exception // .stacktrace // .throwable // "" | tostring) as $st |
 
   (if $thr == "" then "" else "[" + ($thr | trunc(20)) + "] " end) as $thr_plain |
   (if $log == "" then "" else ($log | abbrev_logger(36)) + " " end) as $log_plain |
@@ -81,6 +87,10 @@ try (
    + $sep + $msg) as $head |
 
   $head
+  + (if $st == "" then ""
+     else "\n" + c("2";
+       ($st | gsub("\t"; "    ") | split("\n") | map("  " + .) | join("\n")))
+     end)
 
 ) catch $line
 '
