@@ -53,7 +53,8 @@ def abbrev_logger($max):
   else (split(".")) as $p
     | (if ($p | length) > 1
        then (($p[0:-1] | map(.[0:1])) + [$p[-1]]) | join(".")
-       else . end)
+       else . end) as $s
+    | if ($s | length) <= $max then $s else "…" + $s[-($max-1):] end
   end;
 
 # --- rendu -------------------------------------------------------------------
