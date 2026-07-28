@@ -24,11 +24,41 @@
 | 6 | Piste A — productivité shell (×7) | v4.x | feat | 💡 idées | non |
 | 7 | Piste B — onboarding / DX (×3) | v4.x | feat | 💡 idées | non |
 | 8 | Piste D — méta / écosystème (×2) | v4.x | feat | 💡 idées | non |
+| 9 | Tests e2e en moteur de règles (pilotés par YAML) | v4.x | test | 💡 idée — à brainstormer | non |
 
 ### Détail des pistes features (1 ligne = 1 release)
 - **A — productivité** : command-not-found intelligent · widgets fzf (gco / process / env) · marque-pages de répertoires · `web_search` · `copypath`/`copyfile`/`copybuffer` · `alias-finder` · `bgnotify` (notif commandes longues)
 - **B — onboarding/DX** : wizard `zanvil init` · dashboard / MOTD · `zanvil profile` (breakdown startup)
 - **D — méta** : registre de modules + `module install` · profils/presets (work / perso / minimal)
+
+## Tests e2e en moteur de règles (#9)
+
+Le projet n'a aucun harnais de test (shellspec écarté) : chaque fonction est vérifiée à la main, et les scripts qui dépendent d'un cluster ou d'un remote ne sont pas testables du tout.
+
+Modèle à reprendre : **`~/work/misc/armadai`, `tests/e2e/`** — un cas = un fichier YAML, un harnais qui les exécute et produit un rapport.
+
+```yaml
+name: direct
+weight: 5
+setup:
+  pattern: direct
+  flags: ["--json"]
+fake:
+  rules:
+    - match: { agent: t-writer }
+      respond: "done"
+    - match: {}                     # catch-all : ne doit jamais être atteint
+      respond: "unexpected"
+expect:
+  exit_code: 0
+  events: [...]
+  event_counts: { agent_start: 1 }
+  invariants: [agent_start_end_symmetric, no_orphan_events]
+```
+
+Les briques intéressantes à transposer : les **fakes pilotés par règles de `match`** (avec catch-all explicite pour détecter les appels non prévus), les **invariants nommés et réutilisables** entre cas, le **poids par cas**, et la séparation `case.rs` / `harness.rs` / `runner.rs` / `report.rs`.
+
+Transposition à concevoir pour zanvil : les fakes porteraient sur les binaires externes (`kubectl`, `git`, `glab`, `k9s`) injectés en tête de `PATH` ; les attentes sur le code de sortie, stdout/stderr, et les effets de bord fichiers. Harnais en Rust dans `cli/` (le binaire `zanvil` existe déjà) ou en zsh — à arbitrer. Fournirait au passage un vrai socle aux fixtures introduites par la spec du viewer de logs k9s.
 
 ## ✅ v4.0.0 — Rename technique (LIVRÉ)
 
