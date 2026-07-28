@@ -276,7 +276,11 @@ printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_n
 
 printf '%s\n' '{"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}' \
     | "$FMT" | assert_contains "logger de plus de 36 caracteres abrege" \
-    "c.b.f.b.b.q.EnormousServiceImplementation - x"
+    "…b.b.q.EnormousServiceImplementation - x"
+
+printf '%s\n' '{"level":"DEBUG","logger_name":"UneClasseSansAucunPointDontLeNomDepasseTrenteSixCaracteres","message":"x"}' \
+    | "$FMT" | assert_contains "logger sans point de plus de 36 caracteres tronque" \
+    "…DontLeNomDepasseTrenteSixCaracteres - x"
 
 printf '%s\n' '{"level":"TRACE","thread_name":"http-nio-8080-exec-with-a-very-long-name","logger_name":"com.Pool","message":"x"}' \
     | "$FMT" | assert_contains "thread de plus de 20 caracteres tronque" \
@@ -351,7 +355,7 @@ try (
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `13 ok, 0 echec(s)`.
+Expected: `14 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Commit**
 
@@ -444,7 +448,7 @@ Et remplacer la dernière expression `$head` par :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `20 ok, 0 echec(s)`.
+Expected: `21 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier le rendu sur les fixtures**
 
@@ -539,7 +543,7 @@ L'ordre compte : les extras se placent juste sous le message, la stack trace fer
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `25 ok, 0 echec(s)`.
+Expected: `26 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier le rendu complet sur les fixtures**
 
@@ -655,7 +659,7 @@ Et remplacer le `catch $line` final par :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `34 ok, 0 echec(s)`.
+Expected: `35 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Commit**
 
@@ -782,7 +786,7 @@ Notes d'implémentation :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `36 ok, 0 echec(s)`.
+Expected: `37 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier l'interactif à la main**
 
@@ -939,7 +943,7 @@ bash -c '"$@" | '"$ZANVIL_DIR"'/scripts/k9s-log-fmt.sh | less -R +G' dummy-arg \
   cat "$ZANVIL_DIR/config/k9s/fixtures/logs-sample.jsonl"
 ```
 
-Expected: `36 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
+Expected: `37 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
 
 - [ ] **Step 8 : Commit**
 
@@ -986,4 +990,4 @@ humanlog alors que le formatage est assure par jq."
 
 **Cohérence des noms** — fonctions `jq` : `c`, `pad`, `trunc`, `hhmmss`, `level_color` (Task 1), `abbrev_logger` (Task 2), `short_exception` (Task 3), `oneline` (Task 5). Variables : `$lvl`, `$hh`, `$msg` (1), `$thr`, `$log`, `$thr_plain`, `$log_plain`, `$sep`, `$pre_plain`, `$head` (2), `$st` (3), `$extra` (4), `$pairs` (argument, déclaré en 1, consommé en 5). Scripts : `k9s-log-fmt.sh`, `k9s-log-view.sh`, `k9s-log-fmt.test.sh`. Aucun renommage entre tâches.
 
-**Comptage cumulé des assertions** : 7 (T1) → 13 (T2) → 20 (T3) → 25 (T4) → 34 (T5) → 36 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
+**Comptage cumulé des assertions** : 7 (T1) → 14 (T2) → 21 (T3) → 26 (T4) → 35 (T5) → 37 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
