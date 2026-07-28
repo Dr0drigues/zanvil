@@ -76,7 +76,7 @@ printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_n
 
 printf '%s\n' '{"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}' \
     | "$FMT" | assert_contains "logger de plus de 36 caracteres abrege" \
-    "c.b.f.b.b.q.EnormousServiceImplementation - x"
+    "…b.b.q.EnormousServiceImplementation - x"
 
 printf '%s\n' '{"level":"TRACE","thread_name":"http-nio-8080-exec-with-a-very-long-name","logger_name":"com.Pool","message":"x"}' \
     | "$FMT" | assert_contains "thread de plus de 20 caracteres tronque" \
@@ -93,6 +93,10 @@ printf '%s\n' '{"level":"INFO","thread_name":"main","message":"Sans logger"}' \
 printf '%s\n' '{"level":"INFO","message":"Ni thread ni logger"}' \
     | "$FMT" | assert_contains "thread et logger absents : pas de tiret orphelin" \
     "INFO  Ni thread ni logger"
+
+printf '%s\n' '{"level":"DEBUG","logger_name":"UneClasseSansAucunPointDontLeNomDepasseTrenteSixCaracteres","message":"x"}' \
+    | "$FMT" | assert_contains "logger sans point de plus de 36 caracteres tronque" \
+    "…DontLeNomDepasseTrenteSixCaracteres - x"
 
 echo
 pass=$(cat "$TEST_TMPDIR/pass")
