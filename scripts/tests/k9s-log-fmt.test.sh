@@ -68,6 +68,33 @@ printf '%s\n' '{"@timestamp":"2026-07-28T08:00:03+02:00","level":"INFO","message
     | "$FMT" | assert_contains "horodatage sans millisecondes" "08:00:03.000 INFO  Offset"
 
 echo
+echo "== thread et logger =="
+
+printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}' \
+    | "$FMT" | assert_contains "thread entre crochets, logger, separateur" \
+    "08:00:00.123 INFO  [main] com.boulanger.foo.FooService - Demarrage termine"
+
+printf '%s\n' '{"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}' \
+    | "$FMT" | assert_contains "logger de plus de 36 caracteres abrege" \
+    "c.b.f.b.b.q.EnormousServiceImplementation - x"
+
+printf '%s\n' '{"level":"TRACE","thread_name":"http-nio-8080-exec-with-a-very-long-name","logger_name":"com.Pool","message":"x"}' \
+    | "$FMT" | assert_contains "thread de plus de 20 caracteres tronque" \
+    "[http-nio-8080-exec-…] com.Pool - x"
+
+printf '%s\n' '{"level":"INFO","logger_name":"com.boulanger.foo.FooService","message":"Sans thread"}' \
+    | "$FMT" | assert_contains "thread absent : pas de crochets vides" \
+    "INFO  com.boulanger.foo.FooService - Sans thread"
+
+printf '%s\n' '{"level":"INFO","thread_name":"main","message":"Sans logger"}' \
+    | "$FMT" | assert_contains "logger absent : thread conserve" \
+    "INFO  [main] - Sans logger"
+
+printf '%s\n' '{"level":"INFO","message":"Ni thread ni logger"}' \
+    | "$FMT" | assert_contains "thread et logger absents : pas de tiret orphelin" \
+    "INFO  Ni thread ni logger"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
