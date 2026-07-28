@@ -45,6 +45,17 @@ def level_color:
   elif . == "DEBUG" or . == "TRACE" then "36"
   else "1;32" end;
 
+# Regle logback %logger{36} : au-dela de $max caracteres, chaque segment de
+# package est reduit a son initiale, la classe finale etant preservee.
+# "com.boulanger.foo.FooService" -> "c.b.f.FooService"
+def abbrev_logger($max):
+  if length <= $max then .
+  else (split(".")) as $p
+    | (if ($p | length) > 1
+       then (($p[0:-1] | map(.[0:1])) + [$p[-1]]) | join(".")
+       else . end)
+  end;
+
 # --- rendu -------------------------------------------------------------------
 . as $line |
 try (
@@ -53,8 +64,22 @@ try (
   (.level // .severity // .lvl // "INFO" | ascii_upcase) as $lvl |
   (.["@timestamp"] // .timestamp // .time // "" | tostring | hhmmss) as $hh |
   (.message // .msg // "" | tostring) as $msg |
+  (.thread_name // "" | tostring) as $thr |
+  (.logger_name // "" | tostring) as $log |
 
-  c("2"; $hh) + " " + c($lvl | level_color; $lvl | pad(5)) + " " + $msg
+  (if $thr == "" then "" else "[" + ($thr | trunc(20)) + "] " end) as $thr_plain |
+  (if $log == "" then "" else ($log | abbrev_logger(36)) + " " end) as $log_plain |
+  (if $thr == "" and $log == "" then "" else "- " end) as $sep |
+
+  # Prefixe sans ANSI : sert a calculer l indentation de la 2e ligne (Task 4).
+  ($hh + " " + ($lvl | pad(5)) + " " + $thr_plain + $log_plain + $sep) as $pre_plain |
+
+  (c("2"; $hh) + " " + c($lvl | level_color; $lvl | pad(5)) + " "
+   + (if $thr == "" then "" else c("2"; "[" + ($thr | trunc(20)) + "]") + " " end)
+   + (if $log == "" then "" else c("36"; ($log | abbrev_logger(36))) + " " end)
+   + $sep + $msg) as $head |
+
+  $head
 
 ) catch $line
 '
