@@ -6,7 +6,12 @@ set -uo pipefail
 ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
 FMT="$ROOT/scripts/k9s-log-fmt.sh"
 FIXTURES="$ROOT/config/k9s/fixtures/logs-sample.jsonl"
-pass=0 fail=0
+
+# Temp directory pour les compteurs (escape subshell issue)
+TEST_TMPDIR=$(mktemp -d) || { echo "mktemp failed" >&2; exit 2; }
+trap 'rm -rf "$TEST_TMPDIR"' EXIT
+echo 0 > "$TEST_TMPDIR/pass"
+echo 0 > "$TEST_TMPDIR/fail"
 
 # Retire les codes ANSI : les assertions portent sur le texte, pas les couleurs.
 strip_ansi() { sed $'s/\033\\[[0-9;]*m//g'; }
@@ -17,11 +22,11 @@ assert_contains() {
     out=$(strip_ansi)
     if [[ "$out" == *"$needle"* ]]; then
         printf '  ok   %s\n' "$label"
-        pass=$((pass + 1))
+        echo $(($(cat "$TEST_TMPDIR/pass") + 1)) > "$TEST_TMPDIR/pass"
     else
         printf '  FAIL %s\n       attendu : %s\n       obtenu  : %s\n' \
             "$label" "$needle" "$out"
-        fail=$((fail + 1))
+        echo $(($(cat "$TEST_TMPDIR/fail") + 1)) > "$TEST_TMPDIR/fail"
     fi
 }
 
@@ -31,11 +36,11 @@ assert_equals() {
     out=$(strip_ansi)
     if [[ "$out" == "$needle" ]]; then
         printf '  ok   %s\n' "$label"
-        pass=$((pass + 1))
+        echo $(($(cat "$TEST_TMPDIR/pass") + 1)) > "$TEST_TMPDIR/pass"
     else
         printf '  FAIL %s\n       attendu : %s\n       obtenu  : %s\n' \
             "$label" "$needle" "$out"
-        fail=$((fail + 1))
+        echo $(($(cat "$TEST_TMPDIR/fail") + 1)) > "$TEST_TMPDIR/fail"
     fi
 }
 
@@ -63,5 +68,7 @@ printf '%s\n' '{"@timestamp":"2026-07-28T08:00:03+02:00","level":"INFO","message
     | "$FMT" | assert_contains "horodatage sans millisecondes" "08:00:03.000 INFO  Offset"
 
 echo
+pass=$(cat "$TEST_TMPDIR/pass")
+fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]
