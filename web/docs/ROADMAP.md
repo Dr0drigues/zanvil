@@ -24,7 +24,7 @@
 | 6 | Piste A — productivité shell (×7) | v4.x | feat | 💡 idées | non |
 | 7 | Piste B — onboarding / DX (×3) | v4.x | feat | 💡 idées | non |
 | 8 | Piste D — méta / écosystème (×2) | v4.x | feat | 💡 idées | non |
-| 9 | Tests e2e en moteur de règles (pilotés par YAML) | v4.x | test | 💡 idée — à brainstormer | non |
+| 9 | Adoption de l'outil e2e (projet distinct) | v4.x | test | 🧠 cadré — dépend de l'incrément 2 de l'outil | non |
 
 ### Détail des pistes features (1 ligne = 1 release)
 - **A — productivité** : command-not-found intelligent · widgets fzf (gco / process / env) · marque-pages de répertoires · `web_search` · `copypath`/`copyfile`/`copybuffer` · `alias-finder` · `bgnotify` (notif commandes longues)
@@ -60,7 +60,7 @@ expect:
 
 Les briques intéressantes à transposer : les **fakes pilotés par règles de `match`** (avec catch-all explicite pour détecter les appels non prévus), les **invariants nommés et réutilisables** entre cas, le **poids par cas**, et la séparation `case.rs` / `harness.rs` / `runner.rs` / `report.rs`.
 
-Transposition à concevoir pour zanvil : les fakes porteraient sur les binaires externes (`kubectl`, `git`, `glab`, `k9s`) injectés en tête de `PATH` ; les attentes sur le code de sortie, stdout/stderr, et les effets de bord fichiers. Harnais en Rust dans `cli/` (le binaire `zanvil` existe déjà) ou en zsh — à arbitrer. Fournirait au passage un vrai socle aux fixtures introduites par la spec du viewer de logs k9s.
+Ce que l'adoption demandera à zanvil, une fois l'outil disponible : les fakes portent sur les binaires externes (`git` 221 appels, `kubectl` 87, `fzf` 70, `jq` 65, `docker` 52, `sops` 44, `k9s` 36) injectés en tête de `PATH`, et les attentes sur le code de sortie, stdout/stderr, les fichiers écrits et le journal des appels sortants. L'isolation par `HOME` temporaire suffit — vérifié : seuls 4 chemins absolus ne dérivent pas de `$HOME` dans `modules/` et `core/`, et le dépôt ne contient qu'un seul `rm -rf`, dans un alias npm. Le harnais ne sera pas écrit ici : cet arbitrage est tranché dans le document de lancement de l'outil. Premier cas visé, parce qu'il attrape une régression réellement survenue : `kube_k9s_setup` ne doit laisser aucune variable non résolue dans le fichier déployé.
 
 ## ✅ v4.0.0 — Rename technique (LIVRÉ)
 
