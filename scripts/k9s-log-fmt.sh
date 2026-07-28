@@ -89,7 +89,7 @@ try (
   $head
   + (if $st == "" then ""
      else "\n" + c("2";
-       ($st | gsub("\t"; "    ") | split("\n") | map("  " + .) | join("\n")))
+       ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n")))
      end)
 
 ) catch $line

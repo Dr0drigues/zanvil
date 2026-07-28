@@ -127,6 +127,10 @@ printf '%s\n' '{"level":"INFO","message":"Rien a signaler"}' \
     | "$FMT" | assert_equals "sans stack : une seule ligne" \
     "             INFO  Rien a signaler"
 
+printf '%s\n' '{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)\n"}' \
+    | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "stack avec newline final : pas de ligne parasite" "3"
+
 echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
