@@ -63,7 +63,7 @@ def short_exception:
   split("\n")[0] | split(":")[0] | split(".") | last;
 
 # Rend une chaine sure pour une ligne unique.
-def oneline: gsub("\n"; "↵") | gsub("\t"; " ");
+def oneline: gsub("\n"; "↵") | gsub("\t"; " ") | gsub("\r"; "");
 
 # --- rendu -------------------------------------------------------------------
 . as $line |
@@ -102,7 +102,7 @@ try (
 
   (if $pairs then
      $head
-     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception)) end)
+     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception | oneline)) end)
      + (if $extra == "" then "" else "  " + c("2"; ($extra | oneline | trunc(120))) end)
      + "\t" + $line
    else
@@ -114,7 +114,7 @@ try (
           ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n"))) end)
    end)
 
-) catch (if $pairs then $line + "\t" + $line else $line end)
+) catch (if $pairs then ($line | oneline) + "\t" + $line else $line end)
 '
 
 jq -Rr --argjson pairs "$pairs" "$JQ_FILTER"
