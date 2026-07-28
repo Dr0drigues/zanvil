@@ -153,6 +153,42 @@ printf '%s\n' '{"level":"ERROR","message":"Boom","stack_trace":"java.lang.Error:
     | assert_equals "extras et stack : 3 lignes" "3"
 
 echo
+echo "== mode --pairs =="
+
+PAIRS_JSON='{"@timestamp":"2026-07-28T08:00:01.456Z","level":"ERROR","thread_name":"main","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)","retry":2}'
+
+printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "un evenement avec stack et extras tient sur une ligne" "1"
+
+printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | cut -f1 \
+    | assert_contains "stack reduite au nom court de l exception" "⤷ IllegalStateException"
+
+printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | cut -f1 \
+    | assert_contains "extras concatenes en fin de ligne" "retry=2"
+
+printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | cut -f2- \
+    | assert_equals "2e champ = JSON source intact" "$PAIRS_JSON"
+
+printf '%s\n' '{"level":"INFO","message":"Ligne 1\nLigne 2"}' | "$FMT" --pairs | strip_ansi | cut -f1 \
+    | assert_contains "retours a la ligne du message remplaces par un symbole" "Ligne 1↵Ligne 2"
+
+printf '%s\n' 'texte brut' | "$FMT" --pairs | assert_equals "texte brut duplique dans les deux champs" \
+    "$(printf 'texte brut\ttexte brut')"
+
+echo
+echo "== contrat --pairs sur les fixtures =="
+
+n_in=$(wc -l < "$FIXTURES" | tr -d ' ')
+n_out=$("$FMT" --pairs < "$FIXTURES" | wc -l | tr -d ' ')
+printf '%s\n' "$n_out" | assert_equals "$n_in ligne(s) en entree, autant en sortie" "$n_in"
+
+"$FMT" --pairs < "$FIXTURES" | awk -F'\t' '{print NF}' | sort -u | tr '\n' ' ' | sed 's/ $//' \
+    | assert_equals "chaque ligne porte exactement 2 champs" "2"
+
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --oops 2>/dev/null
+printf '%s\n' "$?" | assert_equals "option inconnue : code de sortie 2" "2"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
