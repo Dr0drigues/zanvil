@@ -248,6 +248,55 @@ printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
     | assert_equals "repli sans fzf : JSON source masque" "             INFO  Bonjour"
 
 echo
+echo "== viewer (code de sortie) =="
+
+# k9s affiche une popup d erreur des que le plugin sort non nul. Quitter fzf par
+# Esc rend 130, et un filtre sans correspondance rend 1 : deux sorties normales.
+# Un faux fzf permet de verifier la normalisation sans TTY.
+_fake_fzf() {
+    printf '#!/bin/sh\nexit %s\n' "$1" > "$TEST_TMPDIR/bin/fzf"
+    chmod +x "$TEST_TMPDIR/bin/fzf"
+}
+
+_fake_fzf 130
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
+    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+printf '%s\n' "$?" | assert_equals "fzf annule (130) : sortie normalisee a 0" "0"
+
+_fake_fzf 1
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
+    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+printf '%s\n' "$?" | assert_equals "aucune correspondance (1) : sortie normalisee a 0" "0"
+
+_fake_fzf 2
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
+    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+printf '%s\n' "$?" | assert_equals "erreur fzf (2) : code preserve" "2"
+
+rm -f "$TEST_TMPDIR/bin/fzf"
+
+echo
+echo "== thread et logger : identifiants sur une seule ligne =="
+
+# Un nom de thread ou de logger contenant une tabulation ou un newline casserait
+# le contrat --pairs (indexation fzf par ligne) et l alignement en statique.
+printf '%s\n' '{"level":"INFO","thread_name":"pool\n1","message":"x"}' \
+    | "$FMT" --pairs | wc -l | tr -d ' ' \
+    | assert_equals "thread avec newline : une seule ligne en --pairs" "1"
+
+printf '%s\n' '{"level":"INFO","thread_name":"pool\t1","message":"x"}' \
+    | "$FMT" --pairs | awk -F'\t' '{print NF}' \
+    | assert_equals "thread avec tabulation : deux champs" "2"
+
+printf '%s\n' '{"level":"INFO","logger_name":"com.A\tB","message":"x"}' \
+    | "$FMT" --pairs | awk -F'\t' '{print NF}' \
+    | assert_equals "logger avec tabulation : deux champs" "2"
+
+printf '%s\n' '{"level":"INFO","thread_name":"pool\n1","message":"x"}' \
+    | "$FMT" | wc -l | tr -d ' ' \
+    | assert_equals "thread avec newline : une seule ligne en statique" "1"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
