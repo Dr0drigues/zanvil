@@ -400,6 +400,10 @@ printf '%s\n' "$STACK_JSON" \
 printf '%s\n' "$STACK_JSON" | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
     | assert_equals "un evenement avec stack occupe 4 lignes" "4"
 
+printf '%s\n' '{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)\n"}' \
+    | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "stack avec newline final : pas de ligne parasite" "3"
+
 printf '%s\n' '{"level":"ERROR","message":"Boom","exception":"java.lang.NullPointerException: null"}' \
     | "$FMT" | assert_contains "champ exception reconnu" "  java.lang.NullPointerException: null"
 
@@ -441,14 +445,14 @@ Et remplacer la dernière expression `$head` par :
   $head
   + (if $st == "" then ""
      else "\n" + c("2";
-       ($st | gsub("\t"; "    ") | split("\n") | map("  " + .) | join("\n")))
+       ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n")))
      end)
 ```
 
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `21 ok, 0 echec(s)`.
+Expected: `22 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier le rendu sur les fixtures**
 
@@ -534,7 +538,7 @@ Puis remplacer l'expression finale par :
      end)
   + (if $st == "" then ""
      else "\n" + c("2";
-       ($st | gsub("\t"; "    ") | split("\n") | map("  " + .) | join("\n")))
+       ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n")))
      end)
 ```
 
@@ -543,7 +547,7 @@ L'ordre compte : les extras se placent juste sous le message, la stack trace fer
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `26 ok, 0 echec(s)`.
+Expected: `27 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier le rendu complet sur les fixtures**
 
@@ -646,7 +650,7 @@ Puis remplacer l'expression finale (celle construite en Task 4) par :
         else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra) end)
      + (if $st == "" then ""
         else "\n" + c("2";
-          ($st | gsub("\t"; "    ") | split("\n") | map("  " + .) | join("\n"))) end)
+          ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n"))) end)
    end)
 ```
 
@@ -659,7 +663,7 @@ Et remplacer le `catch $line` final par :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `35 ok, 0 echec(s)`.
+Expected: `36 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Commit**
 
@@ -786,7 +790,7 @@ Notes d'implémentation :
 - [ ] **Step 4 : Lancer le vérificateur pour constater le succès**
 
 Run: `scripts/tests/k9s-log-fmt.test.sh`
-Expected: `37 ok, 0 echec(s)`.
+Expected: `38 ok, 0 echec(s)`.
 
 - [ ] **Step 5 : Vérifier l'interactif à la main**
 
@@ -943,7 +947,7 @@ bash -c '"$@" | '"$ZANVIL_DIR"'/scripts/k9s-log-fmt.sh | less -R +G' dummy-arg \
   cat "$ZANVIL_DIR/config/k9s/fixtures/logs-sample.jsonl"
 ```
 
-Expected: `37 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
+Expected: `38 ok, 0 echec(s)`, puis le rendu complet dans `less` — ce second appel reproduit l'invocation exacte de k9s, deux pipes compris.
 
 - [ ] **Step 8 : Commit**
 
@@ -990,4 +994,4 @@ humanlog alors que le formatage est assure par jq."
 
 **Cohérence des noms** — fonctions `jq` : `c`, `pad`, `trunc`, `hhmmss`, `level_color` (Task 1), `abbrev_logger` (Task 2), `short_exception` (Task 3), `oneline` (Task 5). Variables : `$lvl`, `$hh`, `$msg` (1), `$thr`, `$log`, `$thr_plain`, `$log_plain`, `$sep`, `$pre_plain`, `$head` (2), `$st` (3), `$extra` (4), `$pairs` (argument, déclaré en 1, consommé en 5). Scripts : `k9s-log-fmt.sh`, `k9s-log-view.sh`, `k9s-log-fmt.test.sh`. Aucun renommage entre tâches.
 
-**Comptage cumulé des assertions** : 7 (T1) → 14 (T2) → 21 (T3) → 26 (T4) → 35 (T5) → 37 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
+**Comptage cumulé des assertions** : 7 (T1) → 14 (T2) → 22 (T3) → 27 (T4) → 36 (T5) → 38 (T6). Les totaux annoncés aux étapes « constater le succès » suivent cette progression.
