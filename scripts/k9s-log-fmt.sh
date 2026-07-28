@@ -74,6 +74,17 @@ try (
   (.logger_name // "" | tostring) as $log |
   (.stack_trace // .exception // .stacktrace // .throwable // "" | tostring) as $st |
 
+  (del(
+    .["@timestamp"], .timestamp, .time,
+    .level, .severity, .lvl,
+    .message, .msg,
+    .thread_name, .logger_name,
+    .stack_trace, .exception, .stacktrace, .throwable,
+    .trace_id, .span_id, .trace_flags
+   ) | to_entries
+     | map("\(.key)=\(if (.value | type) == "string" then .value else (.value | tojson) end)")
+     | join("  ")) as $extra |
+
   (if $thr == "" then "" else "[" + ($thr | trunc(20)) + "] " end) as $thr_plain |
   (if $log == "" then "" else ($log | abbrev_logger(36)) + " " end) as $log_plain |
   (if $thr == "" and $log == "" then "" else "- " end) as $sep |
@@ -87,6 +98,9 @@ try (
    + $sep + $msg) as $head |
 
   $head
+  + (if $extra == "" then ""
+     else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra)
+     end)
   + (if $st == "" then ""
      else "\n" + c("2";
        ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n")))

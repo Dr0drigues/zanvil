@@ -132,6 +132,27 @@ printf '%s\n' '{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_
     | assert_equals "stack avec newline final : pas de ligne parasite" "3"
 
 echo
+echo "== champs extra (MDC) =="
+
+printf '%s\n' '{"level":"WARN","thread_name":"main","logger_name":"com.Cleanup","message":"3 orphelins","http.status":503,"retry":2}' \
+    | "$FMT" | assert_contains "champs extra en cle=valeur" "http.status=503  retry=2"
+
+printf '%s\n' '{"level":"WARN","thread_name":"main","logger_name":"com.Cleanup","message":"3 orphelins","retry":2}' \
+    | "$FMT" | assert_contains "2e ligne alignee sous le message" \
+    "                                        retry=2"
+
+printf '%s\n' '{"level":"INFO","message":"x","trace_id":"4bf92f35","span_id":"00f067aa","trace_flags":"01"}' \
+    | "$FMT" | assert_equals "trace_id, span_id et trace_flags masques" \
+    "             INFO  x"
+
+printf '%s\n' '{"level":"INFO","message":"x","nested":{"a":1}}' \
+    | "$FMT" | assert_contains "valeur structuree serialisee" 'nested={"a":1}'
+
+printf '%s\n' '{"level":"ERROR","message":"Boom","stack_trace":"java.lang.Error: Boom","retry":2}' \
+    | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
+    | assert_equals "extras et stack : 3 lignes" "3"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
