@@ -199,6 +199,23 @@ printf '%s\n' $'col1\tcol2 texte brut' | "$FMT" --pairs | cut -f2- \
     | assert_equals "texte brut avec tabulation : source intacte" $'col1\tcol2 texte brut'
 
 echo
+echo "== viewer (repli sans fzf) =="
+
+VIEW="$ROOT/scripts/k9s-log-view.sh"
+
+# PATH vide de fzf : le viewer doit se rabattre sur un affichage simple et
+# n afficher que le premier champ. LESS=-FX evite d ouvrir un pager interactif.
+printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
+    | "$FMT" --pairs \
+    | env PATH="/usr/bin:/bin" LESS="-FX" "$VIEW" \
+    | assert_contains "repli sans fzf : premier champ affiche" "INFO  Bonjour"
+
+printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
+    | "$FMT" --pairs \
+    | env PATH="/usr/bin:/bin" LESS="-FX" "$VIEW" \
+    | assert_equals "repli sans fzf : JSON source masque" "             INFO  Bonjour"
+
+echo
 pass=$(cat "$TEST_TMPDIR/pass")
 fail=$(cat "$TEST_TMPDIR/fail")
 printf '%d ok, %d echec(s)\n' "$pass" "$fail"
