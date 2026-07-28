@@ -749,7 +749,7 @@ fi
 # --- construction des options ------------------------------------------------
 strip_ansi='sed "s/\x1b\[[0-9;]*m//g"'
 
-header="⏎ evenement complet   ?  preview"
+header="⏎ evenement complet   ? apercu JSON"
 opts=(
     --ansi
     --multi
@@ -759,13 +759,13 @@ opts=(
     --prompt="log > "
     --header="$header"
     --preview="printf '%s' {2..} | jq -C . 2>/dev/null || printf '%s' {2..}"
-    --preview-window="right:50%:wrap"
+    --preview-window="right:50%:wrap:hidden"
     --bind="?:toggle-preview"
     --bind="enter:execute(printf '%s' {2..} | \"$FMT\" | less -R)"
 )
 
 if [[ -n "$clip" ]]; then
-    header="ctrl-y copier   ctrl-o JSON   ⏎ evenement complet   ?  preview"
+    header="ctrl-y copier   ctrl-o JSON   ⏎ evenement complet   ? apercu JSON"
     opts+=(
         --header="$header"
         # Copie le texte rendu, sans ANSI ni indicateur de stack.
@@ -980,7 +980,7 @@ humanlog alors que le formatage est assure par jq."
 | Codes ANSI embarqués, indépendants du TTY | 1 (`\u001b`) |
 | `fzf` : `--ansi --multi --delimiter --with-nth=1`, filtrage natif | 6 |
 | Bindings `ctrl-y`, `ctrl-o`, `⏎`, `?` | 6 |
-| Preview `jq -C .` avec repli texte brut | 6 |
+| Preview `jq -C .` avec repli texte brut, replié au démarrage (`hidden`) | 6 |
 | Presse-papier `pbcopy`/`wl-copy`/`xclip`, bindings retirés si absent | 6 |
 | Repli `less -R` si `fzf` absent | 6 |
 | Flag `-h`/`--help`, option inconnue → code 2 | 1 (implémentation), 5 (cas de test) |
