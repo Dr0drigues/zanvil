@@ -1203,10 +1203,12 @@ kube_k9s_setup() {
         _ui_msg_warn "config/k9s/hotkeys.yaml absent dans $ZANVIL_DIR"
     fi
 
-    # Deployer plugins
+    # Deployer plugins — $ZANVIL_DIR est resolu a la copie : k9s tente de
+    # substituer lui-meme les $VAR et n'a pas ZANVIL_DIR dans son environnement
+    # (warning "No k9s environment matching key" + chemin vide si la var change).
     local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
     if [[ -f "$plugins_src" ]]; then
-        cp "$plugins_src" "$k9s_dir/plugins.yaml"
+        sed "s|\$ZANVIL_DIR|$ZANVIL_DIR|g" "$plugins_src" > "$k9s_dir/plugins.yaml"
         _ui_msg_ok "plugins.yaml deploye"
     else
         _ui_msg_warn "config/k9s/plugins.yaml absent dans $ZANVIL_DIR"
