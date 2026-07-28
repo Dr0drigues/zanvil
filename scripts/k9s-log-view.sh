@@ -43,7 +43,7 @@ fi
 # --- construction des options ------------------------------------------------
 strip_ansi='sed "s/\x1b\[[0-9;]*m//g"'
 
-header="⏎ evenement complet   ?  preview"
+header="⏎ evenement complet   ? apercu JSON"
 opts=(
     --ansi
     --multi
@@ -53,13 +53,16 @@ opts=(
     --prompt="log > "
     --header="$header"
     --preview="printf '%s' {2..} | jq -C . 2>/dev/null || printf '%s' {2..}"
-    --preview-window="right:50%:wrap"
+    # hidden : le panneau demarre replie, la liste occupe toute la largeur.
+    # Les lignes rendues sont longues (heure, niveau, thread, logger, message) et
+    # le JSON source ne sert qu a l inspection ponctuelle. "?" le deplie.
+    --preview-window="right:50%:wrap:hidden"
     --bind="?:toggle-preview"
     --bind="enter:execute(printf '%s' {2..} | \"$FMT\" | less -R)"
 )
 
 if [[ -n "$clip" ]]; then
-    header="ctrl-y copier   ctrl-o JSON   ⏎ evenement complet   ?  preview"
+    header="ctrl-y copier   ctrl-o JSON   ⏎ evenement complet   ? apercu JSON"
     opts+=(
         --header="$header"
         # Copie le texte rendu, codes ANSI retires (le sed ne touche pas

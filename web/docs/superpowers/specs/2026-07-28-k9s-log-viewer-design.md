@@ -50,12 +50,12 @@ fzf --ansi --multi --delimiter=$'\t' --with-nth=1
 |--------|--------|
 | *(saisie)* | Filtrage fuzzy natif. `'motif` pour une correspondance exacte. Le compteur de matches de `fzf` tient lieu de décompte par niveau. |
 | `Tab` | Marque une ligne (sélection multiple). |
-| `ctrl-y` | Copie le texte rendu des lignes sélectionnées, codes ANSI et stack trace retirés. Sans sélection, la ligne sous le curseur. |
+| `ctrl-y` | Copie le texte rendu des lignes sélectionnées, codes ANSI retirés. L'indicateur `⤷ NomException` fait partie du texte rendu et reste donc dans la copie ; la stack trace complète, elle, n'y figure jamais puisqu'elle n'est pas dans la ligne. Sans sélection, la ligne sous le curseur. |
 | `ctrl-o` | Copie le JSON source complet. |
 | `⏎` | Rejoue l'événement seul dans `k9s-log-fmt.sh` en mode statique, ouvert dans `less -R` : stack trace complète, puis retour à l'explorateur. |
-| `?` | Bascule le panneau de preview. |
+| `?` | Déplie ou replie le panneau de preview. **Il démarre replié** : les lignes rendues sont longues et le JSON source ne sert qu'à l'inspection ponctuelle, donc la liste occupe toute la largeur par défaut. |
 
-Le preview affiche `jq -C .` sur le JSON source, avec repli sur la ligne brute quand `jq` échoue (log non-JSON).
+Le preview affiche `jq -C .` sur le JSON source, avec repli sur la ligne brute quand `jq` échoue (log non-JSON). Il est déclaré `hidden`, donc replié au démarrage.
 
 Le presse-papier est résolu une fois au démarrage : `pbcopy`, sinon `wl-copy`, sinon `xclip -selection clipboard`. Si aucun n'est disponible, les bindings de copie sont retirés et le header le signale. Si `fzf` est absent, le viewer se rabat sur `less -R` en n'affichant que le premier champ.
 
