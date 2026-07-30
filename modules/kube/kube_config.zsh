@@ -1203,10 +1203,12 @@ kube_k9s_setup() {
         _ui_msg_warn "config/k9s/hotkeys.yaml absent dans $ZANVIL_DIR"
     fi
 
-    # Deployer plugins
+    # Deployer plugins — $ZANVIL_DIR est resolu a la copie : k9s tente de
+    # substituer lui-meme les $VAR et n'a pas ZANVIL_DIR dans son environnement
+    # (warning "No k9s environment matching key" + chemin vide si la var change).
     local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
     if [[ -f "$plugins_src" ]]; then
-        cp "$plugins_src" "$k9s_dir/plugins.yaml"
+        sed "s|\$ZANVIL_DIR|$ZANVIL_DIR|g" "$plugins_src" > "$k9s_dir/plugins.yaml"
         _ui_msg_ok "plugins.yaml deploye"
     else
         _ui_msg_warn "config/k9s/plugins.yaml absent dans $ZANVIL_DIR"
@@ -1236,7 +1238,9 @@ Kube Config Manager - Commandes disponibles:
   kube_switch      Switch de contexte Kubernetes (interactif)
   kube_ns          Switch de namespace (interactif)
   k [ctx] [ns]     Ouvre k9s (supporte les alias, "all" pour tous ns)
-  klog [pod] [ctn] Logs interactifs (fzf) — --follow, --previous, --tail N, -n ns
+  k9s: Shift-L     Logs formatés (logback) dans less
+  k9s: Ctrl-L      Logs interactifs (fzf) — filtrer, copier
+  klog [pod] [ctn] Logs d'un pod (selection fzf) — JSON brut, --follow, --previous, --tail N, -n ns
   kube_k9s_setup   Deploie hotkeys + skin k9s depuis le repo
   kube_status      Affiche les configs actuellement chargees
   kube_list        Liste toutes les configs disponibles

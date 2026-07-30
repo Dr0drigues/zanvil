@@ -1,38 +1,139 @@
 #!/usr/bin/env bash
-# k9s-log-fmt.sh — Formatte les logs JSON ligne par ligne avec couleurs ANSI
-# Utilise jq pour parser, codes ANSI embarqués dans les strings (TTY-indépendant)
-# Usage : kubectl logs ... | k9s-log-fmt.sh | less -R +G
+# k9s-log-fmt.sh — rend des logs JSON au format d'une console logback.
+# Filtre pur stdin -> stdout : pas d'etat, pas de fichier temporaire.
+# Les codes ANSI sont embarques par jq (\u001b) : le rendu ne depend pas d'un TTY,
+# ce qui est necessaire puisque k9s execute le plugin derriere deux pipes.
+#
+# Usage : kubectl logs ... | k9s-log-fmt.sh [--pairs]
+#   (defaut)  rendu multi-ligne : stack trace indentee, champs extra sur 2e ligne
+#   --pairs   une ligne par entree : texte, TAB, JSON source (pour k9s-log-view.sh)
+set -uo pipefail
+
+pairs=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --pairs) pairs=true; shift ;;
+        -h|--help)
+            sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0 ;;
+        *)
+            printf 'k9s-log-fmt.sh: option inconnue : %s\n' "$1" >&2
+            exit 2 ;;
+    esac
+done
+
+if ! command -v jq &> /dev/null; then
+    printf "k9s-log-fmt.sh: 'jq' requis mais non installe.\n" >&2
+    exit 1
+fi
 
 JQ_FILTER='
+# --- helpers -----------------------------------------------------------------
+def c($code; $s): "\u001b[" + $code + "m" + $s + "\u001b[0m";
+def pad($n): if length >= $n then . else . + (" " * ($n - length)) end;
+def trunc($n): if length > $n then .[0:$n-1] + "…" else . end;
+
+# "2026-07-28T08:00:00.123456Z" -> "08:00:00.123". Chaine vide -> 12 espaces,
+# pour que la colonne du niveau reste alignee.
+def hhmmss:
+  if . == "" then "            "
+  else (if test("T") then split("T")[1] else . end) as $t
+    | ($t | sub("(Z|[+-][0-9:]+)$"; "")) as $u
+    | (if ($u | test("\\."))
+       then (($u | split("."))[0] + "." + (($u | split("."))[1][0:3]))
+       else $u + ".000" end)
+  end;
+
+def lvl_name:
+  if (type) == "number" then
+    (if . <= 10 then "TRACE" elif . <= 20 then "DEBUG" elif . <= 30 then "INFO"
+     elif . <= 40 then "WARN" elif . <= 50 then "ERROR" else "FATAL" end)
+  else (tostring | ascii_upcase) end;
+
+def level_color:
+  if . == "ERROR" or . == "FATAL" or . == "CRITICAL" then "1;31"
+  elif . == "WARN" or . == "WARNING" then "1;33"
+  elif . == "DEBUG" or . == "TRACE" then "36"
+  else "1;32" end;
+
+# Regle logback %logger{36} : au-dela de $max caracteres, chaque segment de
+# package est reduit a son initiale, la classe finale etant preservee.
+# "com.boulanger.foo.FooService" -> "c.b.f.FooService"
+def abbrev_logger($max):
+  if length <= $max then .
+  else (split(".")) as $p
+    | (if ($p | length) > 1
+       then (($p[0:-1] | map(.[0:1])) + [$p[-1]]) | join(".")
+       else . end) as $s
+    | if ($s | length) <= $max then $s else "…" + $s[-($max-1):] end
+  end;
+
+# Nom court de l exception, extrait de la premiere ligne de la stack.
+# "java.lang.IllegalStateException: Boom\n\tat ..." -> "IllegalStateException"
+def short_exception:
+  split("\n")[0] | split(":")[0] | split(".") | last;
+
+# Rend une chaine sure pour une ligne unique.
+def oneline: gsub("\n"; "↵") | gsub("\t"; " ") | gsub("\r"; "");
+
+# --- rendu -------------------------------------------------------------------
 . as $line |
 try (
   $line | fromjson |
 
-  (.level // .severity // .lvl // "INFO" | ascii_upcase) as $lvl |
-  (if $lvl == "ERROR" or $lvl == "FATAL" or $lvl == "CRITICAL"
-   then "[1;31m"
-   elif $lvl == "WARN" or $lvl == "WARNING"
-   then "[1;33m"
-   elif $lvl == "DEBUG" or $lvl == "TRACE"
-   then "[36m"
-   else "[1;32m"
-   end) as $lc |
-
-  (.["@timestamp"] // .timestamp // .time // "") as $ts |
-  (.message // .msg // "") as $msg |
+  (.level // .severity // .lvl // "INFO" | lvl_name) as $lvl |
+  (.["@timestamp"] // .timestamp // .time // "" | tostring | hhmmss) as $hh |
+  (.message // .msg // "" | tostring | if $pairs then oneline else . end) as $msg |
+  (.thread_name // "" | tostring) as $thr |
+  (.logger_name // "" | tostring) as $log |
+  (.stack_trace // .exception // .stacktrace // .throwable // "" | tostring) as $st |
 
   (del(
     .["@timestamp"], .timestamp, .time,
     .level, .severity, .lvl,
     .message, .msg,
-    .trace_id, .span_id, .trace_flags,
-    .logger_name, .thread_name
-  ) | to_entries | map("\(.key)=\(.value|tostring)") | join("  ")) as $extra |
+    .thread_name, .logger_name,
+    .stack_trace, .exception, .stacktrace, .throwable,
+    .trace_id, .span_id, .trace_flags
+   ) | to_entries
+     | map("\(.key)=\(if (.value | type) == "string" then .value else (.value | tojson) end)")
+     | join("  ")) as $extra |
 
-  "[2m\($ts)[0m \($lc)|\($lvl)|[0m \($msg)" +
-  (if $extra != "" then "\n         [2m\($extra)[0m" else "" end)
+  # oneline est applique inconditionnellement : un nom de thread ou de logger est
+  # un identifiant, jamais du texte multi-ligne (contrairement au message, ou un
+  # retour a la ligne est signifiant et donc conserve en mode statique). Une
+  # tabulation ou un newline y casserait le contrat --pairs, et l alignement de
+  # la ligne d extras en mode statique.
+  ($thr | oneline | trunc(20)) as $thr_t |
+  ($log | oneline | abbrev_logger(36)) as $log_a |
 
-) catch $line
+  (if $thr == "" then "" else "[" + $thr_t + "] " end) as $thr_plain |
+  (if $log == "" then "" else $log_a + " " end) as $log_plain |
+  (if $thr == "" and $log == "" then "" else "- " end) as $sep |
+
+  # Prefixe sans ANSI : sert a calculer l indentation de la 2e ligne (Task 4).
+  ($hh + " " + ($lvl | pad(5)) + " " + $thr_plain + $log_plain + $sep) as $pre_plain |
+
+  (c("2"; $hh) + " " + c($lvl | level_color; $lvl | pad(5)) + " "
+   + (if $thr == "" then "" else c("2"; "[" + $thr_t + "]") + " " end)
+   + (if $log == "" then "" else c("36"; $log_a) + " " end)
+   + $sep + $msg) as $head |
+
+  (if $pairs then
+     $head
+     + (if $st == "" then "" else " " + c("2"; "⤷ " + ($st | short_exception | oneline)) end)
+     + (if $extra == "" then "" else "  " + c("2"; ($extra | oneline | trunc(120))) end)
+     + "\t" + $line
+   else
+     $head
+     + (if $extra == "" then ""
+        else "\n" + (" " * ($pre_plain | length)) + c("2"; $extra | oneline) end)
+     + (if $st == "" then ""
+        else "\n" + c("2";
+          ($st | gsub("\t"; "    ") | sub("\n+$"; "") | split("\n") | map("  " + .) | join("\n"))) end)
+   end)
+
+) catch (if $pairs then ($line | oneline) + "\t" + $line else $line end)
 '
 
-jq -Rr "$JQ_FILTER"
+jq -Rr --argjson pairs "$pairs" "$JQ_FILTER"
