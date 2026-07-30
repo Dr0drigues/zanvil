@@ -134,7 +134,7 @@ Ajout de la ligne `Ctrl-L` dans `kube_help`, section k9s.
 ## Hors périmètre
 
 - Brancher `klog` sur `k9s-log-fmt.sh` — il affiche encore du JSON brut. Le formatteur restant un filtre pur, le branchement sera trivial.
-- Mode `--follow` interactif : `fzf` exige un flux fini pour rester utilisable.
+- ~~Mode `--follow` interactif : `fzf` exige un flux fini pour rester utilisable.~~ **Rectifié le 30 juillet 2026 :** cette justification est fausse. `fzf` lit son entrée de façon asynchrone et reste utilisable sur un flux continu, et `k9s-log-view.sh` le branche directement sur le pipe — rien n'y attend d'EOF. Deux causes réelles empêchaient le suivi : `kubectl logs` était invoqué sans `-f`, et surtout `jq` sans `--unbuffered` retient sa sortie jusqu'à remplir son tampon, donc rien n'atteindrait `fzf` avant plusieurs kilo-octets. Ce qui rend la phrase `Le mode statique conserve le streaming` de la section Solution également inexacte. Le rechargement à la demande (`Ctrl-R`) est arrivé à la place ; le suivi continu reste à faire et demandera ce `--unbuffered`.
 - Compteurs par niveau dans le header de `fzf` : imposerait de bufferiser tout le flux avant le premier affichage.
 - Nettoyage des vestiges repérés pendant le diagnostic : `~/.config/k9s/hotkeys.yaml` divergent et inutilisé sur macOS, `k9s.log` à 12,6 Mo saturé par un `CRDs load Fail` toutes les 15 s (droits RBAC manquants sur `customresourcedefinitions`).
 

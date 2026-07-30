@@ -53,7 +53,10 @@ plugins:
       - --tail
       - "500"
 
-  # Explorateur de logs interactif (fzf) — filtrer, rechercher, copier
+  # Explorateur de logs interactif (fzf) — filtrer, rechercher, copier, recharger
+  # ZANVIL_K9S_RELOAD porte la commande a rejouer sur Ctrl-R. Elle est reconstruite
+  # depuis "$*", donc la ligne kubectl n est ecrite qu une fois : "$@" l execute
+  # pour le chargement initial, "$*" la restitue pour le rechargement.
   log-view-pod:
     shortCut: Ctrl-L
     description: Logs interactifs (fzf)
@@ -64,7 +67,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
+      - 'export ZANVIL_K9S_RELOAD="$* | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs"; "$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
       - dummy-arg
       - kubectl
       - logs
@@ -88,7 +91,7 @@ plugins:
     confirm: false
     args:
       - -c
-      - '"$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
+      - 'export ZANVIL_K9S_RELOAD="$* | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs"; "$@" | $ZANVIL_DIR/scripts/k9s-log-fmt.sh --pairs | $ZANVIL_DIR/scripts/k9s-log-view.sh'
       - dummy-arg
       - kubectl
       - logs
