@@ -1,0 +1,11 @@
+cases: tests/cases/**/*.yaml
+
+# Les quatre outils de modules/tools/. Declares ici, ils sont shadowes pour TOUS les cas : c'est ce
+# qui rend leur branche « binaire present » testable sans les installer, et ce qui rend leur branche
+# « binaire absent » inexprimable — le bloc fake: d'un cas n'accepte que render et rules, donc aucun
+# cas ne peut s'y soustraire. Cette derniere moitie reste couverte par l'etape « Test binary-absent
+# fallback warnings » de .github/workflows/tests.yml, qui ampute PATH.
+#
+# Voir web/docs/superpowers/specs/2026-07-30-gaveldrop-test-suite-design.md, mur nº 1.
+fake:
+  bins: [posting, delta, lazygit, atuin]
