@@ -1,0 +1,10 @@
+{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}
+{"@timestamp":"2026-07-28T08:00:01.456Z","level":"ERROR","thread_name":"http-nio-8080-exec-2","logger_name":"com.boulanger.foo.BarClient","message":"Timeout amont","stack_trace":"java.lang.IllegalStateException: Timeout amont\n\tat com.boulanger.foo.BarClient.send(BarClient.java:17)\n\tat com.boulanger.foo.FooService.call(FooService.java:42)\n\t... 24 more"}
+{"@timestamp":"2026-07-28T08:00:02.001Z","level":"WARN","thread_name":"scheduling-1","logger_name":"com.boulanger.foo.Cleanup","message":"3 orphelins ignores","http.status":503,"retry":2}
+{"@timestamp":"2026-07-28T08:00:03.100Z","level":"DEBUG","thread_name":"main","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"Logger de plus de 36 caracteres"}
+{"@timestamp":"2026-07-28T08:00:04.200Z","level":"TRACE","thread_name":"http-nio-8080-exec-with-a-very-long-thread-name","logger_name":"com.boulanger.foo.Pool","message":"Thread de plus de 20 caracteres"}
+{"@timestamp":"2026-07-28T08:00:05.300Z","message":"Sans niveau ni thread ni logger"}
+{"@timestamp":"2026-07-28T08:00:06.400Z","severity":"WARN","msg":"Champs severity et msg","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"00f067aa0ba902b7"}
+{"@timestamp":"2026-07-28T08:00:07.500Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.Report","message":"Ligne 1\nLigne 2\nLigne 3"}
+Log applicatif en texte brut, emis par un conteneur sidecar
+{"@timestamp":"2026-07-28T08:00:08.600Z","level":"INFO","message":"accolade manquante"
