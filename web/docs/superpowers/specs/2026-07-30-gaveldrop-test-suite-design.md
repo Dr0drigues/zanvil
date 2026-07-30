@@ -53,12 +53,32 @@ de ce chantier.
 
 Chacun a été vérifié sur une probe hors dépôt, pas supposé :
 
-1. **Un cas ne peut pas déclarer qu'un outil est absent.** `PATH` dans l'isolation est le répertoire
-   des symlinks de fakes suivi de celui hérité, donc `command -v posting` trouve l'outil réel quand
-   la machine l'a. Le faker rend un outil *présent* ; rien ne le rend manquant. Conséquence : les
-   quatre cas « branche absente » passent sur un runner nu et échouent sur un poste équipé — ils sont
-   écrits `allow_fail: true`, ce qui est visible et honnête, là où un cas qui asserte silencieusement
-   la mauvaise branche ne l'est pas.
+1. **Un cas ne peut pas déclarer qu'un outil est absent, et déclarer un outil *présent* interdit
+   l'autre branche.** `PATH` dans l'isolation est le répertoire des symlinks de fakes suivi de celui
+   hérité, donc `command -v posting` trouve l'outil réel quand la machine l'a. Le faker rend un outil
+   *présent* ; rien ne le rend manquant.
+
+   Le mur est plus haut que cela. `fake.bins` vit dans `gaveldrop.yaml` et **rien au niveau d'un cas
+   ne peut le corriger** : le bloc `fake:` d'un cas n'accepte que `render` et `rules`. Le symlink est
+   donc posé sur `PATH` pour *tous* les cas, y compris ceux sans bloc `fake:` — vérifié sur probe avec
+   un outil qui n'existe sur aucune machine :
+
+   ```
+   FAIL does-a-declared-bin-exist-without-a-fake-block  0/1
+       expect.stdout.contains[0]
+         expected  contains "MISSING"
+         got       SHADOWED
+   ```
+
+   Conséquence directe : déclarer `posting` — indispensable au cas « binaire présent » — rend le cas
+   « binaire absent » **impossible à faire passer, y compris sur un runner nu**. Les deux branches
+   d'un module sont mutuellement exclusives dans une même configuration, et les deux exemples que le
+   briefing donne côte à côte sont donc incompatibles entre eux.
+
+   Arbitrage retenu : gaveldrop prend la branche présente — celle qu'aucun mécanisme actuel n'atteint
+   — et la branche absente reste couverte par l'étape CI existante, qui ampute `PATH` et fonctionne.
+   Aucun cas `allow_fail` n'est écrit : un cas qui ne peut structurellement pas passer n'est pas une
+   tolérance, c'est un cas faux.
 2. **`setup` ne connaît que `env`, `exec` et `run` — il n'y a pas de `stdin:`.** Un filtre
    `stdin → stdout` comme `scripts/k9s-log-fmt.sh` n'est donc pas invocable directement.
 3. **Aucune normalisation ANSI côté assertion.** Le formatteur entoure *chaque champ* de codes
@@ -110,7 +130,7 @@ Quatre raisons, toutes mesurées :
 `source:` reste relatif au dépôt, parce qu'un fichier sourcé **est** le sujet : le code testé vient
 du dépôt, seul l'état est isolé.
 
-## Le lot 1 — quatorze cas
+## Le lot 1 — dix cas
 
 ### Chargement
 
@@ -133,45 +153,36 @@ parce que `cli/src/config.rs:8-15` retombe sur `~/.zanvil`. **Il est inutile** :
 l'adaptateur process, donc `ZANVIL_DIR` passé en clair suffit. Vérifié sur probe
 (`cli-theme-list-needs-no-symlink`, `ok 1/1`).
 
-### Modules tools (8 cas)
+### Modules tools (4 cas, poids 5)
 
-Deux cas par module, pour posting, delta, lazygit et atuin :
+Un cas par module — `<tool>-<action>-when-the-binary-is-there` pour posting, delta, lazygit et
+atuin — et un seul, à cause du mur nº 1 : déclarer l'outil dans `fake.bins` pour atteindre cette
+branche rend l'autre inatteignable.
 
-| Cas | Poids | État |
-|---|---|---|
-| `<tool>-warns-when-its-binary-is-missing` | 3 | `allow_fail: true` — mur nº 1 |
-| `<tool>-<action>-when-the-binary-is-there` | 5 | **la branche que la CI n'a jamais pu atteindre** |
+C'est l'argument de tout l'exercice : la branche « binaire présent » est aujourd'hui inaccessible en
+CI, parce qu'elle supposerait d'installer quatre outils sur le runner. Déjà démontré sur probe pour
+posting — `5/5`, avec assertion sur le fichier déployé (`$HOME/.config/posting/config.yaml`), sur
+l'absence du message d'avertissement, et sur `calls: { posting: 1 }`.
 
-Le second est l'argument de tout l'exercice : il prouve une branche inaccessible en CI, sans installer
-l'outil, et se lit en dix secondes. Déjà démontré sur probe pour posting — `5/5`, avec assertion sur
-le fichier déployé (`$HOME/.config/posting/config.yaml`), sur l'absence du message d'avertissement, et
-sur `calls: { posting: 1 }`.
+La branche absente n'est pas perdue : elle reste couverte par l'étape CI qui ampute `PATH`, et qui
+devient de ce fait une pièce nécessaire plutôt qu'un héritage.
 
-### Le gate
+### Pas de bloc `gate:`
 
-```yaml
-gate:
-  max_tolerated: 4
-```
-
-Un seul seuil, et c'est un choix raisonné plutôt qu'une économie. Le total des poids du lot 1 vaut
-**68** — 9 pour le chargement, 27 pour les cinq cas CLI, 20 pour les quatre branches présentes, 12
-pour les quatre branches absentes. Sur un runner nu, les quatre `allow_fail` passent et le score est
-de 68/68 ; sur un poste équipé ils échouent et le score tombe à 56/68 sans que le run soit en échec.
-
-Les deux autres seuils que gaveldrop propose n'apportent rien **ici** :
+Le total des poids du lot 1 vaut **56** — 9 pour le chargement, 27 pour les cinq cas CLI, 20 pour les
+quatre branches présentes. Aucun des trois seuils que gaveldrop propose n'apporte quoi que ce soit à
+une suite qui ne tolère aucun échec :
 
 - `min_score` est comparé au score **absolu**, pas à un pourcentage (`report.rs:88`). Un
-  `min_score: 80` — la valeur de l'exemple dans `docs/ci.md` — ferait donc échouer le gate en
-  permanence sur une suite dont le maximum est 68. Et une valeur correcte (56) devrait être bumpée à
-  chaque cas ajouté.
+  `min_score: 80` — la valeur de l'exemple dans `docs/ci.md` — ferait échouer le gate en permanence sur
+  une suite dont le maximum est 56. Et une valeur correcte devrait être bumpée à chaque cas ajouté.
 - `fail_above_weight` ne se déclenche que sur un cas `!passed && !allow_fail` (`report.rs:109`), or un
   tel cas rend déjà `is_success()` faux. Redondant avec le code de sortie.
+- `max_tolerated` n'observe que les cas `allow_fail`, et le lot 1 n'en compte aucun.
 
-`max_tolerated: 4` est le seul qui porte du sens, et pour une raison précise : un `allow_fail` qui
-casse **n'incrémente pas `failed`** (`report.rs:67`), donc sans ce seuil il passerait inaperçu. Quatre
-vaut exactement le nombre de cas tolérés, pour qu'un cinquième soit une anomalie visible plutôt qu'une
-habitude.
+`gaveldrop.yaml` se limite donc à `cases:` et `fake.bins:`. Un `gate:` absent n'impose rien, et c'est
+exact : ici, `failed == 0` est la seule question. Le bloc redeviendra utile le jour où un `allow_fail`
+sera légitime — c'est-à-dire quand le mur nº 1 tombera.
 
 ## CI
 
@@ -199,10 +210,12 @@ Deux points non évidents :
 | `Verify core files exist`, `Verify modules structure` | **gardées** : gaveldrop saurait l'exprimer, mais ce serait un `ls` en moins bien |
 | `scripts/tests/k9s-log-fmt.test.sh` | **ajoutée** en CI, où elle ne tournait pas, jusqu'à la fin du lot 2 |
 
-L'étape `Test binary-absent fallback warnings` est gardée à contre-courant du briefing, et c'est un
-arbitrage assumé : en amputant `PATH`, elle est **déterministe sur un runner**, alors que ses
-équivalents gaveldrop sont `allow_fail` à cause du mur nº 1. La supprimer échangerait une assertion
-qui fonctionne contre une tolérance. Elle partira quand gaveldrop saura déclarer un outil absent.
+L'étape `Test binary-absent fallback warnings` est gardée à contre-courant du briefing, et ce n'est
+pas de la prudence : c'est le mur nº 1. Puisque `fake.bins` shadowe un outil pour toute la suite, la
+branche absente est **inexprimable** en gaveldrop dès lors que la branche présente est testée. Cette
+étape est donc le seul endroit où cette moitié du code est vérifiée. En amputant `PATH`, elle est
+déterministe sur un runner ; la supprimer perdrait la couverture sans rien apporter. Elle partira
+quand gaveldrop saura déclarer un outil absent, ou déclarer ses bins par cas.
 
 ## Le lot 2 — migration de `k9s-log-fmt.test.sh`
 
@@ -251,14 +264,26 @@ Livrable du lot 1, adressé au dépôt gaveldrop sans le modifier. Déjà acquis
 3. Pas de `stdin:` dans `setup` : un filtre `stdin → stdout` — une forme très courante en shell —
    n'est pas invocable sans un wrapper.
 4. Pas de normalisation ANSI avant assertion : tout sujet qui colore sa sortie force le même wrapper.
-5. `fake.bins` est global à `gaveldrop.yaml`, mais `unexpected calls` est jugé par cas : un cas qui
-   charge tout un shell doit prévoir une règle pour chaque outil déclaré ailleurs.
-6. Le mur nº 1 (déclarer un outil absent) reste le seul qui rend des cas non déterministes, et donc
-   le plus coûteux.
-7. `min_score` se compare au score **absolu** alors que son nom, et l'exemple `min_score: 80` de
+5. **Le plus important.** `fake.bins` est global et aucun cas ne peut s'en soustraire — le bloc `fake:`
+   d'un cas n'accepte que `render` et `rules`. Déclarer un outil pour tester la branche « présent »
+   rend donc la branche « absent » inatteignable, sur **toute** machine. Les deux exemples que le
+   briefing donne côte à côte (`posting-warns-when-its-binary-is-missing` et
+   `posting-deploys-its-config-when-the-binary-is-there`) ne peuvent pas coexister dans une même
+   configuration. `allow_fail: true` ne sauve pas le premier : il ne masque pas une non-déterminisme,
+   il masque un cas qui ne peut jamais passer.
+
+   Deux formes de correctif possibles, à choisir chez gaveldrop : des `bins` déclarables par cas, ou
+   la capacité de déclarer un outil absent — cette dernière rendant les deux cas déterministes d'un
+   coup.
+6. Corollaire du précédent : `unexpected calls` est jugé par cas alors que `bins` est global, donc un
+   cas qui charge tout un shell doit prévoir une règle pour chaque outil déclaré ailleurs dans la
+   suite, même s'il ne le concerne pas.
+7. Le mur nº 1 reste le seul qui rende des cas carrément inexprimables, et donc le plus coûteux.
+8. `min_score` se compare au score **absolu** alors que son nom, et l'exemple `min_score: 80` de
    `docs/ci.md` en regard d'un `score 1/1` dans `docs/adopting.md`, invitent à y lire un pourcentage.
    Un projet qui reprend l'exemple obtient un gate qui échoue toujours, sans que le message —
-   « the weighted score is 68 of 68, below the 80 this project requires » — désigne la confusion.
-8. `min_score` et `fail_above_weight` sont tous deux redondants avec le code de sortie pour un projet
-   qui ne tolère aucun échec, puisque `is_success()` teste déjà `failed == 0`. Seul `max_tolerated`
-   observe quelque chose qu'aucun autre mécanisme ne voit — un `allow_fail` qui casse.
+   « the weighted score is 56 of 56, below the 80 this project requires » — désigne la confusion.
+9. `min_score` et `fail_above_weight` sont tous deux redondants avec le code de sortie pour un projet
+   qui ne tolère aucun échec, puisque `is_success()` teste déjà `failed == 0`. Des trois seuils, seul
+   `max_tolerated` observe quelque chose qu'aucun autre mécanisme ne voit — un `allow_fail` qui casse —
+   et le point nº 5 le rend inutilisable ici, faute d'un `allow_fail` légitime à surveiller.
