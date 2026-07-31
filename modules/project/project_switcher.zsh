@@ -279,7 +279,7 @@ _proj_path_exists() {
 # Enregistre un projet
 # Usage: proj_add [-n|--name NAME] [-p|--path PATH] [NAME] [PATH]
 proj_add() {
-    local name="" path="" force=false
+    local name="" proj_path="" force=false
 
     # Parser les arguments
     while [[ $# -gt 0 ]]; do
@@ -289,7 +289,7 @@ proj_add() {
                 shift 2
                 ;;
             -p|--path)
-                path="$2"
+                proj_path="$2"
                 shift 2
                 ;;
             -f|--force)
@@ -304,8 +304,8 @@ proj_add() {
                 # Arguments positionnels
                 if [[ -z "$name" ]]; then
                     name="$1"
-                elif [[ -z "$path" ]]; then
-                    path="$1"
+                elif [[ -z "$proj_path" ]]; then
+                    proj_path="$1"
                 fi
                 shift
                 ;;
@@ -313,18 +313,18 @@ proj_add() {
     done
 
     # Valeurs par defaut
-    path="${path:-$PWD}"
+    proj_path="${proj_path:-$PWD}"
 
     # Resoudre le chemin absolu
-    path=$(cd "$path" 2>/dev/null && pwd)
-    if [[ -z "$path" ]]; then
+    proj_path=$(cd "$proj_path" 2>/dev/null && pwd)
+    if [[ -z "$proj_path" ]]; then
         echo "Chemin invalide." >&2
         return 1
     fi
 
     # Verifier si le path existe deja
     local existing_name
-    existing_name=$(_proj_path_exists "$path")
+    existing_name=$(_proj_path_exists "$proj_path")
     if [[ $? -eq 0 ]]; then
         echo "Ce chemin est deja enregistre sous le nom '$existing_name'."
         if [[ "$force" != true ]]; then
@@ -340,7 +340,7 @@ proj_add() {
 
     # Demander le nom si non fourni
     if [[ -z "$name" ]]; then
-        local default_name="${path:t}"
+        local default_name="${proj_path:t}"
         echo -n "Nom du projet [$default_name]: "
         read -r input
         name="${input:-$default_name}"
@@ -367,9 +367,9 @@ proj_add() {
     [[ ! -d "$registry_dir" ]] && /bin/mkdir -p "$registry_dir"
 
     # Ajouter
-    echo "${name}: \"$path\"" >> "$PROJ_REGISTRY_FILE"
+    echo "${name}: \"$proj_path\"" >> "$PROJ_REGISTRY_FILE"
     echo "Projet '$name' enregistre."
-    echo "  Chemin: $path"
+    echo "  Chemin: $proj_path"
 }
 
 # Supprime une entree du registre (fonction interne)
