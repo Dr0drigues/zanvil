@@ -12,21 +12,20 @@ La configuration se fait via `~/.zanvil/config.zsh`.
 cp ~/.zanvil/examples/config.zsh.example ~/.zanvil/config.zsh
 ```
 
-## Architecture v2
+## Architecture
 
-En v2, la configuration est répartie dans `core/` :
+La configuration est répartie dans `core/` :
 
 | Fichier | Rôle |
 |---------|------|
+| `core/ui.zsh` | Système UI — chargé en premier, fournit les `_ui_*` et la palette du thème |
 | `core/variables.zsh` | Variables d'environnement |
 | `core/aliases.zsh` | Alias globaux |
-| `core/hooks.zsh` | Hooks shell (chpwd, precmd, etc.) |
-| `core/loader.zsh` | Chargement des modules |
-| `core/ui.zsh` | Système UI |
-| `core/commands.zsh` | Commandes zanvil-* |
-| `core/admin.zsh` | Administration |
-| `core/theme.zsh` | Gestion des thèmes |
-| `core/setup.zsh` | Setup initial |
+| `core/loader.zsh` | Découverte et chargement des modules |
+| `core/hooks.zsh` | Init des outils (starship, fzf, mise, zoxide, direnv, `.zanvil.local`) |
+| `core/completions.zsh` | Complétions des commandes core |
+| `core/commands/` | Commandes `zanvil-*` : `commands.zsh`, `admin.zsh`, `theme.zsh`, `setup.zsh`, `check_env_deps.zsh` |
+| `core/lifecycle/` | Cycle de vie : `auto_update.zsh`, `migrate.zsh`, `sync.zsh` |
 
 ## Modules
 
@@ -48,13 +47,34 @@ Chaque module est dans `modules/<name>/` avec un `init.zsh` et optionnellement u
 Configuration manuelle dans `config.zsh` :
 
 ```zsh
-# Activer/désactiver les modules
-ZANVIL_MODULE_GITLAB=true    # Scripts GitLab
-ZANVIL_MODULE_DOCKER=true    # Utilitaires Docker
-ZANVIL_MODULE_NVM=true       # Auto-switch Node
-ZANVIL_MODULE_NUSHELL=false  # Intégration Nushell
-ZANVIL_MODULE_KUBE=true      # Gestion Kubernetes
+# Modules metier
+ZANVIL_MODULE_GITLAB=true     # Alias GitLab, clone de groupes, statut PAT
+ZANVIL_MODULE_KUBE=true       # Gestion kubeconfig (kube_select, Azure/AWS/GCP)
+ZANVIL_MODULE_DOCKER=true     # Utilitaires Docker (dex, dstop)
+ZANVIL_MODULE_SECURITY=false  # Audit de securite et scan de secrets
+ZANVIL_MODULE_AI=false        # Estimation de tokens LLM et contexte repo
+ZANVIL_MODULE_ZPROJECT=false  # Contexte projet par shell, via le CLI Rust
+ZANVIL_MODULE_TOOLS=false     # mise hooks, test runner, profiler zsh
+
+# Outils tiers — chacun deploie sa configuration avec <outil>_setup
+ZANVIL_MODULE_DELTA=true      # Pager syntaxique pour git diff
+ZANVIL_MODULE_LAZYGIT=true    # TUI Git ergonomique (alias lg)
+ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
+ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
+
+# Integrations
+ZANVIL_MODULE_MISE=true       # Gestionnaire de versions (Node, Java, Maven)
+ZANVIL_MODULE_NUSHELL=true    # Integration Nushell
 ```
+
+Un module dont le guard est absent de `config.zsh` reste inactif. Les modules `git`, `ssh`, `utils`,
+`project` et `work` n'ont pas de guard : ils sont toujours chargés.
+
+:::note[Migration depuis NVM]
+`ZANVIL_MODULE_NVM` est déprécié au profit de `ZANVIL_MODULE_MISE`, qui gère Node mais aussi Java et
+Maven. `rc.zsh` reporte automatiquement l'ancienne valeur sur la nouvelle et retire `ZANVIL_NVM_LAZY`,
+qui n'a plus d'effet — rien à changer dans un `config.zsh` existant.
+:::
 
 ## Variables dynamiques (env.d/)
 
@@ -112,15 +132,17 @@ zanvil-theme minimal
 
 Le thème actif est enregistré dans `~/.zanvil/.current_theme`.
 
-## NVM (Node Version Manager)
+## Versions de runtimes (mise)
+
+`mise` remplace NVM et couvre Node, Java et Maven. Il est activé par défaut et branché dans
+`core/hooks.zsh`, qui appelle `mise activate zsh` au démarrage si le binaire est présent.
 
 ```zsh
-# Lazy loading (recommandé) — charge NVM au premier appel node/npm
-ZANVIL_NVM_LAZY=true
-
-# Chargement immédiat (ajoute ~200ms au démarrage)
-ZANVIL_NVM_LAZY=false
+ZANVIL_MODULE_MISE=true
 ```
+
+Les hooks du module `tools` (`modules/tools/mise_hooks.zsh`) ajoutent la détection du fichier
+`.mise.toml` d'un projet au `cd`.
 
 ## Auto-update
 
