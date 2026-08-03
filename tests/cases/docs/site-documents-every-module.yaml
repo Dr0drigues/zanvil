@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Garde-fou contre la derive de la doc en ligne, ajoute apres un rattrapage de 57
+# commits ou huit modules sur onze manquaient. La sidebar du site etant manuelle, rien
+# ne signalait qu un module nouveau n etait pas documente.
+#
+# Ce cas est inhabituel : son sujet n est pas une fonction de zanvil mais la coherence
+# entre le code et sa documentation. Il tient ici plutot que dans une etape de CI parce
+# qu il se lance avec le reste de la suite, en local comme en integration.
+name: site-documents-every-module
+weight: 7
+setup:
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  run: ["$GAVELDROP_PROJECT/tests/bin/undocumented-modules"]
+expect:
+  exit_code: 0
+  stdout:
+    # Une sortie vide, sinon le `got` nomme exactement les guards a documenter — c est
+    # ce que l on veut lire quand ce cas casse.
+    equals: ""
