@@ -53,38 +53,12 @@ jobs:
           bash scripts/tests/k9s-log-fmt.test.sh
           bash scripts/tests/zsh-special-vars.test.sh
 
-      # Conservee volontairement, et ce n est pas de la prudence : gaveldrop ne
-      # peut pas exprimer ce cas. fake.bins est global a gaveldrop.yaml et le bloc
-      # fake: d un cas n accepte que render et rules, donc declarer
-      # posting/delta/lazygit/atuin pour tester leur branche « present » rend leur
-      # branche « absent » inatteignable sur toute machine. Cette etape est la seule
-      # couverture de cette moitie du code. Voir
-      # web/docs/superpowers/specs/2026-07-30-gaveldrop-test-suite-design.md, mur n1.
-      - name: Test binary-absent fallback warnings
-        run: |
-          export ZANVIL_DIR="$PWD"
-          export HOME="$(mktemp -d)"
-
-          check_warning() {
-            local module="$1" guard="$2" grep_pattern="$3"
-            local out
-            out=$(zsh -c "
-              ${guard}=true
-              ZANVIL_DIR='$PWD'
-              PATH=/usr/bin:/bin
-              source '$PWD/modules/tools/${module}/init.zsh' 2>&1
-            ")
-            echo "${module}: ${out}"
-            echo "${out}" | grep -q "${grep_pattern}" \
-              || { echo "FAIL: ${module} warning absent (attendu: ${grep_pattern})"; exit 1; }
-          }
-
-          check_warning posting  ZANVIL_MODULE_POSTING  "brew install posting"
-          check_warning delta    ZANVIL_MODULE_DELTA    "brew install git-delta"
-          check_warning lazygit  ZANVIL_MODULE_LAZYGIT  "brew install lazygit"
-          check_warning atuin    ZANVIL_MODULE_ATUIN    "brew install atuin"
-
-          echo "All binary-absent fallback warnings OK"
+      # « Test binary-absent fallback warnings » a ete retiree. Elle amputait PATH a
+      # la main pour prouver qu un module previent quand son binaire manque, ce que le
+      # format ne savait pas exprimer. `setup.hide` le sait depuis, donc les quatre
+      # cas de tests/cases-hidden/ la remplacent — avec un verdict identique sur un
+      # poste equipe et sur un runner nu, ce que l amputation de PATH ne garantissait
+      # que par accident.
 
   rust-cli:
     runs-on: ${{ matrix.os }}
@@ -144,36 +118,38 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             cli/target
-          key: ${{ runner.os }}-gaveldrop-6d896b8-${{ hashFiles('cli/Cargo.lock') }}
-
-      # gaveldrop n est pas publie et n a aucun tag : le SHA est pinne pour que la
-      # CI de zanvil ne rougisse pas au prochain commit d un autre depot. Le bump
-      # est un geste explicite.
-      # Les DEUX binaires sont necessaires : sans gaveldrop-fake, toute execution
-      # meurt sur « the fake binary was not found beside this executable ».
-      - name: Install gaveldrop
-        run: |
-          cargo install --git https://github.com/Dr0drigues/gaveldrop \
-            --rev 6d896b83b3bbe772700b75c5ecd1e1f94ed6fb2c --locked gaveldrop-cli
-          cargo install --git https://github.com/Dr0drigues/gaveldrop \
-            --rev 6d896b83b3bbe772700b75c5ecd1e1f94ed6fb2c --locked gaveldrop-fake
+          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.lock') }}
 
       # Les cinq cas CLI invoquent ce binaire par son chemin.
       - name: Build the zanvil CLI
         run: cd cli && cargo build --release
+
+      # install-only, parce qu il y a deux configurations a lancer et que les flags
+      # de rapport sont donc decides par les etapes suivantes. L action installe les
+      # binaires precompiles du tag contre lequel elle a ete ecrite — qui porte deja
+      # setup.hide — plutot que de les compiler.
+      - name: Install gaveldrop
+        uses: Dr0drigues/gaveldrop/action@v0.1.0
+        with:
+          install-only: 'true'
 
       # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
       # log que personne ne deroule.
       - name: Run the cases
         run: gaveldrop --annotate --report-junit junit.xml
 
-      # if: always() — le rapport est le plus utile quand l etape precedente a
+      # Seconde configuration, pour une raison structurelle : un outil ne peut pas
+      # etre a la fois fake (branche « binaire present ») et cache (branche
+      # « binaire absent »), et fake.bins vit dans la configuration, pas dans le cas.
+      - name: Run the hidden-tool cases
+        run: gaveldrop --config gaveldrop.hidden.yaml --annotate --report-junit junit-hidden.xml
+
+      # if: always() — les rapports sont le plus utiles quand une etape precedente a
       # echoue.
-      - name: Keep the report
+      - name: Keep the reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cases-${{ matrix.os }}
-          path: junit.xml
+          path: junit*.xml

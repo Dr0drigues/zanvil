@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La moitie que testait deja la CI en amputant PATH a la main, desormais exprimee
+# par le format. Aucun hook : la branche absente ne lit ni ne deploie rien.
+name: posting-warns-when-its-binary-is-missing
+weight: 3
+setup:
+  shell: zsh
+  source: ["modules/tools/posting/init.zsh"]
+  # Le sujet est le SOURCING : le code de premier niveau du module s execute et on
+  # asserte ce qu il a imprime.
+  call: ["true"]
+  # Sans cette ligne, le cas echoue sur un poste ou posting est installe et passe
+  # sur un runner nu — le verdict dependrait de la machine, ce que l isolation
+  # existe precisement pour supprimer. Verifie dans les deux sens.
+  # A savoir : cacher un outil retire tout le repertoire qui le contient, donc
+  # /opt/homebrew/bin — ce qui cache aussi delta, lazygit et atuin. Sans effet ici,
+  # la branche absente n appelant rien d autre, et zsh vit dans /bin.
+  hide: [posting]
+  env:
+    ZANVIL_MODULE_POSTING: "true"
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["brew install posting"]

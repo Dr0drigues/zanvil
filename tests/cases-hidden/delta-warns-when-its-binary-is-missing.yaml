@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: delta-warns-when-its-binary-is-missing
+weight: 3
+setup:
+  shell: zsh
+  source: ["modules/tools/delta/init.zsh"]
+  call: ["true"]
+  hide: [delta]
+  env:
+    ZANVIL_MODULE_DELTA: "true"
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Le nom du paquet brew differe du nom de la commande : c est justement le genre
+    # de detail qu une assertion protege.
+    contains: ["brew install git-delta"]
