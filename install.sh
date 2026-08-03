@@ -770,6 +770,14 @@ if command -v cargo &>/dev/null; then
         mkdir -p "$HOME/.local/bin"
         cp "$TARGET_DIR/cli/target/release/zanvil" "$HOME/.local/bin/"
         log_success "zanvil installe dans ~/.local/bin/"
+
+        # Le binaire s'appelait zsh-env-cli avant la v4.0.0. Le laisser en place n'est
+        # pas anodin : il repond a --version, il est dans le PATH, et sa presence donne
+        # l'illusion d'une installation valide alors qu'aucune delegation ne l'appelle.
+        if [[ -e "$HOME/.local/bin/zsh-env-cli" ]]; then
+            rm -f "$HOME/.local/bin/zsh-env-cli"
+            log_success "ancien binaire zsh-env-cli retire"
+        fi
     else
         log_warn "Build de zanvil echoue (optionnel, les commandes zsh fonctionnent sans)"
     fi
