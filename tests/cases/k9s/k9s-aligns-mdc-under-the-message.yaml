@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-aligns-mdc-under-the-message
+weight: 3
+setup:
+  stdin: |
+    {"level":"WARN","thread_name":"main","logger_name":"com.Cleanup","message":"3 orphelins","retry":2}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: |2
+                   WARN  [main] com.Cleanup - 3 orphelins
+                                              retry=2

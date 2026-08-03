@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-replaces-message-newlines-with-a-symbol-in-pairs-mode
+weight: 3
+setup:
+  stdin: |
+    {"level":"INFO","message":"Ligne 1\nLigne 2"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh", "--pairs"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: "             INFO  Ligne 1\u21b5Ligne 2\t{\"level\":\"INFO\",\"message\":\"Ligne 1\\nLigne 2\"}"

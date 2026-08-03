@@ -1,5 +1,18 @@
 # Suite de tests gaveldrop — lot 2a : ce qui est migrable aujourd'hui
 
+> **Exécuté, puis largement dépassé le même jour.** Ce plan a été écrit sous trois murs — pas de
+> `setup.stdin`, pas de normalisation ANSI, pas d'égalité exacte — que `v0.1.2` a tous levés en réponse au
+> finding nº 8. Ce qui en subsiste et ce qui a changé :
+>
+> - **Le wrapper `tests/bin/k9s-fmt-plain` a été supprimé.** Il a vécu une heure. `setup.stdin` fournit
+>   l'entrée, `ignore_ansi` retire les codes.
+> - **Les assertions sont des `equals`, pas des `contains`.** Donc la sortie entière, pas un fragment.
+> - **36 cas au lieu de 12**, les comptages étant devenus des égalités sur la sortie entière.
+> - **La tâche 1 a rempli son office** : c'est elle qui a produit `equals`.
+>
+> Le plan reste tel qu'il a été écrit, pour que la trace des contraintes du moment et de leur levée soit
+> lisible. Le spec porte l'état final.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.

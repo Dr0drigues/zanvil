@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-renders-extras-and-a-stack-over-three-lines
+weight: 3
+setup:
+  stdin: |
+    {"level":"ERROR","message":"Boom","stack_trace":"java.lang.Error: Boom","retry":2}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: |2
+                   ERROR Boom
+                         retry=2
+        java.lang.Error: Boom

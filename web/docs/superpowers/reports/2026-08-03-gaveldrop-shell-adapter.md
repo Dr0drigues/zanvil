@@ -7,12 +7,18 @@ Contexte : le lot 1 de l'adoption dans zanvil est terminé — quatorze cas, `68
 `tests.yml` remplacées ou supprimées. Le spec est
 `web/docs/superpowers/specs/2026-07-30-gaveldrop-test-suite-design.md`.
 
-> **Suite donnée, le 3 août.** Deux des points ci-dessous ont produit un correctif dans gaveldrop
-> `v0.1.1` : le nº 3 (les deux branches d'un module ne pouvaient pas partager une configuration) et le
-> nº 4 (le `got` tronqué à la première ligne). Les sections correspondantes sont conservées telles
-> qu'écrites — c'est la trace de ce qui a été constaté — et annotées de ce qui a changé. La
-> simplification côté zanvil est faite : la seconde configuration et son répertoire de cas ont existé
-> une demi-journée.
+> **Suite donnée.** **Six des huit findings ont produit du code**, en deux vagues.
+>
+> `v0.1.1` : le nº 3 (les deux branches d'un module dans une seule configuration) et le nº 4 (le `got`
+> tronqué à la première ligne).
+>
+> `v0.1.2` : le nº 6 et le nº 7 — `setup.stdin` et `ignore_ansi` — plus le nº 8, `equals`, qui était la
+> seule demande bloquante. Et le message de `min_score`, qui dit maintenant qu'un seuil dépasse le total
+> atteignable.
+>
+> Les sections sont conservées telles qu'écrites — c'est la trace de ce qui a été constaté — et annotées
+> de ce qui a changé. Côté zanvil : la seconde configuration a existé une demi-journée, le wrapper de
+> plomberie une heure, et la suite est passée de 26 à 50 cas.
 
 ## Ce qui a bien marché, brièvement
 
@@ -150,6 +156,11 @@ détectable au chargement de la configuration, pas seulement à la fin du run.
 
 ## 6. Ce qu'il a fallu réimplémenter
 
+> **Corrigé dans v0.1.2.** `setup.stdin` et `ignore_ansi` ont supprimé le besoin. `tests/bin/k9s-fmt-plain`
+> a vécu une heure : écrit pour le lot 2a, retiré le jour même. C'était le seul endroit où la deuxième
+> propriété — « le projet sous test ne change rien pour devenir testable » — était en tension, et elle ne
+> l'est plus.
+
 **Rien pour le lot 1.** Le hook `tests/hooks/prepare-zanvil-dir.sh` n'est pas une réimplémentation :
 il construit un `ZANVIL_DIR` dans l'isolation, ce qui est le travail d'un `setup.exec` et rien d'autre.
 Il fait 40 lignes, dont la moitié de commentaires expliquant pourquoi.
@@ -182,6 +193,14 @@ La mention dans le document de mise à jour est claire. Ce qui manquerait, si le
 c'est de cacher **un exécutable** plutôt que son répertoire.
 
 ## 8. Aucune égalité exacte, ni sur un flux ni sur un fichier
+
+> **Corrigé dans v0.1.2** — `equals`, dans `TextExpectation`, donc partout où le schéma est utilisé. Le
+> saut de ligne final est ignoré des deux côtés, un seul et pas tous les blancs, et quand les blancs sont
+> la seule différence l'échec le dit : `— the same but for whitespace`. Ce message a immédiatement
+> désigné la cause d'un vrai problème chez moi, un bloc littéral YAML qui mangeait l'indentation de tête.
+>
+> Les trente égalités ont migré, et les comptages avec elles : `equals` sur la sortie entière remplace
+> « quatre lignes » par « ces quatre lignes-là », ce qui est plus fort que ce que mesurait le test bash.
 
 Trouvé en préparant le lot 2, et c'est le manque le plus coûteux des huit.
 
