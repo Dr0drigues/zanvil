@@ -38,6 +38,10 @@ expect:
   exit_code: 0
   stdout:
     contains: ["version=v"]
+    # Un chargement sur un poste configure ne previent de rien. Le hook depose un
+    # .gitlab_secrets factice, donc ce message ne doit pas apparaitre — sans cette
+    # assertion, le bruit sur stdout passait inapercu.
+    absent: ["Le token GitLab est manquant"]
   # Le coeur du cas : l assertion qui n existait nulle part, et qui fait rougir un
   # module casse au chargement.
   stderr:
