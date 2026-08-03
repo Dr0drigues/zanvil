@@ -36,13 +36,13 @@ hooks_list() {
         [[ "$hook" == *.sample ]] && continue
 
         local name=$(basename "$hook")
-        local status="actif"
+        local hook_status="actif"
 
         if [[ ! -x "$hook" ]]; then
-            status="inactif (non executable)"
+            hook_status="inactif (non executable)"
         fi
 
-        printf "  %-20s %s\n" "$name" "$status"
+        printf "  %-20s %s\n" "$name" "$hook_status"
         found=true
     done
 

@@ -946,13 +946,13 @@ kube_gcp_list() {
     echo "$clusters" | while read -r line; do
         local name=$(echo "$line" | awk '{print $1}')
         local zone=$(echo "$line" | awk '{print $2}')
-        local status=$(echo "$line" | awk '{print $3}')
+        local cluster_status=$(echo "$line" | awk '{print $3}')
         local kubeconfig_file="$KUBE_CONFIGS_DIR/kubeconfig-gke-${name}.yml"
 
         if [[ -f "$kubeconfig_file" ]]; then
-            printf "  [x] %-25s %s (%s)\n" "$name" "$zone" "$status"
+            printf "  [x] %-25s %s (%s)\n" "$name" "$zone" "$cluster_status"
         else
-            printf "  [ ] %-25s %s (%s)\n" "$name" "$zone" "$status"
+            printf "  [ ] %-25s %s (%s)\n" "$name" "$zone" "$cluster_status"
         fi
     done
 
