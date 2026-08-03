@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Ce cas existe parce qu un repli silencieux a masque une panne pendant quatre mois :
+# ~/.local/bin portait zsh-env-cli v3.0.0 au lieu de zanvil, donc zproject etait casse
+# et trois commandes tournaient degradees sans le dire.
+#
+# Il n asserte PAS que le binaire est installe — ce serait vrai sur un poste et faux sur
+# un runner. Il asserte que doctor en PARLE, ce qui est vrai partout.
+name: cli-doctor-reports-its-own-binary
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "doctor"]
+expect:
+  exit_code: 0
+  stdout:
+    # « Binaire » seul : la valeur qui suit depend de la machine — un poste equipe
+    # affiche un chemin, un runner affiche l absence — mais la SECTION existe partout.
+    contains: ["Binaire"]
