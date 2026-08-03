@@ -10,7 +10,13 @@ expect:
   exit_code: 0
   stdout:
     # L en-tete porte la version, et les deux dernieres assertions prouvent que
-    # doctor lit le config.zsh isole : KUBE y est actif, DOCKER non. Aucune ne
-    # depend d un outil installe sur la machine, contrairement aux sections
-    # Requis / Recommandes / Kubernetes que ce cas laisse deliberement de cote.
-    contains: ["Zanvil Doctor v", "Config", "KUBE ✓", "DOCKER ○"]
+    # doctor lit le config.zsh isole : le hook y active GITLAB et n y met pas
+    # SECURITY.
+    #
+    # GITLAB et SECURITY, et non KUBE et DOCKER : ces deux derniers declarent un
+    # `binary` dans leur .module.toml, donc doctor combine le guard avec
+    # command_exists (doctor.rs:258-262) et leur symbole depend de ce que le runner
+    # a installe. Le cas passait sur ubuntu, qui a kubectl, et echouait sur macOS
+    # qui ne l a pas. GITLAB et SECURITY n ont pas de binaire : leur symbole ne
+    # depend que du config.zsh isole, ce que ce cas veut precisement prouver.
+    contains: ["Zanvil Doctor v", "Config", "GITLAB ✓", "SECURITY ○"]
