@@ -276,6 +276,34 @@ printf '%s\n' "$?" | assert_equals "erreur fzf (2) : code preserve" "2"
 rm -f "$TEST_TMPDIR/bin/fzf"
 
 echo
+echo "== viewer (raccourci de rechargement) =="
+
+# Le viewer ignore sa source : il ne recoit qu une chaine opaque a reexecuter,
+# que le plugin k9s lui passe dans ZANVIL_K9S_RELOAD. Un faux fzf qui recrache
+# ses arguments suffit a verifier que le binding est construit — ou absent.
+# Il ecrit sur stderr : le viewer redirige la sortie de fzf vers /dev/null.
+_fake_fzf_echo_args() {
+    printf '#!/bin/sh\nfor a in "$@"; do printf "%%s\\n" "$a" >&2; done\n' \
+        > "$TEST_TMPDIR/bin/fzf"
+    chmod +x "$TEST_TMPDIR/bin/fzf"
+}
+
+_fake_fzf_echo_args
+
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
+    | env PATH="$TEST_TMPDIR/bin" ZANVIL_K9S_RELOAD='kubectl logs p | fmt --pairs' \
+        "$VIEW" 2>&1 >/dev/null \
+    | grep -c 'ctrl-r:reload-sync(kubectl logs p | fmt --pairs)' \
+    | assert_equals "ZANVIL_K9S_RELOAD definie : binding ctrl-r construit" "1"
+
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
+    | env PATH="$TEST_TMPDIR/bin" "$VIEW" 2>&1 >/dev/null \
+    | grep -c 'ctrl-r' \
+    | assert_equals "ZANVIL_K9S_RELOAD absente : aucun binding ctrl-r" "0"
+
+rm -f "$TEST_TMPDIR/bin/fzf"
+
+echo
 echo "== thread et logger : identifiants sur une seule ligne =="
 
 # Un nom de thread ou de logger contenant une tabulation ou un newline casserait
