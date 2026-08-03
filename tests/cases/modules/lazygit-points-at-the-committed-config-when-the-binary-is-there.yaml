@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Particularite : lazygit_setup n ecrit aucun fichier. Ce qui est teste ici, c est
+# l export fait au chargement du module (LG_CONFIG_FILE) et le rendu.
+name: lazygit-points-at-the-committed-config-when-the-binary-is-there
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source:
+    - "core/ui.zsh"
+    - "modules/tools/lazygit/init.zsh"
+  call: ["lazygit_setup"]
+  env:
+    ZANVIL_MODULE_LAZYGIT: "true"
+    ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  rules:
+    - match: { bin: lazygit, args_contain: "--version" }
+      stdout: "commit=abc123, version=0.50.0"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    # Un suffixe, pas le chemin complet : le prefixe est le repertoire temporaire
+    # de l isolation, qui change a chaque execution. Asserter le suffixe prouve
+    # que LG_CONFIG_FILE pointe la configuration versionnee, sans dependre de lui.
+    contains: ["zanvil/config/lazygit/config.yml", "config-local.yml"]
+    absent: ["brew install lazygit"]
+  calls:
+    lazygit: 1

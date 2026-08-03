@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: cli-lists-its-commands
+weight: 5
+setup:
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "--help"]
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["theme", "doctor", "audit"]

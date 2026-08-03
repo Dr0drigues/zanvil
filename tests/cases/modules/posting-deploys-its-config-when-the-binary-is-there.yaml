@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La branche que la CI n a jamais pu atteindre : la tester supposerait d installer
+# posting sur le runner. Le faker le rend present sans rien installer.
+name: posting-deploys-its-config-when-the-binary-is-there
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  # L ordre porte le sens : posting_setup appelle _ui_header et _ui_msg_ok.
+  source:
+    - "core/ui.zsh"
+    - "modules/tools/posting/init.zsh"
+  call: ["posting_setup"]
+  env:
+    ZANVIL_MODULE_POSTING: "true"
+    ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  rules:
+    - match: { bin: posting, args_contain: "--version" }
+      stdout: "posting 1.0.0"
+    # Obligatoire : sans catch-all, gaveldrop refuse le cas au chargement.
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  files:
+    "$HOME/.config/posting/config.yaml":
+      contains: ["theme: galaxy", "use_host_environment: false"]
+  stdout:
+    absent: ["brew install posting"]
+  calls:
+    posting: 1
