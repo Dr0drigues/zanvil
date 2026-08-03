@@ -71,7 +71,23 @@ if [[ -n "$clip" ]]; then
         --bind="ctrl-o:execute-silent(printf '%s\n' {+2..} | $clip)"
     )
 else
-    opts+=(--header="$header   (presse-papier indisponible)")
+    header="$header   (presse-papier indisponible)"
+    opts+=(--header="$header")
+fi
+
+# --- rechargement ------------------------------------------------------------
+# Le plugin k9s passe dans ZANVIL_K9S_RELOAD la commande qui a produit ces
+# lignes. Le viewer n en sait rien de plus : c est une chaine opaque qu il
+# rejoue, donc il continue d ignorer d ou viennent ses lignes et quel format
+# elles ont. Sans la variable, aucun binding : le viewer reste un filtre pur.
+# reload-sync et non reload, pour que la liste ne soit remplacee qu une fois la
+# commande terminee — sinon elle se vide le temps de l appel a kubectl.
+if [[ -n "${ZANVIL_K9S_RELOAD:-}" ]]; then
+    header="ctrl-r recharger   $header"
+    opts+=(
+        --header="$header"
+        --bind="ctrl-r:reload-sync($ZANVIL_K9S_RELOAD)"
+    )
 fi
 
 fzf "${opts[@]}" >/dev/null
