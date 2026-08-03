@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: cli-modules-list-reflects-config-zsh
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "modules", "list"]
+expect:
+  exit_code: 0
+  stdout:
+    # Les lignes viennent des .module.toml (config.rs, scan_module_metas) et le
+    # statut d une correspondance exacte avec une ligne de config.zsh
+    # (modules.rs:46-48). Le hook ecrit KUBE=true et DOCKER=false, donc les deux
+    # statuts doivent apparaitre — sans un module inactif, l assertion sur
+    # « inactif » ne prouverait rien.
+    contains: ["MODULE", "STATUT", "KUBE", "DOCKER", "actif", "inactif"]

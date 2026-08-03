@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: cli-doctor-runs-on-an-isolated-home
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "doctor"]
+expect:
+  exit_code: 0
+  stdout:
+    # L en-tete porte la version, et les deux dernieres assertions prouvent que
+    # doctor lit le config.zsh isole : KUBE y est actif, DOCKER non. Aucune ne
+    # depend d un outil installe sur la machine, contrairement aux sections
+    # Requis / Recommandes / Kubernetes que ce cas laisse deliberement de cote.
+    contains: ["Zanvil Doctor v", "Config", "KUBE ✓", "DOCKER ○"]
