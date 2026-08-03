@@ -54,6 +54,23 @@ _zanvil_do_update() {
     if (cd "$ZANVIL_DIR" && git pull --quiet origin main 2>/dev/null); then
         echo -e "${_ui_green}[zanvil]${_ui_nc} Mise a jour terminee. Rechargez avec: ${_ui_bold}ss${_ui_nc}"
 
+        # Le git pull amene du code Rust neuf ; sans cette reconstruction, le binaire
+        # installe reste celui du dernier install.sh et devient silencieusement perime.
+        # C'est le troisieme volet de la panne des quatre mois : le code avancait, le
+        # binaire non, et rien ne le disait.
+        #
+        # Garde volontaire : on ne reconstruit que si un binaire est DEJA installe.
+        # Quelqu'un qui n'en veut pas ne doit pas en heriter par une mise a jour.
+        if command -v cargo &>/dev/null && [[ -x "$HOME/.local/bin/zanvil" ]]; then
+            echo -e "${_ui_blue}[zanvil]${_ui_nc} Reconstruction du binaire..."
+            if (cd "$ZANVIL_DIR/cli" && cargo build --release 2>/dev/null); then
+                cp "$ZANVIL_DIR/cli/target/release/zanvil" "$HOME/.local/bin/" \
+                    && _ui_msg_ok "binaire mis a jour"
+            else
+                _ui_msg_warn "reconstruction echouee — le binaire reste a sa version precedente"
+            fi
+        fi
+
         # Detecter les nouvelles commandes apres reload du fichier
         local new_help_file="$ZANVIL_DIR/core/commands/commands.zsh"
         if [[ -f "$new_help_file" ]]; then
