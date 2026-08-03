@@ -17,6 +17,7 @@ Architecture hybride <strong>Rust CLI + modules zsh</strong> pour des performanc
 
 <p align="center">
   <a href="https://github.com/Dr0drigues/gaveldrop"><img src="https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/badge.svg" alt="tested with gaveldrop"></a>
+  <a href="https://dr0drigues.github.io/zanvil/rapport.html"><img src="https://dr0drigues.github.io/zanvil/badge.svg" alt="score de la suite"></a>
 </p>
 
 ## Installation
