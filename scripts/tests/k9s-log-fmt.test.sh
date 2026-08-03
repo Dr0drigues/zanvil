@@ -3,19 +3,16 @@
 # Usage : scripts/tests/k9s-log-fmt.test.sh
 set -uo pipefail
 
-# Ce fichier ne couvre plus que ce qui reste hors de portee des cas gaveldrop de
-# tests/cases/k9s/ — 50 cas y couvrent desormais le rendu, les egalites et les
-# comptages, ces derniers devenus des egalites sur la sortie entiere.
+# Ce fichier ne couvre plus que ce qui reste hors de portee des cas gaveldrop — 57 cas
+# couvrent desormais le rendu, les egalites, les comptages et le viewer.
 #
-# Restent ici :
-#   - les mesures qui exigent de decouper la sortie avant de comparer : `cut -f2-`
-#     pour le JSON source, `awk -F'\t' '{print NF}'` pour le nombre de champs. Une
-#     egalite sur la ligne entiere les couvrirait, mais l attendu contiendrait une
-#     tabulation litterale au milieu d un JSON — illisible dans un fichier de cas ;
-#   - le contrat --pairs verifie sur la fixture de dix lignes, ou l assertion porte
-#     sur le rapport entre le nombre de lignes entrantes et sortantes ;
-#   - les trois sections du viewer, qui pilotent un faux fzf, son PATH et son code
-#     de sortie.
+# Restent ici les seules mesures qui exigent de decouper la sortie avant de comparer :
+# `cut -f2-` pour isoler le JSON source, et `awk -F'\t' '{print NF}'` pour compter les
+# champs. Une egalite sur la ligne entiere les couvrirait, mais l attendu porterait une
+# tabulation litterale au milieu d un JSON — illisible dans un fichier de cas.
+#
+# S y ajoute le contrat --pairs verifie sur la fixture de dix lignes, ou l assertion porte
+# sur le rapport entre le nombre de lignes entrantes et sortantes.
 #
 # Ces assertions ne sont donc pas un oubli de migration.
 
@@ -24,8 +21,8 @@ FMT="$ROOT/scripts/k9s-log-fmt.sh"
 FIXTURES="$ROOT/config/k9s/fixtures/logs-sample.jsonl"
 
 # Repertoire temporaire pour les compteurs : les assertions tournent en fin de
-# pipeline (donc dans une sous-shell) ou une simple variable ne survivrait pas
-# a l issue du pipe ; on passe donc par des fichiers.
+# pipeline (donc dans une sous-shell) ou une simple variable ne survivrait pas a l issue
+# du pipe ; on passe donc par des fichiers.
 TEST_TMPDIR=$(mktemp -d) || { echo "mktemp failed" >&2; exit 2; }
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 echo 0 > "$TEST_TMPDIR/pass"
@@ -113,93 +110,6 @@ printf '%s\n' '{"level":"INFO","message":"Ligne1\rLigne2"}' | "$FMT" --pairs | c
 
 printf '%s\n' $'col1\tcol2 texte brut' | "$FMT" --pairs | cut -f2- \
     | assert_equals "texte brut avec tabulation : source intacte" $'col1\tcol2 texte brut'
-
-echo
-echo "== viewer (repli sans fzf) =="
-
-VIEW="$ROOT/scripts/k9s-log-view.sh"
-
-# PATH minimal sans fzf : on ne peut pas se fier a /usr/bin:/bin pour exclure
-# fzf (apt l installe la-bas sur Debian/Ubuntu). On construit un bin dedie
-# avec uniquement ce dont le viewer et son repli ont besoin (bash pour le
-# shebang, dirname pour se localiser, sed et less pour l affichage simple).
-mkdir -p "$TEST_TMPDIR/bin"
-ln -s "$(command -v bash)" "$TEST_TMPDIR/bin/bash"
-ln -s "$(command -v dirname)" "$TEST_TMPDIR/bin/dirname"
-ln -s "$(command -v sed)" "$TEST_TMPDIR/bin/sed"
-ln -s "$(command -v less)" "$TEST_TMPDIR/bin/less"
-
-# Le viewer doit se rabattre sur un affichage simple et n afficher que le
-# premier champ. LESS=-FX evite d ouvrir un pager interactif.
-printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
-    | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" LESS="-FX" "$VIEW" \
-    | assert_contains "repli sans fzf : premier champ affiche" "INFO  Bonjour"
-
-printf '%s\n' '{"level":"INFO","message":"Bonjour"}' \
-    | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" LESS="-FX" "$VIEW" \
-    | assert_equals "repli sans fzf : JSON source masque" "             INFO  Bonjour"
-
-echo
-echo "== viewer (code de sortie) =="
-
-# k9s affiche une popup d erreur des que le plugin sort non nul. Quitter fzf par
-# Esc rend 130, et un filtre sans correspondance rend 1 : deux sorties normales.
-# Un faux fzf permet de verifier la normalisation sans TTY.
-_fake_fzf() {
-    printf '#!/bin/sh\nexit %s\n' "$1" > "$TEST_TMPDIR/bin/fzf"
-    chmod +x "$TEST_TMPDIR/bin/fzf"
-}
-
-# L entree passe par un fichier, pas par un pipe, et c est la CI Linux qui l a
-# impose : le faux fzf sort immediatement sans lire son entree, donc jq recevait un
-# SIGPIPE et sortait en 2. Avec `pipefail` actif, le code mesure alors le pipeline
-# entier au lieu du viewer — ces trois assertions verifiaient autre chose que ce
-# qu elles annoncaient. Sur macOS le timing le masquait, d ou le passage inapercu.
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs > "$TEST_TMPDIR/pairs.txt"
-
-_fake_fzf 130
-env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
-printf '%s\n' "$?" | assert_equals "fzf annule (130) : sortie normalisee a 0" "0"
-
-_fake_fzf 1
-env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
-printf '%s\n' "$?" | assert_equals "aucune correspondance (1) : sortie normalisee a 0" "0"
-
-_fake_fzf 2
-env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
-printf '%s\n' "$?" | assert_equals "erreur fzf (2) : code preserve" "2"
-
-rm -f "$TEST_TMPDIR/bin/fzf"
-
-echo
-echo "== viewer (raccourci de rechargement) =="
-
-# Le viewer ignore sa source : il ne recoit qu une chaine opaque a reexecuter,
-# que le plugin k9s lui passe dans ZANVIL_K9S_RELOAD. Un faux fzf qui recrache
-# ses arguments suffit a verifier que le binding est construit — ou absent.
-# Il ecrit sur stderr : le viewer redirige la sortie de fzf vers /dev/null.
-_fake_fzf_echo_args() {
-    printf '#!/bin/sh\nfor a in "$@"; do printf "%%s\\n" "$a" >&2; done\n' \
-        > "$TEST_TMPDIR/bin/fzf"
-    chmod +x "$TEST_TMPDIR/bin/fzf"
-}
-
-_fake_fzf_echo_args
-
-# Entree par fichier, pour la meme raison que la section precedente : ce faux fzf
-# ne lit pas son entree non plus.
-env PATH="$TEST_TMPDIR/bin" ZANVIL_K9S_RELOAD='kubectl logs p | fmt --pairs' \
-    "$VIEW" < "$TEST_TMPDIR/pairs.txt" 2>&1 >/dev/null \
-    | grep -c 'ctrl-r:reload-sync(kubectl logs p | fmt --pairs)' \
-    | assert_equals "ZANVIL_K9S_RELOAD definie : binding ctrl-r construit" "1"
-
-env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" 2>&1 >/dev/null \
-    | grep -c 'ctrl-r' \
-    | assert_equals "ZANVIL_K9S_RELOAD absente : aucun binding ctrl-r" "0"
-
-rm -f "$TEST_TMPDIR/bin/fzf"
 
 echo
 echo "== thread et logger : identifiants sur une seule ligne =="

@@ -27,7 +27,7 @@ cargo install gaveldrop-cli gaveldrop-fake --locked
 Deux suites en bash complètent les cas, pour ce que le format n'exprime pas :
 
 ```bash
-bash scripts/tests/k9s-log-fmt.test.sh      # decoupage de champs, contrat --pairs, viewer
+bash scripts/tests/k9s-log-fmt.test.sh      # decoupage de champs, contrat --pairs
 bash scripts/tests/zsh-special-vars.test.sh # lint des variables reservees zsh
 ```
 
@@ -39,6 +39,7 @@ bash scripts/tests/zsh-special-vars.test.sh # lint des variables reservees zsh
 | CLI Rust | `theme list`, `theme current`, `modules list`, `doctor`, `--help` — code de sortie et contenu de la sortie |
 | Modules d'outils | Les **deux** branches de posting, delta, lazygit et atuin : binaire présent et binaire absent |
 | Rendu k9s | Le pattern logback, les niveaux numériques, l'abréviation du logger, les stack traces, les champs MDC, le mode `--pairs` |
+| Explorateur de logs | Le repli quand `fzf` manque, la normalisation des codes de sortie, et le binding `Ctrl-R` — présent avec une commande de rechargement, absent sans |
 | Documentation | Tout module portant un `.module.toml` est cité dans `configuration.md` — ce garde-fou existe parce que la doc avait dérivé de huit modules |
 
 ## Deux mécanismes qui font l'intérêt de la suite
