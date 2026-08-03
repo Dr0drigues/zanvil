@@ -54,6 +54,20 @@ fn print_separator(width: usize) {
     println!("{}", "─".repeat(width));
 }
 
+/// Cherche `zanvil` dans le PATH, et rend le premier chemin trouve.
+///
+/// On ne se contente pas de `current_exe()` : la question n'est pas « ou suis-je »
+/// mais « qui repondra a une delegation zsh », et c'est le PATH qui en decide. Un
+/// binaire lance par son chemin complet peut parfaitement ne pas etre celui que
+/// `command -v zanvil` trouvera.
+fn which_zanvil() -> Option<String> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|dir| dir.join("zanvil"))
+        .find(|candidate| candidate.is_file())
+        .map(|p| p.display().to_string())
+}
+
 fn command_exists(name: &str) -> bool {
     Command::new("which")
         .arg(name)
@@ -183,6 +197,52 @@ pub fn run() {
     } else {
         print_section("Integration", &fail_indicator(".zshrc"));
         issues += 1;
+    }
+
+    // ── Binaire ───────────────────────────────────────────────────────────
+    // Une delegation zsh retombe sur son repli quand ce binaire manque du PATH, et
+    // elle le fait silencieusement : ~/.local/bin a porte zsh-env-cli v3.0.0 pendant
+    // quatre mois apres le renommage de la v4.0.0, sans que rien ne le signale.
+    // Doctor est le seul endroit qui puisse le dire.
+    match which_zanvil() {
+        Some(path) => {
+            let running = std::env::current_exe()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default();
+            if running == path {
+                print_section("Binaire", &format!("{}  {}", "✓".green(), path.dimmed()));
+            } else {
+                // Un autre zanvil est premier dans le PATH : c'est lui qui repondra
+                // aux delegations, pas celui qu'on vient de lancer.
+                print_section(
+                    "Binaire",
+                    &format!(
+                        "{}  {} {}",
+                        "⚠".yellow(),
+                        path.dimmed(),
+                        "(repond aux delegations)".dimmed()
+                    ),
+                );
+            }
+        }
+        None => {
+            issues += 1;
+            print_section(
+                "Binaire",
+                &format!(
+                    "{}  absent du PATH — les commandes zsh tombent sur leur repli",
+                    "✗".red()
+                ),
+            );
+            println!(
+                "               {}",
+                format!(
+                    "cd {}/cli && cargo build --release && cp target/release/zanvil ~/.local/bin/",
+                    zanvil_dir().display()
+                )
+                .dimmed()
+            );
+        }
     }
 
     println!();
