@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-neutralises-a-carriage-return
+weight: 3
+setup:
+  stdin: |
+    {"level":"INFO","message":"Ligne1\rLigne2"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh", "--pairs"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    # Un retour chariot dans le champ rendu ferait croire a fzf que la ligne s arrete
+    # la, ou reecrirait par-dessus a l affichage. `absent` dit exactement cela, sans
+    # passer par un comptage.
+    absent: ["\r"]

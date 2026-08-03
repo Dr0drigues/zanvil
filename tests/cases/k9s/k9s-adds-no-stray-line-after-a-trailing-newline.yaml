@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-adds-no-stray-line-after-a-trailing-newline
+weight: 3
+setup:
+  stdin: |
+    {"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)\n"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: |2
+                   ERROR com.Foo - Boom
+        java.lang.IllegalStateException: Boom
+            at com.Foo.bar(Foo.java:17)

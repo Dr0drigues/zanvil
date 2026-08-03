@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-rejects-an-unknown-option
+weight: 3
+setup:
+  stdin: |
+    {"level":"INFO","message":"x"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh", "--oops"]
+expect:
+  # Le seul cas ou le code de sortie est le sujet : un flag inconnu doit etre refuse
+  # plutot que traite comme une entree.
+  exit_code: 2

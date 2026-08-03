@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-renders-the-logback-pattern
+weight: 3
+setup:
+  # L entree est ecrite dans le cas : il se lit d un bloc, entree et attendu ensemble.
+  stdin: |
+    {"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    # Le formatteur entoure chaque champ de codes ANSI : sans cette cle, l egalite
+    # porterait sur des escapes plutot que sur le rendu.
+    ignore_ansi: true
+    equals: "08:00:00.123 INFO  [main] com.boulanger.foo.FooService - Demarrage termine"
