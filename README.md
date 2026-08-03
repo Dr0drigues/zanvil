@@ -15,6 +15,10 @@ Architecture hybride <strong>Rust CLI + modules zsh</strong> pour des performanc
 
 <p align="center"><strong><a href="https://dr0drigues.github.io/zanvil/">Site de documentation</a></strong> · <a href="https://github.com/Dr0drigues/zanvil/wiki">Wiki</a></p>
 
+<p align="center">
+  <a href="https://github.com/Dr0drigues/gaveldrop"><img src="https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/badge.svg" alt="tested with gaveldrop"></a>
+</p>
+
 ## Installation
 
 ```bash

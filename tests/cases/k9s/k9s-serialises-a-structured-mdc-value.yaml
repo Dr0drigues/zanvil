@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-serialises-a-structured-mdc-value
+weight: 3
+setup:
+  stdin: |
+    {"level":"INFO","message":"x","nested":{"a":1}}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: |2
+                   INFO  x
+                         nested={"a":1}

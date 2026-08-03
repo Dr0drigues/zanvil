@@ -49,7 +49,7 @@ de ce chantier.
 | `setup.env` | activer un module guardé par `ZANVIL_MODULE_*` sans toucher au module |
 | `setup.exec` | construire l'état dont le sujet a besoin, avant lui |
 
-### Les trois murs, mesurés
+### Les quatre murs, mesurés — tous levés depuis
 
 Chacun a été vérifié sur une probe hors dépôt, pas supposé :
 
@@ -89,15 +89,19 @@ Chacun a été vérifié sur une probe hors dépôt, pas supposé :
    ```
 
    Aucun cas `allow_fail` n'est écrit : il n'y a rien à tolérer.
-2. **`setup` ne connaît que `env`, `exec` et `run` — il n'y a pas de `stdin:`.** Un filtre
-   `stdin → stdout` comme `scripts/k9s-log-fmt.sh` n'est donc pas invocable directement.
-3. **Aucune normalisation ANSI côté assertion.** Le formatteur entoure *chaque champ* de codes
-   (`^[[2m08:00:00.123^[[0m ^[[1;32mINFO ^[[0m…`), donc un `contains:` sur une ligne rendue casse sur
-   les escapes intercalés. `expect.invariants` ne comble pas ce manque : les invariants portent sur
-   des *events* JSONL, pas sur du texte.
+2. ~~**`setup` ne connaît que `env`, `exec` et `run` — il n'y a pas de `stdin:`.**~~ **Levé en v0.1.2 par
+   `setup.stdin`**, écrit dans le cas via un bloc `|` de YAML. Un filtre `stdin → stdout` s'invoque
+   désormais directement.
+3. ~~**Aucune normalisation ANSI côté assertion.**~~ **Levé en v0.1.2 par `ignore_ansi: true`**, à
+   déclarer sur l'assertion — éteint par défaut, pour qu'`absent: ["\e["]` reste une assertion possible
+   sur un outil qui ne doit pas colorer hors terminal.
+4. ~~**Aucune égalité exacte.**~~ **Levé en v0.1.2 par `equals`.** C'était le plus coûteux : un comptage
+   asserté en `contains` passait sur un mauvais résultat, `contains: ["2"]` étant satisfait par une
+   sortie `12`.
 
-Les murs 2 et 3 imposent, pour la migration k9s du lot 2, un exécutable de plomberie côté zanvil —
-pour que les cas restent des faits plutôt que d'embarquer un `sed`.
+Les murs 2, 3 et 4 ont imposé un exécutable de plomberie pendant une heure — `tests/bin/k9s-fmt-plain`,
+écrit pour le lot 2a et retiré le jour même. Aucun mur ne subsiste : la version minimale de gaveldrop est
+**v0.1.2**, et c'est tout ce qu'il en reste.
 
 ## Architecture
 
@@ -109,10 +113,8 @@ zanvil/
 │   │   ├── boot/rc-loads-without-an-error.yaml
 │   │   ├── cli/*.yaml                    # lot 1 — 5 cas
 │   │   ├── modules/*.yaml                # lot 1 — 8 cas, les deux branches
-│   │   └── k9s/*.yaml                    # lot 2
-│   ├── hooks/prepare-zanvil-dir.sh       # lot 1
-│   ├── bin/k9s-fmt-plain                 # lot 2
-│   └── fixtures/k9s/*.jsonl              # lot 2
+│   │   └── k9s/*.yaml                    # lot 2 — 24 cas de rendu
+│   └── hooks/prepare-zanvil-dir.sh       # lot 1
 └── .shellspec                            # supprimé
 ```
 
@@ -249,21 +251,32 @@ accident, en dépendant de ce que le runner n'avait pas installé.
 
 ## Le lot 2 — migration de `k9s-log-fmt.test.sh`
 
-Les 53 assertions deviennent des cas, un scénario par fichier. Trois pièces :
+Livré en deux passes, la seconde ayant effacé une partie de la première.
 
-- **`tests/bin/k9s-fmt-plain`** — reçoit un nom de fixture et les options du formatteur, alimente
-  `scripts/k9s-log-fmt.sh` sur son entrée standard, retire les codes ANSI. Il existe uniquement à
-  cause des murs 2 et 3 ; c'est de la plomberie que gaveldrop devrait rendre inutile, et le rapport le
-  dira.
-- **`tests/fixtures/k9s/*.jsonl`** — une fixture par scénario d'entrée (niveaux textuels et
-  numériques, les quatre champs de stack trace, logger dotté et sans point, tabulations et retours
-  chariot, JSON malformé, texte brut, absence de chaque champ). Plusieurs cas peuvent partager une
-  fixture. `config/k9s/fixtures/logs-sample.jsonl` reste où il est : il sert à rejouer le rendu à la
-  main, ce qui est documenté.
-- **Les cas du viewer** gagnent au change : le test bash fabrique un faux `fzf`, que
-  `fake: { bins: [fzf] }` fournit nativement.
+**Lot 2a**, sous les murs 2 à 4 : douze cas de rendu, un wrapper `tests/bin/k9s-fmt-plain` pour fournir
+l'entrée et retirer les codes ANSI, et des assertions en `contains` faute de mieux.
 
-`scripts/tests/k9s-log-fmt.test.sh` est supprimé à la fin du lot 2, et son étape CI avec lui.
+**Lot 2b**, après `v0.1.2` : le wrapper disparaît, les douze cas passent à `stdin` + `ignore_ansi` +
+`equals`, et vingt-quatre autres les rejoignent — dont les comptages, devenus des égalités sur la sortie
+entière. « Quatre lignes » devient « ces quatre lignes-là », ce que le test bash ne vérifiait pas.
+
+Deux écarts avec le plan d'origine, tous deux justifiés par une mesure :
+
+- **Pas de fixtures découpées.** Le spec en prévoyait une trentaine ; `setup.stdin` porte l'entrée dans
+  le cas, qui se lit d'un bloc. `config/k9s/fixtures/logs-sample.jsonl` reste où il est, pour les deux
+  assertions du contrat `--pairs` et pour rejouer le rendu à la main.
+- **Les attendus multi-lignes portent `|2`.** Sans l'indicateur d'indentation explicite, YAML mange
+  l'indentation de tête et `equals` échoue sur `— the same but for whitespace`.
+
+**Ce qui reste en bash**, vingt assertions : celles qui exigent de découper la sortie avant de comparer
+(`cut -f2-` pour le JSON source, `awk -F'\t' NF` pour le nombre de champs — une égalité sur la ligne
+entière contiendrait une tabulation littérale au milieu d'un JSON), le contrat `--pairs` sur la fixture
+de dix lignes, et les trois sections du viewer qui pilotent un faux `fzf`.
+
+**Vérification par mutation**, parce que ces cas dérivent d'une sortie réelle et passeraient donc par
+construction : neutraliser `pad()` dans le formatteur fait rougir 17 cas, remplacer `⤷` en fait rougir 2.
+Le garde-fou à la génération est complémentaire — le fragment que le test bash assertait est vérifié dans
+la sortie capturée, sans quoi le cas n'est pas écrit.
 
 ## Hors périmètre
 

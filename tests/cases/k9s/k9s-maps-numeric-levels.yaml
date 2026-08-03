@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-maps-numeric-levels
+weight: 3
+setup:
+  stdin: |
+    {"level":50,"message":"hello"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: "             ERROR hello"

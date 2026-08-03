@@ -128,57 +128,23 @@ jobs:
       - name: Build the zanvil CLI
         run: cd cli && cargo build --release
 
-      # Les binaires precompiles de la release, plutot qu un `cargo install` : aucune
-      # compilation, donc rien a cacher, ni --force pour ecraser un binaire restaure.
-      # Le tag est une reference lisible qui dit ce qu on installe, la ou un SHA ne le
-      # dit pas. v0.1.1 est le minimum : c est la version ou `setup.hide` accepte un
-      # outil que `fake.bins` declare, ce dont dependent les quatre cas
-      # `*-warns-when-its-binary-is-missing`. Sous v0.1.0 ils sont refuses au
-      # chargement, avec « case hides `posting` and the project fakes it ».
+      # L action officielle, qui remplace vingt lignes de telechargement et de
+      # verification sha256. Elle n etait pas utilisable jusqu ici : ajoutee au depot
+      # APRES le tag v0.1.0, la reference ne resolvait pas et le job mourait en trois
+      # secondes sur « Can't find 'action.yml' ». v0.1.2 la contient — verifie par
+      # `git ls-tree v0.1.2:action`.
       #
-      # L action officielle ferait la meme chose en une ligne, mais
-      # `Dr0drigues/gaveldrop/action@v0.1.0` ne resout pas : l action a ete ajoutee au
-      # depot APRES le tag, et `git tag --contains` sur son commit ne renvoie rien.
-      # GitHub echoue alors au demarrage du job, en trois secondes, sur
-      # « Can't find 'action.yml' ». A rebasculer dessus des qu un tag la contient.
+      # v0.1.2 est un minimum, pas une preference : c est la version qui apporte
+      # setup.stdin, equals et ignore_ansi, dont depend chaque cas de tests/cases/k9s/,
+      # et deja setup.hide sur un outil fake pour les quatre cas
+      # `*-warns-when-its-binary-is-missing`.
       #
-      # Les deux binaires voyagent dans la meme archive et en sortent cote a cote, ce
-      # que gaveldrop exige : il cherche gaveldrop-fake a cote de lui, et sans lui
-      # toute execution meurt sur « the fake binary was not found beside this
-      # executable ».
-      - name: Install gaveldrop
-        env:
-          GAVELDROP_VERSION: v0.1.1
-        run: |
-          case "${{ runner.os }}-${{ runner.arch }}" in
-            Linux-X64)   target=x86_64-unknown-linux-musl ;;
-            Linux-ARM64) target=aarch64-unknown-linux-musl ;;
-            macOS-ARM64) target=aarch64-apple-darwin ;;
-            macOS-X64)   target=x86_64-apple-darwin ;;
-            *) echo "cible non geree : ${{ runner.os }}-${{ runner.arch }}" >&2; exit 1 ;;
-          esac
-
-          archive="gaveldrop-${GAVELDROP_VERSION}-${target}.tar.gz"
-          base="https://github.com/Dr0drigues/gaveldrop/releases/download/${GAVELDROP_VERSION}"
-          curl -fsSL -O "${base}/${archive}" -O "${base}/${archive}.sha256"
-
-          # Verification avant extraction : une archive alteree ne doit pas s executer.
-          if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum -c "${archive}.sha256"
-          else
-            shasum -a 256 -c "${archive}.sha256"
-          fi
-
-          tar xzf "$archive"
-          mkdir -p "$HOME/.local/bin"
-          mv "gaveldrop-${GAVELDROP_VERSION}-${target}/gaveldrop" \
-             "gaveldrop-${GAVELDROP_VERSION}-${target}/gaveldrop-fake" "$HOME/.local/bin/"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
-      # log que personne ne deroule.
+      # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un log
+      # que personne ne deroule.
       - name: Run the cases
-        run: gaveldrop --annotate --report-junit junit.xml
+        uses: Dr0drigues/gaveldrop/action@v0.1.2
+        with:
+          args: --annotate --report-junit junit.xml
 
       # if: always() — le rapport est le plus utile quand l etape precedente a echoue.
       - name: Keep the report

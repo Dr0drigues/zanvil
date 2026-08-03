@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-omits-empty-brackets-without-a-thread
+weight: 3
+setup:
+  stdin: |
+    {"level":"INFO","logger_name":"com.boulanger.foo.FooService","message":"Sans thread"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: "             INFO  com.boulanger.foo.FooService - Sans thread"
