@@ -2,14 +2,11 @@
 name: k9s-omits-empty-brackets-without-a-thread
 weight: 3
 setup:
-  env:
-    ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  run:
-    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
-    - '--line'
-    - '{"level":"INFO","logger_name":"com.boulanger.foo.FooService","message":"Sans thread"}'
+  stdin: |
+    {"level":"INFO","logger_name":"com.boulanger.foo.FooService","message":"Sans thread"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
 expect:
   exit_code: 0
   stdout:
-    contains:
-      - 'INFO  com.boulanger.foo.FooService - Sans thread'
+    ignore_ansi: true
+    equals: "             INFO  com.boulanger.foo.FooService - Sans thread"

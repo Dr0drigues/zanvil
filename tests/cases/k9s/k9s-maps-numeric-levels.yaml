@@ -2,14 +2,11 @@
 name: k9s-maps-numeric-levels
 weight: 3
 setup:
-  env:
-    ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  run:
-    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
-    - '--line'
-    - '{"level":50,"message":"hello"}'
+  stdin: |
+    {"level":50,"message":"hello"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
 expect:
   exit_code: 0
   stdout:
-    contains:
-      - '             ERROR hello'
+    ignore_ansi: true
+    equals: "             ERROR hello"
