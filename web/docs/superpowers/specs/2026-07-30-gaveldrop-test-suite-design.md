@@ -53,35 +53,33 @@ de ce chantier.
 
 Chacun a été vérifié sur une probe hors dépôt, pas supposé :
 
-1. ~~**Un cas ne peut pas déclarer qu'un outil est absent.**~~ **Levé le 3 août 2026 par
-   `setup.hide`.** Un cas déclare `hide: [posting]` et l'outil devient introuvable, quelle que soit la
-   machine. Vérifié dans les deux sens sur un poste où `posting` est installé : sans la clé le cas
-   échoue (`got (empty)`), avec elle il passe (`3/3`).
+1. ~~**Un cas ne peut pas déclarer qu'un outil est absent, et déclarer un outil présent interdit
+   l'autre branche.**~~ **Entièrement levé le 3 août 2026, en deux temps, tous deux issus de ce
+   travail.**
 
-   Ce qui subsiste est **la seconde moitié du mur, intacte** : un outil ne peut pas être à la fois
-   faké et caché. gaveldrop le refuse, à juste titre —
+   `setup.hide` (v0.1.0) a rendu une absence prouvable. Vérifié dans les deux sens sur un poste où
+   `posting` est installé : sans la clé le cas échoue (`got (empty)`), avec elle il passe (`3/3`).
 
-   > `case hides `posting` and the project fakes it: `fake.bins` lays down a symlink, which makes it
-   > findable, while `setup.hide` exists to make it unfindable. Take it out of one of them`
+   Puis, en réponse au rapport, `hide` a cessé de refuser un outil que `fake.bins` déclare (v0.1.1) :
+   le cas gagne, aucun lien symbolique n'est posé pour cet outil-là, les autres restent intacts. La
+   déclaration vaut pour la suite, la clé vaut pour un cas, et le plus spécifique décide. **Les deux
+   branches d'un module tiennent donc dans une seule configuration** — `gaveldrop.hidden.yaml` et
+   `tests/cases-hidden/` ont existé une demi-journée et n'existent plus.
 
-   — et comme `fake.bins` vit dans la configuration plutôt que dans le cas, et que `cases:` n'accepte
-   qu'un seul motif, **les deux branches d'un module ne peuvent pas partager une configuration**. D'où
-   `gaveldrop.hidden.yaml` et `tests/cases-hidden/`, décrits plus bas. Le coût est une seconde
-   invocation en CI, pas une couverture perdue.
+   Ce que ce mur laisse comme trace : la version minimale de gaveldrop est **v0.1.1**. Sous v0.1.0 les
+   quatre cas `*-warns-when-its-binary-is-missing` sont refusés au chargement, avec `case hides
+   `posting` and the project fakes it`. C'est pourquoi le job CI épingle cette version.
 
-   Note sur `hide` : cacher un outil retire **tout le répertoire** qui le contient. `hide: [posting]`
-   fait disparaître `/opt/homebrew/bin`, donc aussi delta, lazygit et atuin. Sans effet ici — la
-   branche absente n'appelle rien d'autre, et `zsh`, `cp`, `jq`, `git` vivent dans `/bin` et
-   `/usr/bin`.
+   Note sur `hide`, toujours valable : cacher un outil retire **tout le répertoire** qui le contient.
+   `hide: [posting]` fait disparaître `/opt/homebrew/bin`, donc aussi delta, lazygit et atuin. Sans
+   effet ici — la branche absente n'appelle rien d'autre, et `zsh`, `cp`, `jq`, `git` vivent dans
+   `/bin` et `/usr/bin`.
 
    Pour mémoire, l'état antérieur, qui explique les décisions prises avant cette date : `PATH` dans
    l'isolation étant les symlinks de fakes suivis du `PATH` hérité, `command -v posting` trouvait
    l'outil réel quand la machine l'avait. Le faker rendait un outil *présent* ; rien ne le rendait
-   manquant.
-
-   Ce qui reste vrai de l'analyse initiale, et fonde la seconde configuration : `fake.bins` est posé
-   sur `PATH` pour *tous* les cas de sa configuration, y compris ceux sans bloc `fake:` — vérifié sur
-   probe avec un outil qui n'existe sur aucune machine :
+   manquant. Et un bin déclaré était shadowé pour *tous* les cas de la configuration, y compris ceux
+   sans bloc `fake:` — ce que `setup.hide` corrige désormais cas par cas :
 
    ```
    FAIL does-a-declared-bin-exist-without-a-fake-block  0/1
@@ -90,8 +88,7 @@ Chacun a été vérifié sur une probe hors dépôt, pas supposé :
          got       SHADOWED
    ```
 
-   Aucun cas `allow_fail` n'est écrit, mais la raison a changé : ce n'est plus qu'un tel cas serait
-   structurellement impossible, c'est qu'il n'y a plus rien à tolérer.
+   Aucun cas `allow_fail` n'est écrit : il n'y a rien à tolérer.
 2. **`setup` ne connaît que `env`, `exec` et `run` — il n'y a pas de `stdin:`.** Un filtre
    `stdin → stdout` comme `scripts/k9s-log-fmt.sh` n'est donc pas invocable directement.
 3. **Aucune normalisation ANSI côté assertion.** Le formatteur entoure *chaque champ* de codes
@@ -106,24 +103,22 @@ pour que les cas restent des faits plutôt que d'embarquer un `sed`.
 
 ```
 zanvil/
-├── gaveldrop.yaml                        # cases + fake.bins — les outils sont presents
-├── gaveldrop.hidden.yaml                 # cases seuls, aucun fake — les outils sont absents
+├── gaveldrop.yaml                        # cases + fake.bins
 ├── tests/
-│   ├── cases/                            # lus par gaveldrop.yaml
+│   ├── cases/
 │   │   ├── boot/rc-loads-without-an-error.yaml
 │   │   ├── cli/*.yaml                    # lot 1 — 5 cas
-│   │   ├── modules/*.yaml                # lot 1 — 4 cas, branche « present »
+│   │   ├── modules/*.yaml                # lot 1 — 8 cas, les deux branches
 │   │   └── k9s/*.yaml                    # lot 2
-│   ├── cases-hidden/*.yaml               # lus par gaveldrop.hidden.yaml — 4 cas, branche « absent »
 │   ├── hooks/prepare-zanvil-dir.sh       # lot 1
 │   ├── bin/k9s-fmt-plain                 # lot 2
 │   └── fixtures/k9s/*.jsonl              # lot 2
 └── .shellspec                            # supprimé
 ```
 
-Les deux configurations ne sont pas un choix de confort : un outil ne peut pas être simultanément faké
-et caché, et `fake.bins` appartient à la configuration. Les motifs `cases:` sont donc disjoints, et la
-CI lance deux fois `gaveldrop`.
+Une seule configuration, et une seule invocation : `fake.bins` déclare les quatre outils pour la suite,
+et les quatre cas qui testent la branche absente s'y soustraient un par un avec `setup.hide`. Le plus
+spécifique décide.
 
 `.shellspec` disparaît : il configure un outil qu'aucun fichier n'utilise, et la convention du projet
 est de ne pas écrire de specs shellspec.
@@ -179,21 +174,19 @@ tout l'exercice : elle est inaccessible à la CI actuelle, qui supposerait d'ins
 le runner. Chacun asserte le fichier déployé, l'absence du message d'avertissement et le nombre
 d'appels — deux pour atuin, qui invoque `--version` puis `info`.
 
-**La branche « binaire absent »**, 4 cas de poids 3 sous `tests/cases-hidden/`, chacun déclarant
+**La branche « binaire absent »**, 4 cas de poids 3 dans le même répertoire, chacun déclarant
 `hide: [<outil>]`. C'est ce que la CI vérifiait en amputant `PATH` à la main, désormais exprimé par le
 format et avec un verdict identique partout. Aucun hook : cette branche ne lit ni ne déploie rien.
 
 ### Pas de bloc `gate:`
 
 Le total des poids vaut **68** — 9 pour le chargement, 27 pour les cinq cas CLI, 20 pour les quatre
-branches présentes, 12 pour les quatre branches absentes, ces dernières comptées par la seconde
-configuration. Aucun des trois seuils que gaveldrop propose n'apporte quoi que ce soit à une suite qui
-ne tolère aucun échec :
+branches présentes, 12 pour les quatre branches absentes. Aucun des trois seuils que gaveldrop propose
+n'apporte quoi que ce soit à une suite qui ne tolère aucun échec :
 
 - `min_score` est comparé au score **absolu**, pas à un pourcentage (`report.rs:88`). Un
   `min_score: 80` — la valeur de l'exemple dans `docs/ci.md` — ferait échouer le gate en permanence sur
-  une suite dont le maximum est 56 dans une configuration et 12 dans l'autre. Et une valeur correcte
-  devrait être bumpée à chaque cas ajouté.
+  une suite dont le maximum est 68. Et une valeur correcte devrait être bumpée à chaque cas ajouté.
 - `fail_above_weight` ne se déclenche que sur un cas `!passed && !allow_fail` (`report.rs:109`), or un
   tel cas rend déjà `is_success()` faux. Redondant avec le code de sortie.
 - `max_tolerated` n'observe que les cas `allow_fail`, et le lot 1 n'en compte aucun.
@@ -206,8 +199,7 @@ sera légitime — c'est-à-dire quand le mur nº 1 tombera.
 
 Un job `cases` dans `tests.yml` : checkout, installation de zsh sur Linux (l'image `ubuntu-24.04` ne
 l'embarque pas), build du CLI zanvil, installation de gaveldrop depuis les **binaires précompilés de la
-release**, puis **deux** exécutions — une par configuration — avant l'upload des rapports en
-`if: always()`.
+release**, puis une exécution et l'upload du rapport en `if: always()`.
 
 ```yaml
 - run: |
@@ -215,11 +207,13 @@ release**, puis **deux** exécutions — une par configuration — avant l'uploa
     sha256sum -c "$archive.sha256"      # shasum -a 256 -c sur macOS
     tar xzf "$archive" && mv …/gaveldrop …/gaveldrop-fake "$HOME/.local/bin/"
 - run: gaveldrop --annotate --report-junit junit.xml
-- run: gaveldrop --config gaveldrop.hidden.yaml --annotate --report-junit junit-hidden.xml
 ```
 
 Quatre points non évidents :
 
+- **La version est un minimum, pas une préférence.** `v0.1.1` est la première où `setup.hide` accepte un
+  outil que `fake.bins` déclare ; sous `v0.1.0`, les quatre cas `*-warns-when-its-binary-is-missing`
+  sont refusés au chargement. Vérifié en comparant les deux binaires sur le même cas.
 - **La release plutôt que `cargo install`.** Aucune compilation — deux minutes par job — donc rien à
   cacher, et donc pas de `--force` : cacher `~/.cargo/bin` fait échouer le second run sur
   `error: binary gaveldrop already exists in destination`, exit 101, ce qui est arrivé. Un tag dit aussi
@@ -233,7 +227,7 @@ Quatre points non évidents :
   optionnelle — c'est ce qui a fait échouer la CI de gaveldrop elle-même la première fois.
 
 L'action officielle ferait tout cela en une ligne, avec `install-only: 'true'` qui correspond exactement
-au besoin de deux configurations. Elle est inutilisable aujourd'hui : `Dr0drigues/gaveldrop/action@v0.1.0`
+au cas où plusieurs invocations seraient nécessaires. Elle est inutilisable aujourd'hui : `Dr0drigues/gaveldrop/action@v0.1.0`
 ne résout pas, l'action ayant été ajoutée au dépôt **après** le tag — `git tag --contains` sur son commit
 ne renvoie rien, et GitHub échoue au démarrage du job sur `Can't find 'action.yml'`. À rebasculer dessus
 dès qu'un tag la contient.
@@ -244,7 +238,7 @@ dès qu'un tag la contient.
 |---|---|
 | `Verify zsh loads without errors` | **remplacée** par `rc-loads-without-an-error`, qui asserte et n'atteint pas le réseau |
 | `Test CLI commands` | **remplacée** par les cinq cas CLI |
-| `Test binary-absent fallback warnings` | **remplacée** par les quatre cas de `tests/cases-hidden/` |
+| `Test binary-absent fallback warnings` | **remplacée** par les quatre cas `*-warns-when-its-binary-is-missing` |
 | `Verify core files exist`, `Verify modules structure` | **gardées** : gaveldrop saurait l'exprimer, mais ce serait un `ls` en moins bien |
 | `scripts/tests/k9s-log-fmt.test.sh`, `zsh-special-vars.test.sh` | **ajoutées** en CI, où elles ne tournaient pas |
 
@@ -325,7 +319,7 @@ Livrable du lot 1, adressé au dépôt gaveldrop sans le modifier. Déjà acquis
 9. `min_score` se compare au score **absolu** alors que son nom, et l'exemple `min_score: 80` de
    `docs/ci.md` en regard d'un `score 1/1` dans `docs/adopting.md`, invitent à y lire un pourcentage.
    Un projet qui reprend l'exemple obtient un gate qui échoue toujours, sans que le message —
-   « the weighted score is 56 of 56, below the 80 this project requires » — désigne la confusion.
+   « the weighted score is 68 of 68, below the 80 this project requires » — désigne la confusion.
 10. `min_score` et `fail_above_weight` sont tous deux redondants avec le code de sortie pour un projet
     qui ne tolère aucun échec, puisque `is_success()` teste déjà `failed == 0`. Des trois seuils, seul
     `max_tolerated` observe quelque chose qu'aucun autre mécanisme ne voit — un `allow_fail` qui casse —
