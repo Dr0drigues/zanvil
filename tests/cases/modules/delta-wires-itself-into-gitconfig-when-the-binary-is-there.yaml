@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: delta-wires-itself-into-gitconfig-when-the-binary-is-there
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source:
+    - "core/ui.zsh"
+    - "modules/tools/delta/init.zsh"
+  call: ["delta_setup"]
+  env:
+    ZANVIL_MODULE_DELTA: "true"
+    ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  rules:
+    - match: { bin: delta, args_contain: "--version" }
+      stdout: "delta 0.18.2"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  files:
+    "$HOME/.gitconfig.d/delta":
+      contains: ["pager = delta"]
+    "$HOME/.gitconfig":
+      contains: ["gitconfig.d/delta"]
+  stdout:
+    # Vaut double : le message lui-meme, et la preuve que la branche qui REECRIT
+    # $ZANVIL_DIR/config/lazygit/config.yml n a pas ete prise — donc qu aucun
+    # fichier versionne n a ete modifie par le cas.
+    contains: ["lazygit pager déjà configuré"]
+    absent: ["brew install git-delta"]
+  calls:
+    delta: 1
