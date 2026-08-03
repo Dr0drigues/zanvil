@@ -3,6 +3,17 @@
 # Usage : scripts/tests/k9s-log-fmt.test.sh
 set -uo pipefail
 
+# Ce fichier ne couvre plus que ce que gaveldrop ne peut pas exprimer :
+#   - les egalites exactes. TextExpectation n accepte que contains et absent, donc un
+#     comptage asserte en contains passerait sur un mauvais resultat : contains ["2"]
+#     est satisfait par une sortie 12, verifie ;
+#   - les mesures indirectes qui en dependent : wc -l, awk -F'\t' NF, grep -c ;
+#   - les trois sections du viewer, qui pilotent un faux fzf et son code de sortie.
+#
+# Le rendu est couvert par tests/cases/k9s/. Ces assertions ne sont donc pas un oubli
+# de migration : voir le mur nº 4 du rapport
+# web/docs/superpowers/reports/2026-08-03-gaveldrop-shell-adapter.md.
+
 ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
 FMT="$ROOT/scripts/k9s-log-fmt.sh"
 FIXTURES="$ROOT/config/k9s/fixtures/logs-sample.jsonl"
@@ -48,18 +59,6 @@ assert_equals() {
 
 echo "== rendu de base =="
 
-printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","message":"Demarrage termine"}' \
-    | "$FMT" | assert_contains "horodatage court + niveau complete" "08:00:00.123 INFO  Demarrage termine"
-
-printf '%s\n' '{"@timestamp":"2026-07-28T08:00:01.456Z","level":"error","message":"Boom"}' \
-    | "$FMT" | assert_contains "niveau en majuscules" "08:00:01.456 ERROR Boom"
-
-printf '%s\n' '{"@timestamp":"2026-07-28T08:00:02.000Z","severity":"WARN","msg":"Alerte"}' \
-    | "$FMT" | assert_contains "champs severity et msg reconnus" "08:00:02.000 WARN  Alerte"
-
-printf '%s\n' '{"message":"Sans horodatage"}' \
-    | "$FMT" | assert_contains "niveau par defaut INFO, colonne heure vide" "             INFO  Sans horodatage"
-
 printf '%s\n' 'ligne de texte brut' \
     | "$FMT" | assert_equals "texte brut reemis a l identique" "ligne de texte brut"
 
@@ -75,9 +74,6 @@ echo "== niveau numerique (pino/bunyan) =="
 printf '%s\n' '{"level":30,"message":"hello"}' \
     | "$FMT" | assert_contains "niveau numerique 30 rendu INFO" "             INFO  hello"
 
-printf '%s\n' '{"level":50,"message":"hello"}' \
-    | "$FMT" | assert_contains "niveau numerique 50 rendu ERROR" "             ERROR hello"
-
 printf '%s\n' '{"level":60,"message":"hello"}' \
     | "$FMT" | assert_contains "niveau numerique 60 rendu FATAL" "             FATAL hello"
 
@@ -91,18 +87,6 @@ echo "== thread et logger =="
 printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}' \
     | "$FMT" | assert_contains "thread entre crochets, logger, separateur" \
     "08:00:00.123 INFO  [main] com.boulanger.foo.FooService - Demarrage termine"
-
-printf '%s\n' '{"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}' \
-    | "$FMT" | assert_contains "logger de plus de 36 caracteres abrege" \
-    "…b.b.q.EnormousServiceImplementation - x"
-
-printf '%s\n' '{"level":"TRACE","thread_name":"http-nio-8080-exec-with-a-very-long-name","logger_name":"com.Pool","message":"x"}' \
-    | "$FMT" | assert_contains "thread de plus de 20 caracteres tronque" \
-    "[http-nio-8080-exec-…] com.Pool - x"
-
-printf '%s\n' '{"level":"INFO","logger_name":"com.boulanger.foo.FooService","message":"Sans thread"}' \
-    | "$FMT" | assert_contains "thread absent : pas de crochets vides" \
-    "INFO  com.boulanger.foo.FooService - Sans thread"
 
 printf '%s\n' '{"level":"INFO","thread_name":"main","message":"Sans logger"}' \
     | "$FMT" | assert_contains "logger absent : thread conserve" \
@@ -124,10 +108,6 @@ STACK_JSON='{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_tra
 printf '%s\n' "$STACK_JSON" \
     | "$FMT" | assert_contains "premiere ligne de la stack indentee de 2 espaces" \
     "  java.lang.IllegalStateException: Boom"
-
-printf '%s\n' "$STACK_JSON" \
-    | "$FMT" | assert_contains "cadres indentes, tabulations converties" \
-    "      at com.Foo.bar(Foo.java:17)"
 
 printf '%s\n' "$STACK_JSON" \
     | "$FMT" | assert_contains "dernier cadre" "      ... 24 more"
@@ -152,9 +132,6 @@ printf '%s\n' '{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_
 echo
 echo "== champs extra (MDC) =="
 
-printf '%s\n' '{"level":"WARN","thread_name":"main","logger_name":"com.Cleanup","message":"3 orphelins","http.status":503,"retry":2}' \
-    | "$FMT" | assert_contains "champs extra en cle=valeur" "http.status=503  retry=2"
-
 printf '%s\n' '{"level":"WARN","thread_name":"main","logger_name":"com.Cleanup","message":"3 orphelins","retry":2}' \
     | "$FMT" | assert_contains "2e ligne alignee sous le message" \
     "                                        retry=2"
@@ -167,9 +144,6 @@ printf '%s\n' '{"level":"INFO","message":"x","mdc_field":"aaa\nbbb"}' \
     | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
     | assert_equals "MDC avec newline : reste sur 2 lignes (extras aplatis)" "2"
 
-printf '%s\n' '{"level":"INFO","message":"x","nested":{"a":1}}' \
-    | "$FMT" | assert_contains "valeur structuree serialisee" 'nested={"a":1}'
-
 printf '%s\n' '{"level":"ERROR","message":"Boom","stack_trace":"java.lang.Error: Boom","retry":2}' \
     | "$FMT" | strip_ansi | wc -l | tr -d ' ' \
     | assert_equals "extras et stack : 3 lignes" "3"
@@ -181,9 +155,6 @@ PAIRS_JSON='{"@timestamp":"2026-07-28T08:00:01.456Z","level":"ERROR","thread_nam
 
 printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | wc -l | tr -d ' ' \
     | assert_equals "un evenement avec stack et extras tient sur une ligne" "1"
-
-printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | cut -f1 \
-    | assert_contains "stack reduite au nom court de l exception" "⤷ IllegalStateException"
 
 printf '%s\n' "$PAIRS_JSON" | "$FMT" --pairs | strip_ansi | cut -f1 \
     | assert_contains "extras concatenes en fin de ligne" "retry=2"
