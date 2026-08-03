@@ -855,8 +855,12 @@ l'upload, parce que le rapport est le plus utile quand l'étape précédente a �
 
 - [ ] **Step 5: Valider le YAML du workflow**
 
+`pyyaml` n'est pas installé sur cette machine — `python3 -c "import yaml"` échoue. Utiliser `yq`,
+qui est présent, et qui vérifie du même coup que les étapes sont bien rattachées à leur job :
+
 ```bash
-python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/tests.yml')); print('YAML ok')"
+yq '.jobs | to_entries | .[] | .key + ": " + ([.value.steps[].name] | join(" | "))' \
+  .github/workflows/tests.yml
 ```
 
 - [ ] **Step 6: Commit**
