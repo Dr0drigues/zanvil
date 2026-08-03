@@ -22,22 +22,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y zsh jq curl
 
-      - name: Verify zsh loads without errors
-        run: |
-          export ZANVIL_DIR="$PWD"
-          export HOME="$(mktemp -d)"
-          mkdir -p "$HOME/.config" "$HOME/.kube" "$HOME/work"
-
-          # Create minimal config
-          cp examples/config.zsh.example "$PWD/config.zsh"
-
-          # Source rc.zsh in zsh and check for errors
-          zsh -c '
-            export ZANVIL_DIR="'"$PWD"'"
-            source "$ZANVIL_DIR/rc.zsh" 2>&1
-            echo "ZANVIL_VERSION: $ZANVIL_VERSION"
-            echo "Modules loaded successfully"
-          '
+      # « Verify zsh loads without errors » a ete retiree : elle construisait
+      # l isolation a la main puis n assertait rien, et copiait
+      # examples/config.zsh.example, dont le ZANVIL_PLUGINS declenche un git clone.
+      # Remplacee par le cas rc-loads-without-an-error du job « cases ».
 
       - name: Verify core files exist
         run: |
@@ -59,31 +47,18 @@ jobs:
             fi
           done
 
-      - name: Test binary-absent fallback warnings
+      - name: Test shell script suites
         run: |
           export ZANVIL_DIR="$PWD"
-          export HOME="$(mktemp -d)"
+          bash scripts/tests/k9s-log-fmt.test.sh
+          bash scripts/tests/zsh-special-vars.test.sh
 
-          check_warning() {
-            local module="$1" guard="$2" grep_pattern="$3"
-            local out
-            out=$(zsh -c "
-              ${guard}=true
-              ZANVIL_DIR='$PWD'
-              PATH=/usr/bin:/bin
-              source '$PWD/modules/tools/${module}/init.zsh' 2>&1
-            ")
-            echo "${module}: ${out}"
-            echo "${out}" | grep -q "${grep_pattern}" \
-              || { echo "FAIL: ${module} warning absent (attendu: ${grep_pattern})"; exit 1; }
-          }
-
-          check_warning posting  ZANVIL_MODULE_POSTING  "brew install posting"
-          check_warning delta    ZANVIL_MODULE_DELTA    "brew install git-delta"
-          check_warning lazygit  ZANVIL_MODULE_LAZYGIT  "brew install lazygit"
-          check_warning atuin    ZANVIL_MODULE_ATUIN    "brew install atuin"
-
-          echo "All binary-absent fallback warnings OK"
+      # « Test binary-absent fallback warnings » a ete retiree. Elle amputait PATH a
+      # la main pour prouver qu un module previent quand son binaire manque, ce que le
+      # format ne savait pas exprimer. `setup.hide` le sait depuis, donc les quatre cas
+      # `*-warns-when-its-binary-is-missing` de tests/cases/modules/ la remplacent —
+      # avec un verdict identique sur un poste equipe et sur un runner nu, ce que
+      # l amputation de PATH ne garantissait que par accident.
 
   rust-cli:
     runs-on: ${{ matrix.os }}
@@ -111,22 +86,104 @@ jobs:
       - name: Build CLI
         run: cd cli && cargo build --release
 
-      - name: Test CLI commands
+      # « Test CLI commands » a ete retiree : elle lancait cinq commandes, trois
+      # terminees par || true, sans asserter quoi que ce soit d aucune sortie —
+      # doctor pouvait paniquer sans faire echouer le job. Remplacee par les cinq
+      # cas tests/cases/cli/ du job « cases », qui verifient chacun le code de
+      # sortie et au moins une chose de la sortie.
+
+  cases:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # zsh n est pas sur l image ubuntu : elle ne fournit que bash, dash et
+      # PowerShell. macOS l a par defaut depuis des annees.
+      - name: Install zsh (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh jq
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          # Le cache ne couvre que la compilation du CLI zanvil : gaveldrop arrive
+          # precompile, donc ~/.cargo/bin n a pas a etre cache — et c est ce qui evite
+          # le --force qu un binaire restaure imposerait.
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cli/target
+          key: ${{ runner.os }}-cases-${{ hashFiles('cli/Cargo.lock') }}
+
+      # Les cinq cas CLI invoquent ce binaire par son chemin.
+      - name: Build the zanvil CLI
+        run: cd cli && cargo build --release
+
+      # Les binaires precompiles de la release, plutot qu un `cargo install` : aucune
+      # compilation, donc rien a cacher, ni --force pour ecraser un binaire restaure.
+      # Le tag est une reference lisible qui dit ce qu on installe, la ou un SHA ne le
+      # dit pas. v0.1.1 est le minimum : c est la version ou `setup.hide` accepte un
+      # outil que `fake.bins` declare, ce dont dependent les quatre cas
+      # `*-warns-when-its-binary-is-missing`. Sous v0.1.0 ils sont refuses au
+      # chargement, avec « case hides `posting` and the project fakes it ».
+      #
+      # L action officielle ferait la meme chose en une ligne, mais
+      # `Dr0drigues/gaveldrop/action@v0.1.0` ne resout pas : l action a ete ajoutee au
+      # depot APRES le tag, et `git tag --contains` sur son commit ne renvoie rien.
+      # GitHub echoue alors au demarrage du job, en trois secondes, sur
+      # « Can't find 'action.yml' ». A rebasculer dessus des qu un tag la contient.
+      #
+      # Les deux binaires voyagent dans la meme archive et en sortent cote a cote, ce
+      # que gaveldrop exige : il cherche gaveldrop-fake a cote de lui, et sans lui
+      # toute execution meurt sur « the fake binary was not found beside this
+      # executable ».
+      - name: Install gaveldrop
+        env:
+          GAVELDROP_VERSION: v0.1.1
         run: |
-          export ZANVIL_DIR="$PWD"
-          CLI="./cli/target/release/zanvil"
+          case "${{ runner.os }}-${{ runner.arch }}" in
+            Linux-X64)   target=x86_64-unknown-linux-musl ;;
+            Linux-ARM64) target=aarch64-unknown-linux-musl ;;
+            macOS-ARM64) target=aarch64-apple-darwin ;;
+            macOS-X64)   target=x86_64-apple-darwin ;;
+            *) echo "cible non geree : ${{ runner.os }}-${{ runner.arch }}" >&2; exit 1 ;;
+          esac
 
-          echo "=== theme list ==="
-          $CLI theme list
+          archive="gaveldrop-${GAVELDROP_VERSION}-${target}.tar.gz"
+          base="https://github.com/Dr0drigues/gaveldrop/releases/download/${GAVELDROP_VERSION}"
+          curl -fsSL -O "${base}/${archive}" -O "${base}/${archive}.sha256"
 
-          echo "=== theme current ==="
-          $CLI theme current || true
+          # Verification avant extraction : une archive alteree ne doit pas s executer.
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum -c "${archive}.sha256"
+          else
+            shasum -a 256 -c "${archive}.sha256"
+          fi
 
-          echo "=== doctor ==="
-          $CLI doctor || true
+          tar xzf "$archive"
+          mkdir -p "$HOME/.local/bin"
+          mv "gaveldrop-${GAVELDROP_VERSION}-${target}/gaveldrop" \
+             "gaveldrop-${GAVELDROP_VERSION}-${target}/gaveldrop-fake" "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-          echo "=== modules list ==="
-          $CLI modules list || true
+      # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
+      # log que personne ne deroule.
+      - name: Run the cases
+        run: gaveldrop --annotate --report-junit junit.xml
 
-          echo "=== --help ==="
-          $CLI --help
+      # if: always() — le rapport est le plus utile quand l etape precedente a echoue.
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-${{ matrix.os }}
+          path: junit.xml

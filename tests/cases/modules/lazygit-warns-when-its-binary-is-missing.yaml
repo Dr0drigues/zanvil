@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: lazygit-warns-when-its-binary-is-missing
+weight: 3
+setup:
+  shell: zsh
+  source: ["modules/tools/lazygit/init.zsh"]
+  call: ["true"]
+  hide: [lazygit]
+  env:
+    ZANVIL_MODULE_LAZYGIT: "true"
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["brew install lazygit"]

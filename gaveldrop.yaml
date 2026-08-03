@@ -1,0 +1,8 @@
+cases: tests/cases/**/*.yaml
+
+# Les quatre outils de modules/tools/. Declares ici, ils sont shadowes par defaut, ce qui rend leur
+# branche « binaire present » testable sans avoir a les installer. Les cas qui testent l autre branche
+# s y soustraient un par un avec `setup.hide` : la declaration vaut pour la suite, la cle vaut pour un
+# cas, et le plus specifique decide.
+fake:
+  bins: [posting, delta, lazygit, atuin]

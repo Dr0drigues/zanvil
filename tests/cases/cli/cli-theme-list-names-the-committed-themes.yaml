@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: cli-theme-list-names-the-committed-themes
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "theme", "list"]
+expect:
+  exit_code: 0
+  stdout:
+    # Trois themes versionnes sous config/themes/, donc presents dans la copie
+    # isolee. "* minimal" porte davantage : l asterisque marque le theme courant,
+    # lu dans le .current_theme que le hook a ecrit — la commande travaille donc
+    # bien sur l etat isole et non sur celui du poste.
+    contains: ["* minimal", "tokyo-night-pro", "forge"]

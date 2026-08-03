@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: atuin-warns-when-its-binary-is-missing
+weight: 3
+setup:
+  shell: zsh
+  source: ["modules/tools/atuin/init.zsh"]
+  call: ["true"]
+  hide: [atuin]
+  env:
+    ZANVIL_MODULE_ATUIN: "true"
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["brew install atuin"]
