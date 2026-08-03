@@ -1,5 +1,18 @@
 # Suite de tests gaveldrop — lot 1 : plan d'implémentation
 
+> **Exécuté et clos le 3 août 2026.** Deux écarts par rapport à ce qui est écrit plus bas, tous deux
+> dus à l'arrivée de `setup.hide` dans gaveldrop pendant l'exécution :
+>
+> - **Quatorze cas livrés, pas dix.** Les quatre cas « binaire absent », que ce plan déclarait
+>   inexprimables, le sont devenus. Ils vivent dans `tests/cases-hidden/` avec leur propre
+>   `gaveldrop.hidden.yaml`, parce qu'un outil ne peut pas être à la fois faké et caché.
+> - **La tâche 5 ne conserve plus `Test binary-absent fallback warnings`** et n'installe plus gaveldrop
+>   depuis un SHA pinné : l'action officielle en `install-only` la remplace, et les quatre nouveaux cas
+>   remplacent l'étape.
+>
+> Le spec est à jour ; ce plan reste tel qu'il a été écrit, pour que la trace des décisions et de leur
+> révision soit lisible.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.
