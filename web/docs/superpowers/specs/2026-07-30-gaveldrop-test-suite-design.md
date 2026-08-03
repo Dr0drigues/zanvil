@@ -205,29 +205,38 @@ sera légitime — c'est-à-dire quand le mur nº 1 tombera.
 ## CI
 
 Un job `cases` dans `tests.yml` : checkout, installation de zsh sur Linux (l'image `ubuntu-24.04` ne
-l'embarque pas), build du CLI zanvil, puis l'action officielle en mode `install-only` et **deux**
-exécutions — une par configuration — avant l'upload des rapports en `if: always()`.
+l'embarque pas), build du CLI zanvil, installation de gaveldrop depuis les **binaires précompilés de la
+release**, puis **deux** exécutions — une par configuration — avant l'upload des rapports en
+`if: always()`.
 
 ```yaml
-- uses: Dr0drigues/gaveldrop/action@v0.1.0
-  with:
-    install-only: 'true'
+- run: |
+    curl -fsSL -O "$base/$archive" -O "$base/$archive.sha256"
+    sha256sum -c "$archive.sha256"      # shasum -a 256 -c sur macOS
+    tar xzf "$archive" && mv …/gaveldrop …/gaveldrop-fake "$HOME/.local/bin/"
 - run: gaveldrop --annotate --report-junit junit.xml
 - run: gaveldrop --config gaveldrop.hidden.yaml --annotate --report-junit junit-hidden.xml
 ```
 
-Trois points non évidents :
+Quatre points non évidents :
 
-- **`install-only`**, parce qu'il y a deux configurations : les flags de rapport appartiennent aux
-  étapes suivantes, pas à l'action.
-- **L'action installe gaveldrop, pas les outils dont les cas ont besoin.** L'étape `zsh` sur Linux n'est
-  pas optionnelle — c'est ce qui a fait échouer la CI de gaveldrop elle-même la première fois.
-- **Le tag est celui contre lequel l'action a été écrite**, et non `latest` : une archive d'un format
-  futur ne peut pas atteindre une action qui la précède. `v0.1.0` porte déjà `setup.hide`, vérifié.
+- **La release plutôt que `cargo install`.** Aucune compilation — deux minutes par job — donc rien à
+  cacher, et donc pas de `--force` : cacher `~/.cargo/bin` fait échouer le second run sur
+  `error: binary gaveldrop already exists in destination`, exit 101, ce qui est arrivé. Un tag dit aussi
+  ce qu'on installe, là où un SHA ne le dit pas.
+- **La somme est vérifiée avant extraction**, avec `sha256sum` sur Linux et `shasum -a 256` sur macOS.
+  Une archive altérée ne doit pas s'exécuter.
+- **Les deux binaires sortent de la même archive, côte à côte** — ce que gaveldrop exige, puisqu'il
+  cherche `gaveldrop-fake` à côté de lui. Par `cargo install`, il faut **deux** crates, `cargo`
+  n'installant pas les binaires des dépendances.
+- **L'installation ne fournit pas les outils dont les cas ont besoin.** L'étape `zsh` sur Linux n'est pas
+  optionnelle — c'est ce qui a fait échouer la CI de gaveldrop elle-même la première fois.
 
-L'installation par `cargo install` reste une solution de repli, et elle exige **deux** crates —
-`gaveldrop-cli` *et* `gaveldrop-fake` — sinon toute exécution meurt sur `the fake binary was not found
-beside this executable`. `cargo` n'installe pas les binaires des dépendances.
+L'action officielle ferait tout cela en une ligne, avec `install-only: 'true'` qui correspond exactement
+au besoin de deux configurations. Elle est inutilisable aujourd'hui : `Dr0drigues/gaveldrop/action@v0.1.0`
+ne résout pas, l'action ayant été ajoutée au dépôt **après** le tag — `git tag --contains` sur son commit
+ne renvoie rien, et GitHub échoue au démarrage du job sur `Can't find 'action.yml'`. À rebasculer dessus
+dès qu'un tag la contient.
 
 ### Ce que le job remplace
 
