@@ -258,19 +258,23 @@ _fake_fzf() {
     chmod +x "$TEST_TMPDIR/bin/fzf"
 }
 
+# L entree passe par un fichier, pas par un pipe, et c est la CI Linux qui l a
+# impose : le faux fzf sort immediatement sans lire son entree, donc jq recevait un
+# SIGPIPE et sortait en 2. Avec `pipefail` actif, le code mesure alors le pipeline
+# entier au lieu du viewer — ces trois assertions verifiaient autre chose que ce
+# qu elles annoncaient. Sur macOS le timing le masquait, d ou le passage inapercu.
+printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs > "$TEST_TMPDIR/pairs.txt"
+
 _fake_fzf 130
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
 printf '%s\n' "$?" | assert_equals "fzf annule (130) : sortie normalisee a 0" "0"
 
 _fake_fzf 1
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
 printf '%s\n' "$?" | assert_equals "aucune correspondance (1) : sortie normalisee a 0" "0"
 
 _fake_fzf 2
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" "$VIEW" >/dev/null 2>&1
+env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" >/dev/null 2>&1
 printf '%s\n' "$?" | assert_equals "erreur fzf (2) : code preserve" "2"
 
 rm -f "$TEST_TMPDIR/bin/fzf"
@@ -290,14 +294,14 @@ _fake_fzf_echo_args() {
 
 _fake_fzf_echo_args
 
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" ZANVIL_K9S_RELOAD='kubectl logs p | fmt --pairs' \
-        "$VIEW" 2>&1 >/dev/null \
+# Entree par fichier, pour la meme raison que la section precedente : ce faux fzf
+# ne lit pas son entree non plus.
+env PATH="$TEST_TMPDIR/bin" ZANVIL_K9S_RELOAD='kubectl logs p | fmt --pairs' \
+    "$VIEW" < "$TEST_TMPDIR/pairs.txt" 2>&1 >/dev/null \
     | grep -c 'ctrl-r:reload-sync(kubectl logs p | fmt --pairs)' \
     | assert_equals "ZANVIL_K9S_RELOAD definie : binding ctrl-r construit" "1"
 
-printf '%s\n' '{"level":"INFO","message":"x"}' | "$FMT" --pairs \
-    | env PATH="$TEST_TMPDIR/bin" "$VIEW" 2>&1 >/dev/null \
+env PATH="$TEST_TMPDIR/bin" "$VIEW" < "$TEST_TMPDIR/pairs.txt" 2>&1 >/dev/null \
     | grep -c 'ctrl-r' \
     | assert_equals "ZANVIL_K9S_RELOAD absente : aucun binding ctrl-r" "0"
 
