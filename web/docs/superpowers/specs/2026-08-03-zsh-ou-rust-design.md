@@ -94,6 +94,23 @@ sont écoulés sans que rien ne le signale, précisément parce que le repli fon
 Conséquence pour la ligne de partage : un repli est acceptable s'il est **visible**. Le premier
 chantier répare le binaire *et* ajoute le cas qui rendra ce silence impossible.
 
+**Réparé le 3 août 2026**, et le défaut avait un volet de plus que les trois annoncés :
+
+1. `install.sh` retire désormais l'ancien binaire, qui survivait au renommage ;
+2. `_zanvil_do_update` reconstruit le binaire après un `git pull`, au lieu de le laisser périmer ;
+3. `doctor` porte une section `Binaire` et compte son absence comme une erreur ;
+4. **`auto-release.yml` bump les deux versions.** `cli/Cargo.toml` était resté en 3.1.0 quand le projet
+   affichait v4.4.0 : le même binaire annonçait deux versions contradictoires. C'est ce qui a fait
+   passer `zsh-env-cli` v3.0.0 pour une installation valide — un binaire qui répond à `--version`
+   inspire confiance, même quand le numéro n'a plus de rapport avec le dépôt.
+
+Deux cas gaveldrop tiennent la position : l'un vérifie que `doctor` parle de son binaire, l'autre
+qu'aucune délégation ne revient à l'ancien nom. Aucun des deux n'asserte que le binaire est installé —
+ce serait vrai sur un poste et faux sur un runner.
+
+Sur la machine : `zproject list`, `zanvil-mr-fanout` et `zanvil-doctor` répondent, ce dernier depuis le
+Rust et non plus depuis son repli.
+
 ## Les cinq chantiers, dans l'ordre
 
 | # | Chantier | Ce qui le motive |
