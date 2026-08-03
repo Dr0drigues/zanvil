@@ -38,6 +38,14 @@ done
     printf 'ZANVIL_PLUGINS=()\n'
     printf 'ZANVIL_MODULE_KUBE=true\n'
     printf 'ZANVIL_MODULE_DOCKER=false\n'
+    # GITLAB actif et SECURITY absent, tous deux volontairement : ni l un ni l autre
+    # ne declare de `binary` dans son .module.toml, donc `doctor` les classe dans sa
+    # section Modules, dont le symbole ne depend QUE de ce fichier. Les modules a
+    # binaire — KUBE et kubectl, DOCKER et docker — passent par command_exists
+    # (doctor.rs:258), donc leur symbole depend du runner : kubectl est sur l image
+    # ubuntu et pas sur celle de macOS, ce qui a fait echouer ce cas sur un seul des
+    # deux systemes.
+    printf 'ZANVIL_MODULE_GITLAB=true\n'
     printf 'ZANVIL_MODULE_POSTING=true\n'
     printf 'ZANVIL_MODULE_DELTA=true\n'
     printf 'ZANVIL_MODULE_LAZYGIT=true\n'
