@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Garde-fou contre le retour de l ancien nom du binaire dans une delegation. zsh-env-cli
+# a survecu quatre mois au renommage de la v4.0.0, et rien ne le signalait.
+#
+# Le controle porte sur les invocations dans core/, modules/ et scripts/ — pas sur les
+# commentaires qui expliquent la panne, ni sur install.sh qui doit nommer l ancien
+# binaire pour le supprimer. La premiere version de ce cas ne faisait pas ces
+# distinctions et signalait six references toutes legitimes.
+name: no-delegation-to-the-old-binary-name
+weight: 3
+setup:
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  run: ["$GAVELDROP_PROJECT/tests/bin/stale-binary-references"]
+expect:
+  exit_code: 0
+  stdout:
+    # Vide, sinon le `got` nomme le fichier et la ligne a corriger.
+    equals: ""

@@ -60,13 +60,38 @@ jobs:
           echo "previous=$CURRENT" >> $GITHUB_OUTPUT
           echo "New version: $NEW_TAG (was $CURRENT)"
 
-      - name: Bump version in core/ui.zsh
+      # Les DEUX versions, et pas seulement celle du zsh : un binaire qui annonce une
+      # version differente de son projet est precisement ce qui a fait passer
+      # zsh-env-cli v3.0.0 pour une installation valide pendant quatre mois. Le CLI
+      # etait reste en 3.1.0 alors que le projet affichait v4.4.0.
+      - name: Bump version in core/ui.zsh and cli/Cargo.toml
         if: steps.bump.outputs.type != 'skip'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           sed -i 's/export ZANVIL_VERSION="v[^"]*"/export ZANVIL_VERSION="${{ steps.version.outputs.tag }}"/' core/ui.zsh
-          git add core/ui.zsh
+          # Le tag porte un « v » que Cargo n'accepte pas dans un champ version. Le
+          # retrait passe par une variable intermediaire : ${VAR#v} est du bash, et
+          # l'imbriquer dans une expression ${{ }} de GitHub ne l'est pas.
+          TAG="${{ steps.version.outputs.tag }}"
+          CARGO_VERSION="${TAG#v}"
+          # python3 plutot que sed : la premiere version de cette etape utilisait
+          # `sed -i "0,/^version = /s/..."`, une plage GNU que le sed de macOS ignore en
+          # silence. Le workflow tourne sur ubuntu, donc ca aurait marche — mais personne
+          # n'aurait pu le verifier localement, et c'est precisement le genre de
+          # dependance a une variante que ce depot cherche a retirer.
+          python3 - "$CARGO_VERSION" <<'PY'
+          import re, sys, pathlib
+          p = pathlib.Path("cli/Cargo.toml")
+          # Seule la version du paquet, pas celles des dependances : on borne au premier
+          # `version =` qui suit `[package]`.
+          s = p.read_text()
+          i = s.index("[package]")
+          j = s.index("\n[", i + 1) if "\n[" in s[i + 1:] else len(s)
+          bloc = re.sub(r'^version = ".*"$', f'version = "{sys.argv[1]}"', s[i:j], count=1, flags=re.M)
+          p.write_text(s[:i] + bloc + s[j:])
+          PY
+          git add core/ui.zsh cli/Cargo.toml
           git commit -m "chore(release): bump version to ${{ steps.version.outputs.tag }}"
           git push origin main
 
