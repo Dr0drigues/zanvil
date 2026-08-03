@@ -142,12 +142,18 @@ jobs:
       # de tests/cases-hidden/. Les DEUX binaires sont necessaires : cargo n installe
       # pas les binaires des dependances, et sans gaveldrop-fake toute execution meurt
       # sur « the fake binary was not found beside this executable ».
+      #
+      # --force est necessaire des lors que ~/.cargo/bin est cache : au second run,
+      # le binaire restaure est deja la et cargo refuse d ecraser —
+      # « error: binary `gaveldrop` already exists in destination », exit 101. Le SHA
+      # etant dans la cle de cache, --force ne masque aucun bump : il rend seulement
+      # l installation idempotente.
       - name: Install gaveldrop
         run: |
           cargo install --git https://github.com/Dr0drigues/gaveldrop \
-            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked gaveldrop-cli
+            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked --force gaveldrop-cli
           cargo install --git https://github.com/Dr0drigues/gaveldrop \
-            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked gaveldrop-fake
+            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked --force gaveldrop-fake
 
       # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
       # log que personne ne deroule.
