@@ -22,22 +22,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y zsh jq curl
 
-      - name: Verify zsh loads without errors
-        run: |
-          export ZANVIL_DIR="$PWD"
-          export HOME="$(mktemp -d)"
-          mkdir -p "$HOME/.config" "$HOME/.kube" "$HOME/work"
-
-          # Create minimal config
-          cp examples/config.zsh.example "$PWD/config.zsh"
-
-          # Source rc.zsh in zsh and check for errors
-          zsh -c '
-            export ZANVIL_DIR="'"$PWD"'"
-            source "$ZANVIL_DIR/rc.zsh" 2>&1
-            echo "ZANVIL_VERSION: $ZANVIL_VERSION"
-            echo "Modules loaded successfully"
-          '
+      # « Verify zsh loads without errors » a ete retiree : elle construisait
+      # l isolation a la main puis n assertait rien, et copiait
+      # examples/config.zsh.example, dont le ZANVIL_PLUGINS declenche un git clone.
+      # Remplacee par le cas rc-loads-without-an-error du job « cases ».
 
       - name: Verify core files exist
         run: |
@@ -59,6 +47,19 @@ jobs:
             fi
           done
 
+      - name: Test shell script suites
+        run: |
+          export ZANVIL_DIR="$PWD"
+          bash scripts/tests/k9s-log-fmt.test.sh
+          bash scripts/tests/zsh-special-vars.test.sh
+
+      # Conservee volontairement, et ce n est pas de la prudence : gaveldrop ne
+      # peut pas exprimer ce cas. fake.bins est global a gaveldrop.yaml et le bloc
+      # fake: d un cas n accepte que render et rules, donc declarer
+      # posting/delta/lazygit/atuin pour tester leur branche « present » rend leur
+      # branche « absent » inatteignable sur toute machine. Cette etape est la seule
+      # couverture de cette moitie du code. Voir
+      # web/docs/superpowers/specs/2026-07-30-gaveldrop-test-suite-design.md, mur n1.
       - name: Test binary-absent fallback warnings
         run: |
           export ZANVIL_DIR="$PWD"
@@ -111,22 +112,68 @@ jobs:
       - name: Build CLI
         run: cd cli && cargo build --release
 
-      - name: Test CLI commands
+      # « Test CLI commands » a ete retiree : elle lancait cinq commandes, trois
+      # terminees par || true, sans asserter quoi que ce soit d aucune sortie —
+      # doctor pouvait paniquer sans faire echouer le job. Remplacee par les cinq
+      # cas tests/cases/cli/ du job « cases », qui verifient chacun le code de
+      # sortie et au moins une chose de la sortie.
+
+  cases:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # zsh n est pas sur l image ubuntu : elle ne fournit que bash, dash et
+      # PowerShell. macOS l a par defaut depuis des annees.
+      - name: Install zsh (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh jq
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            cli/target
+          key: ${{ runner.os }}-gaveldrop-6d896b8-${{ hashFiles('cli/Cargo.lock') }}
+
+      # gaveldrop n est pas publie et n a aucun tag : le SHA est pinne pour que la
+      # CI de zanvil ne rougisse pas au prochain commit d un autre depot. Le bump
+      # est un geste explicite.
+      # Les DEUX binaires sont necessaires : sans gaveldrop-fake, toute execution
+      # meurt sur « the fake binary was not found beside this executable ».
+      - name: Install gaveldrop
         run: |
-          export ZANVIL_DIR="$PWD"
-          CLI="./cli/target/release/zanvil"
+          cargo install --git https://github.com/Dr0drigues/gaveldrop \
+            --rev 6d896b83b3bbe772700b75c5ecd1e1f94ed6fb2c --locked gaveldrop-cli
+          cargo install --git https://github.com/Dr0drigues/gaveldrop \
+            --rev 6d896b83b3bbe772700b75c5ecd1e1f94ed6fb2c --locked gaveldrop-fake
 
-          echo "=== theme list ==="
-          $CLI theme list
+      # Les cinq cas CLI invoquent ce binaire par son chemin.
+      - name: Build the zanvil CLI
+        run: cd cli && cargo build --release
 
-          echo "=== theme current ==="
-          $CLI theme current || true
+      # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
+      # log que personne ne deroule.
+      - name: Run the cases
+        run: gaveldrop --annotate --report-junit junit.xml
 
-          echo "=== doctor ==="
-          $CLI doctor || true
-
-          echo "=== modules list ==="
-          $CLI modules list || true
-
-          echo "=== --help ==="
-          $CLI --help
+      # if: always() — le rapport est le plus utile quand l etape precedente a
+      # echoue.
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-${{ matrix.os }}
+          path: junit.xml
