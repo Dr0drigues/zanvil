@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-duplicates-plain-text-in-both-pairs-fields
+weight: 3
+setup:
+  stdin: |
+    texte brut
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh", "--pairs"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    equals: "texte brut\ttexte brut"
