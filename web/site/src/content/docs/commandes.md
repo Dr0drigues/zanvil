@@ -86,6 +86,16 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `kube_azure [cluster]` | Récupère credentials Azure AKS |
 | `kube_aws [cluster]` | Récupère credentials AWS EKS |
 | `kube_gcp [cluster]` | Récupère credentials GCP GKE |
+| `kube_k9s_setup` | Déploie hotkeys, skin et plugins k9s depuis le dépôt |
+| `klog [pod] [ctn]` | Logs d'un pod, sélection fzf — suivi continu par défaut, JSON brut |
+
+`klog` accepte `--no-follow`, `-p` pour le conteneur précédent après un crash, `-n` pour le namespace,
+`--tail N` (100 par défaut), `-g` pour filtrer par expression régulière, `-A` pour tous les pods du même
+label `app=`, et `-t` pour les horodatages `kubectl`. Il affiche le JSON tel quel : le rendu formaté est
+du ressort des plugins k9s.
+
+Les trois plugins de logs k9s — `Shift-L`, `Ctrl-L` et `Ctrl-R` — ont leur propre page :
+[Kubernetes et k9s](/zanvil/kubernetes-k9s/).
 
 ## SSH
 
@@ -97,15 +107,34 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `ssh_remove [host]` | Supprime un host |
 | `ssh_test <host>` | Teste la connexion |
 
-## Tmux
+## Outils tiers
+
+Chaque module d'outil déploie la configuration versionnée du dépôt vers le `$HOME` de la machine. Le
+module ne fait rien si son binaire est absent : il affiche la commande `brew install` correspondante.
 
 | Commande | Description |
 |----------|-------------|
-| `tm [session]` | Attach ou crée une session |
-| `tm-list` | Liste les sessions |
-| `tm-kill [session]` | Tue une session |
-| `tm-project [dir]` | Crée une session projet |
-| `tm-rename [name]` | Renomme la session courante |
+| `delta_setup` | Écrit `~/.gitconfig.d/delta` et ajoute l'`[include]` dans `~/.gitconfig` |
+| `lazygit_setup` | Affiche la configuration active (`LG_CONFIG_FILE`) et l'état de `config-local.yml` |
+| `atuin_setup` | Déploie `~/.config/atuin/config.toml` et affiche le chemin de la base |
+| `posting_setup` | Déploie `~/.config/posting/config.yaml` |
+| `lg` | Lance lazygit en suivant le changement de répertoire à la sortie |
+| `po` | Alias de `posting` |
+
+## Elasticsearch (module work)
+
+Interrogation de l'Elasticsearch interne. `ES_USER` et `ES_PASSWORD` sont attendus dans
+l'environnement — voir `env.d/` et le chiffrement sops.
+
+| Commande | Description |
+|----------|-------------|
+| `work_es_apps [plage]` | Applications par volume sur la plage (défaut `24h`), avec cache d'une heure |
+| `work_es_count <app>` | Compte les événements, avec la fenêtre temporelle observée |
+| `work_es_tail <app>` | Derniers événements d'une application |
+| `work_es_query [METHODE] <chemin>` | Requête brute, corps sur `stdin` avec `-` |
+| `work_fetch_logs` | Récupère les logs d'une application vers un fichier |
+
+Les plages s'écrivent `Xs`, `Xm`, `Xh` ou `Xd`. `work_es_apps --refresh` ignore le cache.
 
 ## Git Hooks
 
