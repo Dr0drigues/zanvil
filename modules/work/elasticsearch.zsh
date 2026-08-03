@@ -38,7 +38,7 @@ _work_es_require() {
 # Sortie: 1ere ligne = code HTTP, reste = corps de reponse.
 # Return: code de sortie curl (0 = reponse recue, meme en erreur HTTP).
 _work_es_curl() {
-    local method=$1 path=$2 body="${3:-}" max_time="${4:-30}"
+    local method=$1 es_path=$2 body="${3:-}" max_time="${4:-30}"
     local -a opts
     opts=(-s --connect-timeout 5 --max-time "$max_time")
     (( max_time < 5 )) && opts[2,3]=(--connect-timeout "$max_time")
@@ -52,7 +52,7 @@ _work_es_curl() {
     [[ -n "$body" ]] && opts+=(-d "$body")
 
     local out ret
-    out=$(command curl "${opts[@]}" -w $'\n%{http_code}' "$(_work_es_url)/$path" 2>/dev/null)
+    out=$(command curl "${opts[@]}" -w $'\n%{http_code}' "$(_work_es_url)/$es_path" 2>/dev/null)
     ret=$?
     (( ret != 0 )) && return $ret
     # Reordonne: code HTTP en premiere ligne, corps ensuite
@@ -189,8 +189,8 @@ work_es_query() {
         method="${1:u}"
         shift
     fi
-    local path="${1:-}" body="${2:-}"
-    if [[ -z "$path" ]]; then
+    local es_path="${1:-}" body="${2:-}"
+    if [[ -z "$es_path" ]]; then
         _ui_msg_fail "usage: work_es_query [METHOD] PATH [BODY|-]"
         return 1
     fi
@@ -200,7 +200,7 @@ work_es_query() {
     fi
 
     local out code resp
-    out=$(_work_es_curl "$method" "$path" "$body") || {
+    out=$(_work_es_curl "$method" "$es_path" "$body") || {
         _ui_msg_fail "Elasticsearch injoignable: $(_work_es_url)"
         return 1
     }
