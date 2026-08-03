@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: viewer-normalises-a-cancelled-fzf
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    # Une regle NOMMEE, pas le catch-all : un appel servi par `match: {}` est compte
+    # comme imprevu, puisque ce dernier existe pour detecter ce que le cas n a pas
+    # prevu. Le catch-all reste en dernier, et doit rester sans emploi.
+    - match: { bin: fzf }
+      exit: 130
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  # k9s affiche une popup d erreur des que le plugin sort non nul. Esc rend 130 (128 + SIGINT) : une sortie normale, donc normalisee a 0.
+  exit_code: 0
+  # L appel est declare, sinon gaveldrop le compte comme imprevu : le viewer DOIT
+  # invoquer fzf une fois, et une seule.
+  calls:
+    fzf: 1

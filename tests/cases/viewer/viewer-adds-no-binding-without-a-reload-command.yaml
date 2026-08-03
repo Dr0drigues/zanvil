@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le meme mecanisme, en sens inverse. Sans ZANVIL_K9S_RELOAD, aucun binding ctrl-r ne
+# doit etre construit : la premiere regle ne doit donc jamais matcher. Si elle matchait,
+# elle repondrait 3 et le cas rougirait.
+#
+# C est ce qui garantit que le viewer reste un filtre pur quand on l invoque a la main,
+# hors du plugin k9s.
+name: viewer-adds-no-binding-without-a-reload-command
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf, args_contain: "ctrl-r" }
+      exit: 3
+    - match: { bin: fzf }
+      exit: 130
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  calls:
+    fzf: 1

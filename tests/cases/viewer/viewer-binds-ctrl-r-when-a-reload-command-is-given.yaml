@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# L assertion n est pas dans expect mais dans la SELECTION de la regle : si le viewer a
+# construit le binding, fzf est invoque avec « ctrl-r:reload-sync » dans ses arguments,
+# donc la premiere regle repond 130 — que le viewer normalise a 0. Sinon c est la seconde
+# qui repond 3, un code que le viewer preserve, et le cas rougit.
+name: viewer-binds-ctrl-r-when-a-reload-command-is-given
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  env:
+    ZANVIL_K9S_RELOAD: "kubectl logs p | fmt --pairs"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf, args_contain: "ctrl-r:reload-sync" }
+      exit: 130
+    - match: { bin: fzf }
+      exit: 3
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  calls:
+    fzf: 1

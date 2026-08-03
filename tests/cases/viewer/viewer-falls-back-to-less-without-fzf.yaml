@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: viewer-falls-back-to-less-without-fzf
+weight: 5
+setup:
+  # Le seul cas qui cache fzf plutot que de le simuler : le sujet est justement ce que
+  # fait le viewer quand il ne le trouve pas. Cacher un outil absent est tolere, donc ce
+  # cas se comporte pareil sur un poste equipe et sur un runner nu.
+  hide: [fzf]
+  # Le format --pairs, ecrit a la main : texte rendu, TAB, JSON source. Le sujet est le
+  # viewer, pas le formatteur, donc les codes ANSI sont inutiles ici.
+  stdin: "             INFO  Bonjour\t{\"level\":\"INFO\",\"message\":\"Bonjour\"}\n"
+  env:
+    # Sans quoi less ouvrirait un pager interactif et le cas n aboutirait jamais.
+    LESS: "-FX"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    # L egalite porte les deux assertions du test bash d un coup : le premier champ est
+    # affiche, et le JSON source ne l est pas.
+    equals: "             INFO  Bonjour"
