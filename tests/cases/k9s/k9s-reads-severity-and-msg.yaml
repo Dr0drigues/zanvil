@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-reads-severity-and-msg
+weight: 3
+setup:
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  run:
+    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
+    - '--line'
+    - '{"@timestamp":"2026-07-28T08:00:02.000Z","severity":"WARN","msg":"Alerte"}'
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - '08:00:02.000 WARN  Alerte'

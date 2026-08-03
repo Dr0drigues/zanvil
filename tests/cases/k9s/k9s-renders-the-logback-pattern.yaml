@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-renders-the-logback-pattern
+weight: 3
+setup:
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  run:
+    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
+    - '--line'
+    - '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}'
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - '08:00:00.123 INFO  [main] com.boulanger.foo.FooService - Demarrage termine'

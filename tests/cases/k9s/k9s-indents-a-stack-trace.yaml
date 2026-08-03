@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: k9s-indents-a-stack-trace
+weight: 3
+setup:
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  run:
+    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
+    - '--line'
+    - '{"level":"ERROR","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)\n\t... 24 more"}'
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - '      at com.Foo.bar(Foo.java:17)'

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Plomberie pour les cas gaveldrop de scripts/k9s-log-fmt.sh.
+#
+# Existe pour deux manques du format, tous deux dans le rapport
+# web/docs/superpowers/reports/2026-08-03-gaveldrop-shell-adapter.md :
+#   - `setup` n a pas de `stdin:`, donc un filtre stdin -> stdout n est pas
+#     invocable directement ;
+#   - aucune assertion ne normalise les codes ANSI, et le formatteur en met autour
+#     de chaque champ, donc un `contains` sur une ligne rendue casserait dessus.
+#
+# Il prepare et normalise. Il ne compare JAMAIS rien : l attendu appartient au cas.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
+FMT="$ROOT/scripts/k9s-log-fmt.sh"
+
+pairs=false raw=false field="" input="" have_input=false
+
+while (( $# )); do
+    case "$1" in
+        --pairs) pairs=true ;;
+        --raw)   raw=true ;;
+        --line)
+            if (( $# < 2 )); then printf 'k9s-fmt-plain: --line attend une valeur\n' >&2; exit 2; fi
+            input="$2"; have_input=true; shift
+            ;;
+        --fixture)
+            if (( $# < 2 )); then printf 'k9s-fmt-plain: --fixture attend un chemin\n' >&2; exit 2; fi
+            if [[ ! -f "$ROOT/$2" ]]; then
+                printf 'k9s-fmt-plain: fixture absente: %s\n' "$2" >&2; exit 2
+            fi
+            input="$(cat "$ROOT/$2")"; have_input=true; shift
+            ;;
+        --field)
+            if (( $# < 2 )); then printf 'k9s-fmt-plain: --field attend 1 ou 2\n' >&2; exit 2; fi
+            field="$2"; shift
+            ;;
+        *) printf 'k9s-fmt-plain: option inconnue: %s\n' "$1" >&2; exit 2 ;;
+    esac
+    shift
+done
+
+if [[ "$have_input" != true ]]; then
+    printf 'k9s-fmt-plain: --line ou --fixture est requis\n' >&2
+    exit 2
+fi
+
+args=()
+[[ "$pairs" == true ]] && args+=(--pairs)
+
+out="$(printf '%s\n' "$input" | "$FMT" ${args[@]+"${args[@]}"})"
+ret=$?
+
+case "$field" in
+    1)  out="$(printf '%s\n' "$out" | cut -f1)" ;;
+    2)  out="$(printf '%s\n' "$out" | cut -f2-)" ;;
+    "") : ;;
+    *)  printf 'k9s-fmt-plain: --field attend 1 ou 2, recu %s\n' "$field" >&2; exit 2 ;;
+esac
+
+if [[ "$raw" == true ]]; then
+    printf '%s\n' "$out"
+else
+    printf '%s\n' "$out" | sed $'s/\033\\[[0-9;]*m//g'
+fi
+
+exit "$ret"
