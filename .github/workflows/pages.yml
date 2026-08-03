@@ -6,6 +6,15 @@ on:
     paths:
       - 'web/site/**'
       - '.github/workflows/pages.yml'
+      # Le rapport publie reflete l etat des tests : il doit etre regenere quand ils
+      # changent, pas seulement quand le site change. Sans ces chemins, le badge
+      # afficherait le verdict d un commit ancien — pire qu aucun badge.
+      - 'tests/**'
+      - 'gaveldrop.yaml'
+      - 'core/**'
+      - 'modules/**'
+      - 'scripts/**'
+      - 'cli/**'
   workflow_dispatch:
 
 permissions:
@@ -22,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # --- le site ---
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -31,6 +42,41 @@ jobs:
         working-directory: web/site
       - run: npm run build
         working-directory: web/site
+
+      # --- le rapport de la suite, publie AVEC le site ---
+      # docs/ci.md de gaveldrop propose un job `pages` dedie. Impossible ici : un depot
+      # n a qu un seul deploiement Pages actif, et celui-ci sert deja la documentation.
+      # Le rapport est donc ecrit dans le dist du site, ce qui donne la meme chose — des
+      # fichiers servis avec leur vrai type a une adresse fixe — sans concurrencer la doc.
+      - name: Install zsh
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh jq
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cli/target
+          key: ${{ runner.os }}-pages-${{ hashFiles('cli/Cargo.lock') }}
+
+      # Les cinq cas CLI invoquent ce binaire par son chemin.
+      - name: Build the zanvil CLI
+        run: cd cli && cargo build --release
+
+      - uses: Dr0drigues/gaveldrop/action@v1
+        with:
+          install-only: 'true'
+
+      # `|| true` deliberement : un cas qui casse doit produire un badge rouge, pas
+      # empecher le deploiement de la documentation.
+      - name: Write the report into the site
+        run: |
+          gaveldrop \
+            --report-html web/site/dist/rapport.html \
+            --report-badge web/site/dist/badge.svg || true
+          ls -l web/site/dist/rapport.html web/site/dist/badge.svg
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/site/dist
