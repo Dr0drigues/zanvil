@@ -118,21 +118,36 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             cli/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.lock') }}
+          # Le SHA de gaveldrop fait partie de la cle : ~/.cargo/bin est cache, donc
+          # un bump doit invalider l entree, sinon l ancien binaire serait reutilise.
+          key: ${{ runner.os }}-cases-d939eef-${{ hashFiles('cli/Cargo.lock') }}
 
       # Les cinq cas CLI invoquent ce binaire par son chemin.
       - name: Build the zanvil CLI
         run: cd cli && cargo build --release
 
-      # install-only, parce qu il y a deux configurations a lancer et que les flags
-      # de rapport sont donc decides par les etapes suivantes. L action installe les
-      # binaires precompiles du tag contre lequel elle a ete ecrite — qui porte deja
-      # setup.hide — plutot que de les compiler.
+      # L action officielle serait plus simple — elle installe des binaires
+      # precompiles et accepte install-only, ce qu il faut ici puisqu il y a deux
+      # configurations a lancer. Mais `Dr0drigues/gaveldrop/action@v0.1.0` ne resout
+      # pas : l action a ete ajoutee au depot APRES le tag v0.1.0, et
+      # `git tag --contains` sur son commit ne renvoie rien. GitHub echoue au
+      # demarrage du job, en trois secondes :
+      #   Can't find 'action.yml' … for action 'Dr0drigues/gaveldrop/action@v0.1.0'
+      # A rebasculer sur l action des qu un tag la contient.
+      #
+      # Le SHA est pinne pour que la CI de zanvil ne rougisse pas au prochain commit
+      # d un autre depot ; celui-ci porte setup.hide, dont dependent les quatre cas
+      # de tests/cases-hidden/. Les DEUX binaires sont necessaires : cargo n installe
+      # pas les binaires des dependances, et sans gaveldrop-fake toute execution meurt
+      # sur « the fake binary was not found beside this executable ».
       - name: Install gaveldrop
-        uses: Dr0drigues/gaveldrop/action@v0.1.0
-        with:
-          install-only: 'true'
+        run: |
+          cargo install --git https://github.com/Dr0drigues/gaveldrop \
+            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked gaveldrop-cli
+          cargo install --git https://github.com/Dr0drigues/gaveldrop \
+            --rev d939eef13ab9f72f9f4877b35a9ea685e4b67611 --locked gaveldrop-fake
 
       # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un
       # log que personne ne deroule.
