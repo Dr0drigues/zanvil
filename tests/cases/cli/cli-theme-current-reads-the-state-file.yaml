@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: cli-theme-current-reads-the-state-file
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "theme", "current"]
+expect:
+  exit_code: 0
+  stdout:
+    # Le hook a ecrit "minimal" dans .current_theme. Sur le depot reel, ce fichier
+    # est gitignore et vaut ce que le poste a choisi : le cas serait indecidable.
+    contains: ["Current theme: minimal"]
