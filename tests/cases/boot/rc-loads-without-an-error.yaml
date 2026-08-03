@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Remplace l etape « Verify zsh loads without errors », qui construisait
+# l isolation a la main puis n assertait rien : un module cassant au chargement
+# ne faisait pas rougir le job.
+name: rc-loads-without-an-error
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source: ["rc.zsh"]
+  # eval parce que les arguments de call: sont inertes : gaveldrop les passe
+  # single-quotes, donc $ZANVIL_VERSION ne serait pas developpe sans lui.
+  call: ["eval", "printf 'version=%s\\n' \"$ZANVIL_VERSION\""]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+# Les quatre outils declares dans gaveldrop.yaml sont appeles au demarrage : les
+# completions de chaque module en invoquent un, et core/hooks.zsh:192 y ajoute
+# « atuin init ». Chaque reponse est vide, ce qui est correct : ces sorties sont
+# passees a eval, et eval de rien ne fait rien. Ce cas documente donc, au passage,
+# les dependances reelles du demarrage d un shell.
+fake:
+  rules:
+    - match: { bin: posting, args_contain: "--completion-script-zsh" }
+      stdout: ""
+    - match: { bin: delta, args_contain: "--generate-completion" }
+      stdout: ""
+    - match: { bin: lazygit, args_contain: "completion" }
+      stdout: ""
+    - match: { bin: atuin, args_contain: "gen-completions" }
+      stdout: ""
+    - match: { bin: atuin, args_contain: "init" }
+      stdout: ""
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["version=v"]
+  # Le coeur du cas : l assertion qui n existait nulle part, et qui fait rougir un
+  # module casse au chargement.
+  stderr:
+    absent:
+      - "command not found"
+      - "parse error"
+      - "no such file or directory"
+  calls:
+    posting: 1
+    delta: 1
+    lazygit: 1
+    atuin: 2
