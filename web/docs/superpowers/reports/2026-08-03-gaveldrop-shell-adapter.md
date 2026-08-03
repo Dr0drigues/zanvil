@@ -3,9 +3,16 @@
 **Pour le dépôt gaveldrop.** Rien n'y a été modifié. Ce document décrit ce qui a coûté du temps, ce
 qu'il a fallu réimplémenter, et ce qui s'est révélé faux dans les documents d'entrée.
 
-Contexte : le lot 1 de l'adoption dans zanvil est terminé — quatorze cas, deux configurations,
-`56/56` et `12/12`, et quatre étapes de `tests.yml` remplacées ou supprimées. Le spec est
+Contexte : le lot 1 de l'adoption dans zanvil est terminé — quatorze cas, `68/68`, et quatre étapes de
+`tests.yml` remplacées ou supprimées. Le spec est
 `web/docs/superpowers/specs/2026-07-30-gaveldrop-test-suite-design.md`.
+
+> **Suite donnée, le 3 août.** Deux des points ci-dessous ont produit un correctif dans gaveldrop
+> `v0.1.1` : le nº 3 (les deux branches d'un module ne pouvaient pas partager une configuration) et le
+> nº 4 (le `got` tronqué à la première ligne). Les sections correspondantes sont conservées telles
+> qu'écrites — c'est la trace de ce qui a été constaté — et annotées de ce qui a changé. La
+> simplification côté zanvil est faite : la seconde configuration et son répertoire de cas ont existé
+> une demi-journée.
 
 ## Ce qui a bien marché, brièvement
 
@@ -47,7 +54,11 @@ donne `cargo install gaveldrop-cli gaveldrop-fake --locked`.
 
 **Suggestion :** la même phrase dans `docs/adopting.md`, qui est le premier fichier qu'on lit.
 
-## 3. Le mur qui subsiste : les deux branches d'un module, une seule configuration
+## 3. Le mur qui subsistait : les deux branches d'un module, une seule configuration
+
+> **Corrigé dans v0.1.1.** `hide` ne refuse plus un outil que `fake.bins` déclare : le cas gagne, et
+> aucun lien symbolique n'est posé pour cet outil-là. zanvil est repassé à une configuration unique et
+> quatorze cas, sans qu'un seul cas soit modifié — ils portaient déjà `hide:`.
 
 `setup.hide` a levé l'impossibilité de prouver une absence. Il n'a pas levé ceci :
 
@@ -83,7 +94,11 @@ FAIL rc-loads-without-an-error  0/9
       got       atuin, delta, lazygit, posting
 ```
 
-## 4. `got` n'affiche que la première ligne, et ça envoie sur une fausse piste
+## 4. `got` n'affichait que la première ligne, et ça envoyait sur une fausse piste
+
+> **Corrigé dans v0.1.1.** `got` montre désormais tout le flux, sauts de ligne rendus visibles et
+> octets de contrôle échappés. La conséquence pratique est celle qui compte : le cycle « attendu
+> délibérément faux » suffit à voir la sortie réelle, sans cas-sonde.
 
 C'est le point qui m'a coûté le plus de temps sur un cas qui n'avait aucun problème.
 
@@ -115,16 +130,16 @@ dans ce cas précis, la sonde était le seul moyen de voir la sortie complète.
 `gate.min_score` est comparé à `summary.score`, pas à un pourcentage (`report.rs:88`). L'exemple de
 `docs/ci.md` — `min_score: 80` — se lit naturellement comme « 80 % », d'autant que `docs/adopting.md`
 montre juste avant un `score 1/1`. J'ai recopié cet exemple dans le spec, où il aurait fait échouer le
-gate à **chaque** exécution : le total des poids de la suite vaut 56.
+gate à **chaque** exécution : le total des poids de la suite vaut 68.
 
 Le message ne désigne pas la confusion :
 
 ```
-the weighted score is 56 of 56, below the 80 this project requires
+the weighted score is 68 of 68, below the 80 this project requires
 ```
 
 Il est exact et pourtant il laisse chercher. « below the 80 this project requires » avec un score
-maximal de 56 devrait pouvoir dire que le seuil dépasse le total atteignable — c'est une condition
+maximal de 68 devrait pouvoir dire que le seuil dépasse le total atteignable — c'est une condition
 détectable au chargement de la configuration, pas seulement à la fin du run.
 
 **Autre observation sur le gate :** pour un projet qui ne tolère aucun échec, `min_score` et

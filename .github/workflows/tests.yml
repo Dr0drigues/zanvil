@@ -55,10 +55,10 @@ jobs:
 
       # « Test binary-absent fallback warnings » a ete retiree. Elle amputait PATH a
       # la main pour prouver qu un module previent quand son binaire manque, ce que le
-      # format ne savait pas exprimer. `setup.hide` le sait depuis, donc les quatre
-      # cas de tests/cases-hidden/ la remplacent — avec un verdict identique sur un
-      # poste equipe et sur un runner nu, ce que l amputation de PATH ne garantissait
-      # que par accident.
+      # format ne savait pas exprimer. `setup.hide` le sait depuis, donc les quatre cas
+      # `*-warns-when-its-binary-is-missing` de tests/cases/modules/ la remplacent —
+      # avec un verdict identique sur un poste equipe et sur un runner nu, ce que
+      # l amputation de PATH ne garantissait que par accident.
 
   rust-cli:
     runs-on: ${{ matrix.os }}
@@ -131,8 +131,10 @@ jobs:
       # Les binaires precompiles de la release, plutot qu un `cargo install` : aucune
       # compilation, donc rien a cacher, ni --force pour ecraser un binaire restaure.
       # Le tag est une reference lisible qui dit ce qu on installe, la ou un SHA ne le
-      # dit pas — et v0.1.0 porte deja setup.hide, dont dependent les quatre cas de
-      # tests/cases-hidden/. Verifie : la suite hidden passe avec cette archive.
+      # dit pas. v0.1.1 est le minimum : c est la version ou `setup.hide` accepte un
+      # outil que `fake.bins` declare, ce dont dependent les quatre cas
+      # `*-warns-when-its-binary-is-missing`. Sous v0.1.0 ils sont refuses au
+      # chargement, avec « case hides `posting` and the project fakes it ».
       #
       # L action officielle ferait la meme chose en une ligne, mais
       # `Dr0drigues/gaveldrop/action@v0.1.0` ne resout pas : l action a ete ajoutee au
@@ -146,7 +148,7 @@ jobs:
       # executable ».
       - name: Install gaveldrop
         env:
-          GAVELDROP_VERSION: v0.1.0
+          GAVELDROP_VERSION: v0.1.1
         run: |
           case "${{ runner.os }}-${{ runner.arch }}" in
             Linux-X64)   target=x86_64-unknown-linux-musl ;;
@@ -178,17 +180,10 @@ jobs:
       - name: Run the cases
         run: gaveldrop --annotate --report-junit junit.xml
 
-      # Seconde configuration, pour une raison structurelle : un outil ne peut pas
-      # etre a la fois fake (branche « binaire present ») et cache (branche
-      # « binaire absent »), et fake.bins vit dans la configuration, pas dans le cas.
-      - name: Run the hidden-tool cases
-        run: gaveldrop --config gaveldrop.hidden.yaml --annotate --report-junit junit-hidden.xml
-
-      # if: always() — les rapports sont le plus utiles quand une etape precedente a
-      # echoue.
-      - name: Keep the reports
+      # if: always() — le rapport est le plus utile quand l etape precedente a echoue.
+      - name: Keep the report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cases-${{ matrix.os }}
-          path: junit*.xml
+          path: junit.xml
