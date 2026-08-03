@@ -2,14 +2,11 @@
 name: k9s-abbreviates-a-long-logger
 weight: 3
 setup:
-  env:
-    ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  run:
-    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
-    - '--line'
-    - '{"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}'
+  stdin: |
+    {"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
 expect:
   exit_code: 0
   stdout:
-    contains:
-      - '…b.b.q.EnormousServiceImplementation - x'
+    ignore_ansi: true
+    equals: "             DEBUG \u2026b.b.q.EnormousServiceImplementation - x"

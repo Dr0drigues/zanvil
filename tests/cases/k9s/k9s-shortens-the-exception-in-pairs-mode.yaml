@@ -2,17 +2,11 @@
 name: k9s-shortens-the-exception-in-pairs-mode
 weight: 3
 setup:
-  env:
-    ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  run:
-    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
-    - '--pairs'
-    - '--field'
-    - '1'
-    - '--line'
-    - '{"@timestamp":"2026-07-28T08:00:01.456Z","level":"ERROR","thread_name":"main","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)","retry":2}'
+  stdin: |
+    {"@timestamp":"2026-07-28T08:00:01.456Z","level":"ERROR","thread_name":"main","logger_name":"com.Foo","message":"Boom","stack_trace":"java.lang.IllegalStateException: Boom\n\tat com.Foo.bar(Foo.java:17)","retry":2}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh", "--pairs"]
 expect:
   exit_code: 0
   stdout:
-    contains:
-      - '⤷ IllegalStateException'
+    ignore_ansi: true
+    equals: "08:00:01.456 ERROR [main] com.Foo - Boom \u2937 IllegalStateException  retry=2\t{\"@timestamp\":\"2026-07-28T08:00:01.456Z\",\"level\":\"ERROR\",\"thread_name\":\"main\",\"logger_name\":\"com.Foo\",\"message\":\"Boom\",\"stack_trace\":\"java.lang.IllegalStateException: Boom\\n\\tat com.Foo.bar(Foo.java:17)\",\"retry\":2}"

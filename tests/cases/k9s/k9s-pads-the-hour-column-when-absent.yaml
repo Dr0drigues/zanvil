@@ -2,14 +2,11 @@
 name: k9s-pads-the-hour-column-when-absent
 weight: 3
 setup:
-  env:
-    ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  run:
-    - "$GAVELDROP_PROJECT/tests/bin/k9s-fmt-plain"
-    - '--line'
-    - '{"message":"Sans horodatage"}'
+  stdin: |
+    {"message":"Sans horodatage"}
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
 expect:
   exit_code: 0
   stdout:
-    contains:
-      - '             INFO  Sans horodatage'
+    ignore_ansi: true
+    equals: "             INFO  Sans horodatage"
