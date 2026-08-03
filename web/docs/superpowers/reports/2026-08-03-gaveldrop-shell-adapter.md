@@ -181,6 +181,47 @@ plutôt qu'après.
 La mention dans le document de mise à jour est claire. Ce qui manquerait, si le besoin apparaît un jour,
 c'est de cacher **un exécutable** plutôt que son répertoire.
 
+## 8. Aucune égalité exacte, ni sur un flux ni sur un fichier
+
+Trouvé en préparant le lot 2, et c'est le manque le plus coûteux des huit.
+
+`TextExpectation` n'accepte que `contains` et `absent`, et c'est le seul schéma utilisé par
+`expect.stdout`, `expect.stderr` **et** `expect.files`. Il n'existe donc aucun moyen d'asserter qu'une
+sortie *est* une valeur.
+
+Pour un texte, `contains` est souvent assez proche. Pour une mesure, il affirme le contraire de ce
+qu'il vérifie :
+
+```yaml
+name: does-contains-2-match-12
+setup:
+  run: ["printf", "12"]
+expect:
+  stdout:
+    contains: ["2"]
+```
+
+```
+ok   does-contains-2-match-12  1/1
+```
+
+Un test qui compte des lignes et asserte `contains: ["2"]` passe donc sur un résultat de `12`. Ce n'est
+pas une assertion faible, c'est une assertion fausse — exactement ce que le critère « tout cas doit
+pouvoir échouer » cherche à éliminer, et elle y échappe en passant toujours.
+
+Conséquence sur le lot 2 : des 59 assertions de `scripts/tests/k9s-log-fmt.test.sh`, **30 sont des
+égalités**, dont 12 des comptages (`wc -l`, `awk -F'\t' '{print NF}'`, `grep -c`). Elles restent en
+bash. Les migrer en `contains` produirait une suite qui mente ; les migrer avec des délimiteurs maison
+— faire imprimer `[lines=2]` par le wrapper pour que `contains` redevienne discriminant — reviendrait à
+inventer une convention dans chaque cas pour compenser l'absence d'une clé, et à la retirer le jour où
+elle arrive.
+
+**Ce qui manque :** `equals` dans `TextExpectation`. Le nom dit déjà ce qu'il fait, et son diff serait
+plus utile que celui d'un `contains` puisque les deux côtés sont connus.
+
+Le `got` complet arrivé en v0.1.1 rend ce manque plus visible, pas moins : on lit exactement ce qu'on
+aurait voulu comparer.
+
 ## Ce que je referais pareil
 
 Écrire chaque cas avec un attendu **délibérément faux**, constater le `FAIL`, puis corriger. Sur
