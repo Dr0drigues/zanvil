@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Imprime les endroits ou le CODE appelle encore l'ancien nom du binaire.
+#
+# Le renommage zsh_env -> zanvil de la v4.0.0 a laisse un binaire zsh-env-cli en place
+# pendant quatre mois : il repondait a --version, il etait dans le PATH, et aucune
+# delegation ne l'appelait. Ce controle empeche qu'une delegation y revienne.
+#
+# Quatre exclusions, et chacune a sa raison — la premiere version de ce script les
+# ignorait et signalait six references toutes legitimes, ce qui en faisait un controle
+# qu'on desactive au premier echec :
+#
+#   1. les commentaires. Expliquer la panne demande de la nommer ; c'est le cas dans
+#      doctor.rs et dans le cas gaveldrop qui l'accompagne.
+#   2. install.sh, le seul endroit qui doit nommer l'ancien binaire pour le SUPPRIMER.
+#      Lui interdire le mot reviendrait a interdire la reparation.
+#   3. migrate_zanvil.zsh, dont l'en-tete dit qu'il porte volontairement les anciens
+#      noms pour detecter une installation heritee.
+#   4. la documentation, qui raconte le renommage — d'ou l'absence de *.md dans le scan.
+#
+# Reste ce qui compte : une invocation, une delegation, un `command -v` dans core/ ou
+# modules/. Il ne juge rien, il rapporte ; c'est le cas gaveldrop qui decide.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
+
+grep -rn 'zsh-env-cli' "$ROOT/core" "$ROOT/modules" "$ROOT/scripts" \
+    --include='*.zsh' --include='*.sh' --include='*.rs' --include='*.yaml' \
+    2>/dev/null \
+    | grep -v 'migrate_zanvil.zsh' \
+    | grep -vE ':[0-9]+:[[:space:]]*(#|//)' \
+    | sed "s|^$ROOT/||" || true
