@@ -1,8 +1,11 @@
 cases: tests/cases/**/*.yaml
 
-# Les quatre outils de modules/tools/. Declares ici, ils sont shadowes par defaut, ce qui rend leur
-# branche « binaire present » testable sans avoir a les installer. Les cas qui testent l autre branche
-# s y soustraient un par un avec `setup.hide` : la declaration vaut pour la suite, la cle vaut pour un
-# cas, et le plus specifique decide.
+# Les quatre outils de modules/tools/. Declares ici, ils sont shadowes par defaut, ce qui
+# rend leur branche « binaire present » testable sans avoir a les installer. Les cas qui
+# testent l autre branche s y soustraient un par un avec `setup.hide` : la declaration
+# vaut pour la suite, la cle vaut pour un cas, et le plus specifique decide.
+#
+# fzf sert les cas du viewer : les uns le simulent pour choisir son code de sortie, un
+# autre le cache pour eprouver le repli. Les deux coexistent depuis la v0.1.1.
 fake:
-  bins: [posting, delta, lazygit, atuin]
+  bins: [posting, delta, lazygit, atuin, fzf]

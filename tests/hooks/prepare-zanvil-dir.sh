@@ -55,3 +55,11 @@ done
 printf 'minimal\n' >"$DST/.current_theme"
 
 mkdir -p "$HOME/.config" "$HOME/.kube" "$HOME/work"
+
+# Un jeton GitLab factice, parce que l isolation doit representer un poste CONFIGURE.
+# Sans ce fichier, modules/gitlab/gitlab_logic.zsh:11 previent au chargement et son
+# avertissement se melange a la sortie du sujet — le rapport HTML de gaveldrop l a
+# montre. Avec lui, le cas de chargement peut asserter que rien ne previent, ce qui est
+# plus strict : si le module se remettait a le faire malgre un fichier present, le cas
+# rougirait.
+printf "export GITLAB_TOKEN='jeton-de-test-sans-valeur'\n" >"$HOME/.gitlab_secrets"
