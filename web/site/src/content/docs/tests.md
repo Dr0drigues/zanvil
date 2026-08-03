@@ -39,6 +39,7 @@ bash scripts/tests/zsh-special-vars.test.sh # lint des variables reservees zsh
 | CLI Rust | `theme list`, `theme current`, `modules list`, `doctor`, `--help` — code de sortie et contenu de la sortie |
 | Modules d'outils | Les **deux** branches de posting, delta, lazygit et atuin : binaire présent et binaire absent |
 | Rendu k9s | Le pattern logback, les niveaux numériques, l'abréviation du logger, les stack traces, les champs MDC, le mode `--pairs` |
+| Documentation | Tout module portant un `.module.toml` est cité dans `configuration.md` — ce garde-fou existe parce que la doc avait dérivé de huit modules |
 
 ## Deux mécanismes qui font l'intérêt de la suite
 

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Imprime les guards de module qui ne sont pas cites dans la doc en ligne.
+#
+# Une sortie vide signifie que tout module portant un .module.toml est documente. Ce
+# script ne juge rien : il rapporte un ecart, et c est le cas gaveldrop
+# tests/cases/docs/site-documents-every-module.yaml qui decide si l ecart est
+# acceptable.
+#
+# Le sens de la comparaison est deliberement asymetrique. Tout guard declare par un
+# .module.toml DOIT etre documente : c est un module que l utilisateur peut activer.
+# L inverse est legitime — ZANVIL_MODULE_NUSHELL et ZANVIL_MODULE_MISE sont lus par
+# core/aliases.zsh et rc.zsh sans passer par un .module.toml, et meritent leur place
+# dans la doc.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$HOME/.zanvil}"
+DOC="$ROOT/web/site/src/content/docs/configuration.md"
+
+if [[ ! -f "$DOC" ]]; then
+    printf 'undocumented-modules: page introuvable: %s\n' "$DOC" >&2
+    exit 2
+fi
+
+declares=$(find "$ROOT/modules" -name '.module.toml' -exec grep -h '^guard' {} + \
+           | sed 's/.*"\(.*\)"/\1/' | sort -u)
+documentes=$(grep -ohE 'ZANVIL_MODULE_[A-Z_]+' "$DOC" | sort -u)
+
+comm -23 <(printf '%s\n' "$declares") <(printf '%s\n' "$documentes")
