@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+name: atuin-deploys-its-config-when-the-binary-is-there
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source:
+    - "core/ui.zsh"
+    - "modules/tools/atuin/init.zsh"
+  call: ["atuin_setup"]
+  env:
+    ZANVIL_MODULE_ATUIN: "true"
+    ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  rules:
+    - match: { bin: atuin, args_contain: "--version" }
+      stdout: "atuin 18.0.0"
+    - match: { bin: atuin, args_contain: "info" }
+      stdout: "database path: /tmp/atuin/history.db"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  files:
+    "$HOME/.config/atuin/config.toml":
+      contains: ["auto_sync = false"]
+  stdout:
+    contains: ["/tmp/atuin/history.db"]
+    absent: ["brew install atuin"]
+  # Deux appels : --version, puis info dont la ligne database est extraite.
+  calls:
+    atuin: 2
