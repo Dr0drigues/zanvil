@@ -134,22 +134,38 @@ jobs:
       # secondes sur « Can't find 'action.yml' ». v0.1.2 la contient — verifie par
       # `git ls-tree v0.1.2:action`.
       #
-      # v0.1.2 est un minimum, pas une preference : c est la version qui apporte
-      # setup.stdin, equals et ignore_ansi, dont depend chaque cas de tests/cases/k9s/,
-      # et deja setup.hide sur un outil fake pour les quatre cas
-      # `*-warns-when-its-binary-is-missing`.
+      # @v1 est un tag mobile, repointe a chaque release — la convention de
+      # actions/checkout@v4. Il evite une PR par version, et il ne suivra pas une v2
+      # dont le format pourrait changer. Les cles dont dependent les cas — setup.stdin,
+      # equals, ignore_ansi, setup.hide sur un outil fake — sont toutes dans 0.1.x, donc
+      # tout v1 les portera. Pour epingler : @v0.1.3, qui ne bougera jamais.
       #
-      # --annotate place l echec sur la ligne de l assertion qui casse, pas dans un log
-      # que personne ne deroule.
+      # Quatre rapports, chacun pour un lecteur :
+      #   --annotate      place l echec sur la ligne de l assertion, dans la PR
+      #   --report-junit  le tableau de bord de la CI
+      #   --report-html   chaque cas se deplie sur ce que le sujet a produit : code de
+      #                   sortie, les deux flux, les outils appeles avec leur compte, les
+      #                   fichiers ecrits. C est la question qu un verdict ne pose pas —
+      #                   « qu a fait mon module », au-dela de savoir si l attente tenait
+      #   --report-badge  un SVG portant le score pondere, vert / ambre / rouge
       - name: Run the cases
-        uses: Dr0drigues/gaveldrop/action@v0.1.2
+        uses: Dr0drigues/gaveldrop/action@v1
         with:
-          args: --annotate --report-junit junit.xml
+          args: >-
+            --annotate
+            --report-junit junit.xml
+            --report-html report.html
+            --report-badge badge.svg
 
-      # if: always() — le rapport est le plus utile quand l etape precedente a echoue.
-      - name: Keep the report
+      # if: always() — les rapports sont le plus utiles quand l etape precedente a
+      # echoue. Le HTML est autonome : aucun script, aucune requete reseau, donc il
+      # s ouvre directement depuis l artefact telecharge.
+      - name: Keep the reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cases-${{ matrix.os }}
-          path: junit.xml
+          path: |
+            junit.xml
+            report.html
+            badge.svg
