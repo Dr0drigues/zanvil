@@ -98,7 +98,17 @@ zanvil-theme() {
     local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
 
-    if ! command -v starship &> /dev/null; then
+    # La garde ne couvre que ce qui a besoin de starship : APPLIQUER un theme ecrit une
+    # configuration que starship seul relit. Lister les themes versionnes sous
+    # config/themes/ et dire lequel est courant n en demande rien — ce sont des fichiers
+    # du depot et une ligne dans .current_theme.
+    #
+    # L ancienne garde refusait tout en tete de fonction, ce qui rendait le repli
+    # dependant d un outil dont il n avait pas besoin. Trouve en CI : le cas de
+    # delegation echouait sur les deux runners avec « Starship n'est pas installe », parce
+    # qu il demandait simplement la liste.
+    if [[ -n "$theme" && "$theme" != "list" && "$theme" != "current" ]] \
+        && ! command -v starship &> /dev/null; then
         _ui_msg_fail "Starship n'est pas installe."
         return 1
     fi
