@@ -38,6 +38,17 @@ fake:
     # quatre autres : elle est passee a eval, et eval de rien ne fait rien.
     - match: { bin: starship, args_contain: "init" }
       stdout: ""
+    # Le demarrage sonde le reseau. modules/work/work_context.zsh:56 interroge le Nexus
+    # interne pour decider si le poste est en contexte Work, et le resultat est mis en
+    # cache dans .work_context_cache. Sur un poste hors du reseau, cet appel attend son
+    # timeout a chaque shell qui n a pas de cache valide.
+    #
+    # Le faux repond « 000 », ce que curl imprime quand il n a joint personne : c est le
+    # cas le plus courant hors du reseau, et `grep -q "^[23]"` le rejette, donc le
+    # contexte est correctement declare absent. Repondre « 200 » ferait croire au module
+    # qu il est au bureau et changerait ce que le prompt affiche.
+    - match: { bin: curl }
+      stdout: "000"
     - match: {}
       exit: 127
       stderr: "the case did not foresee this call"
@@ -62,3 +73,4 @@ expect:
     lazygit: 1
     atuin: 2
     starship: 1
+    curl: 1

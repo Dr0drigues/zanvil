@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Meme mecanisme pour --since. Les deux formats invalides ont leur propre message, et
+# celui-ci nomme les quatre unites acceptees.
+name: fetch-logs-refuses-an-invalid-since
+weight: 5
+setup:
+  run: ["bash", "$GAVELDROP_PROJECT/modules/work/fetch_es_logs.sh", "--app", "cas", "--since", "3jours", "--target-dir", "sortie"]
+  env:
+    ES_USER: "cas"
+    ES_PASSWORD: "cas"
+fake:
+  rules:
+    # Une reponse vide suffit : ce cas parle de la fenetre calculee avant la premiere
+    # requete, pas de ce qu Elasticsearch renvoie.
+    - match: { bin: curl }
+      stdout: '{"hits":{"total":{"value":0},"hits":[]},"_scroll_id":"x"}'
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 1
+  stdout:
+    contains:
+      - "Erreur: format --since invalide"
+      - "Xs, Xm, Xh, Xd"
+  calls:
+    curl: 0
