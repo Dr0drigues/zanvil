@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La sortie de l export fait partie du contrat, pas seulement le fichier. CLAUDE.md
+# l exige : « Les commandes zanvil-* doivent avoir un header avec _ui_header ». Le CLI
+# n imprime aujourd hui qu une ligne, donc ce cas dit ce que la migration doit rendre.
+name: sync-export-announces-what-it-wrote
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "export"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  stdout:
+    # ignore_ansi : le header et les sections sont colores, et la couleur depend du
+    # theme charge. Ce cas parle du texte, pas de la palette.
+    ignore_ansi: true
+    contains:
+      - "Zanvil Sync Export"
+      - "Config exportee"
+      - "sync.json"
+      - "Version"
+      - "Theme"
+      - "minimal"
+      - "Modules"

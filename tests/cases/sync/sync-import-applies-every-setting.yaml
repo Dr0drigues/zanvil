@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le cas qui compte le plus du chantier 2. Le CLI ignore aujourd hui CINQ des sept
+# reglages a l import — les trois d auto-update et les deux themes clair/sombre — et
+# imprime « Config importee » quand meme. Un utilisateur qui synchronise deux machines
+# croirait sa config alignee.
+#
+# La fixture porte l inverse de ce que le fichier importe demande, sur chaque ligne :
+# sans cela, une ligne inchangee passerait pour une ligne importee.
+name: sync-import-applies-every-setting
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "import", "ref.json"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  files:
+    "zanvil/config.zsh":
+      contains:
+        - "ZANVIL_MODULE_KUBE=false"
+        - "ZANVIL_MODULE_DOCKER=true"
+        - "ZANVIL_AUTO_UPDATE=true"
+        - "ZANVIL_UPDATE_FREQUENCY=3"
+        - 'ZANVIL_UPDATE_MODE="auto"'
+        - "ZANVIL_THEME_LIGHT=forge"
+        - "ZANVIL_THEME_DARK=forge"
+      # Les valeurs de la fixture ne doivent plus etre la. Sans ces lignes, un import
+      # qui n aurait rien fait passerait pour un import reussi.
+      absent:
+        - "ZANVIL_MODULE_KUBE=true"
+        - "ZANVIL_AUTO_UPDATE=false"
+        - "ZANVIL_UPDATE_FREQUENCY=14"
+        - 'ZANVIL_UPDATE_MODE="silent"'
+        - "ZANVIL_THEME_DARK=tokyo-night-pro"
+    "zanvil/.current_theme":
+      equals: "tokyo-night-pro"
+    # Le filet de securite : un import ecrase config.zsh, donc il en garde une copie.
+    "zanvil/config.zsh.pre-import":
+      contains: ["ZANVIL_MODULE_KUBE=true"]

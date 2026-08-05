@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Un poste qui n a jamais choisi de theme n a pas de .current_theme. L export doit
+# ecrire « default » plutot qu une chaine vide, sinon l import d en face poserait un
+# theme sans nom. Les deux implementations le font aujourd hui ; le cas fige l accord.
+name: sync-export-defaults-the-theme-when-absent
+weight: 3
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  # eval parce qu il faut retirer le fichier avant d appeler la fonction, et qu un
+  # `call:` ne prend qu une commande.
+  call: ["eval", "rm -f \"$ZANVIL_DIR/.current_theme\"; zanvil-sync export"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  files:
+    "zanvil/sync.json":
+      contains: ['"theme": "default"']
+      absent: ['"theme": ""']

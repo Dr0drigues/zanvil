@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le seul cas de la suite a deux echanges, et il est la pour une raison : c est la
+# boucle complete que personne ne verifiait. Un import qui ecrit et un diff qui relit
+# doivent s accorder, sinon la commande ment a l une des deux extremites — et aucune
+# assertion sur un fichier ne peut le prouver, parce que c est le DIFF qui doit lire ce
+# que l IMPORT a ecrit.
+#
+# L etat de la racine isolee persiste entre les echanges : c est ce qui rend ce cas
+# possible, et c est la nouveaute de la 0.1.11 que zanvil attendait.
+name: sync-import-then-diff-reports-no-difference
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  # Aucun `call:` ici : chaque echange porte le sien. La contrepartie a importer est
+  # deposee par le hook, parce qu un cas a steps n execute pas le run de son setup.
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+steps:
+  - name: "le diff annonce des differences avant l import"
+    request:
+      call: ["zanvil-sync", "diff", "ref.json"]
+    expect:
+      exit_code: 0
+      stdout:
+        ignore_ansi: true
+        contains: ["difference(s)"]
+        absent: ["Configurations identiques"]
+  - name: "l import les applique"
+    request:
+      call: ["zanvil-sync", "import", "ref.json"]
+    expect:
+      exit_code: 0
+      stdout:
+        ignore_ansi: true
+        contains: ["Config importee"]
+  - name: "le diff ne trouve plus rien a signaler"
+    request:
+      call: ["zanvil-sync", "diff", "ref.json"]
+    expect:
+      exit_code: 0
+      stdout:
+        ignore_ansi: true
+        contains: ["Configurations identiques"]
+expect: {}
