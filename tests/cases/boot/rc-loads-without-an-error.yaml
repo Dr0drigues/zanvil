@@ -31,6 +31,13 @@ fake:
       stdout: ""
     - match: { bin: atuin, args_contain: "init" }
       stdout: ""
+    # core/hooks.zsh evalue « starship init zsh » au demarrage. Falsifie depuis que le
+    # cas de delegation de theme en a besoin : son repli zsh refuse tout sans starship,
+    # y compris lister des themes versionnes, donc il rendait un verdict different sur
+    # un poste equipe et sur un runner nu. La reponse vide est correcte, comme pour les
+    # quatre autres : elle est passee a eval, et eval de rien ne fait rien.
+    - match: { bin: starship, args_contain: "init" }
+      stdout: ""
     - match: {}
       exit: 127
       stderr: "the case did not foresee this call"
@@ -54,3 +61,4 @@ expect:
     delta: 1
     lazygit: 1
     atuin: 2
+    starship: 1
