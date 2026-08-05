@@ -77,12 +77,22 @@ case "$FORMAT" in
   *) echo "Erreur: --format doit être ndjson, json ou text"; exit 1 ;;
 esac
 
-# Détection GNU vs BSD date
+# Détection GNU vs BSD date — gardée pour le seul repli.
+#
+# Ce script était la version bash d'un calcul que modules/work/elasticsearch.zsh a
+# réécrit en zsh, et son en-tête demandait de « garder les deux versions synchronisées ».
+# Les quatre fonctions ci-dessous délèguent maintenant au CLI, comme leurs homologues
+# zsh : il n'y a plus deux implémentations à synchroniser, mais une seule — en Rust, sans
+# dépendance à un binaire externe — et deux appelants.
 if date --version &>/dev/null; then
   DATE_FLAVOR=gnu
 else
   DATE_FLAVOR=bsd
 fi
+
+# `command -v` plutôt qu'un chemin : c'est la même question que se posent les fonctions
+# zsh, et la même réponse doit valoir ici.
+_es_cli() { command -v zanvil >/dev/null 2>&1; }
 
 # Parse Xs/Xm/Xh/Xd -> secondes
 parse_duration_to_seconds() {
@@ -103,6 +113,10 @@ parse_duration_to_seconds() {
 
 epoch_to_iso() {
   local epoch="$1"
+  if _es_cli; then
+    zanvil es convert --from-epoch "$epoch"
+    return $?
+  fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then
     date -u -d "@$epoch" +"%Y-%m-%dT%H:%M:%S.000Z"
   else
@@ -113,6 +127,10 @@ epoch_to_iso() {
 # Parse une date ISO UTC ("2025-05-30T14:00:00.000Z" ou sans ms) -> epoch
 iso_to_epoch() {
   local ts="$1"
+  if _es_cli; then
+    zanvil es convert --from-iso "$ts"
+    return $?
+  fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then
     date -u -d "$ts" +%s
   else
@@ -125,6 +143,10 @@ iso_to_epoch() {
 # Parse une date Europe/Paris "YYYY-mm-ddTHH:MM:SS" -> epoch UTC (DST géré)
 parse_paris_to_epoch() {
   local dt="$1"
+  if _es_cli; then
+    zanvil es convert --from-paris "$dt"
+    return $?
+  fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then
     TZ=Europe/Paris date -d "$dt" +%s
   else

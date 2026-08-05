@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Caracterisation de fetch_es_logs.sh avant migration (chantier 3, lot B). L en-tete du
+# module zsh annonce ce script comme une duplication a garder synchronisee :
+#
+#   « Duplication annotee de modules/work/fetch_es_logs.sh (bash, BASH_REMATCH) :
+#     reecrit en zsh. Garder les deux versions synchronisees. »
+#
+# Le lot A a fait deleguer la version zsh. Ce lot fait deleguer la version bash, apres
+# quoi il n y a plus deux implementations a synchroniser mais une seule, en Rust, avec
+# deux appelants.
+#
+# Les attendus sont ceux du lot A, calcules par zoneinfo : c est le meme contrat, et
+# c est precisement ce que « garder synchronisees » voulait dire.
+name: fetch-logs-converts-the-window-across-dst
+weight: 9
+setup:
+  run: ["bash", "$GAVELDROP_PROJECT/modules/work/fetch_es_logs.sh", "--app", "cas", "--from", "2026-03-30T12:00:00", "--to", "2026-03-30T14:00:00", "--target-dir", "sortie"]
+  env:
+    ES_USER: "cas"
+    ES_PASSWORD: "cas"
+fake:
+  rules:
+    # Une reponse vide suffit : ce cas parle de la fenetre calculee avant la premiere
+    # requete, pas de ce qu Elasticsearch renvoie.
+    - match: { bin: curl }
+      stdout: '{"hits":{"total":{"value":0},"hits":[]},"_scroll_id":"x"}'
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "Plage:  2026-03-30T12:00:00 -> 2026-03-30T14:00:00 (Europe/Paris)"
+      # Heure d ete : UTC+2, donc deux heures de moins que l heure locale.
+      - "UTC:  2026-03-30T10:00:00.000Z -> 2026-03-30T12:00:00.000Z"

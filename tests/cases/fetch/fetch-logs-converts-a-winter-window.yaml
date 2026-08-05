@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La meme heure locale, de l autre cote du basculement du 29 mars 2026 : en CET, donc
+# une heure de moins de decalage. Sans ce second cas, un portage qui appliquerait un
+# decalage fixe de deux heures passerait le premier.
+name: fetch-logs-converts-a-winter-window
+weight: 7
+setup:
+  run: ["bash", "$GAVELDROP_PROJECT/modules/work/fetch_es_logs.sh", "--app", "cas", "--from", "2026-01-15T12:00:00", "--to", "2026-01-15T14:00:00", "--target-dir", "sortie"]
+  env:
+    ES_USER: "cas"
+    ES_PASSWORD: "cas"
+fake:
+  rules:
+    # Une reponse vide suffit : ce cas parle de la fenetre calculee avant la premiere
+    # requete, pas de ce qu Elasticsearch renvoie.
+    - match: { bin: curl }
+      stdout: '{"hits":{"total":{"value":0},"hits":[]},"_scroll_id":"x"}'
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "UTC:  2026-01-15T11:00:00.000Z -> 2026-01-15T13:00:00.000Z"
