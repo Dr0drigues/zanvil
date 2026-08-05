@@ -1206,10 +1206,34 @@ kube_k9s_setup() {
     # Deployer plugins — $ZANVIL_DIR est resolu a la copie : k9s tente de
     # substituer lui-meme les $VAR et n'a pas ZANVIL_DIR dans son environnement
     # (warning "No k9s environment matching key" + chemin vide si la var change).
+    # Depose dans plugins/zanvil.yaml, et NON dans plugins.yaml.
+    #
+    # L ancienne version ecrasait `$k9s_dir/plugins.yaml`, sans sauvegarde ni
+    # avertissement : quiconque avait ses propres plugins k9s les perdait au premier
+    # `kube_k9s_setup`. Le defaut a ete trouve en construisant l installateur autonome
+    # du plugin de logs, qui a du resoudre le meme probleme.
+    #
+    # k9s lit `plugins.yaml` ET `plugins/*.yaml`. Le second format porte ses entrees A LA
+    # RACINE, sans la cle `plugins:` — verifie en deposant une sonde et en lisant le
+    # journal de k9s, qui refusait le fichier avec « Additional property plugins is not
+    # allowed ». D ou le retrait de la premiere ligne utile et la desindentation de deux
+    # espaces.
     local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
     if [[ -f "$plugins_src" ]]; then
-        sed "s|\$ZANVIL_DIR|$ZANVIL_DIR|g" "$plugins_src" > "$k9s_dir/plugins.yaml"
-        _ui_msg_ok "plugins.yaml deploye"
+        mkdir -p "$k9s_dir/plugins"
+        # Trois passes, dans cet ordre : substituer $ZANVIL_DIR comme avant, retirer la
+        # ligne `plugins:` seule, puis desindenter ce qu elle contenait. Les commentaires
+        # de tete sont conserves — ils expliquent la syntaxe a qui ouvre le fichier.
+        sed -e "s|\$ZANVIL_DIR|$ZANVIL_DIR|g" \
+            -e '/^plugins:[[:space:]]*$/d' \
+            -e 's/^  //' \
+            "$plugins_src" > "$k9s_dir/plugins/zanvil.yaml"
+        _ui_msg_ok "plugins/zanvil.yaml deploye"
+        # Un plugins.yaml deja present n est pas touche, mais il peut revendiquer les
+        # memes raccourcis : k9s charge les deux et l un gagne sans le dire.
+        if [[ -f "$k9s_dir/plugins.yaml" ]]; then
+            _ui_msg_warn "plugins.yaml existe et n a pas ete modifie — verifiez les doublons de raccourcis"
+        fi
     else
         _ui_msg_warn "config/k9s/plugins.yaml absent dans $ZANVIL_DIR"
     fi
