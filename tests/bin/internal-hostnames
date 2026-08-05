@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Imprime les endroits ou le CODE porte en dur un nom d'hote interne.
+#
+# Un `hote-interne` a vecu comme valeur de repli dans
+# modules/work/, dans un depot public. Aucun secret n'etait expose — les credentials
+# passent par sops et ~/.secrets, comme la convention l'exige — mais la nomenclature
+# d'une infrastructure interne l'etait : le prefixe de production, le nom du service, le
+# domaine Azure. Un `.intranet` ne resout pas depuis l'exterieur, donc le prejudice est de
+# la reconnaissance et non un acces ; ca reste une pratique a ne pas laisser revenir.
+#
+# `examples/env.d/work.zsh` documentait deja ces variables avec un defaut VIDE. Ce
+# controle fait respecter cette convention plutot qu'il n'en invente une.
+#
+# Trois exclusions, chacune avec sa raison :
+#
+#   1. les commentaires. Expliquer pourquoi une URL ne doit pas etre en dur demande de
+#      pouvoir en montrer une ; c'est le cas dans elasticsearch.zsh et dans le cas
+#      gaveldrop qui accompagne ce controle.
+#   2. examples/ et web/. Le premier documente les variables a definir, le second porte
+#      les rapports et les specs, qui nomment le probleme pour le decrire.
+#   3. tests/. La fixture d'un cas a besoin d'une adresse, et elle en emploie une en
+#      .invalide — reserve par la RFC 2606 — mais le repertoire est exclu pour que la
+#      regle ne depende pas du choix de domaine d'un cas.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+# Les suffixes qui trahissent un hote d'entreprise. `.invalide` et `.exemple` n'y sont
+# pas : ce sont ceux que les cas doivent employer.
+PATTERN='https?://[a-z0-9.-]+\.(intranet|udb|azr)\b'
+
+grep -rnoE "$PATTERN" \
+        --include='*.zsh' --include='*.sh' --include='*.rs' --include='*.toml' \
+        "$ROOT/core" "$ROOT/modules" "$ROOT/cli/src" "$ROOT/scripts" 2>/dev/null \
+    | grep -vE ':[0-9]+:[[:space:]]*(#|//)' \
+    | sed "s|^$ROOT/||" || true

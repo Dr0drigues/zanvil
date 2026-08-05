@@ -1,6 +1,13 @@
 # Chantier — les vestiges du renommage `zsh_env` → `zanvil`
 
-**À prendre en compte, pas encore fait.** Ce document est le cadrage, écrit pendant le chantier 3 du
+> **Volet 2 livré le 5 août 2026.** `doctor` porte une section `Reglages` qui nomme les réglages posés
+> sous l'ancien nom, et il trouve exactement les quatre que l'inventaire manuel ci-dessous avait trouvés —
+> ni plus, ni moins. Les trois noms sans équivalent lu ne produisent aucun bruit.
+>
+> Restent les volets 1 et 3 : étendre la migration à `env.d/` (qui ne répare pas les postes déjà passés,
+> d'où l'ordre) et corriger `ROADMAP.md:5`, qui renvoie encore à `ZSH_ENV_VERSION`.
+
+**À prendre en compte, partiellement fait.** Ce document est le cadrage, écrit pendant le chantier 3 du
 spec zsh/Rust parce que c'est là que le problème est apparu deux fois de suite.
 
 ## Ce qui a déclenché ce cadrage
@@ -64,7 +71,7 @@ Point d'attention : la migration ne s'exécute qu'une fois, quand `~/.zsh_env` e
 déjà migré ne la rejouera pas, donc étendre la migration ne répare **pas** les postes déjà passés. D'où
 le volet 2, qui est le seul à les atteindre.
 
-### 2. Faire dire à `doctor` qu'un réglage est mort
+### 2. Faire dire à `doctor` qu'un réglage est mort — **fait**
 
 C'est le volet qui compte, et le raisonnement est déjà écrit dans le spec zsh/Rust à propos du binaire :
 **un repli silencieux masque une panne, un repli est acceptable s'il est visible.**
@@ -76,6 +83,15 @@ le fichier de `env.d/` qui l'exporte.
 Un cas gaveldrop tient la position : `env: { ZSH_ENV_WORK_ES_URL: "…" }` doit faire apparaître
 l'avertissement. C'est testable sans réseau et le verdict est le même partout, contrairement à ce que
 j'ai essayé pour les sondes réseau du démarrage.
+
+**Livré ainsi.** Le contrôle lit les noms `ZANVIL_*` que le code consulte vraiment, puis regarde si
+l'ancien équivalent traîne dans l'environnement — plutôt qu'une liste en dur, qui se périmerait au premier
+réglage ajouté et signalerait encore ceux que le projet a abandonnés. Une variable vide ne compte pas :
+c'est ce que fait `${X:-…}`, donc elle n'écrase aucun choix.
+
+Le cas n'asserte pas le **compte** : l'isolation hérite de l'environnement, donc un poste qui porte ses
+propres noms hérités en verrait davantage qu'un runner nu. Il asserte que le nom qu'il pose est nommé, et
+qu'un nom sans équivalent lu ne l'est pas.
 
 ### 3. Corriger la documentation qui renvoie à des noms disparus
 

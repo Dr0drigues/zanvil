@@ -1,7 +1,7 @@
 use crate::config::scan_module_metas;
 use colored::Colorize;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 // ---------------------------------------------------------------------------
@@ -245,6 +245,43 @@ pub fn run() {
         }
     }
 
+    // ── Réglages hérités de l'ancien nom ──────────────────────────────────
+    // Le renommage `zsh_env` → `zanvil` de la v4.0.0 a laissé deux choses derrière lui.
+    // Le binaire, traité juste au-dessus. Et les variables d'environnement : la migration
+    // réécrit `.zshrc` et `config.zsh`, pas `env.d/*.zsh`, qui est pourtant l'endroit que
+    // la convention désigne pour elles.
+    //
+    // Sur la machine où ce contrôle a été écrit, quatre réglages étaient posés et ignorés
+    // — l'URL Elasticsearch, celle du Nexus, un timeout et un TTL de cache. Aucun message,
+    // aucune trace : la valeur par défaut s'appliquait et rien ne disait qu'un choix avait
+    // été écrasé.
+    //
+    // Le contrôle ne devine rien : il lit les noms `ZANVIL_*` que le code consulte
+    // vraiment, puis regarde si l'ancien équivalent traîne dans l'environnement. Un nom
+    // que le projet a abandonné ne produit donc aucun bruit.
+    let stale = stale_settings();
+    if stale.is_empty() {
+        print_section("Reglages", &ok_indicator("aucun nom herite"));
+    } else {
+        print_section(
+            "Reglages",
+            &format!(
+                "{}  {}",
+                "⚠".yellow(),
+                format!("{} reglage(s) pose(s) sous l'ancien nom, donc ignore(s)", stale.len())
+                    .yellow()
+            ),
+        );
+        for (old, new) in &stale {
+            println!("               {} → {}", old.dimmed(), new.bold());
+        }
+        println!(
+            "               {}",
+            "renommez-les dans env.d/*.zsh : le code ne lit plus que la forme ZANVIL_".dimmed()
+        );
+        warnings += stale.len() as u32;
+    }
+
     println!();
 
     // ── Required tools ────────────────────────────────────────────────────
@@ -446,5 +483,75 @@ pub fn run() {
             format!("{} avertissement(s)", warnings).yellow()
         );
         println!("{}", "Lancez ~/.zanvil/install.sh pour corriger".dimmed());
+    }
+}
+
+/// Les réglages posés sous l'ancien nom `ZSH_ENV_*` alors que le code lit `ZANVIL_*`.
+///
+/// Rend les paires (ancien, nouveau), triées et sans doublon.
+///
+/// **Le contrôle part du code, pas d'une liste.** Une liste en dur se périmerait au premier
+/// réglage ajouté, et signalerait encore ceux que le projet a abandonnés — trois des sept
+/// noms trouvés sur la machine de développement n'ont aucun équivalent lu, et les nommer
+/// aurait été du bruit. Lire les `ZANVIL_*` que le code consulte vraiment évite les deux.
+fn stale_settings() -> Vec<(String, String)> {
+    let root = zanvil_dir();
+    let mut names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for dir in [root.join("core"), root.join("modules")] {
+        collect_zanvil_names(&dir, &mut names);
+    }
+
+    names
+        .into_iter()
+        .filter_map(|new| {
+            let suffix = new.strip_prefix("ZANVIL_")?;
+            let old = format!("ZSH_ENV_{suffix}");
+            // Une variable vide compte comme absente : c'est ce que fait `${X:-…}`, donc
+            // un `export ZSH_ENV_X=""` n'écrase aucun choix.
+            std::env::var(&old)
+                .ok()
+                .filter(|value| !value.is_empty())
+                .map(|_| (old, new))
+        })
+        .collect()
+}
+
+/// Accumule les identifiants `ZANVIL_*` que les fichiers zsh d'un répertoire mentionnent.
+fn collect_zanvil_names(dir: &Path, out: &mut std::collections::BTreeSet<String>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_zanvil_names(&path, out);
+            continue;
+        }
+        if path.extension().is_none_or(|ext| ext != "zsh") {
+            continue;
+        }
+        let Ok(content) = fs::read_to_string(&path) else {
+            continue;
+        };
+        for line in content.lines() {
+            // Les commentaires sont ignorés : `migrate_zanvil.zsh` nomme volontairement
+            // les deux formes pour expliquer ce qu'il traduit.
+            if line.trim_start().starts_with('#') {
+                continue;
+            }
+            let mut rest = line;
+            while let Some(at) = rest.find("ZANVIL_") {
+                let tail = &rest[at..];
+                let end = tail
+                    .find(|c: char| !c.is_ascii_uppercase() && !c.is_ascii_digit() && c != '_')
+                    .unwrap_or(tail.len());
+                let name = &tail[..end];
+                // `ZANVIL_` seul, ou terminé par un souligné, n'est pas un identifiant.
+                if name.len() > "ZANVIL_".len() && !name.ends_with('_') {
+                    out.insert(name.to_string());
+                }
+                rest = &tail[end.max(1)..];
+            }
+        }
     }
 }

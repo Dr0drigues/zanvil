@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Troisieme vestige du renommage de la v4.0.0, apres le binaire et l URL en dur : les
+# variables d environnement. `migrate_zanvil.zsh` reecrit .zshrc et config.zsh, mais pas
+# env.d/*.zsh — l endroit meme que la convention designe pour elles. Sur la machine de
+# developpement, QUATRE reglages etaient poses et ignores : l URL Elasticsearch, celle du
+# Nexus, un timeout et un TTL de cache.
+#
+# Le raisonnement est celui du chantier 1 sur le binaire : un repli est acceptable s il
+# est visible. Un reglage ecrase par un defaut ne l etait pas.
+#
+# LE COMPTE N EST PAS ASSERTE, et c est deliberé : l isolation herite de l environnement,
+# donc un poste qui porte ses propres noms herites en verrait davantage qu un runner nu.
+# Ce qui est asserte, c est que le nom pose par ce cas est nomme, et qu un nom que le
+# projet ne lit pas ne l est pas.
+name: cli-doctor-names-a-setting-left-under-the-old-name
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "doctor"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+    # Le nom herite d un reglage que le code lit vraiment : il doit etre signale.
+    ZSH_ENV_WORK_ES_URL: "https://es.exemple.invalide"
+    # Un nom herite dont le projet n a aucun equivalent : il ne doit RIEN produire. Trois
+    # des sept noms trouves sur la machine de developpement sont dans ce cas, et les
+    # nommer aurait fait du bruit sans rien apprendre.
+    ZSH_ENV_REGLAGE_QUE_PERSONNE_NE_LIT: "valeur"
+    # Une variable vide ne compte pas : c est ce que fait `${X:-…}`, donc elle n ecrase
+    # aucun choix. Celle-ci verifie la regle.
+    ZSH_ENV_WORK_TIMEOUT: ""
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Reglages"
+      - "pose(s) sous l'ancien nom"
+      - "ZSH_ENV_WORK_ES_URL → ZANVIL_WORK_ES_URL"
+      - "renommez-les dans env.d/*.zsh"
+    absent:
+      - "ZSH_ENV_REGLAGE_QUE_PERSONNE_NE_LIT"
+      # Posee a vide, donc sans effet : la signaler serait un faux positif.
+      - "ZSH_ENV_WORK_TIMEOUT"
+  #
+  # LE COMPTEUR D AVERTISSEMENTS N EST PAS ASSERTE. Neutraliser `warnings += stale.len()`
+  # ne fait rougir aucun cas, et l assertion qui le rattraperait ne serait pas
+  # discriminante : le resume final compte aussi les outils recommandes absents, donc
+  # « Tout est OK » ne sortirait de toute facon pas sur un runner nu. Le vrai signal est
+  # le message, et il est asserte ligne par ligne au-dessus.

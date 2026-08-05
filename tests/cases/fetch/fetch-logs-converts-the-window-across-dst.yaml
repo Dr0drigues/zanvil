@@ -19,6 +19,12 @@ setup:
   env:
     ES_USER: "cas"
     ES_PASSWORD: "cas"
+    # L URL est desormais obligatoire : le defaut en dur qui la fournissait etait le nom
+    # d hote d un service interne dans un depot public, et il a ete retire. Ces deux cas
+    # passaient grace a lui — et sur mon poste grace a ES_URL — donc ils dependaient d un
+    # defaut qu on ne voulait plus. Le domaine .invalide est reserve par la RFC 2606, et
+    # curl est falsifie de toute facon.
+    ZANVIL_WORK_ES_URL: "https://es.exemple.invalide"
 fake:
   rules:
     # Une reponse vide suffit : ce cas parle de la fenetre calculee avant la premiere

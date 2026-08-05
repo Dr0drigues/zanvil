@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le garde-fou imprime les endroits ou le code porte en dur un nom d hote interne, et ce
+# cas exige qu il n imprime rien.
+#
+# Motif : `hote-interne` a vecu comme valeur de repli dans
+# modules/work/, dans un depot PUBLIC. Aucun secret n etait expose, mais la nomenclature
+# d une infrastructure interne l etait. `examples/env.d/work.zsh` documentait deja ces
+# variables avec un defaut vide, donc le controle fait respecter la convention du projet
+# plutot qu il n en invente une.
+name: no-internal-hostname-in-the-code
+weight: 7
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/internal-hostnames"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Le garde imprime une ligne par occurrence : rien a dire, rien a imprimer.
+    equals: ""
