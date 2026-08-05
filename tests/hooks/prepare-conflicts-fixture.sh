@@ -30,6 +30,12 @@ cp "$SRC/core/commands/commands.zsh" "$DST/core/commands/"
 printf 'fonction_dupliquee() {\n    :\n}\n' >>"$DST/modules/premier/init.zsh"
 printf 'fonction_dupliquee() {\n    :\n}\n' >>"$DST/modules/second/init.zsh"
 
+# La même fonction, déclarée une fois avec chaque syntaxe : `nom() {` d'un côté,
+# `function nom() {` de l'autre. C'est un doublon réel, et le motif d'origine ne voyait
+# que la première forme — donc ne le signalait pas.
+printf 'melange_de_syntaxe() {\n    :\n}\n' >>"$DST/modules/premier/init.zsh"
+printf 'function melange_de_syntaxe() {\n    :\n}\n' >>"$DST/modules/second/init.zsh"
+
 # Un export déclaré deux fois. La detection ne regarde que modules/, pas core/.
 printf 'export EXPORT_DUPLIQUE="a"\n' >>"$DST/modules/premier/init.zsh"
 printf 'export EXPORT_DUPLIQUE="b"\n' >>"$DST/modules/second/init.zsh"

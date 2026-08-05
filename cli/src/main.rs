@@ -71,6 +71,9 @@ enum Commands {
     /// Fan-out a change as a MR/PR across multiple env branches
     /// Report duplicate declarations across the project's zsh files
     Conflicts,
+    /// Date conversions the shell functions call. Cachee : primitive, pas commande.
+    #[command(hide = true)]
+    Convert(cmd::convert::ConvertArgs),
     /// Elasticsearch query helpers
     Es {
         #[command(subcommand)]
@@ -98,6 +101,12 @@ fn main() {
         Commands::Update { check } => cmd::update::run(check),
         Commands::Project { action } => cmd::project::run(action),
         Commands::Conflicts => cmd::conflicts::run(),
+        Commands::Convert(args) => {
+            let code = cmd::convert::run(args);
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
         Commands::Es { action } => {
             let code = cmd::es::run(action);
             if code != 0 {
