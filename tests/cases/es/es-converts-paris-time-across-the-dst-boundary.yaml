@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# LE cas du lot. Les quatre attendus sont calcules par une source independante (zoneinfo
+# en Python), pas releves sur la sortie du sujet : c est ce que writing-cases.md demande
+# — ecrire ce qui doit etre vrai, puis verifier que le sujet est d accord.
+#
+# Le basculement d heure d ete 2026 tombe le 29 mars. Le 28 est donc en CET (UTC+1) et
+# le 30 en CEST (UTC+2), a la meme heure locale : un portage qui ignorerait le fuseau
+# leur donnerait le meme epoch, et c est l erreur exacte que ce cas existe pour
+# attraper. Les deux dates de janvier et juillet tiennent la position au milieu de
+# chaque saison.
+name: es-converts-paris-time-across-the-dst-boundary
+weight: 9
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for dt in 2026-01-15T12:00:00 2026-07-15T12:00:00 2026-03-28T12:00:00 2026-03-30T12:00:00; do printf '%s=%s\\n' $dt $(_work_es_paris_to_epoch $dt); done"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      # Hiver : UTC+1, donc 12:00 Paris = 11:00 UTC.
+      - "2026-01-15T12:00:00=1768474800"
+      # Ete : UTC+2, donc 12:00 Paris = 10:00 UTC.
+      - "2026-07-15T12:00:00=1784109600"
+      # La veille du basculement, encore en CET.
+      - "2026-03-28T12:00:00=1774695600"
+      # Le lendemain, en CEST : une heure d ecart avec la ligne precedente pour la
+      # meme heure locale, a deux jours d intervalle.
+      - "2026-03-30T12:00:00=1774864800"

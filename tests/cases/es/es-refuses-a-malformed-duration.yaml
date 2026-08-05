@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Les cinq formes que la fonction doit rejeter. `30` sans unite et `1w` en particulier :
+# le premier parce qu une duree sans unite serait interpretee au hasard, le second parce
+# que la semaine n est pas dans le vocabulaire et qu accepter silencieusement 1 seconde
+# serait pire qu un refus.
+name: es-refuses-a-malformed-duration
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for u in 30x abc 30 1w 2H; do _work_es_parse_duration $u >/dev/null 2>&1 && printf 'ACCEPTE:%s\\n' $u || printf 'refuse:%s\\n' $u; done"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "refuse:30x"
+      - "refuse:abc"
+      - "refuse:30"
+      - "refuse:1w"
+      - "refuse:2H"
+    # Aucune de ces formes ne doit passer. Sans cette ligne, un parseur devenu
+    # permissif rendrait le cas vrai en acceptant tout.
+    absent: ["ACCEPTE"]

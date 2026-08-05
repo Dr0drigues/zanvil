@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le format est celui qu Elasticsearch attend dans une requete de plage : ISO 8601 UTC
+# avec des millisecondes toujours a zero. Les deux bornes sont l epoch zero, qui
+# attrape un decalage de fuseau, et une date de 2026, qui attrape un debordement.
+name: es-renders-an-epoch-as-utc-with-milliseconds
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for e in 0 1780000000; do printf '%s=%s\\n' $e $(_work_es_epoch_to_iso $e); done"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "0=1970-01-01T00:00:00.000Z"
+      - "1780000000=2026-05-28T20:26:40.000Z"

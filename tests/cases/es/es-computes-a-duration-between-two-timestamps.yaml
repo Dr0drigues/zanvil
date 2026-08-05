@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Trois endroits du module font de l arithmetique sur le resultat d une conversion :
+# _work_es_status_section calcule la duree couverte par des logs, et work_fetch_logs
+# elargit une fenetre d une marge. Aucun cas ne les couvrait, ce qui est precisement la
+# forme de trou que writing-cases.md decrit — un defaut qui se cache dans un nombre que
+# personne n asserte.
+#
+# La delegation les rend plus fragiles qu avant : `$(( $(zanvil es convert …) - … ))`
+# depend de ce que le CLI imprime un entier nu, sans unite ni retour de ligne parasite.
+# Ce cas fige ce contrat.
+name: es-computes-a-duration-between-two-timestamps
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "min=2026-05-28T20:00:00.000Z; max=2026-05-28T20:26:40.000Z; printf 'duree=%s\\n' $(( $(_work_es_iso_to_epoch $max) - $(_work_es_iso_to_epoch $min) )); marge=$(_work_es_parse_duration 1m); printf 'elargie=%s\\n' $(_work_es_epoch_to_iso $(( $(_work_es_iso_to_epoch $min) - marge )))"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      # 26 minutes et 40 secondes entre les deux bornes.
+      - "duree=1600"
+      # La borne basse reculee d une minute, rendue au format des requetes.
+      - "elargie=2026-05-28T19:59:00.000Z"

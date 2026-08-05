@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Caracterisation avant migration (chantier 3, lot A). Les six fonctions de calcul
+# temporel portent 14 des 38 dependances fragiles du module, dont le detecteur de
+# variante `date` que le spec cite comme justification du critere. Ces cas doivent
+# passer INCHANGES apres le portage en Rust.
+name: es-parses-the-four-duration-units
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for u in 30s 5m 2h 3d 1d; do printf '%s=%s\\n' $u $(_work_es_parse_duration $u); done"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "30s=30"
+      - "5m=300"
+      - "2h=7200"
+      - "3d=259200"
+      - "1d=86400"

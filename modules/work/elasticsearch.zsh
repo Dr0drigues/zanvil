@@ -79,6 +79,12 @@ _work_es_json() {
 # reecrit en zsh ($match). Garder les deux versions synchronisees.
 
 typeset -g _WORK_ES_DATE_FLAVOR=""
+# Detecteur de variante `date`, garde pour le seul repli.
+#
+# Il existait parce que `date -d` et `date -j -f` ne coexistent pas, et le spec
+# zsh-ou-rust le cite comme la dette qui justifie son critere de migration. Les trois
+# fonctions ci-dessous ne l appellent plus quand le CLI est la : chrono ne depend
+# d aucun binaire, donc il n y a plus deux chemins a maintenir ni de variante a deviner.
 _work_es_date_flavor() {
     if [[ -z "$_WORK_ES_DATE_FLAVOR" ]]; then
         if date --version &>/dev/null; then
@@ -108,6 +114,9 @@ _work_es_parse_duration() {
 
 _work_es_epoch_to_iso() {
     local epoch=$1
+    if command -v zanvil &>/dev/null; then
+        zanvil es convert --from-epoch "$epoch"; return $?
+    fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         date -u -d "@$epoch" +"%Y-%m-%dT%H:%M:%S.000Z"
     else
@@ -118,6 +127,9 @@ _work_es_epoch_to_iso() {
 # ISO UTC ("2026-05-30T14:00:00.000Z" ou sans ms) -> epoch
 _work_es_iso_to_epoch() {
     local ts=$1
+    if command -v zanvil &>/dev/null; then
+        zanvil es convert --from-iso "$ts"; return $?
+    fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         date -u -d "$ts" +%s
     else
@@ -130,6 +142,9 @@ _work_es_iso_to_epoch() {
 # Date Europe/Paris "YYYY-mm-ddTHH:MM:SS" -> epoch UTC (DST gere)
 _work_es_paris_to_epoch() {
     local dt=$1
+    if command -v zanvil &>/dev/null; then
+        zanvil es convert --from-paris "$dt"; return $?
+    fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         TZ=Europe/Paris date -d "$dt" +%s
     else
@@ -142,6 +157,48 @@ _work_es_paris_to_epoch() {
 _work_es_window() {
     local since="${1:-}" from="${2:-}" to="${3:-}"
     typeset -g _work_es_gte="" _work_es_lte="" _work_es_display=""
+
+    # Le calcul delegue au CLI, l affectation reste ici : remplir trois globales EST un
+    # effet shell, et un binaire ne modifie pas le shell qui l appelle. C est la ligne
+    # de partage du spec, appliquee au milieu d une fonction plutot qu a son entree.
+    #
+    # La sortie est LUE et non evaluee. Un format evaluable — `_work_es_gte='…'` passe a
+    # `eval`, comme le font `starship init` ou `mise activate` — serait plus court d une
+    # ligne et executerait ce que l utilisateur a ecrit dans --from, puisque le libelle
+    # le reprend tel quel.
+    #
+    # Divergence connue et assumee : sur une heure locale qui n existe pas — 02:30 la
+    # nuit ou les pendules avancent — le CLI refuse, ce repli decale silencieusement
+    # d une heure. Le refus est le bon comportement ; le repli garde le sien parce que
+    # le detecter en zsh demanderait deux appels a `date` de plus, dans le code meme
+    # dont ce lot retire la dependance.
+    if command -v zanvil &>/dev/null; then
+        # Un tableau, et non `${since:+--since "$since"}` : en zsh cette forme rend un
+        # mot unique, donc le CLI recevait « --from 2026-03-30T12:00:00 » comme un seul
+        # argument et clap le refusait.
+        local -a _w_args=(es window)
+        [[ -n "$since" ]] && _w_args+=(--since "$since")
+        [[ -n "$from" ]]  && _w_args+=(--from "$from")
+        [[ -n "$to" ]]    && _w_args+=(--to "$to")
+
+        local _w_out _w_rc
+        _w_out=$(zanvil "${_w_args[@]}" 2>&1)
+        _w_rc=$?
+        if (( _w_rc != 0 )); then
+            _ui_msg_fail "$_w_out"
+            return 1
+        fi
+        local _k _v
+        while IFS='=' read -r _k _v; do
+            case "$_k" in
+                gte)     _work_es_gte="$_v" ;;
+                lte)     _work_es_lte="$_v" ;;
+                display) _work_es_display="$_v" ;;
+            esac
+        done <<< "$_w_out"
+        return 0
+    fi
+
     if [[ -n "$since" ]]; then
         local seconds now
         seconds=$(_work_es_parse_duration "$since") || {
