@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La fenetre relative, celle que `--since` produit. Elle se termine a « maintenant »,
+# donc ses deux bornes changent a chaque run : ce qui est deterministe, c est leur ECART,
+# qui doit valoir exactement la duree demandee.
+#
+# Ce cas existe parce que la verification par mutation a trouve son absence. Muter
+# `"h" => Some(n * 3600)` en `* 60` dans le Rust ne faisait rougir aucun cas : le
+# parseur de duree du CLI n est atteint que par `--since`, et les cas de fenetre ne
+# testaient que `--from/--to`. Le cas qui asserte les quatre unites, lui, appelle la
+# fonction zsh, qui n a pas migre — c est une regex, sans dependance a `date`.
+name: es-window-since-spans-exactly-the-duration
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for d in 30s 5m 2h 3d; do _work_es_window $d >/dev/null || { printf 'ECHEC:%s\\n' $d; continue; }; printf '%s=%s|%s\\n' $d $(( $(_work_es_iso_to_epoch $_work_es_lte) - $(_work_es_iso_to_epoch $_work_es_gte) )) $_work_es_display; done"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "30s=30|depuis 30s (-> now)"
+      - "5m=300|depuis 5m (-> now)"
+      - "2h=7200|depuis 2h (-> now)"
+      - "3d=259200|depuis 3d (-> now)"
+    absent: ["ECHEC"]
