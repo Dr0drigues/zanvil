@@ -3,6 +3,32 @@
 **Pour un agent travaillant dans `~/work/misc/gaveldrop`.** Rien n'a été modifié là-bas ; tout ce qui
 suit est décrit, jamais corrigé sur place.
 
+> **Répondu par la `v0.1.14` — sept demandes sur neuf livrées.** Vérifié contre l'archive publiée, par
+> comportement. Réponse détaillée dans `~/work/misc/gaveldrop/docs/superpowers/maj-zanvil-0-1-14.md`.
+>
+> | # | État | Constaté ici |
+> |---|---|---|
+> | 1. `shell.md` muet sur les échanges | livré | Les deux formes documentées, avec `weight`, `expect: {}` et la persistance de la racine isolée. |
+> | 2. `timeout:` par échange | livré | **8,3 s → 2,0 s.** « the case exits within 2.0s, exchanges included », l'échange tué est nommé, les non tentés le disent chacun sous son chemin. |
+> | 3. `calls` cumulatifs par échange | livré | La sonde qui donnait `2` au second échange donne `1`. Le global additionne toujours. |
+> | 4. Chemin d'un `calls` violé | livré | `steps[1] "le deuxieme se trompe".calls.outil`. |
+> | 5. « The body was empty » | livré | « there is no response document to walk … a process and a shell function answer text on standard output ». |
+> | 6. `time` sur les nœuds JUnit | **refusé** | Sur la condition que j'avais posée : la durée n'est pas mesurée par échange, donc la condition s'applique. Et le motif qui la justifiait est parti avec la nº 2. |
+> | 7. Règle d'agrégation non documentée | livré | Table dans `shell.md` et dans le schéma, sur `exit_code` et sur `steps`. |
+> | 8. `args_include` | livré | Vérifié en sonde : `theme` servi, `themes` refusé. La même sonde en `args_contain` laisse passer les deux — c'était bien le trou. |
+> | 9. Association sur une ligne | livré, **corrigé** | `line_includes`, adopté dans `cli-modules-list-reflects-config-zsh`. |
+>
+> **Sur la nº 9, ma proposition était fausse et ils l'ont corrigée.** Je demandais des fragments cherchés
+> comme sous-chaînes ; écrite ainsi, l'assertion **passe** sur la table inversée, puisque « inactif »
+> contient « actif ». Les valeurs sont donc comparées comme des **mots** — d'où `include` plutôt que
+> `contain`, la même distinction que pour `args_include`. Mes deux trous d'injection étaient le même trou.
+>
+> **Les demandes 10 et 11 sont postérieures à ce document** et restent ouvertes. La nº 11 empêche
+> d'adopter `args_include` dans `theme-delegates-to-the-cli-with-the-right-subcommand` : `fake.bins` étant
+> global, falsifier notre binaire pour ce cas rendrait les huit cas de `tests/cases/sync/` incapables
+> d'atteindre le vrai. `exec: real` ne dénoue pas le nœud — sur un runner il n'y a pas de vrai binaire
+> plus loin dans le `PATH`, donc les cas emprunteraient une délégation vers rien au lieu du repli zsh.
+
 ## Ce qui a produit ces demandes
 
 zanvil est passé de la 0.1.5 à la 0.1.12 d'un coup, sans document de mise à jour dans le canal. **Les 59
