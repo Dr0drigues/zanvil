@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le pendant bash du refus. Le script portait la meme URL en dur que le module zsh, et il
+# refuse desormais avant toute requete quand la variable n est pas posee.
+name: fetch-logs-refuses-without-a-configured-url
+weight: 5
+setup:
+  run: ["bash", "$GAVELDROP_PROJECT/modules/work/fetch_es_logs.sh", "--app", "cas", "--since", "1h", "--target-dir", "sortie"]
+  env:
+    ES_USER: "cas"
+    ES_PASSWORD: "cas"
+    # Les deux variables consultees, posees a vide : sans cela le cas dependrait du
+    # poste, ES_URL etant definie dans certains environnements.
+    ES_URL: ""
+    ZANVIL_WORK_ES_URL: ""
+fake:
+  rules:
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 1
+  stdout:
+    contains:
+      - "ZANVIL_WORK_ES_URL non definie"
+      - "voir env.d/work.zsh"
+  # Le refus arrive avant toute requete, ce que l absence d appel prouve mieux qu une
+  # assertion sur la sortie.
+  calls:
+    curl: 0

@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Un nom d hote interne vivait en dur comme valeur de repli de `_work_es_url`, dans un
+# depot public. Aucun secret n etait expose — les credentials passent par sops et
+# ~/.secrets — mais la nomenclature d une infrastructure l etait, et
+# `examples/env.d/work.zsh` documentait deja cette variable avec un defaut VIDE : le code
+# contredisait la convention du projet.
+#
+# Le defaut est retire, donc un poste non configure refuse au lieu d interroger une
+# instance qui n est pas la sienne. Ce cas fige le refus et son message ; le garde-fou
+# tests/bin/no-internal-hostnames empeche l URL de revenir.
+name: es-refuses-without-a-configured-url
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  # Les credentials SONT definis : sans cela le refus pourrait venir d eux, et le cas ne
+  # prouverait pas que c est l URL qui manque.
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ES_USER: "utilisateur-de-test"
+    ES_PASSWORD: "mot-de-passe-de-test"
+    # Les deux variables que `_work_es_url` consulte, posees a vide. Sans cela le cas
+    # dependrait du poste : `ES_URL` est definie dans mon environnement, et le refus ne
+    # se produisait donc pas — ce qui a d ailleurs prouve que le correctif marche, le
+    # code ne fabriquant plus l URL lui-meme.
+    ES_URL: ""
+    ZANVIL_WORK_ES_URL: ""
+  call: ["eval", "for f in work_es_query work_es_apps work_es_count work_es_tail; do $f 2>&1 | head -1; printf 'rc_%s=%s\\n' $f $pipestatus[1]; done"]
+fake:
+  rules:
+    # Aucune requete ne doit partir : le refus arrive avant. La regle existe pour que le
+    # cas echoue sur `unexpected calls` si jamais une commande passait outre.
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "ZANVIL_WORK_ES_URL non definie"
+      - "voir env.d/work.zsh"
+      # Les quatre commandes gardees refusent, aucune ne passe.
+      - "rc_work_es_query=1"
+      - "rc_work_es_apps=1"
+      - "rc_work_es_count=1"
+      - "rc_work_es_tail=1"
+    absent:
+      # Le message des credentials ne doit pas sortir : ils sont definis, et c est bien
+      # l URL qui manque.
+      - "ES_USER/ES_PASSWORD non definis"
+  calls:
+    curl: 0
