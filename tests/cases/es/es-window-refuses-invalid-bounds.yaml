@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Les deux refus, avec leur message. Un `--since` mal ecrit et un `--from` mal ecrit ne
+# doivent pas produire une fenetre vide silencieuse : une requete sur une plage vide
+# rendrait zero resultat, ce qui se lit comme « pas de logs » et non comme « mauvaise
+# saisie ».
+name: es-window-refuses-invalid-bounds
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "_work_es_window 3jours >/dev/null 2>&1; printf 'since_rc=%s\\n' $?; _work_es_window '' pas-une-date >/dev/null 2>&1; printf 'from_rc=%s\\n' $?; _work_es_window 3jours 2>&1 | head -1"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "since_rc=1"
+      - "from_rc=1"
+      - "--since invalide: 3jours"
+      - "attendu: Xs/Xm/Xh/Xd"
