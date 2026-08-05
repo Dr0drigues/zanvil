@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Imprime les endroits ou le code emploie une construction que les outils de macOS ne
+# connaissent pas.
+#
+# Trois formes, toutes constatees dans ce depot et toutes silencieuses :
+#
+#   grep -P    L'option n'existe pas dans le grep de macOS : « grep: invalid option -- P ».
+#              Deux occurrences lisaient une version et une liste de completions ; la
+#              sortie etait vide, et le code testait justement « si non vide » — donc rien
+#              ne se produisait et rien ne le disait.
+#
+#   \s dans sed  BSD sed ne connait pas cette classe. `sed "s|^\(\s*skin:\).*|…|"` ne
+#              remplacait rien sur macOS, donc `zanvil-theme <nom>` laissait le skin k9s
+#              inchange.
+#
+#              DANS grep -E, EN REVANCHE, `\s` MARCHE au grep de macOS — verifie. Cinq
+#              occurrences de pipeline_bulk.zsh et git_bulk.zsh sont donc legitimes, et un
+#              controle qui les signalerait serait desactive au premier echec.
+#
+#   \n dans un remplacement de sed. BSD ne le developpe pas : la ligne inseree sortait
+#              litterale ou pas du tout.
+#
+# CE CONTROLE NE SE VERIFIE PAS SUR UN POSTE DE DEVELOPPEMENT ORDINAIRE. `grep` y est
+# souvent ugrep ou GNU grep, installes par Homebrew, qui acceptent -P et \s. Il a fallu
+# appeler /usr/bin/grep explicitement pour voir le premier defaut. C'est la raison d'etre
+# de ce garde-fou : la machine qui ecrit le code n'est pas celle qui le subit.
+#
+# Deux exclusions : les commentaires — expliquer la regle demande de nommer ce qu'elle
+# interdit — et tests/, dont les sondes emploient volontairement les formes fautives.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+CIBLES=("$ROOT/core" "$ROOT/modules" "$ROOT/scripts" "$ROOT/install.sh")
+
+# Sans `-o` : la partie matchee seule ferait disparaitre le diese, et le filtre des
+# commentaires ne pourrait plus faire son travail. La premiere version de ce controle
+# signalait ses propres explications.
+signale() {
+    grep -rnE "$1" --include='*.zsh' --include='*.sh' "${CIBLES[@]}" 2>/dev/null \
+        | grep -vE ':[0-9]+:[[:space:]]*#' \
+        | sed "s|^$ROOT/||" || true
+}
+
+# `grep -P` sous toutes ses formes courtes.
+signale 'grep +-[a-zA-Z]*P'
+# `\s` dans un motif passe a SED — pas a grep, ou il fonctionne. Le motif ne peut pas
+# s'arreter au premier `|` : c'est justement le delimiteur habituel de `s|…|…|`, et la
+# classe fautive vit apres. Les lignes qui mentionnent aussi `grep` sont donc ecartees
+# ensuite, plutot que d'essayer de borner l'expression.
+grep -rnE 'sed' --include='*.zsh' --include='*.sh' "${CIBLES[@]}" 2>/dev/null \
+    | grep -F '\s' \
+    | grep -v 'grep' \
+    | grep -vE ':[0-9]+:[[:space:]]*#' \
+    | sed "s|^$ROOT/||" || true
+# Un `\n` dans la partie remplacement d'un s///.
+signale 'sed[^|;]*s\|[^|]*\|[^|]*\\n'

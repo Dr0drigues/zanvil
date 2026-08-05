@@ -63,7 +63,13 @@ zanvil-completion-remove() {
         local config_file="$ZANVIL_DIR/completions.zsh"
         if [[ -f "$config_file" ]]; then
             local available
-            available=$(grep -oP '"\K[^:]+(?=:)' "$config_file" 2>/dev/null)
+            # `sed -n` et non `grep -oP` : -P n existe pas dans le grep de macOS, donc
+            # cette liste etait vide sur un poste sans ugrep ni GNU grep.
+            #
+            # Le motif est aussi plus juste que le PCRE qu il remplace : en exigeant que
+            # le guillemet ouvre la ligne, il ecarte les exemples commentes que l ancien
+            # comptait parmi les completions installees.
+            available=$(sed -n 's/^[[:space:]]*"\([^:"]*\):.*/\1/p' "$config_file" 2>/dev/null)
             if [[ -n "$available" ]]; then
                 echo -e "${_ui_cyan}Completions installees:${_ui_nc}"
                 echo "$available" | while read -r comp; do
