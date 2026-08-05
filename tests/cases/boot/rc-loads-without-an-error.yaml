@@ -19,6 +19,9 @@ setup:
     # mon environnement mais pas sur un runner. Le domaine .invalide est reserve par la
     # RFC 2606, donc il ne resoudra jamais — et de toute facon curl est falsifie ici.
     ZANVIL_WORK_NEXUS_URL: "https://nexus.exemple.invalide"
+    # Meme motif : la verification du jeton GitLab sort avant son appel si ce domaine
+    # n est pas defini, et il l etait dans mon environnement.
+    GITLAB_BASE_DOMAIN: "gitlab.exemple.invalide"
 # Les quatre outils declares dans gaveldrop.yaml sont appeles au demarrage : les
 # completions de chaque module en invoquent un, et core/hooks.zsh:192 y ajoute
 # « atuin init ». Chaque reponse est vide, ce qui est correct : ces sorties sont
