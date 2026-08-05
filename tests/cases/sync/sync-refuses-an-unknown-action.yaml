@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Une action inconnue doit sortir en erreur ET montrer l aide. Sortir en 0 ferait
+# passer une faute de frappe pour un succes dans un script.
+name: sync-refuses-an-unknown-action
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "exprot"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 1
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Action inconnue: exprot"
+      # L aide suit le refus : les trois actions sont nommees.
+      - "export"
+      - "import"
+      - "diff"
