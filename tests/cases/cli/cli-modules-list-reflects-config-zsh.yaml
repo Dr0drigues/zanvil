@@ -14,4 +14,20 @@ expect:
     # (modules.rs:46-48). Le hook ecrit KUBE=true et DOCKER=false, donc les deux
     # statuts doivent apparaitre — sans un module inactif, l assertion sur
     # « inactif » ne prouverait rien.
-    contains: ["MODULE", "STATUT", "KUBE", "DOCKER", "actif", "inactif"]
+    #
+    # Les deux DESCRIPTIONS ne sont pas decoratives : elles sont la seule chose
+    # qui distingue la premiere boucle de modules.rs de la seconde. Un module
+    # dont le .module.toml n a pas ete lu reapparait en dessous par config.zsh,
+    # avec son nom et son statut mais sans description — donc une assertion qui
+    # ne porte que sur les noms survit a la perte des metadonnees. Verifie par
+    # mutation : `metas.iter().take(2)` fait tomber neuf modules sur onze et ne
+    # faisait rougir aucun des six cas cli avant cette ligne.
+    contains:
+      - "MODULE"
+      - "STATUT"
+      - "KUBE"
+      - "DOCKER"
+      - "actif"
+      - "inactif"
+      - "Gestion kubeconfig"
+      - "Utilitaires Docker"
