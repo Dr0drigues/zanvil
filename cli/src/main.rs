@@ -69,6 +69,11 @@ enum Commands {
         action: ProjectAction,
     },
     /// Fan-out a change as a MR/PR across multiple env branches
+    /// Elasticsearch query helpers
+    Es {
+        #[command(subcommand)]
+        action: cmd::es::EsAction,
+    },
     #[command(name = "mr-fanout")]
     MrFanout(MrFanoutArgs),
     /// Interactive configuration TUI
@@ -90,6 +95,12 @@ fn main() {
         Commands::Bench { runs } => cmd::bench::run(runs),
         Commands::Update { check } => cmd::update::run(check),
         Commands::Project { action } => cmd::project::run(action),
+        Commands::Es { action } => {
+            let code = cmd::es::run(action);
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
         Commands::MrFanout(args) => cmd::mr_fanout::run(args),
         Commands::Config => cmd::tui_config::run(),
         Commands::Sync { action } => cmd::sync::run(action),

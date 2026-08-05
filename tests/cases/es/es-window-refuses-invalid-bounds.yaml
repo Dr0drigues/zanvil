@@ -11,13 +11,21 @@ setup:
   source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
   env:
     ZANVIL_DIR: "$GAVELDROP_PROJECT"
-  call: ["eval", "_work_es_window 3jours >/dev/null 2>&1; printf 'since_rc=%s\\n' $?; _work_es_window '' pas-une-date >/dev/null 2>&1; printf 'from_rc=%s\\n' $?; _work_es_window 3jours 2>&1 | head -1"]
+  # Les cinq formes couvrent deux mecanismes de refus distincts : « 3jours » et
+  # « pas-une-date » echouent sur les chiffres, « 2H », « 30x » et « 30 » sur l unite.
+  # Sans les trois dernieres, un parseur qui accepterait n importe quelle unite avec un
+  # nombre valide passerait inapercu — trouve par mutation.
+  call: ["eval", "for bad in 3jours 2H 30x 30 1w; do _work_es_window $bad >/dev/null 2>&1; printf 'since_%s=%s\\n' $bad $?; done; _work_es_window '' pas-une-date >/dev/null 2>&1; printf 'from_rc=%s\\n' $?; _work_es_window 3jours 2>&1 | head -1"]
 expect:
   exit_code: 0
   stdout:
     ignore_ansi: true
     contains:
-      - "since_rc=1"
+      - "since_3jours=1"
+      - "since_2H=1"
+      - "since_30x=1"
+      - "since_30=1"
+      - "since_1w=1"
       - "from_rc=1"
       - "--since invalide: 3jours"
       - "attendu: Xs/Xm/Xh/Xd"
