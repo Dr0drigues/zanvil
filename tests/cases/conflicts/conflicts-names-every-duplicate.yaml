@@ -32,6 +32,8 @@ expect:
       # Chaque doublon est nomme, et les deux fichiers qui le portent avec lui.
       - "'dupliq'"
       - "'fonction_dupliquee'"
+      # Le meme nom declare avec les deux syntaxes reste un doublon.
+      - "'melange_de_syntaxe'"
       - "'EXPORT_DUPLIQUE'"
       - "modules/premier/init.zsh"
       - "modules/second/init.zsh"

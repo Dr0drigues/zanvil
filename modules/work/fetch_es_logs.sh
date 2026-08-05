@@ -114,7 +114,7 @@ parse_duration_to_seconds() {
 epoch_to_iso() {
   local epoch="$1"
   if _es_cli; then
-    zanvil es convert --from-epoch "$epoch"
+    zanvil convert --from-epoch "$epoch"
     return $?
   fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then
@@ -128,7 +128,7 @@ epoch_to_iso() {
 iso_to_epoch() {
   local ts="$1"
   if _es_cli; then
-    zanvil es convert --from-iso "$ts"
+    zanvil convert --from-iso "$ts"
     return $?
   fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then
@@ -144,7 +144,7 @@ iso_to_epoch() {
 parse_paris_to_epoch() {
   local dt="$1"
   if _es_cli; then
-    zanvil es convert --from-paris "$dt"
+    zanvil convert --from-paris "$dt"
     return $?
   fi
   if [[ "$DATE_FLAVOR" == gnu ]]; then

@@ -18,7 +18,7 @@
 //! exécuterait ce que l'utilisateur a écrit dans `--from`, puisque le libellé le reprend
 //! tel quel.
 
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Europe::Paris;
 use clap::Subcommand;
 
@@ -36,66 +36,12 @@ pub enum EsAction {
         #[arg(long)]
         to: Option<String>,
     },
-    /// Convert between the two timestamp shapes the module handles.
-    ///
-    /// Caché : ce sont les primitives que les fonctions zsh appellent, pas des commandes
-    /// qu'on tape. Les exposer donnerait à l'aide de `zanvil es` trois entrées qui ne
-    /// répondent à aucune question qu'un utilisateur se pose.
-    #[command(hide = true)]
-    Convert {
-        /// Epoch seconds to render as ISO 8601 UTC
-        #[arg(long, conflicts_with_all = ["from_iso", "from_paris"])]
-        from_epoch: Option<i64>,
-        /// ISO 8601 UTC timestamp to read as epoch seconds
-        #[arg(long, conflicts_with_all = ["from_epoch", "from_paris"])]
-        from_iso: Option<String>,
-        /// Europe/Paris local time to read as epoch seconds
-        #[arg(long, conflicts_with_all = ["from_epoch", "from_iso"])]
-        from_paris: Option<String>,
-    },
 }
 
 pub fn run(action: EsAction) -> i32 {
     match action {
         EsAction::Window { since, from, to } => window(since, from, to),
-        EsAction::Convert {
-            from_epoch,
-            from_iso,
-            from_paris,
-        } => convert(from_epoch, from_iso, from_paris),
     }
-}
-
-/// Une conversion par invocation, imprimée nue pour qu'un `$(…)` la capture.
-///
-/// Rend 1 sans rien écrire quand l'entrée est illisible : les fonctions zsh appelantes
-/// testaient déjà `[[ "$epoch" == <-> ]]`, donc un message ici s'ajouterait à leur
-/// diagnostic au lieu de le remplacer.
-fn convert(from_epoch: Option<i64>, from_iso: Option<String>, from_paris: Option<String>) -> i32 {
-    if let Some(epoch) = from_epoch {
-        println!("{}", epoch_to_iso(epoch));
-        return 0;
-    }
-    if let Some(iso) = from_iso {
-        return match iso_to_epoch(&iso) {
-            Some(epoch) => {
-                println!("{epoch}");
-                0
-            }
-            None => 1,
-        };
-    }
-    if let Some(local) = from_paris {
-        return match paris_to_epoch(&local) {
-            Some(epoch) => {
-                println!("{epoch}");
-                0
-            }
-            None => 1,
-        };
-    }
-    eprintln!("rien a convertir: donnez --from-epoch, --from-iso ou --from-paris");
-    1
 }
 
 /// ISO 8601 UTC en epoch, avec ou sans millisecondes.
@@ -103,12 +49,18 @@ fn convert(from_epoch: Option<i64>, from_iso: Option<String>, from_paris: Option
 /// Les deux formes arrivent réellement : les requêtes du module portent des `.000Z`, les
 /// réponses d'Elasticsearch pas toujours. Les millisecondes sont lues puis jetées, comme
 /// le zsh le faisait en coupant la chaîne — la précision du module est la seconde.
-fn iso_to_epoch(ts: &str) -> Option<i64> {
+pub(crate) fn iso_to_epoch(ts: &str) -> Option<i64> {
     let trimmed = ts.trim_end_matches('Z');
     let without_fraction = trimmed.split_once('.').map_or(trimmed, |(head, _)| head);
-    NaiveDateTime::parse_from_str(without_fraction, "%Y-%m-%dT%H:%M:%S")
-        .ok()
-        .map(|naive| Utc.from_utc_datetime(&naive).timestamp())
+    if let Ok(naive) = NaiveDateTime::parse_from_str(without_fraction, "%Y-%m-%dT%H:%M:%S") {
+        return Some(Utc.from_utc_datetime(&naive).timestamp());
+    }
+    // Une date seule vaut son minuit UTC. Le format vient de l API GitLab, dont le champ
+    // `expires_at` d un jeton personnel est un jour sans heure — et le calcul
+    // d expiration de modules/gitlab/gitlab_logic.zsh en avait deux copies, chacune avec
+    // son embranchement GNU/BSD.
+    let day = NaiveDate::parse_from_str(without_fraction, "%Y-%m-%d").ok()?;
+    Some(Utc.from_utc_datetime(&day.and_hms_opt(0, 0, 0)?).timestamp())
 }
 
 /// `Xs`/`Xm`/`Xh`/`Xd` en secondes.
@@ -132,7 +84,7 @@ fn parse_duration(spec: &str) -> Option<i64> {
 
 /// Le format qu'Elasticsearch attend dans une requête de plage : ISO 8601 UTC, avec des
 /// millisecondes toujours à zéro.
-fn epoch_to_iso(epoch: i64) -> String {
+pub(crate) fn epoch_to_iso(epoch: i64) -> String {
     DateTime::<Utc>::from_timestamp(epoch, 0)
         .unwrap_or_else(|| DateTime::<Utc>::from_timestamp(0, 0).expect("epoch zero is valid"))
         .format("%Y-%m-%dT%H:%M:%S.000Z")
@@ -148,7 +100,7 @@ fn epoch_to_iso(epoch: i64) -> String {
 /// Une heure qui n'existe pas — 02:30 la nuit où l'on avance les pendules — est refusée
 /// plutôt que décalée en silence. Une heure qui existe deux fois prend la première, celle
 /// d'avant le recul.
-fn paris_to_epoch(local: &str) -> Option<i64> {
+pub(crate) fn paris_to_epoch(local: &str) -> Option<i64> {
     let naive = NaiveDateTime::parse_from_str(local, "%Y-%m-%dT%H:%M:%S").ok()?;
     Paris
         .from_local_datetime(&naive)
@@ -265,9 +217,16 @@ mod tests {
 
     #[test]
     fn a_malformed_iso_is_refused() {
-        for ts in ["pas-une-date", "2026-05-28", "", "20:26:40"] {
+        for ts in ["pas-une-date", "", "20:26:40", "2026-13-45"] {
             assert_eq!(iso_to_epoch(ts), None, "{ts} should be refused");
         }
+    }
+
+    #[test]
+    fn a_day_without_a_time_is_its_utc_midnight() {
+        // Le format du champ `expires_at` d un jeton GitLab.
+        assert_eq!(iso_to_epoch("2026-05-28"), Some(1_779_926_400));
+        assert_eq!(epoch_to_iso(iso_to_epoch("2026-05-28").unwrap()), "2026-05-28T00:00:00.000Z");
     }
 
     #[test]

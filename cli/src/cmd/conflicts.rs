@@ -97,7 +97,12 @@ fn alias_name(line: &str) -> Option<String> {
 fn function_name(line: &str) -> Option<String> {
     // `split_once` et non `strip_suffix` : le motif du zsh finit par `.*`, donc du code
     // sur la même ligne après l'accolade est accepté.
-    let (name, _) = line.split_once("() {")?;
+    //
+    // Les deux syntaxes de déclaration comptent. `function nom() {` manquait au motif
+    // d'origine, ce qui rendait invisibles les sept fonctions de `modules/gitlab/` —
+    // aucune n'est en double aujourd'hui, mais rien ne l'aurait dit.
+    let declaration = line.strip_prefix("function ").unwrap_or(line);
+    let (name, _) = declaration.split_once("() {")?;
     let first = name.chars().next()?;
     (first.is_ascii_lowercase()
         && name

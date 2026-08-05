@@ -370,12 +370,15 @@ zanvil-doctor-conflicts() {
     # --- Fonctions publiques en double ---
     _ui_section "Fonctions" ""
     local fn_dups
-    fn_dups="$(grep -rh "^[a-z][a-z0-9_-]*() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
-        | sed "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
+    # Les deux syntaxes : `nom() {` et `function nom() {`. La seconde manquait, donc les
+    # sept fonctions de modules/gitlab/ etaient invisibles a cette detection — aucune
+    # n est en double aujourd hui, mais rien ne l aurait dit.
+    fn_dups="$(grep -rhE "^(function )?[a-z][a-z0-9_-]*\(\) \{" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
+        | sed -e "s/^function //" -e "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
     if [[ -n "$fn_dups" ]]; then
         while IFS= read -r f; do
             local files
-            files="$(grep -rl "^${f}() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
+            files="$(grep -rlE "^(function )?${f}\(\) \{" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${f}' → ${files}"
             ((issues++))
         done <<< "$fn_dups"
