@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Caracterisation du zsh avant migration (chantier 2 du spec zsh-ou-rust). Ce cas est
+# le contrat : il doit passer INCHANGE une fois que `zanvil-sync export` deleguera au
+# CLI. Mesure faite avant d ecrire une ligne de Rust — l implementation actuelle du CLI
+# exporte `"plugins": []` en dur, donc elle ne satisfait pas ce cas, et c est son role
+# de le dire.
+#
+# `exported_at` n est pas asserte : sa valeur change a chaque run. C est la meme raison
+# qui fait que gaveldrop n a pas de cle pour les durees.
+name: sync-export-carries-every-setting
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "export"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  files:
+    "zanvil/sync.json":
+      contains:
+        - '"version": "v'
+        # Les deux valeurs booleennes : sans un module a false, l export pourrait
+        # ecrire `true` en dur sans qu on le voie.
+        - '"KUBE"'
+        - '"DOCKER"'
+        - '"theme": "minimal"'
+        - '"theme_light": "minimal"'
+        - '"theme_dark": "tokyo-night-pro"'
+        # Le coeur du cas : les plugins. C est le seul reglage que le CLI perd
+        # aujourd hui a l export, et rien ne le signalait.
+        - '"zsh-autosuggestions"'
+        - '"zsh-syntax-highlighting"'
+        - '"frequency": 14'
+        - '"mode": "silent"'
+      # Un export ne doit pas substituer ses defauts a ce que la config porte : `7` et
+      # `prompt` sont les valeurs de repli du code, et les voir ici signifierait que la
+      # lecture de config.zsh a echoue en silence.
+      absent:
+        - '"frequency": 7'
+        - '"mode": "prompt"'

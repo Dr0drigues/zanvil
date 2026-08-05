@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Un import sans fichier lisible doit refuser avant de toucher a quoi que ce soit.
+#
+# Ce cas devrait aussi asserter qu AUCUNE sauvegarde n a ete creee — un refus qui
+# laisserait un config.zsh.pre-import derriere lui aurait deja commence a travailler.
+# Le format ne le permet pas : les quatre champs de `expect.files` portent tous sur un
+# contenu (`contains`, `absent`, `equals`, `ignore_ansi`), et aucun ne dit « ce fichier
+# ne doit pas exister ». Demande n 10 dans le document d evolution.
+name: sync-import-refuses-a-missing-file
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "import", "ce-fichier-nexiste-pas.json"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 1
+  stdout:
+    ignore_ansi: true
+    contains: ["Usage: zanvil-sync import"]

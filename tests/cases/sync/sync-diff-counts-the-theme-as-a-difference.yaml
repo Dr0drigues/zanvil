@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le diff du CLI ne compare pas le theme : il annonce « 2 difference(s) » la ou le zsh
+# en voit trois. Un utilisateur qui lit 2, importe, et decouvre son prompt change a un
+# reglage de plus que ce que la commande lui avait montre.
+#
+# Le compte est asserte explicitement, pas seulement les lignes : c est un nombre dans
+# la sortie, et writing-cases.md rappelle qu un defaut se cache volontiers dans un
+# nombre qu aucun cas ne regarde.
+name: sync-diff-counts-the-theme-as-a-difference
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "diff", "ref.json"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Zanvil Sync Diff"
+      - "Setting"
+      - "Local"
+      - "Import"
+      - "ZANVIL_MODULE_KUBE"
+      - "ZANVIL_MODULE_DOCKER"
+      # Le theme, sur sa ligne, avec ses deux valeurs.
+      - "theme"
+      - "minimal"
+      - "tokyo-night-pro"
+      # Trois et non deux : les deux modules PLUS le theme.
+      - "3 difference(s)"
+    absent:
+      - "2 difference(s)"
+      - "Configurations identiques"
