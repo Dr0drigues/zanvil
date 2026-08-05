@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le repli zsh de `zanvil-theme` refusait TOUT sans starship, y compris lister les themes
+# versionnes sous config/themes/ et dire lequel est courant — deux choses qui ne lisent
+# que des fichiers du depot et une ligne dans .current_theme.
+#
+# Trouve en CI : le cas de delegation echouait sur les deux runners avec « Starship n'est
+# pas installe », parce qu il demandait simplement la liste. Le contournement d alors a ete
+# de declarer starship parmi les faux ; ce cas verifie la vraie correction, qui est que la
+# garde ne couvre plus que l APPLICATION d un theme.
+name: theme-lists-without-starship-in-the-fallback
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/commands/theme.zsh"]
+  call: ["zanvil-theme", "list"]
+  # zanvil pour forcer le repli, starship pour retirer l outil dont il ne doit plus
+  # dependre. `hide` gagne sur la declaration de gaveldrop.yaml, donc aucun faux n est
+  # pose pour l un ni pour l autre.
+  hide: [zanvil, starship]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Themes Starship"
+      # Les themes versionnes, listes sans qu aucun binaire soit interroge.
+      - "minimal"
+      - "forge"
+      - "tokyo-night-pro"
+    absent:
+      - "Starship n'est pas installe"

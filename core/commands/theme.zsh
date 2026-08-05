@@ -45,18 +45,59 @@ k9s:
     noIcons: false
     skin: $theme
 EOF
-    elif grep -q "^\s*skin:" "$k9s_config"; then
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
-        else
-            sed -i "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
-        fi
     else
-        # Config existante sans skin: → injecter après noIcons: dans la section ui:
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+        # Réécriture ligne par ligne, en zsh, sans `sed`.
+        #
+        # Les deux branches précédentes étaient CASSÉES SUR macOS, et silencieusement :
+        #
+        #   - `grep -q "^\s*skin:"` et le `sed` qui suivait employaient `\s`, que BSD ne
+        #     connaît pas. La condition était donc fausse et le remplacement sans effet.
+        #   - la branche d'insertion mettait un `\n` dans le remplacement d'un `sed`, ce
+        #     que BSD ne développe pas non plus.
+        #
+        # Résultat : `zanvil-theme <nom>` laissait le skin k9s inchangé dès qu'un
+        # config.yaml existait, sans rien dire. Les deux embranchements `darwin*` donnaient
+        # l'illusion d'un traitement portable là où les deux côtés étaient faux.
+        #
+        # Le zsh ne dépend d'aucune variante : il lit, décide, réécrit. Lire un fichier de
+        # configuration de quelques lignes n'a jamais eu besoin de `sed`.
+        #
+        # `(#b)` — les backreferences dans un motif — demande extendedglob, et
+        # `localoptions` limite l'activation à cette fonction : la poser globalement
+        # changerait le comportement des globs du shell appelant.
+        setopt localoptions extendedglob
+
+        # Deux passes, et l'ordre compte : décider AVANT d'écrire. Une seule passe qui
+        # insérait après `noIcons:` puis remplaçait un `skin:` plus loin en posait deux —
+        # c'est ce que le cas a montré, avec un « SKIN_CHOISI:2 » qu'aucune relecture du
+        # code n'aurait rendu évident.
+        local -a lignes
+        local ligne
+        local remplace=false trouve=false
+        while IFS= read -r ligne; do
+            [[ "$ligne" == [[:space:]]#skin:* ]] && remplace=true
+        done < "$k9s_config"
+
+        while IFS= read -r ligne; do
+            if [[ "$remplace" == true && "$ligne" == (#b)([[:space:]]#)skin:* ]]; then
+                lignes+=("${match[1]}skin: $theme")
+                trouve=true
+            else
+                lignes+=("$ligne")
+                # Config sans `skin:` : la clé s'insère après `noIcons:`, dans la même
+                # section et avec la même indentation.
+                if [[ "$remplace" == false && "$trouve" == false \
+                    && "$ligne" == (#b)([[:space:]]#)noIcons:* ]]; then
+                    lignes+=("${match[1]}skin: $theme")
+                    trouve=true
+                fi
+            fi
+        done < "$k9s_config"
+
+        if [[ "$trouve" == true ]]; then
+            print -rl -- "${lignes[@]}" > "$k9s_config"
         else
-            sed -i "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+            _ui_msg_warn "config.yaml k9s sans 'ui:' reconnaissable — skin non applique"
         fi
     fi
 }
@@ -98,7 +139,17 @@ zanvil-theme() {
     local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
 
-    if ! command -v starship &> /dev/null; then
+    # La garde ne couvre que ce qui a besoin de starship : APPLIQUER un theme ecrit une
+    # configuration que starship seul relit. Lister les themes versionnes sous
+    # config/themes/ et dire lequel est courant n en demande rien — ce sont des fichiers
+    # du depot et une ligne dans .current_theme.
+    #
+    # L ancienne garde refusait tout en tete de fonction, ce qui rendait le repli
+    # dependant d un outil dont il n avait pas besoin. Trouve en CI : le cas de
+    # delegation echouait sur les deux runners avec « Starship n'est pas installe », parce
+    # qu il demandait simplement la liste.
+    if [[ -n "$theme" && "$theme" != "list" && "$theme" != "current" ]] \
+        && ! command -v starship &> /dev/null; then
         _ui_msg_fail "Starship n'est pas installe."
         return 1
     fi
@@ -358,10 +409,10 @@ zanvil-ghostty() {
 
     # Sans argument ou "list" : afficher les themes disponibles
     if [[ -z "$theme" ]] || [[ "$theme" = "list" ]]; then
-        _zsh_header "Themes Ghostty"
+        _ui_header "Themes Ghostty"
 
         if [[ ! -d "$themes_dir" ]]; then
-            echo -e "${_zsh_cmd_yellow}Aucun theme trouve dans $themes_dir${_zsh_cmd_nc}"
+            echo -e "${_ui_yellow}Aucun theme trouve dans $themes_dir${_ui_nc}"
             return 1
         fi
 
@@ -377,15 +428,15 @@ zanvil-ghostty() {
             local desc=$(grep -m1 "^# Ghostty Theme:" "$theme_file" 2>/dev/null | sed 's/^# Ghostty Theme: //' || echo "")
 
             if [[ "$name" = "$current" ]]; then
-                echo -e "  ${_zsh_cmd_green}*${_zsh_cmd_nc} ${_zsh_cmd_bold}$name${_zsh_cmd_nc} - $desc ${_zsh_cmd_cyan}(actif)${_zsh_cmd_nc}"
+                echo -e "  ${_ui_green}*${_ui_nc} ${_ui_bold}$name${_ui_nc} - $desc ${_ui_cyan}(actif)${_ui_nc}"
             else
-                echo -e "  ${_zsh_cmd_cyan}○${_zsh_cmd_nc} $name - $desc"
+                echo -e "  ${_ui_cyan}○${_ui_nc} $name - $desc"
             fi
         done
 
         echo ""
-        echo -e "${_zsh_cmd_dim}Usage: zanvil-ghostty <nom>${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Sync:  zanvil-ghostty sync${_zsh_cmd_nc}"
+        echo -e "${_ui_dim}Usage: zanvil-ghostty <nom>${_ui_nc}"
+        echo -e "${_ui_dim}Sync:  zanvil-ghostty sync${_ui_nc}"
         return 0
     fi
 
@@ -395,7 +446,7 @@ zanvil-ghostty() {
         local dest_dir="$HOME/.config/ghostty"
 
         if [[ ! -f "$src_config" ]]; then
-            echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Config source non trouvee: $src_config"
+            echo -e "${_ui_red}[ERROR]${_ui_nc} Config source non trouvee: $src_config"
             return 1
         fi
 
@@ -404,15 +455,15 @@ zanvil-ghostty() {
         # Backup si existe et différent
         if [[ -f "$ghostty_config" ]] && ! diff -q "$src_config" "$ghostty_config" &>/dev/null; then
             cp "$ghostty_config" "$ghostty_config.backup"
-            echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Backup: $ghostty_config.backup"
+            echo -e "${_ui_cyan}[INFO]${_ui_nc} Backup: $ghostty_config.backup"
         fi
 
         # Copier config et themes
         cp "$src_config" "$ghostty_config"
         cp -r "$themes_dir" "$dest_dir/"
 
-        echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Config Ghostty synchronisee vers $dest_dir"
-        echo -e "${_zsh_cmd_cyan}[INFO]${_zsh_cmd_nc} Redemarrez Ghostty pour appliquer les changements."
+        echo -e "${_ui_green}[OK]${_ui_nc} Config Ghostty synchronisee vers $dest_dir"
+        echo -e "${_ui_cyan}[INFO]${_ui_nc} Redemarrez Ghostty pour appliquer les changements."
         return 0
     fi
 
@@ -420,7 +471,7 @@ zanvil-ghostty() {
     local theme_file="$themes_dir/$theme"
 
     if [[ ! -f "$theme_file" ]]; then
-        echo -e "${_zsh_cmd_red}[ERROR]${_zsh_cmd_nc} Theme '$theme' non trouve."
+        echo -e "${_ui_red}[ERROR]${_ui_nc} Theme '$theme' non trouve."
         echo -e "Themes disponibles: $(ls "$themes_dir" 2>/dev/null | tr '\n' ' ')"
         return 1
     fi
@@ -441,6 +492,6 @@ zanvil-ghostty() {
         fi
     fi
 
-    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Theme '$theme' selectionne."
-    echo -e "Lancez ${_zsh_cmd_bold}zanvil-ghostty sync${_zsh_cmd_nc} pour deployer vers ~/.config/ghostty"
+    echo -e "${_ui_green}[OK]${_ui_nc} Theme '$theme' selectionne."
+    echo -e "Lancez ${_ui_bold}zanvil-ghostty sync${_ui_nc} pour deployer vers ~/.config/ghostty"
 }

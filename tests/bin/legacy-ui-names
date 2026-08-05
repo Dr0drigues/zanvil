@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Imprime les endroits ou le CODE utilise encore les anciens noms UI.
+#
+# Le renommage zsh_env -> zanvil de la v4.0.0 a laisse des alias de compatibilite dans
+# core/ui.zsh, et quatre fichiers ont continue de les employer : 416 occurrences, dont 221
+# dans commands.zsh. Rien n'etait casse — les alias fonctionnent — mais CLAUDE.md demande
+# d'utiliser les fonctions `_ui_*`, et le code que l'on lit tous les jours disait le
+# contraire.
+#
+# C'est le quatrieme vestige du meme renommage, apres le binaire, les variables
+# d'environnement et l'URL en dur. Les trois premiers ont chacun eu leur garde-fou ; voici
+# le quatrieme.
+#
+# Deux exclusions, chacune avec sa raison :
+#
+#   1. core/ui.zsh, le seul endroit qui DOIT nommer l'ancienne forme, puisque c'est lui
+#      qui la definit. Lui interdire le mot reviendrait a interdire la compatibilite —
+#      c'est le meme raisonnement qui exclut install.sh du controle sur le binaire.
+#   2. les commentaires. Expliquer pourquoi une forme est abandonnee demande de la nommer.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+grep -rnoE '_zsh_(cmd_[a-z]+|header|section|separator)\b' \
+        --include='*.zsh' --include='*.sh' \
+        "$ROOT/core" "$ROOT/modules" "$ROOT/scripts" 2>/dev/null \
+    | grep -v "^$ROOT/core/ui.zsh:" \
+    | grep -vE ':[0-9]+:[[:space:]]*#' \
+    | sed "s|^$ROOT/||" || true

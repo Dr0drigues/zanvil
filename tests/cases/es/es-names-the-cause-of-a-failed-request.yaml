@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# `_work_es_json` rendait 1 pour TROIS situations differentes — l instance injoignable,
+# une reponse dont la premiere ligne n est pas un code HTTP, et un code >= 400 — et ses
+# appelants n en disaient qu une chose : « Requete ES en echec: <url> ».
+#
+# Or les trois envoient a des endroits opposes : le reseau ou le VPN, un proxy qui repond
+# du HTML a la place du JSON, ou des credentials et un nom d index. C est le message qui a
+# ete constate en usage reel sans qu il dise laquelle des trois causes s appliquait.
+#
+# Les quatre situations sont simulees par le rang de l appel : `match: { call: N }` sert
+# une reponse differente a chaque invocation, ce qui met les quatre branches dans un seul
+# cas plutot que dans quatre fixtures presque identiques.
+name: es-names-the-cause-of-a-failed-request
+weight: 9
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ES_URL: "https://es.exemple.invalide"
+    ES_USER: "cas"
+    ES_PASSWORD: "cas"
+  call: ["eval", "for i in 1 2 3 4; do _work_es_json GET _cluster/health '' 2 >/dev/null; printf '%s=%s\\n' $i \"$_work_es_last_error\"; done"]
+fake:
+  bins: [curl]
+  rules:
+    # Les codes de sortie de curl qu on rencontre vraiment. 6 et 7 se ressemblent pour
+    # qui lit « en echec » et pas pour qui doit agir : l un envoie au VPN, l autre a
+    # l instance.
+    - match: { bin: curl, call: 1 }
+      exit: 6
+    - match: { bin: curl, call: 2 }
+      exit: 7
+    # Une reponse recue, mais refusee par le serveur. `_work_es_curl` reordonne la sortie
+    # de curl — le code HTTP arrive en derniere ligne grace a son `-w`.
+    - match: { bin: curl, call: 3 }
+      stdout: |
+        {"error":{"type":"security_exception"}}
+        401
+    # Et une reponse qui n est pas d Elasticsearch du tout : le cas d un portail captif
+    # ou d un proxy qui s interpose.
+    - match: { bin: curl, call: 4 }
+      stdout: |
+        <html><body>Authentication required</body></html>
+        PAS_UN_CODE
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "1=hote introuvable (DNS) — VPN actif ?"
+      - "2=connexion refusee — instance joignable ?"
+      - "3=HTTP 401 — ES_USER/ES_PASSWORD refuses"
+      - "4=reponse sans code HTTP — un proxy s est interpose ?"
+    absent:
+      # La cause doit toujours etre nommee : une chaine vide ramenerait au message
+      # indistinct que ce cas existe pour empecher.
+      - "=cause inconnue"
+  calls:
+    curl: 4

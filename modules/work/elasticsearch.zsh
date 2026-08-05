@@ -77,13 +77,45 @@ _work_es_curl() {
 }
 
 # Appel ES "JSON ou rien". Usage: _work_es_json METHOD PATH [BODY] [MAX_TIME]
-# Sortie: corps seul. Return 1 si reseau KO ou HTTP >= 400.
+# Sortie: corps seul. Return 1 si l appel n a pas abouti.
+#
+# Remplit `_work_es_last_error` avec la cause. La fonction rendait 1 pour TROIS
+# situations differentes — l instance injoignable, une reponse dont la premiere ligne
+# n est pas un code HTTP, et un code >= 400 — et ses appelants n en disaient qu une
+# chose : « Requete ES en echec: <url> ». Or les trois envoient a des endroits opposes :
+# le reseau ou le VPN, un proxy qui repond du HTML a la place du JSON, ou des
+# credentials et un nom d index.
 _work_es_json() {
-    local out code
-    out=$(_work_es_curl "$@") || return 1
+    typeset -g _work_es_last_error=""
+    local out code curl_rc
+    out=$(_work_es_curl "$@")
+    curl_rc=$?
+    if (( curl_rc != 0 )); then
+        # Les codes de curl qu on rencontre vraiment ici. Le reste est rendu tel quel :
+        # inventer une phrase pour chacun des quatre-vingts vaudrait moins que le numero,
+        # qui se cherche.
+        case $curl_rc in
+            6)  _work_es_last_error="hote introuvable (DNS) — VPN actif ?" ;;
+            7)  _work_es_last_error="connexion refusee — instance joignable ?" ;;
+            28) _work_es_last_error="delai depasse" ;;
+            35|60) _work_es_last_error="echec TLS — certificat d entreprise installe ? (SSL_CERT_FILE)" ;;
+            *)  _work_es_last_error="curl a rendu $curl_rc" ;;
+        esac
+        return 1
+    fi
     code="${out%%$'\n'*}"
-    [[ "$code" == <-> ]] || return 1
-    (( code >= 400 )) && return 1
+    if [[ "$code" != <-> ]]; then
+        _work_es_last_error="reponse sans code HTTP — un proxy s est interpose ?"
+        return 1
+    fi
+    if (( code >= 400 )); then
+        case $code in
+            401|403) _work_es_last_error="HTTP $code — ES_USER/ES_PASSWORD refuses" ;;
+            404) _work_es_last_error="HTTP 404 — index introuvable ($(_work_es_index))" ;;
+            *)   _work_es_last_error="HTTP $code" ;;
+        esac
+        return 1
+    fi
     [[ "$out" == *$'\n'* ]] && print -r -- "${out#*$'\n'}"
     return 0
 }
@@ -345,7 +377,7 @@ work_es_apps() {
       "query": { "range": { "@timestamp": { "gte": "now-'"$range"'" }}},
       "aggs": { "apps": { "terms": { "field": "application", "size": 500 }}}
     }') || {
-        _ui_msg_fail "Requete ES en echec: $(_work_es_url)"
+        _ui_msg_fail "Requete ES en echec: ${_work_es_last_error:-cause inconnue} ($(_work_es_url))"
         return 1
     }
     data=$(print -r -- "$resp" | jq -r '.aggregations.apps.buckets[] | "\(.key)\t\(.doc_count)"' 2>/dev/null)
@@ -417,7 +449,7 @@ work_es_count() {
 
     local resp
     resp=$(_work_es_count_query "$app" "$_work_es_gte" "$_work_es_lte" "$search") || {
-        _ui_msg_fail "Requete ES en echec: $(_work_es_url)"
+        _ui_msg_fail "Requete ES en echec: ${_work_es_last_error:-cause inconnue} ($(_work_es_url))"
         return 1
     }
     local total min_iso max_iso
