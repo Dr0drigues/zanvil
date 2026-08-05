@@ -29,13 +29,24 @@ pub fn read_version() -> String {
     "unknown".to_string()
 }
 
+/// Print a label-aligned section, matching core/ui.zsh `_ui_section` (14 columns).
+pub fn print_section(label: &str, content: &str) {
+    println!("{:<14} {}", label.bold(), content);
+}
+
 /// Print a boxed header with title and version, matching core/ui.zsh _ui_header style
 pub fn print_header(title: &str) {
     let version = read_version();
-    // Title left-aligned, version right-aligned inside the box
-    // Total inner width = 40 (matches zsh _ui_header)
-    let inner_width: usize = 40;
-    let padding = inner_width.saturating_sub(title.len() + version.len());
+    // Title left-aligned, version right-aligned inside the box.
+    //
+    // 42 et non 40, et quatre espaces retires du remplissage plutot que zero : la
+    // bordure faisait 40 caracteres pour une ligne de 44, donc le cadre etait ouvert a
+    // droite dans les sept commandes qui appellent cette fonction. `_ui_header` prend
+    // une largeur de 44 dont 42 d interieur, et compte les deux espaces de chaque cote
+    // — c est ce calcul-la qu il fallait reprendre pour que le Rust et le zsh dessinent
+    // la meme boite.
+    let inner_width: usize = 42;
+    let padding = inner_width.saturating_sub(title.len() + version.len() + 4);
     let border = "─".repeat(inner_width);
     println!("{}", format!("╭{}╮", border).cyan());
     println!(

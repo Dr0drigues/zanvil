@@ -108,6 +108,68 @@ pub fn parse_modules(content: &str) -> Vec<ModuleEntry> {
 
 /// Sets a module to enabled or disabled in the config content.
 /// Returns the updated content, or an error if the module was not found.
+/// Pose `key=value` dans le contenu de config.zsh, en remplaçant la ligne si elle
+/// existe et en l'ajoutant sinon.
+///
+/// Contrairement à `set_module`, ne rend jamais d'erreur : une clé absente est un cas
+/// normal ici. Un poste qui n'a jamais réglé son auto-update n'a pas la ligne, et un
+/// import doit pouvoir la créer — c'est ce que fait `_zanvil_sync_set_config` en zsh,
+/// dont cette fonction reprend le contrat pour que la délégation ne change rien.
+///
+/// La valeur est écrite telle quelle : c'est à l'appelant de mettre les guillemets
+/// quand la convention du fichier les demande, comme pour `ZANVIL_UPDATE_MODE="…"`.
+pub fn set_value(content: &str, key: &str, value: &str) -> String {
+    let target = format!("{}=", key);
+    let replacement = format!("{}={}", key, value);
+
+    let mut found = false;
+    let mut lines: Vec<String> = content
+        .lines()
+        .map(|line| {
+            if line.trim().starts_with(&target) {
+                found = true;
+                replacement.clone()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect();
+
+    if !found {
+        lines.push(replacement);
+    }
+
+    let mut result = lines.join("\n");
+    if content.ends_with('\n') || !found {
+        result.push('\n');
+    }
+    result
+}
+
+/// Lit un tableau zsh `NOM=(a b c)` déclaré sur une seule ligne.
+///
+/// Le format est celui que `install.sh` et les exemples écrivent, et le seul que
+/// `plugins.zsh` sache relire. Un tableau étalé sur plusieurs lignes n'est pas géré —
+/// le zsh ne le gérait pas non plus, et inventer ici une tolérance que le reste du
+/// projet n'a pas ferait diverger l'export de ce que la config veut dire.
+pub fn parse_array(content: &str, key: &str) -> Vec<String> {
+    let target = format!("{}=(", key);
+    content
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with(&target))
+        .and_then(|line| line.split_once('(').map(|(_, rest)| rest))
+        .map(|rest| rest.trim_end_matches(')'))
+        .map(|inner| {
+            inner
+                .split_whitespace()
+                .map(|item| item.trim_matches(['"', '\'']).to_string())
+                .filter(|item| !item.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub fn set_module(content: &str, name: &str, enabled: bool) -> Result<String, String> {
     let key = format!("ZANVIL_MODULE_{}", name.to_uppercase());
     let target = format!("{}=", key);
