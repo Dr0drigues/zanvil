@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# `kube_k9s_setup` ECRASAIT le plugins.yaml de l utilisateur, sans sauvegarde ni
+# avertissement : quiconque avait ses propres plugins k9s les perdait au premier appel. Le
+# defaut a ete trouve en construisant l installateur autonome du plugin de logs, qui a du
+# resoudre le meme probleme et l a resolu autrement.
+#
+# k9s lit `plugins.yaml` ET `plugins/*.yaml`. Le second format porte ses entrees A LA
+# RACINE, sans la cle `plugins:` — verifie en deposant une sonde et en lisant le journal de
+# k9s, qui refusait le fichier avec « Additional property plugins is not allowed ». Le
+# deploiement va donc dans plugins/zanvil.yaml, transforme, et ne touche plus a rien.
+#
+# ── Pourquoi la sortie et non `expect.files` ─────────────────────────────────────
+#
+# `_k9s_config_dir` rend « $HOME/Library/Application Support/k9s » sur macOS et
+# « $XDG_CONFIG_HOME/k9s » ailleurs. `expect.files` prend un chemin fixe, donc un cas qui
+# en nommerait un serait vrai sur une plateforme et trivialement vrai sur l autre — le
+# fichier n y existant pas, l assertion ne prouverait rien. La fonction est donc invoquee,
+# puis le cas lit ce qu elle a produit LA OU elle l a produit.
+name: k9s-setup-leaves-an-existing-plugins-file-alone
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-k9s-with-existing-plugins.sh
+  shell: zsh
+  # theme.zsh d abord : il definit _k9s_config_dir, que kube_config.zsh appelle sans la
+  # declarer — une dependance implicite entre un module et le core, que le loader satisfait
+  # par son ordre de chargement.
+  source: ["core/ui.zsh", "core/commands/theme.zsh", "modules/kube/kube_config.zsh"]
+  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_MODULE_KUBE: "true"
+fake:
+  # k9s doit exister pour que la fonction s execute, mais elle ne l invoque jamais : elle
+  # ne fait que deployer des fichiers de configuration.
+  bins: [k9s]
+  rules:
+    - match: {}
+      exit: 0
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      # Le plugin est bien depose, et A LA RACINE — sans indentation, donc au format que
+      # k9s attend dans plugins/*.yaml.
+      - "DEPOSE:log-json-pod:"
+      # Et sans la cle `plugins:`, que k9s refuse dans ce repertoire.
+      - "CLE_RACINE:0"
+      # Le fichier de l utilisateur porte toujours son plugin.
+      - "INTACT:1"
+      # Un plugins.yaml present est signale : k9s chargerait les deux et l un gagnerait
+      # sans le dire.
+      - "plugins.yaml existe"
+  not_written:
+    # Le coeur du correctif, dit sans passer par la sortie. Le hook cree les DEUX
+    # emplacements possibles, donc chacune de ces deux lignes porte sur un fichier qui
+    # existe reellement, sur macOS comme ailleurs — et « pas ecrit » y signifie « laisse
+    # tranquille » et non « jamais cree ».
+    - "$HOME/Library/Application Support/k9s/plugins.yaml"
+    - "$XDG_CONFIG_HOME/k9s/plugins.yaml"
