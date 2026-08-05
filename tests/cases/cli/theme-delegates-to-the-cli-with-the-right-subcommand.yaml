@@ -10,26 +10,25 @@
 # `command -v zanvil` echouait et trois commandes tournaient en mode degrade sans le
 # dire. Un repli est acceptable s il est visible ; ce cas est ce qui le rend visible.
 #
-# ── Ce que ce cas peut prouver, et ou ────────────────────────────────────────────
+# ── Ce que ce cas prouve ─────────────────────────────────────────────────────────
 #
-# Le PATH de l isolation est celui de la machine, donc `command -v zanvil` trouve le
-# binaire la ou il est installe et ne le trouve pas sur un runner nu. Les assertions
-# ci-dessous sont donc ecrites pour etre vraies des DEUX cotes : les noms de themes
-# versionnes apparaissent dans la sortie du CLI comme dans celle du repli, alors que
-# tout le reste differe — le CLI ecrit « Available themes: », le repli dessine un
-# header et marque le theme actif d une etoile.
+# Le NOM EXACT de la sous-commande appelee, verifiable partout — sur un poste equipe
+# comme sur un runner nu.
 #
-# La consequence est assumee : sur un poste equipe, un renommage de la sous-commande
-# fait rougir ce cas parce que clap refuse le nom et que la fonction propage son code
-# de sortie ; sur un runner sans binaire, le renommage n a aucun effet observable, donc
-# rien ne rougit. C est correct — un defaut de delegation n existe que la ou il y a une
-# delegation.
+# Ce n etait pas le cas jusqu a la 0.1.15 de gaveldrop. Compter les appels demande un
+# faux binaire, et `fake.bins` etait global : falsifier le notre pour ce cas rendait les
+# huit cas de tests/cases/sync/ incapables d atteindre le vrai. Le cas s etait donc
+# rabattu sur sa sortie, ce qui ne detectait le renommage que la ou le binaire est
+# installe. `bins` est maintenant declarable par cas, et additif — `setup.hide` gagne
+# toujours — donc l assertion forte est revenue.
 #
-# Une premiere version comptait les appels avec `fake.bins: [zanvil]`, ce qui prouvait
-# davantage : le nom exact de la sous-commande, verifiable partout. Il a fallu y
-# renoncer parce que `fake.bins` est global — falsifier notre binaire pour ce cas
-# rendait les huit cas de tests/cases/sync/ incapables d atteindre le vrai. Demande
-# n 11 dans le document d evolution.
+# Deux mecanismes se completent ici :
+#
+#   - `args_include: ["theme"]` compare un argument comme un MOT, donc « themes » ne
+#     matche pas. `args_contain: "theme"` le faisait, et le cas passait alors sous la
+#     mutation qu il devait attraper.
+#   - le catch-all compte l appel comme non prevu, ce qui fait rougir le cas meme si sa
+#     sortie ressemblait par accident a ce qu on attend.
 name: theme-delegates-to-the-cli-with-the-right-subcommand
 weight: 7
 setup:
@@ -40,16 +39,33 @@ setup:
   call: ["zanvil-theme", "list"]
   env:
     ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  # Declare pour CE cas seulement, depuis la 0.1.15 : notre propre binaire est falsifie
+  # ici sans que les huit cas de tests/cases/sync/ perdent le vrai. La declaration est
+  # additive — celle de gaveldrop.yaml reste — et `setup.hide` gagnerait toujours sur
+  # les deux.
+  bins: [zanvil]
+  rules:
+    # `args_include` compare un argument comme un MOT, donc cette regle ne sert QUE
+    # `zanvil theme …`. La version precedente employait `args_contain: "theme list"`,
+    # ce qui couplait la regle a la forme complete de l appel : un drapeau insere entre
+    # les deux mots l aurait cassee pour une raison etrangere a ce qu elle verifie.
+    - match: { bin: zanvil, args_include: ["theme"] }
+      stdout: "Available themes:"
+    # Le catch-all est le mecanisme qui attrape le renommage : un `zanvil themes` ne
+    # matche plus la regle nommee, tombe ici, et compte comme appel non prevu.
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
 expect:
-  # Le coeur du cas : la fonction rend 0. Une delegation vers un nom que le binaire ne
-  # connait pas propage le code de clap, et c est ce qui attrape le renommage.
   exit_code: 0
   stdout:
     ignore_ansi: true
-    # Les trois themes versionnes sous config/themes/, donc presents dans la copie
-    # isolee, et nommes par les deux implementations.
-    contains: ["forge", "tokyo-night-pro", "default"]
-  stderr:
-    absent:
-      - "unrecognized subcommand"
-      - "command not found"
+    # La reponse du faux : elle ne sort que si la regle a matche, donc que si la
+    # delegation a bien appele `zanvil theme`.
+    contains: ["Available themes:"]
+  # Un seul appel, et c est le bon. La fonction delegue et s arrete la — si elle
+  # repliait en zsh apres avoir appele le binaire, le compte resterait a 1 mais la
+  # sortie porterait aussi le header du repli.
+  calls:
+    zanvil: 1

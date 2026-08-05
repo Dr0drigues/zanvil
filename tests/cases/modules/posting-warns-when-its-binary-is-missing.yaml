@@ -24,3 +24,13 @@ expect:
   exit_code: 0
   stdout:
     contains: ["brew install posting"]
+  # Un module qui AVERTIT ne doit rien deployer. L assertion n existait pas avant la
+  # 0.1.15 : `expect.files` ne portait que sur des contenus, donc un chemin absent y
+  # faisait echouer le cas plutot que de le satisfaire, et « ce fichier est reste
+  # intact » etait inexprimable.
+  #
+  # Ce que ca protege ici est concret : deposer une configuration pour un outil qui n est
+  # pas installe est inutile, et toucher au fichier de config de quelqu un
+  # dont l outil manque serait une surprise desagreable.
+  not_written:
+    - "$HOME/.config/posting/config.yaml"
