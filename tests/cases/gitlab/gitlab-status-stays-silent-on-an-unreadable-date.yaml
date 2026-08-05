@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Une echeance que ni le CLI ni `date` ne savent lire ne doit produire AUCUNE alerte —
+# ni « expire », ni « jours restants ». La date brute reste affichee, parce qu elle vient
+# de l API et que la montrer telle quelle est plus utile que la taire.
+#
+# Ce cas existe parce que la verification par mutation a trouve son absence : retirer le
+# garde `[[ -n "$expire_epoch" ]] || return 1` du helper ne faisait rougir aucun cas.
+name: gitlab-status-stays-silent-on-an-unreadable-date
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/gitlab/gitlab_logic.zsh"]
+  call: ["zanvil-gitlab-status"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    GITLAB_TOKEN: "jeton-de-test-sans-valeur"
+    GITLAB_BASE_DOMAIN: "gitlab.exemple.invalide"
+    # Le module rend la main d entree si son garde n est pas pose.
+    ZANVIL_MODULE_GITLAB: "true"
+fake:
+  rules:
+    # La reponse de l API GitLab pour un jeton personnel, reduite aux champs lus.
+    - match: { bin: curl }
+      stdout: '{"id":1,"name":"jeton-de-test","active":true,"revoked":false,"scopes":["api"],"expires_at":"pas-une-date","created_at":"2026-01-01T00:00:00Z","last_used_at":"2026-08-01T00:00:00Z"}'
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "jeton-de-test"
+      # La date brute est affichee telle que l API la rend.
+      - "pas-une-date"
+    absent:
+      # Aucune alerte ne doit sortir d une date illisible : un calcul sur une valeur vide
+      # rendrait un nombre de jours arbitraire, et le zsh l afficherait sans hesiter.
+      - "EXPIRÉ"
+      - "jours restants"
+      - "Expire dans"
