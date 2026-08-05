@@ -23,11 +23,31 @@ suit est décrit, jamais corrigé sur place.
 > contient « actif ». Les valeurs sont donc comparées comme des **mots** — d'où `include` plutôt que
 > `contain`, la même distinction que pour `args_include`. Mes deux trous d'injection étaient le même trou.
 >
-> **Les demandes 10 et 11 sont postérieures à ce document** et restent ouvertes. La nº 11 empêche
-> d'adopter `args_include` dans `theme-delegates-to-the-cli-with-the-right-subcommand` : `fake.bins` étant
-> global, falsifier notre binaire pour ce cas rendrait les huit cas de `tests/cases/sync/` incapables
-> d'atteindre le vrai. `exec: real` ne dénoue pas le nœud — sur un runner il n'y a pas de vrai binaire
-> plus loin dans le `PATH`, donc les cas emprunteraient une délégation vers rien au lieu du repli zsh.
+> **Les demandes 10 et 11 sont livrées par la `v0.1.15`, et adoptées ici.**
+>
+> | # | Constaté |
+> |---|---|
+> | 10. `not_written` | Adopté sur six cas. Le message dit *comment* le chemin a été touché — « created, 7 bytes » — ce qui envoie au bon endroit, un fichier créé, modifié ou supprimé demandant trois enquêtes différentes. |
+> | 11. `fake.bins` par cas | `--verbose` montre `faked … zanvil` pour le seul cas concerné, et les huit cas de `tests/cases/sync/` atteignent toujours le vrai binaire. |
+>
+> **La nº 11 rend son assertion au cas de délégation.** Avec `bins: [zanvil]` déclaré dans le cas et
+> `args_include: ["theme"]` dans la règle, la mutation `theme` → `themes` rougit désormais **dans les deux
+> configurations** — avec le binaire installé comme sans. Elle ne mordait avant que là où le binaire
+> existe, ce qui laissait la CI aveugle à une panne que ce projet a déjà vécue.
+>
+> Deux remarques sur leur mise en œuvre, parce qu'elles nous concernent :
+>
+> - `bins` est **additif** et `setup.hide` gagne toujours. C'est le bon sens : un cas qui désombrerait un
+>   outil en silence ferait moins que ce que la suite demande.
+> - `not_written` **ne dit rien de l'existence**. Un fichier jamais créé n'est pas écrit, et un fichier déjà
+>   là et laissé tranquille non plus. Nos six usages veulent la première lecture ; pour prouver qu'un
+>   fichier *survit*, il faudra le créer dans le hook d'abord.
+>
+> Et un défaut qu'ils ont trouvé en câblant la nº 14, dans la liste où j'avais trouvé le nº 4 :
+> `files::check` était **la huitième vérification à composer sa propre racine**, donc un `files:` cassé dans
+> un échange était rapporté `expect.files[…]`. « Il était dans la même liste et aucun de nous deux n'a
+> regardé au-delà de ce que vous aviez énuméré. » — c'est juste, et ça vaut d'être retenu : énumérer sept
+> cas sur huit se lit comme une liste exhaustive.
 
 ## Ce qui a produit ces demandes
 
