@@ -7,6 +7,20 @@ l'archive publiée de `v0.1.5`**, pour ne pas rapporter contre un travail en cou
 Méthode : fabriquer volontairement des cas pathologiques et regarder si le format les refuse, les
 diagnostique, ou les laisse passer.
 
+> **Clos le 5 août 2026 — les quatre sont corrigés.** Vérifié contre l'archive publiée de la `v0.1.12`,
+> par comportement et non d'après le changelog :
+>
+> | # | Livré en | Constaté |
+> |---|---|---|
+> | 1. Descendance orpheline après timeout | 0.1.6 (#127) | L'enfant tourne pendant le run (2 processus), **zéro** après. Le groupe entier est tué. |
+> | 2. Nom de cas vide accepté | 0.1.6 (#128), 0.1.7 (#130) | Refusé au chargement, avec les trois arguments demandés — et l'espace insécable l'est aussi. |
+> | 3. Échappement de l'isolation par `..` | 0.1.6 (#125) | Refusé, avec le message du chemin absolu. Le symlink créé par le sujet reste un cas à part, documenté comme tel. |
+> | 4. `timeout: 0` vaut « aucune limite » | 0.1.6 (#128) | Refusé : « disarms the guard rather than tightening it ». |
+>
+> La suite prise à l'envers, dans le rapport
+> [du 5 août sur les échanges](2026-08-05-gaveldrop-0-1-12-echanges.md) : le nº 1 y reparaît sous une
+> autre forme — la limite est bien armée, mais elle borne chaque échange et non le cas.
+
 ## Ce qui tient, et qu'il faut dire d'abord
 
 Quatre comportements ont été éprouvés et sont solides :
