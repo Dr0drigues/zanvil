@@ -6,4 +6,27 @@ setup:
 expect:
   exit_code: 0
   stdout:
-    contains: ["theme", "doctor", "audit"]
+    # Les douze, et pas trois : cette liste est le contrat de delegation entre le
+    # zsh et le Rust. Chaque nom ci-dessous est invoque au moins une fois depuis
+    # core/ ou modules/ — `zanvil project` 47 fois, `zanvil modules` 12,
+    # `zanvil sync` 9 — donc une commande qui disparait du binaire casse une
+    # fonction zsh, et le repli la fera taire.
+    #
+    # C est la panne du chantier 1 sous une autre forme : `git_mr_fanout` est
+    # reste inerte quatre mois parce que rien n assertait que le binaire
+    # repondait encore a `mr-fanout`. Verifie par mutation : renommer
+    # `mr-fanout` en `mrfanout` dans le derive clap ne faisait rougir aucun cas
+    # avant cette liste.
+    contains:
+      - "theme"
+      - "doctor"
+      - "audit"
+      - "context"
+      - "modules"
+      - "bench"
+      - "sync"
+      - "update"
+      - "secrets"
+      - "project"
+      - "mr-fanout"
+      - "config"
