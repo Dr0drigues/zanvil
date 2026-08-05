@@ -9,11 +9,11 @@
 # zanvil-list : Lister les outils installes (format tableau)
 # ==============================================================================
 zanvil-list() {
-    _zsh_header "Zanvil Outils"
+    _ui_header "Zanvil Outils"
 
     # Header du tableau
-    printf "${_zsh_cmd_bold}%-14s %-12s %s${_zsh_cmd_nc}\n" "Outil" "Version" "Description"
-    _zsh_separator 50
+    printf "${_ui_bold}%-14s %-12s %s${_ui_nc}\n" "Outil" "Version" "Description"
+    _ui_separator 50
 
     # Liste des outils à vérifier
     local tools=(
@@ -65,22 +65,22 @@ zanvil-list() {
                 helm) version=$(helm version --short 2>/dev/null | cut -d'+' -f1) ;;
                 *) version="" ;;
             esac
-            printf "${_zsh_cmd_green}✓${_zsh_cmd_nc} %-12s ${_zsh_cmd_cyan}%-12s${_zsh_cmd_nc} %s\n" "$name" "$version" "$desc"
+            printf "${_ui_green}✓${_ui_nc} %-12s ${_ui_cyan}%-12s${_ui_nc} %s\n" "$name" "$version" "$desc"
             ((installed++))
         else
-            printf "${_zsh_cmd_red}✗${_zsh_cmd_nc} %-12s ${_zsh_cmd_yellow}%-12s${_zsh_cmd_nc} %s\n" "$name" "manquant" "$desc"
+            printf "${_ui_red}✗${_ui_nc} %-12s ${_ui_yellow}%-12s${_ui_nc} %s\n" "$name" "manquant" "$desc"
             ((missing++))
         fi
     done
 
     echo ""
-    _zsh_separator 50
-    printf "${_zsh_cmd_green}$installed${_zsh_cmd_nc} installes"
-    [[ $missing -gt 0 ]] && printf " | ${_zsh_cmd_yellow}$missing${_zsh_cmd_nc} manquants"
+    _ui_separator 50
+    printf "${_ui_green}$installed${_ui_nc} installes"
+    [[ $missing -gt 0 ]] && printf " | ${_ui_yellow}$missing${_ui_nc} manquants"
     echo ""
 
     if [[ $missing -gt 0 ]]; then
-        echo -e "\n${_zsh_cmd_dim}Pour installer: ~/.zanvil/install.sh${_zsh_cmd_nc}"
+        echo -e "\n${_ui_dim}Pour installer: ~/.zanvil/install.sh${_ui_nc}"
     fi
 }
 
@@ -91,28 +91,28 @@ zanvil-doctor() {
     if command -v zanvil &>/dev/null; then
         zanvil doctor; return $?
     fi
-    _zsh_header "Zanvil Doctor"
+    _ui_header "Zanvil Doctor"
 
     local issues=0
     local warnings=0
 
     # --- Config files (inline) ---
     local config_status=""
-    [[ -f "$ZANVIL_DIR/rc.zsh" ]] && config_status+="rc.zsh ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="rc.zsh ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZANVIL_DIR/core/aliases.zsh" ]] && config_status+="aliases ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="aliases ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZANVIL_DIR/core/variables.zsh" ]] && config_status+="variables ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { config_status+="variables ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "; ((issues++)); }
-    [[ -f "$ZANVIL_DIR/core/loader.zsh" ]] && config_status+="loader ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || { config_status+="loader ${_zsh_cmd_red}✗${_zsh_cmd_nc}"; ((issues++)); }
-    _zsh_section "Config" "$config_status"
+    [[ -f "$ZANVIL_DIR/rc.zsh" ]] && config_status+="rc.zsh ${_ui_green}✓${_ui_nc}  " || { config_status+="rc.zsh ${_ui_red}✗${_ui_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/aliases.zsh" ]] && config_status+="aliases ${_ui_green}✓${_ui_nc}  " || { config_status+="aliases ${_ui_red}✗${_ui_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/variables.zsh" ]] && config_status+="variables ${_ui_green}✓${_ui_nc}  " || { config_status+="variables ${_ui_red}✗${_ui_nc}  "; ((issues++)); }
+    [[ -f "$ZANVIL_DIR/core/loader.zsh" ]] && config_status+="loader ${_ui_green}✓${_ui_nc}" || { config_status+="loader ${_ui_red}✗${_ui_nc}"; ((issues++)); }
+    _ui_section "Config" "$config_status"
 
     # --- .zshrc integration ---
     local zshrc_status=""
     if [[ -f "$HOME/.zshrc" ]] && grep -q "ZANVIL_DIR" "$HOME/.zshrc"; then
-        zshrc_status=".zshrc ${_zsh_cmd_green}✓${_zsh_cmd_nc}"
+        zshrc_status=".zshrc ${_ui_green}✓${_ui_nc}"
     else
-        zshrc_status=".zshrc ${_zsh_cmd_red}✗${_zsh_cmd_nc}"
+        zshrc_status=".zshrc ${_ui_red}✗${_ui_nc}"
         ((issues++))
     fi
-    _zsh_section "Integration" "$zshrc_status"
+    _ui_section "Integration" "$zshrc_status"
 
     echo ""
 
@@ -121,26 +121,26 @@ zanvil-doctor() {
     local required_deps=("git" "curl" "jq")
     for dep in "${required_deps[@]}"; do
         if command -v "$dep" &> /dev/null; then
-            req_status+="$dep ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            req_status+="$dep ${_ui_green}✓${_ui_nc}  "
         else
-            req_status+="$dep ${_zsh_cmd_red}✗${_zsh_cmd_nc}  "
+            req_status+="$dep ${_ui_red}✗${_ui_nc}  "
             ((issues++))
         fi
     done
-    _zsh_section "Requis" "$req_status"
+    _ui_section "Requis" "$req_status"
 
     # --- Recommended deps (inline) ---
     local rec_status=""
     local recommended_deps=("starship" "zoxide" "fzf" "eza" "bat" "sops" "age")
     for dep in "${recommended_deps[@]}"; do
         if command -v "$dep" &> /dev/null; then
-            rec_status+="$dep ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            rec_status+="$dep ${_ui_green}✓${_ui_nc}  "
         else
-            rec_status+="${_zsh_cmd_dim}$dep ○${_zsh_cmd_nc}  "
+            rec_status+="${_ui_dim}$dep ○${_ui_nc}  "
             ((warnings++))
         fi
     done
-    _zsh_section "Recommandes" "$rec_status"
+    _ui_section "Recommandes" "$rec_status"
 
     # --- Kubernetes/Azure tools (inline with versions) ---
     local kube_status=""
@@ -154,60 +154,60 @@ zanvil-doctor() {
                 helm) ver=$(helm version --short 2>/dev/null | cut -d'+' -f1 | cut -c1-6) ;;
                 *) ver="" ;;
             esac
-            [[ -n "$ver" ]] && kube_status+="$dep ${_zsh_cmd_green}✓${_zsh_cmd_nc}${_zsh_cmd_dim}$ver${_zsh_cmd_nc}  " || kube_status+="$dep ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            [[ -n "$ver" ]] && kube_status+="$dep ${_ui_green}✓${_ui_nc}${_ui_dim}$ver${_ui_nc}  " || kube_status+="$dep ${_ui_green}✓${_ui_nc}  "
         else
-            kube_status+="${_zsh_cmd_dim}$dep ○${_zsh_cmd_nc}  "
+            kube_status+="${_ui_dim}$dep ○${_ui_nc}  "
         fi
     done
-    _zsh_section "Kubernetes" "$kube_status"
+    _ui_section "Kubernetes" "$kube_status"
 
     echo ""
 
     # --- Modules (inline) ---
     local mod_status=""
-    [[ "$ZANVIL_MODULE_GITLAB" = "true" ]] && mod_status+="GitLab ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}GitLab ○${_zsh_cmd_nc}  "
-    [[ "$ZANVIL_MODULE_DOCKER" = "true" ]] && mod_status+="Docker ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Docker ○${_zsh_cmd_nc}  "
-    [[ "$ZANVIL_MODULE_MISE" = "true" ]] && mod_status+="Mise ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Mise ○${_zsh_cmd_nc}  "
-    [[ "$ZANVIL_MODULE_NUSHELL" = "true" ]] && mod_status+="Nushell ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || mod_status+="${_zsh_cmd_dim}Nushell ○${_zsh_cmd_nc}  "
-    [[ "$ZANVIL_MODULE_KUBE" = "true" ]] && mod_status+="Kube ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || mod_status+="${_zsh_cmd_dim}Kube ○${_zsh_cmd_nc}"
-    _zsh_section "Modules" "$mod_status"
+    [[ "$ZANVIL_MODULE_GITLAB" = "true" ]] && mod_status+="GitLab ${_ui_green}✓${_ui_nc}  " || mod_status+="${_ui_dim}GitLab ○${_ui_nc}  "
+    [[ "$ZANVIL_MODULE_DOCKER" = "true" ]] && mod_status+="Docker ${_ui_green}✓${_ui_nc}  " || mod_status+="${_ui_dim}Docker ○${_ui_nc}  "
+    [[ "$ZANVIL_MODULE_MISE" = "true" ]] && mod_status+="Mise ${_ui_green}✓${_ui_nc}  " || mod_status+="${_ui_dim}Mise ○${_ui_nc}  "
+    [[ "$ZANVIL_MODULE_NUSHELL" = "true" ]] && mod_status+="Nushell ${_ui_green}✓${_ui_nc}  " || mod_status+="${_ui_dim}Nushell ○${_ui_nc}  "
+    [[ "$ZANVIL_MODULE_KUBE" = "true" ]] && mod_status+="Kube ${_ui_green}✓${_ui_nc}" || mod_status+="${_ui_dim}Kube ○${_ui_nc}"
+    _ui_section "Modules" "$mod_status"
 
     # --- Mise details (if active) ---
     if [[ "$ZANVIL_MODULE_MISE" = "true" ]]; then
         local mise_info=""
         if command -v mise &> /dev/null; then
             local mise_ver=$(mise --version 2>/dev/null | awk '{print $1}')
-            mise_info="mise ${_zsh_cmd_green}✓${_zsh_cmd_nc}${_zsh_cmd_dim}$mise_ver${_zsh_cmd_nc}"
+            mise_info="mise ${_ui_green}✓${_ui_nc}${_ui_dim}$mise_ver${_ui_nc}"
             local node_ver=$(mise current node 2>/dev/null)
             local java_ver=$(mise current java 2>/dev/null)
-            [[ -n "$node_ver" ]] && mise_info+="  node:${_zsh_cmd_cyan}$node_ver${_zsh_cmd_nc}"
-            [[ -n "$java_ver" ]] && mise_info+="  java:${_zsh_cmd_cyan}$java_ver${_zsh_cmd_nc}"
+            [[ -n "$node_ver" ]] && mise_info+="  node:${_ui_cyan}$node_ver${_ui_nc}"
+            [[ -n "$java_ver" ]] && mise_info+="  java:${_ui_cyan}$java_ver${_ui_nc}"
         else
-            mise_info="mise ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(non installe)${_zsh_cmd_nc}"
+            mise_info="mise ${_ui_yellow}○${_ui_nc} ${_ui_dim}(non installe)${_ui_nc}"
             ((warnings++))
         fi
-        _zsh_section "Mise" "$mise_info"
+        _ui_section "Mise" "$mise_info"
     fi
 
     # --- Kubernetes details (if active) ---
     if [[ "$ZANVIL_MODULE_KUBE" = "true" ]]; then
         local kube_info=""
-        [[ -f "$HOME/.kube/config.minimal.yml" ]] && kube_info+="config.minimal ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || kube_info+="${_zsh_cmd_dim}config.minimal ○${_zsh_cmd_nc}  "
+        [[ -f "$HOME/.kube/config.minimal.yml" ]] && kube_info+="config.minimal ${_ui_green}✓${_ui_nc}  " || kube_info+="${_ui_dim}config.minimal ○${_ui_nc}  "
         if [[ -d "$HOME/.kube/configs.d" ]]; then
             local config_count=$(find "$HOME/.kube/configs.d" -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | wc -l | tr -d ' ')
-            kube_info+="${_zsh_cmd_dim}${config_count} configs.d/${_zsh_cmd_nc}  "
+            kube_info+="${_ui_dim}${config_count} configs.d/${_ui_nc}  "
         fi
-        [[ -n "$KUBECONFIG" ]] && kube_info+="KUBECONFIG ${_zsh_cmd_green}✓${_zsh_cmd_nc}" || kube_info+="${_zsh_cmd_dim}KUBECONFIG ○${_zsh_cmd_nc}"
-        _zsh_section "Kubernetes" "$kube_info"
+        [[ -n "$KUBECONFIG" ]] && kube_info+="KUBECONFIG ${_ui_green}✓${_ui_nc}" || kube_info+="${_ui_dim}KUBECONFIG ○${_ui_nc}"
+        _ui_section "Kubernetes" "$kube_info"
 
         # Azure status
         if command -v az &> /dev/null; then
             local az_account=$(az account show 2>/dev/null)
             if [[ -n "$az_account" ]]; then
                 local az_user=$(echo "$az_account" | jq -r '.user.name // "inconnu"')
-                _zsh_section "Azure" "Connecte: ${_zsh_cmd_cyan}$az_user${_zsh_cmd_nc}"
+                _ui_section "Azure" "Connecte: ${_ui_cyan}$az_user${_ui_nc}"
             else
-                _zsh_section "Azure" "${_zsh_cmd_yellow}Non connecte${_zsh_cmd_nc} ${_zsh_cmd_dim}(az login)${_zsh_cmd_nc}"
+                _ui_section "Azure" "${_ui_yellow}Non connecte${_ui_nc} ${_ui_dim}(az login)${_ui_nc}"
             fi
         fi
     fi
@@ -215,9 +215,9 @@ zanvil-doctor() {
     # --- GitLab details (if active) ---
     if [[ "$ZANVIL_MODULE_GITLAB" = "true" ]]; then
         local gl_info=""
-        [[ -n "$GITLAB_TOKEN" ]] && gl_info+="TOKEN ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " || { gl_info+="TOKEN ${_zsh_cmd_yellow}○${_zsh_cmd_nc}  "; ((warnings++)); }
-        [[ -n "$GITLAB_URL" ]] && gl_info+="${_zsh_cmd_dim}$GITLAB_URL${_zsh_cmd_nc}" || gl_info+="${_zsh_cmd_dim}gitlab.com${_zsh_cmd_nc}"
-        _zsh_section "GitLab" "$gl_info"
+        [[ -n "$GITLAB_TOKEN" ]] && gl_info+="TOKEN ${_ui_green}✓${_ui_nc}  " || { gl_info+="TOKEN ${_ui_yellow}○${_ui_nc}  "; ((warnings++)); }
+        [[ -n "$GITLAB_URL" ]] && gl_info+="${_ui_dim}$GITLAB_URL${_ui_nc}" || gl_info+="${_ui_dim}gitlab.com${_ui_nc}"
+        _ui_section "GitLab" "$gl_info"
     fi
 
     # --- SOPS/Age (if available) ---
@@ -226,13 +226,13 @@ zanvil-doctor() {
         local age_key_file="$HOME/.config/sops/age/keys.txt"
         if [[ -f "$age_key_file" ]]; then
             local pub_key=$(grep "public key:" "$age_key_file" 2>/dev/null | awk '{print $NF}')
-            sops_info+="cle ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
-            [[ -n "$pub_key" ]] && sops_info+="${_zsh_cmd_dim}${pub_key:0:16}...${_zsh_cmd_nc}"
+            sops_info+="cle ${_ui_green}✓${_ui_nc}  "
+            [[ -n "$pub_key" ]] && sops_info+="${_ui_dim}${pub_key:0:16}...${_ui_nc}"
         else
-            sops_info+="cle ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(age-keygen -o ~/.config/sops/age/keys.txt)${_zsh_cmd_nc}"
+            sops_info+="cle ${_ui_yellow}○${_ui_nc} ${_ui_dim}(age-keygen -o ~/.config/sops/age/keys.txt)${_ui_nc}"
             ((warnings++))
         fi
-        _zsh_section "SOPS/Age" "$sops_info"
+        _ui_section "SOPS/Age" "$sops_info"
     fi
 
     # --- SSL/TLS ---
@@ -240,25 +240,25 @@ zanvil-doctor() {
     if [[ -f "$HOME/.ssl/ca-bundle.pem" ]]; then
         local cert_count=$(grep -c "BEGIN CERTIFICATE" "$HOME/.ssl/ca-bundle.pem" 2>/dev/null)
         local enterprise_count=$(grep -c "Enterprise CA:" "$HOME/.ssl/ca-bundle.pem" 2>/dev/null)
-        ssl_info+="bundle ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
-        ssl_info+="${_zsh_cmd_dim}${cert_count} CAs (${enterprise_count} entreprise)${_zsh_cmd_nc}"
+        ssl_info+="bundle ${_ui_green}✓${_ui_nc}  "
+        ssl_info+="${_ui_dim}${cert_count} CAs (${enterprise_count} entreprise)${_ui_nc}"
     else
-        ssl_info+="bundle ${_zsh_cmd_yellow}○${_zsh_cmd_nc} ${_zsh_cmd_dim}(zanvil-ssl-setup)${_zsh_cmd_nc}"
+        ssl_info+="bundle ${_ui_yellow}○${_ui_nc} ${_ui_dim}(zanvil-ssl-setup)${_ui_nc}"
         ((warnings++))
     fi
-    _zsh_section "SSL/TLS" "$ssl_info"
+    _ui_section "SSL/TLS" "$ssl_info"
 
     echo ""
 
     # --- Summary ---
-    _zsh_separator 44
+    _ui_separator 44
     if [[ $issues -eq 0 ]] && [[ $warnings -eq 0 ]]; then
-        echo -e "${_zsh_cmd_green}✓ Tout est OK${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓ Tout est OK${_ui_nc}"
     elif [[ $issues -eq 0 ]]; then
-        echo -e "${_zsh_cmd_green}✓ OK${_zsh_cmd_nc} ${_zsh_cmd_dim}($warnings avertissement(s))${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓ OK${_ui_nc} ${_ui_dim}($warnings avertissement(s))${_ui_nc}"
     else
-        echo -e "${_zsh_cmd_red}✗ $issues erreur(s)${_zsh_cmd_nc}, ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Lancez ~/.zanvil/install.sh pour corriger${_zsh_cmd_nc}"
+        echo -e "${_ui_red}✗ $issues erreur(s)${_ui_nc}, ${_ui_yellow}$warnings avertissement(s)${_ui_nc}"
+        echo -e "${_ui_dim}Lancez ~/.zanvil/install.sh pour corriger${_ui_nc}"
     fi
 }
 
@@ -266,16 +266,16 @@ zanvil-doctor() {
 # zanvil-status : Statut compact de l'installation
 # ==============================================================================
 zanvil-status() {
-    _zsh_header "Zanvil Status"
+    _ui_header "Zanvil Status"
 
     # Version et répertoire
-    _zsh_section "Repertoire" "$ZANVIL_DIR"
+    _ui_section "Repertoire" "$ZANVIL_DIR"
 
     # Git info
     if [[ -d "$ZANVIL_DIR/.git" ]]; then
         local branch=$(git -C "$ZANVIL_DIR" branch --show-current 2>/dev/null)
         local commit=$(git -C "$ZANVIL_DIR" rev-parse --short HEAD 2>/dev/null)
-        _zsh_section "Git" "${_zsh_cmd_cyan}$branch${_zsh_cmd_nc} ${_zsh_cmd_dim}($commit)${_zsh_cmd_nc}"
+        _ui_section "Git" "${_ui_cyan}$branch${_ui_nc} ${_ui_dim}($commit)${_ui_nc}"
     fi
 
     # Modules actifs
@@ -285,58 +285,58 @@ zanvil-status() {
     [[ "$ZANVIL_MODULE_MISE" = "true" ]] && modules+="Mise "
     [[ "$ZANVIL_MODULE_NUSHELL" = "true" ]] && modules+="Nushell "
     [[ "$ZANVIL_MODULE_KUBE" = "true" ]] && modules+="Kube "
-    [[ -z "$modules" ]] && modules="${_zsh_cmd_dim}aucun${_zsh_cmd_nc}"
-    _zsh_section "Modules" "$modules"
+    [[ -z "$modules" ]] && modules="${_ui_dim}aucun${_ui_nc}"
+    _ui_section "Modules" "$modules"
 
     # Mise active tools
     if [[ "$ZANVIL_MODULE_MISE" = "true" ]] && command -v mise &> /dev/null; then
         local active_tools=$(mise current 2>/dev/null | head -3)
-        [[ -n "$active_tools" ]] && _zsh_section "Mise" "$active_tools"
+        [[ -n "$active_tools" ]] && _ui_section "Mise" "$active_tools"
     fi
 
     # Shell
-    _zsh_section "Shell" "zsh $ZSH_VERSION"
+    _ui_section "Shell" "zsh $ZSH_VERSION"
 
     echo ""
-    echo -e "${_zsh_cmd_dim}Diagnostic complet: zanvil-doctor${_zsh_cmd_nc}"
+    echo -e "${_ui_dim}Diagnostic complet: zanvil-doctor${_ui_nc}"
 }
 
 # ==============================================================================
 # zanvil-help : Afficher l'aide
 # ==============================================================================
 zanvil-help() {
-    _zsh_header "Zanvil Aide"
+    _ui_header "Zanvil Aide"
 
-    printf "${_zsh_cmd_bold}%-28s${_zsh_cmd_nc} %s\n" "Commande" "Description"
-    _zsh_separator 50
+    printf "${_ui_bold}%-28s${_ui_nc} %s\n" "Commande" "Description"
+    _ui_separator 50
 
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-list" "Liste les outils et versions"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-doctor" "Diagnostic de l'installation"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-status" "Statut rapide"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completions" "Charge les auto-completions"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completion-add" "Ajoute une completion"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-completion-remove" "Supprime une completion"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-theme [nom]" "Gestion themes Starship"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-ghostty [nom|sync]" "Gestion themes Ghostty"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-git-bulk [action]" "Operations Git en masse"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-ssl-setup" "Configure les certificats SSL"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-gitlab-status" "Statut du token GitLab PAT"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-gitlab-browse" "Ouvre le repo GitLab dans le navigateur"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-modules [action]" "Gestion des modules (list/enable/disable)"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-config-reset" "Restaure la config par defaut"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-backup" "Sauvegarde configs personnalisees"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-restore" "Restaure depuis un backup"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-switch [env]" "Switch d'environnement rapide"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-update" "Mise a jour zanvil"
-    printf "${_zsh_cmd_cyan}%-28s${_zsh_cmd_nc} %s\n" "zanvil-help" "Cette aide"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-list" "Liste les outils et versions"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-doctor" "Diagnostic de l'installation"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-status" "Statut rapide"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-completions" "Charge les auto-completions"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-completion-add" "Ajoute une completion"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-completion-remove" "Supprime une completion"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-theme [nom]" "Gestion themes Starship"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-ghostty [nom|sync]" "Gestion themes Ghostty"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-git-bulk [action]" "Operations Git en masse"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-ssl-setup" "Configure les certificats SSL"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-gitlab-status" "Statut du token GitLab PAT"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-gitlab-browse" "Ouvre le repo GitLab dans le navigateur"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-modules [action]" "Gestion des modules (list/enable/disable)"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-config-reset" "Restaure la config par defaut"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-backup" "Sauvegarde configs personnalisees"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-restore" "Restaure depuis un backup"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-switch [env]" "Switch d'environnement rapide"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-update" "Mise a jour zanvil"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-help" "Cette aide"
 
     echo ""
-    _zsh_separator 50
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Config" "~/.zanvil/config.zsh"
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Completions" "~/.zanvil/completions.zsh"
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Themes" "~/.zanvil/config/themes/"
-    printf "${_zsh_cmd_dim}%-14s${_zsh_cmd_nc} %s\n" "Recharger" "ss (ou source ~/.zshrc)"
+    _ui_separator 50
+    printf "${_ui_dim}%-14s${_ui_nc} %s\n" "Config" "~/.zanvil/config.zsh"
+    printf "${_ui_dim}%-14s${_ui_nc} %s\n" "Completions" "~/.zanvil/completions.zsh"
+    printf "${_ui_dim}%-14s${_ui_nc} %s\n" "Themes" "~/.zanvil/config/themes/"
+    printf "${_ui_dim}%-14s${_ui_nc} %s\n" "Recharger" "ss (ou source ~/.zshrc)"
 }
 
 # ==============================================================================

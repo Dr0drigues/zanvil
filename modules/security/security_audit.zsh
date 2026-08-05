@@ -24,9 +24,9 @@ _audit_check_perms() {
     done
 
     if $match; then
-        printf "%s ${_zsh_cmd_green}✓${_zsh_cmd_nc}  " "$label"
+        printf "%s ${_ui_green}✓${_ui_nc}  " "$label"
     else
-        printf "%s ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}%s${_zsh_cmd_nc}  " "$label" "$perms"
+        printf "%s ${_ui_red}✗${_ui_nc}${_ui_dim}%s${_ui_nc}  " "$label" "$perms"
         return 1
     fi
     return 0
@@ -37,7 +37,7 @@ zanvil-audit() {
     if command -v zanvil &>/dev/null; then
         zanvil audit; return $?
     fi
-    _zsh_header "Zanvil Security Audit"
+    _ui_header "Zanvil Security Audit"
 
     local issues=0
     local warnings=0
@@ -47,9 +47,9 @@ zanvil-audit() {
     if [[ -d "$HOME/.ssh" ]]; then
         local ssh_perms=$(_ui_get_perms "$HOME/.ssh")
         if [[ "$ssh_perms" == "700" ]]; then
-            ssh_status+="~/.ssh ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            ssh_status+="~/.ssh ${_ui_green}✓${_ui_nc}  "
         else
-            ssh_status+="~/.ssh ${_zsh_cmd_red}✗${_zsh_cmd_nc}${_zsh_cmd_dim}$ssh_perms${_zsh_cmd_nc}  "
+            ssh_status+="~/.ssh ${_ui_red}✗${_ui_nc}${_ui_dim}$ssh_perms${_ui_nc}  "
             ((issues++))
         fi
 
@@ -68,9 +68,9 @@ zanvil-audit() {
             [[ $? -ne 0 ]] && ((issues++))
         fi
     else
-        ssh_status+="${_zsh_cmd_dim}non configure${_zsh_cmd_nc}"
+        ssh_status+="${_ui_dim}non configure${_ui_nc}"
     fi
-    _zsh_section "SSH" "$ssh_status"
+    _ui_section "SSH" "$ssh_status"
 
     # --- Secrets ---
     local secrets_status=""
@@ -87,18 +87,18 @@ zanvil-audit() {
     done
 
     if [[ $secrets_found -eq 0 ]]; then
-        secrets_status="${_zsh_cmd_dim}aucun${_zsh_cmd_nc}"
+        secrets_status="${_ui_dim}aucun${_ui_nc}"
     fi
-    _zsh_section "Secrets" "$secrets_status"
+    _ui_section "Secrets" "$secrets_status"
 
     # --- Kubernetes ---
     local kube_status=""
     if [[ -d "$HOME/.kube" ]]; then
         local kube_perms=$(_ui_get_perms "$HOME/.kube")
         if [[ "$kube_perms" == "700" ]]; then
-            kube_status+="~/.kube ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+            kube_status+="~/.kube ${_ui_green}✓${_ui_nc}  "
         else
-            kube_status+="~/.kube ${_zsh_cmd_yellow}○${_zsh_cmd_nc}${_zsh_cmd_dim}$kube_perms${_zsh_cmd_nc}  "
+            kube_status+="~/.kube ${_ui_yellow}○${_ui_nc}${_ui_dim}$kube_perms${_ui_nc}  "
             ((warnings++))
         fi
 
@@ -106,9 +106,9 @@ zanvil-audit() {
         if [[ -f "$HOME/.kube/config" ]]; then
             local perms=$(_ui_get_perms "$HOME/.kube/config")
             if [[ "$perms" == "600" || "$perms" == "400" ]]; then
-                kube_status+="config ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+                kube_status+="config ${_ui_green}✓${_ui_nc}  "
             else
-                kube_status+="config ${_zsh_cmd_yellow}○${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}  "
+                kube_status+="config ${_ui_yellow}○${_ui_nc}${_ui_dim}$perms${_ui_nc}  "
                 ((warnings++))
             fi
         fi
@@ -116,32 +116,32 @@ zanvil-audit() {
         # Configs.d count
         if [[ -d "$HOME/.kube/configs.d" ]]; then
             local config_count=$(find "$HOME/.kube/configs.d" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
-            [[ $config_count -gt 0 ]] && kube_status+="${_zsh_cmd_dim}${config_count} configs.d/${_zsh_cmd_nc}"
+            [[ $config_count -gt 0 ]] && kube_status+="${_ui_dim}${config_count} configs.d/${_ui_nc}"
         fi
     else
-        kube_status="${_zsh_cmd_dim}non configure${_zsh_cmd_nc}"
+        kube_status="${_ui_dim}non configure${_ui_nc}"
     fi
-    _zsh_section "Kubernetes" "$kube_status"
+    _ui_section "Kubernetes" "$kube_status"
 
     # --- Git ---
     local git_status=""
     if [[ -f "$HOME/.gitconfig" ]]; then
         local helper=$(git config --global credential.helper 2>/dev/null)
         if [[ -n "$helper" ]]; then
-            git_status+="credential.helper ${_zsh_cmd_green}✓${_zsh_cmd_nc}${_zsh_cmd_dim}$helper${_zsh_cmd_nc}  "
+            git_status+="credential.helper ${_ui_green}✓${_ui_nc}${_ui_dim}$helper${_ui_nc}  "
         else
-            git_status+="credential.helper ${_zsh_cmd_yellow}○${_zsh_cmd_nc}  "
+            git_status+="credential.helper ${_ui_yellow}○${_ui_nc}  "
             ((warnings++))
         fi
     fi
 
     if [[ -f "$HOME/.git-credentials" ]]; then
-        git_status+="${_zsh_cmd_yellow}.git-credentials${_zsh_cmd_nc} ${_zsh_cmd_dim}(clair)${_zsh_cmd_nc}"
+        git_status+="${_ui_yellow}.git-credentials${_ui_nc} ${_ui_dim}(clair)${_ui_nc}"
         ((warnings++))
     fi
 
-    [[ -z "$git_status" ]] && git_status="${_zsh_cmd_dim}non configure${_zsh_cmd_nc}"
-    _zsh_section "Git" "$git_status"
+    [[ -z "$git_status" ]] && git_status="${_ui_dim}non configure${_ui_nc}"
+    _ui_section "Git" "$git_status"
 
     # --- Cloud ---
     local cloud_status=""
@@ -151,14 +151,14 @@ zanvil-audit() {
         cloud_status+="$(_audit_check_perms "AWS" "$HOME/.aws/credentials" "600")"
         [[ $? -ne 0 ]] && ((issues++))
     else
-        cloud_status+="${_zsh_cmd_dim}AWS ○${_zsh_cmd_nc}  "
+        cloud_status+="${_ui_dim}AWS ○${_ui_nc}  "
     fi
 
     # Azure
     if [[ -d "$HOME/.azure" ]]; then
-        cloud_status+="Azure ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+        cloud_status+="Azure ${_ui_green}✓${_ui_nc}  "
     else
-        cloud_status+="${_zsh_cmd_dim}Azure ○${_zsh_cmd_nc}  "
+        cloud_status+="${_ui_dim}Azure ○${_ui_nc}  "
     fi
 
     # GCP
@@ -166,9 +166,9 @@ zanvil-audit() {
         cloud_status+="$(_audit_check_perms "GCP" "$HOME/.config/gcloud/application_default_credentials.json" "600")"
         [[ $? -ne 0 ]] && ((issues++))
     else
-        cloud_status+="${_zsh_cmd_dim}GCP ○${_zsh_cmd_nc}"
+        cloud_status+="${_ui_dim}GCP ○${_ui_nc}"
     fi
-    _zsh_section "Cloud" "$cloud_status"
+    _ui_section "Cloud" "$cloud_status"
 
     # --- History ---
     local history_status=""
@@ -181,35 +181,35 @@ zanvil-audit() {
             ((hist_found++))
             local perms=$(_ui_get_perms "$file")
             if [[ "$perms" == "600" ]]; then
-                history_status+="$hist ${_zsh_cmd_green}✓${_zsh_cmd_nc}  "
+                history_status+="$hist ${_ui_green}✓${_ui_nc}  "
             else
-                history_status+="$hist ${_zsh_cmd_yellow}○${_zsh_cmd_nc}${_zsh_cmd_dim}$perms${_zsh_cmd_nc}  "
+                history_status+="$hist ${_ui_yellow}○${_ui_nc}${_ui_dim}$perms${_ui_nc}  "
                 ((warnings++))
             fi
 
             # Check for secrets in history
             if grep -qiE "(password|secret|token|api.?key)=" "$file" 2>/dev/null; then
-                history_status+="${_zsh_cmd_yellow}!secrets${_zsh_cmd_nc}  "
+                history_status+="${_ui_yellow}!secrets${_ui_nc}  "
                 ((warnings++))
             fi
         fi
     done
 
-    [[ $hist_found -eq 0 ]] && history_status="${_zsh_cmd_dim}aucun${_zsh_cmd_nc}"
-    _zsh_section "History" "$history_status"
+    [[ $hist_found -eq 0 ]] && history_status="${_ui_dim}aucun${_ui_nc}"
+    _ui_section "History" "$history_status"
 
     echo ""
 
     # --- Résumé ---
-    _zsh_separator 44
+    _ui_separator 44
 
     if [[ $issues -eq 0 && $warnings -eq 0 ]]; then
-        echo -e "${_zsh_cmd_green}✓ Tout est securise${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓ Tout est securise${_ui_nc}"
     elif [[ $issues -eq 0 ]]; then
-        echo -e "${_zsh_cmd_green}✓ OK${_zsh_cmd_nc} ${_zsh_cmd_dim}($warnings avertissement(s))${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓ OK${_ui_nc} ${_ui_dim}($warnings avertissement(s))${_ui_nc}"
     else
-        echo -e "${_zsh_cmd_red}✗ $issues erreur(s)${_zsh_cmd_nc}, ${_zsh_cmd_yellow}$warnings avertissement(s)${_zsh_cmd_nc}"
-        echo -e "${_zsh_cmd_dim}Correction auto: zanvil-audit-fix${_zsh_cmd_nc}"
+        echo -e "${_ui_red}✗ $issues erreur(s)${_ui_nc}, ${_ui_yellow}$warnings avertissement(s)${_ui_nc}"
+        echo -e "${_ui_dim}Correction auto: zanvil-audit-fix${_ui_nc}"
     fi
 
     return $issues
@@ -217,7 +217,7 @@ zanvil-audit() {
 
 # Corrige automatiquement les permissions
 zanvil-audit-fix() {
-    _zsh_header "Zanvil Security Fix"
+    _ui_header "Zanvil Security Fix"
 
     local fixed=0
 
@@ -229,9 +229,9 @@ zanvil-audit-fix() {
             [[ -f "$key" && ! "$key" == *.pub ]] && chmod 600 "$key" && ((fixed++))
         done
         [[ -f "$HOME/.ssh/config" ]] && chmod 600 "$HOME/.ssh/config" && ((fixed++))
-        echo -e "${_zsh_cmd_green}✓${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓${_ui_nc}"
     else
-        echo -e "${_zsh_cmd_dim}skip${_zsh_cmd_nc}"
+        echo -e "${_ui_dim}skip${_ui_nc}"
     fi
 
     # Secrets
@@ -243,7 +243,7 @@ zanvil-audit-fix() {
     [[ -f "$HOME/.netrc" ]] && chmod 600 "$HOME/.netrc" && ((secrets_fixed++))
     [[ -f "$HOME/.npmrc" ]] && chmod 600 "$HOME/.npmrc" && ((secrets_fixed++))
     ((fixed += secrets_fixed))
-    [[ $secrets_fixed -gt 0 ]] && echo -e "${_zsh_cmd_green}✓${_zsh_cmd_nc} ${_zsh_cmd_dim}($secrets_fixed)${_zsh_cmd_nc}" || echo -e "${_zsh_cmd_dim}skip${_zsh_cmd_nc}"
+    [[ $secrets_fixed -gt 0 ]] && echo -e "${_ui_green}✓${_ui_nc} ${_ui_dim}($secrets_fixed)${_ui_nc}" || echo -e "${_ui_dim}skip${_ui_nc}"
 
     # Kube
     echo -n "Kubernetes   "
@@ -252,18 +252,18 @@ zanvil-audit-fix() {
         for kube in "$HOME/.kube"/config*(N) "$HOME/.kube/configs.d"/*(N); do
             [[ -f "$kube" ]] && chmod 600 "$kube" && ((fixed++))
         done
-        echo -e "${_zsh_cmd_green}✓${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓${_ui_nc}"
     else
-        echo -e "${_zsh_cmd_dim}skip${_zsh_cmd_nc}"
+        echo -e "${_ui_dim}skip${_ui_nc}"
     fi
 
     # AWS
     echo -n "AWS          "
     if [[ -f "$HOME/.aws/credentials" ]]; then
         chmod 600 "$HOME/.aws/credentials" && ((fixed++))
-        echo -e "${_zsh_cmd_green}✓${_zsh_cmd_nc}"
+        echo -e "${_ui_green}✓${_ui_nc}"
     else
-        echo -e "${_zsh_cmd_dim}skip${_zsh_cmd_nc}"
+        echo -e "${_ui_dim}skip${_ui_nc}"
     fi
 
     # History
@@ -272,10 +272,10 @@ zanvil-audit-fix() {
     [[ -f "$HOME/.zsh_history" ]] && chmod 600 "$HOME/.zsh_history" && ((hist_fixed++))
     [[ -f "$HOME/.bash_history" ]] && chmod 600 "$HOME/.bash_history" && ((hist_fixed++))
     ((fixed += hist_fixed))
-    [[ $hist_fixed -gt 0 ]] && echo -e "${_zsh_cmd_green}✓${_zsh_cmd_nc}" || echo -e "${_zsh_cmd_dim}skip${_zsh_cmd_nc}"
+    [[ $hist_fixed -gt 0 ]] && echo -e "${_ui_green}✓${_ui_nc}" || echo -e "${_ui_dim}skip${_ui_nc}"
 
     echo ""
-    _zsh_separator 44
-    echo -e "${_zsh_cmd_green}$fixed${_zsh_cmd_nc} fichier(s) corrige(s)"
-    echo -e "${_zsh_cmd_dim}Verification: zanvil-audit${_zsh_cmd_nc}"
+    _ui_separator 44
+    echo -e "${_ui_green}$fixed${_ui_nc} fichier(s) corrige(s)"
+    echo -e "${_ui_dim}Verification: zanvil-audit${_ui_nc}"
 }

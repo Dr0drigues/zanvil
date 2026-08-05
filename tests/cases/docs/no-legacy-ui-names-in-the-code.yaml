@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Quatrieme et dernier vestige du renommage de la v4.0.0, apres le binaire, les variables
+# d environnement et l URL en dur. Les alias de compatibilite de core/ui.zsh portaient 416
+# occurrences dans quatre fichiers, dont 221 dans commands.zsh.
+#
+# Rien n etait casse — les alias fonctionnent — mais CLAUDE.md demande d employer les
+# fonctions `_ui_*`, et le code que l on lit tous les jours disait le contraire. Le
+# renommage a ete verifie autrement qu en croyant le compilateur : la sortie de cinq
+# commandes a ete capturee avant et apres, et son empreinte SHA-256 est la meme.
+name: no-legacy-ui-names-in-the-code
+weight: 7
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/legacy-ui-names"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Une ligne par occurrence : rien a dire, rien a imprimer.
+    equals: ""
