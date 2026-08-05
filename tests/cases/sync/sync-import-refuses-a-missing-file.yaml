@@ -2,13 +2,18 @@
 #
 # Un import sans fichier lisible doit refuser avant de toucher a quoi que ce soit.
 #
-# Ce cas devrait aussi asserter qu AUCUNE sauvegarde n a ete creee — un refus qui
-# laisserait un config.zsh.pre-import derriere lui aurait deja commence a travailler.
-# Le format ne le permet pas : les quatre champs de `expect.files` portent tous sur un
-# contenu (`contains`, `absent`, `equals`, `ignore_ansi`), et aucun ne dit « ce fichier
-# ne doit pas exister ». Demande n 10 dans le document d evolution.
+# `not_written` porte la seconde moitie du contrat, et c est celle qui compte : un refus
+# qui laisserait un config.zsh.pre-import derriere lui aurait deja commence a travailler.
+# L assertion etait impossible a ecrire jusqu a la 0.1.15 de gaveldrop — les quatre
+# champs de `expect.files` portaient tous sur un CONTENU, et un chemin absent y faisait
+# echouer le cas au lieu de le satisfaire.
+#
+# La cle ne dit rien de l existence : un fichier jamais cree n est pas ecrit, et un
+# fichier deja la et laisse tranquille non plus. Ici c est la premiere lecture qui est
+# voulue — la sauvegarde ne doit pas apparaitre. Pour prouver qu un fichier SURVIT, il
+# faudrait le creer dans le hook d abord.
 name: sync-import-refuses-a-missing-file
-weight: 5
+weight: 7
 setup:
   exec: ./tests/hooks/prepare-sync-fixture.sh
   shell: zsh
@@ -21,3 +26,11 @@ expect:
   stdout:
     ignore_ansi: true
     contains: ["Usage: zanvil-sync import"]
+  not_written:
+    # La sauvegarde qu un import reussi depose : son absence prouve que le refus est
+    # arrive avant le premier geste.
+    - "$HOME/zanvil/config.zsh.pre-import"
+    # Et la config elle-meme, que l import reecrit : un refus ne doit pas y toucher.
+    - "$HOME/zanvil/config.zsh"
+    # Le theme courant, ecrit par un import reussi.
+    - "$HOME/zanvil/.current_theme"
