@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Caracterisation de zanvil-doctor-conflicts (chantier 4). La fixture porte un
+# exemplaire de chaque famille detectee, donc le verdict est exact et non « ce que le
+# depot contient aujourd hui ».
+#
+# CE CAS FIGE LE COMPORTEMENT CORRECT, PAS L ACTUEL. L implementation zsh annonce
+# « 4 hooks chpwd » sur le depot reel et n en affiche que 2, parce que le compte et la
+# liste emploient deux filtres differents :
+#
+#   compte : grep -cv "^#"    n exclut que les lignes COMMENCANT par #
+#   liste  : grep -v "^.*#"   exclut toute ligne CONTENANT un #
+#
+# Les deux lignes de commands.zsh qui cherchent la chaine sont donc comptees mais pas
+# affichees — et elles ne sont pas affichees par accident, parce qu elles portent un `#`
+# dans leur propre motif. Le bon resultat sortait pour une mauvaise raison.
+name: conflicts-names-every-duplicate
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-conflicts-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/commands/commands.zsh"]
+  call: ["zanvil-doctor-conflicts"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Conflicts"
+      # Chaque doublon est nomme, et les deux fichiers qui le portent avec lui.
+      - "'dupliq'"
+      - "'fonction_dupliquee'"
+      # Le meme nom declare avec les deux syntaxes reste un doublon.
+      - "'melange_de_syntaxe'"
+      - "'EXPORT_DUPLIQUE'"
+      - "modules/premier/init.zsh"
+      - "modules/second/init.zsh"
+      # Deux hooks reels : ni la ligne commentee ni celle qui mentionne la chaine sans
+      # rien enregistrer ne doivent etre comptees.
+      - "2 hooks chpwd"
+      - "_premier_chpwd"
+      - "_second_chpwd"
+    absent:
+      # Ce qui n est declare qu une fois n est pas un conflit.
+      - "'unique_premier'"
+      - "'unique_second'"
+      # Le compte fautif de l implementation actuelle.
+      - "4 hooks chpwd"
+      - "3 hooks chpwd"
+      # Le perimetre des exports est modules/ seulement : le meme nom exporte dans
+      # core/ et dans modules/ ne fait donc qu une declaration, pas un doublon.
+      - "'EXPORT_HORS_PERIMETRE'"
+      # La ligne commentee et la mention ne doivent apparaitre nulle part.
+      - "_commente_donc_inactif"
+      - "sans en poser un"

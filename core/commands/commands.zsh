@@ -343,6 +343,10 @@ zanvil-help() {
 # zanvil-doctor-conflicts : Détection des conflits entre modules
 # ==============================================================================
 zanvil-doctor-conflicts() {
+    if command -v zanvil &>/dev/null; then
+        zanvil conflicts; return $?
+    fi
+
     _ui_header "Conflicts"
     local issues=0
 
@@ -366,12 +370,15 @@ zanvil-doctor-conflicts() {
     # --- Fonctions publiques en double ---
     _ui_section "Fonctions" ""
     local fn_dups
-    fn_dups="$(grep -rh "^[a-z][a-z0-9_-]*() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
-        | sed "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
+    # Les deux syntaxes : `nom() {` et `function nom() {`. La seconde manquait, donc les
+    # sept fonctions de modules/gitlab/ etaient invisibles a cette detection — aucune
+    # n est en double aujourd hui, mais rien ne l aurait dit.
+    fn_dups="$(grep -rhE "^(function )?[a-z][a-z0-9_-]*\(\) \{" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null \
+        | sed -e "s/^function //" -e "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
     if [[ -n "$fn_dups" ]]; then
         while IFS= read -r f; do
             local files
-            files="$(grep -rl "^${f}() {" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
+            files="$(grep -rlE "^(function )?${f}\(\) \{" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${f}' → ${files}"
             ((issues++))
         done <<< "$fn_dups"
@@ -382,11 +389,22 @@ zanvil-doctor-conflicts() {
 
     # --- Hooks chpwd concurrents ---
     _ui_section "Hooks" ""
+    # Un seul motif pour le compte et pour la liste, et il exige que la ligne COMMENCE
+    # par l appel. Les deux precedents divergeaient — `grep -cv "^#"` n excluait que les
+    # lignes commencant par un diese, `grep -v "^.*#"` excluait toute ligne en contenant
+    # un — donc la commande annoncait 4 hooks sur ce depot et n en affichait que 2. Les
+    # deux de trop etaient ses propres lignes, qui cherchent la chaine ; elles ne
+    # s affichaient pas parce qu elles portent un diese dans leur motif, ce qui donnait
+    # le bon resultat pour la mauvaise raison.
+    #
+    # Exiger l appel en tete de ligne ecarte d un coup les commentaires, les mentions
+    # dans une chaine, et le code qui cherche la chaine sans rien enregistrer.
+    local _chpwd_pattern="^[[:space:]]*add-zsh-hook chpwd"
     local chpwd_count
-    chpwd_count="$(grep -rh "add-zsh-hook chpwd" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | grep -cv "^#")"
+    chpwd_count="$(grep -rhE "$_chpwd_pattern" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | grep -c .)"
     if [[ $chpwd_count -gt 1 ]]; then
         _ui_msg_warn "$chpwd_count hooks chpwd enregistrés (attention aux interactions)"
-        grep -rn "add-zsh-hook chpwd" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | grep -v "^.*#" | sed "s|$ZANVIL_DIR/||"
+        grep -rnE "$_chpwd_pattern" "$ZANVIL_DIR" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||"
         ((issues++))
     else
         _ui_msg_ok "${chpwd_count} hook chpwd"

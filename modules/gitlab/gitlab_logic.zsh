@@ -186,6 +186,36 @@ alias help-clone="list-gitlab-cmds"
 ### GITLAB STATUS & BROWSE ###
 
 # Vérifie le statut du Personal Access Token GitLab
+# Jours restants avant l expiration d une date `YYYY-MM-DD`, telle que l API GitLab la
+# rend dans le champ `expires_at` d un jeton personnel. Rien si la date est illisible.
+#
+# Ce calcul existait DEUX FOIS dans ce fichier, chacune avec son propre embranchement
+# `date -j -f` pour BSD et `date -d` pour GNU — le meme motif que le chantier 3 a paye
+# dans le module Elasticsearch. Il delegue desormais a la primitive partagee.
+#
+# Divergence assumee, sous la journee : `date` rendait minuit LOCAL, le CLI rend minuit
+# UTC. Sur un calcul en jours entiers l ecart ne se voit qu a moins de deux heures de
+# minuit, et minuit UTC a l avantage d etre le meme partout — c est une date que GitLab
+# donne, pas un instant.
+_gitlab_days_until() {
+    local when="$1"
+    [[ -z "$when" || "$when" == "null" ]] && return 1
+
+    local expire_epoch
+    if command -v zanvil &>/dev/null; then
+        expire_epoch=$(zanvil convert --from-iso "$when") || return 1
+    elif [[ "$OSTYPE" == darwin* ]]; then
+        expire_epoch=$(date -j -f "%Y-%m-%d" "$when" +%s 2>/dev/null)
+    else
+        expire_epoch=$(date -d "$when" +%s 2>/dev/null)
+    fi
+    # Le repli n a pas de code de sortie fiable : `date` rend 1 mais imprime aussi une
+    # ligne vide, donc c est le contenu qui decide.
+    [[ -n "$expire_epoch" ]] || return 1
+
+    print -r -- $(( (expire_epoch - $(date +%s)) / 86400 ))
+}
+
 function zanvil-gitlab-status() {
     [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
     local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
@@ -237,16 +267,8 @@ function zanvil-gitlab-status() {
     _ui_section "Expiration" "$expires_at"
 
     if [[ "$expires_at" != "null" && -n "$expires_at" ]]; then
-        local now_epoch expire_epoch days_left
-        now_epoch=$(date +%s)
-        if [[ "$OSTYPE" == darwin* ]]; then
-            expire_epoch=$(date -j -f "%Y-%m-%d" "$expires_at" +%s 2>/dev/null)
-        else
-            expire_epoch=$(date -d "$expires_at" +%s 2>/dev/null)
-        fi
-
-        if [[ -n "$expire_epoch" ]]; then
-            days_left=$(( (expire_epoch - now_epoch) / 86400 ))
+        local days_left
+        if days_left=$(_gitlab_days_until "$expires_at"); then
             if (( days_left < 0 )); then
                 _ui_msg_fail "Token EXPIRÉ depuis $(( -days_left )) jour(s) !"
             elif (( days_left <= 30 )); then
@@ -338,15 +360,8 @@ if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
         expires_at=$(echo "$response" | jq -r '.expires_at // empty' 2>/dev/null)
 
         if [[ -n "$expires_at" ]]; then
-            local now_epoch expire_epoch days_left
-            now_epoch=$(date +%s)
-            if [[ "$OSTYPE" == darwin* ]]; then
-                expire_epoch=$(date -j -f "%Y-%m-%d" "$expires_at" +%s 2>/dev/null)
-            else
-                expire_epoch=$(date -d "$expires_at" +%s 2>/dev/null)
-            fi
-            if [[ -n "$expire_epoch" ]]; then
-                days_left=$(( (expire_epoch - now_epoch) / 86400 ))
+            local days_left
+            if days_left=$(_gitlab_days_until "$expires_at"); then
                 if (( days_left < 0 )); then
                     echo -e "${_ui_red}[GitLab]${_ui_nc} Token PAT ${_ui_bold}EXPIRE${_ui_nc} depuis $(( -days_left )) jour(s) !"
                 elif (( days_left <= 14 )); then
