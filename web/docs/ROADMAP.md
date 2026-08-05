@@ -2,7 +2,7 @@
 
 > Programme de rebranding (`zsh_env` → **zanvil**) + nouvelles fonctionnalités.
 > Chaque item = une PR (`feature/*`/`feat/*` → minor, `hotfix/*` → patch, `breaking/*` → major) = une release auto via `auto-release.yml`.
-> Version actuelle : voir `core/ui.zsh` (`ZSH_ENV_VERSION`).
+> Version actuelle : voir `core/ui.zsh` (`ZANVIL_VERSION`).
 
 ## Livré
 
