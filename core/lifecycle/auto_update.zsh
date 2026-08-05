@@ -86,7 +86,13 @@ _zanvil_do_update() {
         fi
 
         # Detecter changement de version
-        local new_version=$(grep -oP 'ZANVIL_VERSION="\K[^"]+' "$ZANVIL_DIR/core/ui.zsh" 2>/dev/null)
+        # `sed -n` et non `grep -oP` : l option -P n existe pas dans le grep de macOS —
+        # « grep: invalid option -- P » — donc la version ne se lisait pas et le changement
+        # ne s annoncait jamais. En silence, puisque la sortie vide passe le test suivant.
+        #
+        # Le defaut etait invisible ici : ugrep, installe par Homebrew, prend la place de
+        # grep dans le PATH et accepte -P. Il a fallu appeler /usr/bin/grep pour le voir.
+        local new_version=$(sed -n 's/.*ZANVIL_VERSION="\([^"]*\)".*/\1/p' "$ZANVIL_DIR/core/ui.zsh" 2>/dev/null | head -1)
         if [[ -n "$new_version" && "$new_version" != "$old_version" ]]; then
             echo -e "  ${_ui_bold}$old_version ${_ui_arrow} $new_version${_ui_nc}"
         fi

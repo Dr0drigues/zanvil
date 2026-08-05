@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Cinquieme garde-fou, et le premier qui ne porte pas sur un renommage.
+#
+# Trois constructions que les outils de macOS ne connaissent pas ont ete trouvees dans ce
+# depot, et les trois echouaient EN SILENCE :
+#
+#   - `grep -oP` lisait une version et une liste de completions. L option n existe pas dans
+#     le grep de macOS, la sortie etait vide, et le code testait « si non vide ».
+#   - `\s` dans un sed empechait `zanvil-theme <nom>` de changer le skin k9s.
+#   - un `\n` dans un remplacement de sed n etait pas developpe.
+#
+# CE CONTROLE EXISTE PARCE QUE LA MACHINE QUI ECRIT LE CODE N EST PAS CELLE QUI LE SUBIT.
+# `grep` sur un poste de developpement est souvent ugrep ou GNU grep, installes par
+# Homebrew : les trois formes y fonctionnent. Il a fallu appeler /usr/bin/grep pour voir le
+# premier defaut, et aucun test fonctionnel ne l aurait attrape — la CI tourne sur ubuntu,
+# ou tout marche, et sur macOS avec les memes outils Homebrew.
+name: no-gnu-only-patterns-in-the-code
+weight: 9
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/gnu-only-patterns"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Une ligne par occurrence : rien a dire, rien a imprimer.
+    equals: ""
