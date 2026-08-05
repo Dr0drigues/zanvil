@@ -26,6 +26,10 @@ zanvil-sync() {
 # Export
 # ==============================================================================
 _zanvil_sync_export() {
+    if command -v zanvil &>/dev/null; then
+        zanvil sync export "$@"; return $?
+    fi
+
     local output="${1:-$ZANVIL_DIR/sync.json}"
     local config_file="$ZANVIL_DIR/config.zsh"
 
@@ -108,9 +112,16 @@ _zanvil_sync_import() {
     local input="$1"
     local config_file="$ZANVIL_DIR/config.zsh"
 
+    # La validation reste en zsh, avant la delegation : le refus et son message
+    # d usage sont identiques que le binaire soit la ou non, et un cas peut donc
+    # les asserter sans dependre de l installation.
     if [[ -z "$input" || ! -f "$input" ]]; then
         _ui_msg_fail "Usage: zanvil-sync import <fichier.json>"
         return 1
+    fi
+
+    if command -v zanvil &>/dev/null; then
+        zanvil sync import "$input"; return $?
     fi
 
     _ui_header "Zanvil Sync Import"
@@ -203,6 +214,10 @@ _zanvil_sync_diff() {
     if [[ -z "$input" || ! -f "$input" ]]; then
         _ui_msg_fail "Usage: zanvil-sync diff <fichier.json>"
         return 1
+    fi
+
+    if command -v zanvil &>/dev/null; then
+        zanvil sync diff "$input"; return $?
     fi
 
     if ! command -v jq &>/dev/null; then

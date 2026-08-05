@@ -117,9 +117,39 @@ Rust et non plus depuis son repli.
 |---|---|---|
 | 1 | **Réparer le binaire** | `zsh-env-cli` au lieu de `zanvil` : trois commandes cassées ou dégradées, 5 359 lignes de Rust inertes. La migration doit renommer, et un cas doit l'attraper. |
 | 2 | **`sync`** | Doublon pur : 274 lignes de zsh et 288 de Rust pour le même export/import/diff, avec **zéro** délégation entre les deux. |
+| | ↳ **fait le 5 août 2026**, et « doublon » était faux — voir ci-dessous. |
 | 3 | **`work/elasticsearch`** | 38 dépendances fragiles, le détecteur `date`, la duplication annotée avec `fetch_es_logs.sh`. |
 | 4 | **`core/commands/commands.zsh`** | 24 appels `jq`/`awk`/`sed` dans `zanvil-list`, `-status`, `-help`, `-doctor-conflicts`. `zanvil-doctor` est hors périmètre : il délègue déjà. |
 | 5 | **`gitlab_logic`** | 20 fragiles, mais 7 effets shell : migration **partielle**, la façade et les `export` restent en zsh. |
+
+### Chantier 2 — ce que la caractérisation a corrigé dans ce spec
+
+Le tableau ci-dessus annonce un « doublon pur ». **C'était faux, et c'est la caractérisation qui l'a
+montré** — avant qu'une ligne de Rust ne soit écrite. Les deux implémentations ne faisaient pas la même
+chose, et le CLI était incomplet en silence :
+
+| Sous-commande | Ce que le CLI perdait |
+|---|---|
+| `export` | les plugins — `plugins: vec![]` en dur, donc un poste qui en déclarait les perdait à la synchronisation |
+| `import` | **cinq réglages sur sept** : les trois d'auto-update et les deux thèmes clair/sombre, avec « Config importee » quand même |
+| `diff` | le thème n'était pas comparé, donc deux différences annoncées là où il y en avait trois |
+| les trois | aucun header, ce que la convention UI du projet exige |
+
+Brancher la délégation sur cet état aurait donc **régressé**, silencieusement, sur la commande dont le
+métier est justement de ne rien perdre entre deux machines. C'est l'argument le plus concret pour l'ordre
+des quatre étapes : ce n'est pas une précaution de principe, c'est ce qui a évité de casser `sync` en
+croyant l'améliorer.
+
+**Le critère « aucune dépendance à `jq` ni à `date` » demande une nuance.** `sync.zsh` en compte toujours
+15 et 2 : ils sont dans le **repli**, que CLAUDE.md exige de garder complet. Sur un poste équipé, plus
+aucun appel n'a lieu — la délégation intervient avant. Le critère se lit donc « plus aucune dépendance
+fragile sur le chemin emprunté », et le repli reste ce qu'il est : un mode dégradé, seul recours quand le
+binaire manque.
+
+**Un défaut trouvé en chemin, hors périmètre mais corrigé.** `cmd::print_header` dessinait une bordure de
+40 caractères pour une ligne de 44 : le cadre était ouvert à droite dans les **sept** commandes qui
+l'appellent. Le zsh compte les quatre espaces intérieurs, le Rust les oubliait. Sans cette correction, la
+délégation aurait dégradé l'affichage — les deux dessinent maintenant la même boîte, au caractère près.
 
 ## La méthode : caractériser avant de migrer
 

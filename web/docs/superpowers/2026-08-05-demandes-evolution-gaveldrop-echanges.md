@@ -3,6 +3,32 @@
 **Pour un agent travaillant dans `~/work/misc/gaveldrop`.** Rien n'a été modifié là-bas ; tout ce qui
 suit est décrit, jamais corrigé sur place.
 
+> **Répondu par la `v0.1.14` — sept demandes sur neuf livrées.** Vérifié contre l'archive publiée, par
+> comportement. Réponse détaillée dans `~/work/misc/gaveldrop/docs/superpowers/maj-zanvil-0-1-14.md`.
+>
+> | # | État | Constaté ici |
+> |---|---|---|
+> | 1. `shell.md` muet sur les échanges | livré | Les deux formes documentées, avec `weight`, `expect: {}` et la persistance de la racine isolée. |
+> | 2. `timeout:` par échange | livré | **8,3 s → 2,0 s.** « the case exits within 2.0s, exchanges included », l'échange tué est nommé, les non tentés le disent chacun sous son chemin. |
+> | 3. `calls` cumulatifs par échange | livré | La sonde qui donnait `2` au second échange donne `1`. Le global additionne toujours. |
+> | 4. Chemin d'un `calls` violé | livré | `steps[1] "le deuxieme se trompe".calls.outil`. |
+> | 5. « The body was empty » | livré | « there is no response document to walk … a process and a shell function answer text on standard output ». |
+> | 6. `time` sur les nœuds JUnit | **refusé** | Sur la condition que j'avais posée : la durée n'est pas mesurée par échange, donc la condition s'applique. Et le motif qui la justifiait est parti avec la nº 2. |
+> | 7. Règle d'agrégation non documentée | livré | Table dans `shell.md` et dans le schéma, sur `exit_code` et sur `steps`. |
+> | 8. `args_include` | livré | Vérifié en sonde : `theme` servi, `themes` refusé. La même sonde en `args_contain` laisse passer les deux — c'était bien le trou. |
+> | 9. Association sur une ligne | livré, **corrigé** | `line_includes`, adopté dans `cli-modules-list-reflects-config-zsh`. |
+>
+> **Sur la nº 9, ma proposition était fausse et ils l'ont corrigée.** Je demandais des fragments cherchés
+> comme sous-chaînes ; écrite ainsi, l'assertion **passe** sur la table inversée, puisque « inactif »
+> contient « actif ». Les valeurs sont donc comparées comme des **mots** — d'où `include` plutôt que
+> `contain`, la même distinction que pour `args_include`. Mes deux trous d'injection étaient le même trou.
+>
+> **Les demandes 10 et 11 sont postérieures à ce document** et restent ouvertes. La nº 11 empêche
+> d'adopter `args_include` dans `theme-delegates-to-the-cli-with-the-right-subcommand` : `fake.bins` étant
+> global, falsifier notre binaire pour ce cas rendrait les huit cas de `tests/cases/sync/` incapables
+> d'atteindre le vrai. `exec: real` ne dénoue pas le nœud — sur un runner il n'y a pas de vrai binaire
+> plus loin dans le `PATH`, donc les cas emprunteraient une délégation vers rien au lieu du repli zsh.
+
 ## Ce qui a produit ces demandes
 
 zanvil est passé de la 0.1.5 à la 0.1.12 d'un coup, sans document de mise à jour dans le canal. **Les 59
@@ -329,6 +355,77 @@ trouvée et ce qui y manquait.
 **Écarté :** `equals` sur la sortie entière. C'est possible aujourd'hui et c'est pire : treize lignes
 figées au lieu d'une, et un cas qui rougit dès qu'un module s'ajoute — alors que l'ajout d'un module est
 exactement ce que cette commande doit savoir faire.
+
+---
+
+# Deux demandes nées de la migration de `sync`
+
+Le chantier 2 du spec zsh/Rust a été mené jusqu'au bout avec gaveldrop comme filet : huit cas
+caractérisent la fonction zsh, le Rust a été complété jusqu'à les satisfaire, puis la délégation a été
+branchée. **Les huit passent inchangés dans les deux configurations** — le Rust quand le binaire est
+installé, le repli zsh quand il ne l'est pas. C'est exactement la non-régression que le format promet, et
+elle a tenu.
+
+Deux choses ont manqué en route.
+
+## 10. Rien ne permet d'asserter qu'un fichier n'a **pas** été écrit
+
+Un import qui refuse un fichier illisible ne doit rien laisser derrière lui — en particulier pas la
+sauvegarde `config.zsh.pre-import`, dont la présence signifierait qu'il avait déjà commencé à travailler.
+
+Le cas ne peut pas le dire. Les quatre champs de `expect.files` portent tous sur un contenu :
+
+```console
+case ...sync-import-refuses-a-missing-file.yaml is invalid:
+  expect.files.zanvil/config.zsh.pre-import: unknown field `absent_file`,
+  expected one of `contains`, `absent`, `equals`, `ignore_ansi`
+```
+
+Le message est bon — il liste les champs valides — mais il n'y en a aucun pour l'absence. Écrire
+`contains: []` ne dit rien, et `equals: ""` teste un fichier vide, ce qui est un autre fait.
+
+**Demandé :** un moyen de déclarer qu'un chemin ne doit pas exister à la fin du cas. L'information est
+déjà côté moteur, puisque `unmentioned files` sait lister ce qui a été écrit sans être asserté ; il
+manque de pouvoir la retourner en exigence.
+
+**Écarté :** un `expect.files` où la clé seule, sans valeur, vaudrait « absent ». Une clé qui change de
+sens selon qu'elle a un corps ou non se lit mal en revue, et le format tire sa valeur de l'inverse.
+
+## 11. `fake.bins` est global, donc falsifier son propre binaire interdit de l'utiliser ailleurs
+
+Le pattern de délégation est central dans zanvil : douze sous-commandes, invoquées depuis le zsh, dont
+`zanvil project` 47 fois. Une fonction fait `command -v zanvil` puis appelle le binaire **par son nom**.
+
+Pour vérifier *avec quels arguments* elle l'appelle, il faut un faux — donc `fake.bins: [zanvil]`. Mais
+`bins` est global à `gaveldrop.yaml`, et le faux prend la tête du `PATH` : les huit cas de
+`tests/cases/sync/` se sont alors mis à parler à un faux muet et à échouer en bloc, alors qu'ils ont
+besoin du vrai pour prouver que la délégation rend le même résultat que le repli.
+
+Les trois portes de sortie sont fermées, et chacune pour une bonne raison :
+
+- **`setup.env` refuse `PATH`** — « isolation defines it, and a case that could point it elsewhere would
+  undo the isolation it is running in ». Le refus est juste, et le message le dit bien.
+- **`setup.hide`** retire des répertoires entiers et ne pose pas de symlink pour l'outil hidé : il donne
+  « aucun zanvil », pas « le vrai zanvil ».
+- **`fake` par cas** n'accepte que `rules` et `render`, pas `bins`.
+
+Le résultat est qu'on doit choisir, pour toute la suite, entre observer les appels à son propre binaire
+et s'en servir. J'ai choisi de m'en servir, et le cas de délégation a perdu son assertion la plus forte —
+le nom exact de la sous-commande, vérifiable partout. Il ne détecte plus un renommage que là où le
+binaire est installé.
+
+**Demandé :** de quoi lever le choix. Deux formes possibles, par ordre de préférence :
+
+1. **`bins` déclarable par cas**, en complément du global — la symétrie de `setup.hide`, qui permet déjà
+   à un cas de se soustraire à une falsification globale. Ici il s'agirait de s'y ajouter.
+2. **Un `setup.expose`** qui ajoute un répertoire du projet devant le `PATH` de l'isolation sans le
+   remplacer. Plus général, mais il entame la propriété que le refus de `env.PATH` protège, donc la
+   première forme me paraît plus sûre.
+
+**Écarté :** qu'un hook dépose lui-même un script `zanvil` journalisant ses arguments dans un répertoire
+du `PATH`. C'est faisable — le `PATH` de l'isolation contient `$HOME/.local/bin` — et c'est
+précisément le contournement qu'il ne faut pas : ce serait réécrire `fake` et son journal à la main, dans
+un hook, sans le verdict `unexpected calls` qui en fait la valeur.
 
 ---
 
