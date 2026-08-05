@@ -44,6 +44,33 @@ _zanvil_migrate_from_zsh_env() {
             || echo "zanvil: avertissement: reecriture config.zsh echouee"
     fi
 
+    # env.d/*.zsh, qui manquait — et c'est le repertoire que la convention designe pour
+    # les variables d'environnement, donc celui ou les anciens noms sont les plus
+    # probables. Sur la machine de developpement, quatre reglages y etaient poses sous la
+    # forme ZSH_ENV_* et donc ignores : l'URL Elasticsearch, celle du Nexus, un timeout et
+    # un TTL de cache. Aucun message ne le disait.
+    #
+    # Les fichiers *.sops.zsh sont exclus : ils sont chiffres, et un sed dessus les
+    # rendrait indechiffrables. Leur contenu se remigre en clair, puis se rechiffre.
+    local envd="$new/env.d" f
+    if [[ -d "$envd" ]]; then
+        for f in "$envd"/*.zsh(N); do
+            [[ "$f" == *.sops.zsh ]] && continue
+            grep -q 'ZSH_ENV_' "$f" 2>/dev/null || continue
+            cp "$f" "${f}.bak-${ts}"
+            sed 's/ZSH_ENV_/ZANVIL_/g' "$f" > "${f}.tmp" \
+                && mv "${f}.tmp" "$f" \
+                && echo "zanvil: env.d/${f:t} migre" \
+                || echo "zanvil: avertissement: reecriture ${f:t} echouee"
+        done
+        # Un fichier chiffre qui porte l'ancien nom ne peut pas etre migre ici, mais se
+        # taire reviendrait a laisser un reglage mort sans le dire — ce que ce volet
+        # existe pour empecher.
+        for f in "$envd"/*.sops.zsh(N); do
+            echo "zanvil: ${f:t} est chiffre — verifiez ses ZSH_ENV_* a la main"
+        done
+    fi
+
     echo "zanvil: migration terminee (backup: ${bak}). Rechargement..."
     export ZANVIL_DIR="$new"
     [[ -n "$ZANVIL_MIGRATE_NO_EXEC" ]] && return 0

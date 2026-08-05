@@ -1,13 +1,23 @@
 # Chantier — les vestiges du renommage `zsh_env` → `zanvil`
 
-> **Volet 2 livré le 5 août 2026.** `doctor` porte une section `Reglages` qui nomme les réglages posés
-> sous l'ancien nom, et il trouve exactement les quatre que l'inventaire manuel ci-dessous avait trouvés —
-> ni plus, ni moins. Les trois noms sans équivalent lu ne produisent aucun bruit.
+> **Les trois volets sont livrés, le 5 août 2026.**
 >
-> Restent les volets 1 et 3 : étendre la migration à `env.d/` (qui ne répare pas les postes déjà passés,
-> d'où l'ordre) et corriger `ROADMAP.md:5`, qui renvoie encore à `ZSH_ENV_VERSION`.
+> **Volet 2 d'abord**, parce que c'est le seul qui atteint les postes déjà migrés. `doctor` porte une
+> section `Reglages` qui trouve exactement les quatre réglages de l'inventaire ci-dessous — ni plus, ni
+> moins, les trois noms sans équivalent lu ne produisant aucun bruit.
+>
+> **Volet 1** : la migration couvre `env.d/*.zsh`, et laisse les `*.sops.zsh` intacts — un `sed` sur un
+> fichier chiffré le rendrait indéchiffrable — en signalant qu'ils restent à vérifier à la main.
+>
+> **Volet 3** : `ROADMAP.md` renvoie désormais à `ZANVIL_VERSION`.
+>
+> **Un vestige reste, hors de portée d'ici.** `secrets/work/certificates_unix.sh` lit
+> `ZSH_ENV_WORK_PKI_URL` alors que `examples/env.d/work.zsh` documente `ZANVIL_WORK_PKI_URL` : le script
+> et le modèle ne parlent pas de la même variable. Le fichier en clair n'est pas versionné, mais son
+> `.enc` l'est, donc le corriger demande de déchiffrer et rechiffrer avec la clé age — ce qui appartient
+> à qui la détient.
 
-**À prendre en compte, partiellement fait.** Ce document est le cadrage, écrit pendant le chantier 3 du
+**Fait le 5 août 2026.** Ce document est le cadrage, écrit pendant le chantier 3 du
 spec zsh/Rust parce que c'est là que le problème est apparu deux fois de suite.
 
 ## Ce qui a déclenché ce cadrage
