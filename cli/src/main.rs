@@ -69,6 +69,8 @@ enum Commands {
         action: ProjectAction,
     },
     /// Fan-out a change as a MR/PR across multiple env branches
+    /// Report duplicate declarations across the project's zsh files
+    Conflicts,
     /// Elasticsearch query helpers
     Es {
         #[command(subcommand)]
@@ -95,6 +97,7 @@ fn main() {
         Commands::Bench { runs } => cmd::bench::run(runs),
         Commands::Update { check } => cmd::update::run(check),
         Commands::Project { action } => cmd::project::run(action),
+        Commands::Conflicts => cmd::conflicts::run(),
         Commands::Es { action } => {
             let code = cmd::es::run(action);
             if code != 0 {
