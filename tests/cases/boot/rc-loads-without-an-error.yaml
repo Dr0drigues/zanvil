@@ -95,6 +95,27 @@ expect:
       - "command not found"
       - "parse error"
       - "no such file or directory"
+  # Le demarrage d un shell ne doit toucher a rien de personnel. Il ecrit legitimement
+  # dans $ZANVIL_DIR — .last_update_check, .work_context_cache — et dans le cache de
+  # completion ; tout le reste est a lui.
+  #
+  # Les quatre chemins ci-dessous sont ceux dont la modification silencieuse serait la
+  # plus grave : la configuration du shell lui-meme, celle de git, celle de SSH. Aucun
+  # module n a de raison d y toucher au chargement, et l assertion etait inexprimable avant
+  # la 0.1.15 — `expect.files` ne portait que sur des contenus.
+  #
+  # Aucun de ces fichiers n existe dans l isolation — le hook n en depose aucun — donc
+  # l assertion dit ici « n a pas ete cree » et non « a survecu ». La cle ne distingue pas
+  # les deux, et c est la lecture faible ; elle suffit pour ce que ce cas verifie, un
+  # module qui ecrirait dans le .zshrc de quelqu un le CREANT dans l isolation.
+  #
+  # Prouver la survie demanderait de les creer dans le hook, ce qui ferait de ce cas de
+  # chargement une fixture d environnement complet — un autre sujet.
+  not_written:
+    - "$HOME/.zshrc"
+    - "$HOME/.gitconfig"
+    - "$HOME/.ssh/config"
+    - "$HOME/.secrets"
   calls:
     posting: 1
     delta: 1

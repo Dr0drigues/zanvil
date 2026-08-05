@@ -1183,6 +1183,13 @@ kube_k9s_setup() {
         return 1
     fi
 
+    # `_k9s_config_dir` est definie dans core/commands/theme.zsh, pas ici. La dependance
+    # est implicite : le loader charge core/ avant modules/, donc elle existe toujours a
+    # l execution — mais rien dans ce fichier ne le dit, et un cas qui source ce module
+    # seul echoue avec « command not found ». Ecrit plutot que deplace : la fonction rend
+    # un chemin que le theme et le module ont tous deux besoin de connaitre, et la sortir
+    # dans un troisieme fichier pour une question de rangement couterait plus que ces
+    # trois lignes.
     local k9s_dir
     k9s_dir=$(_k9s_config_dir)
     mkdir -p "$k9s_dir/skins"
