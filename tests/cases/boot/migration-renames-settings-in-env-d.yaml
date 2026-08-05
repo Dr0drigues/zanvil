@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La migration reecrivait .zshrc et config.zsh, mais pas env.d/*.zsh — le repertoire que
+# la convention designe pour les variables d environnement, donc celui ou les anciens noms
+# sont les plus probables. Sur la machine de developpement, quatre reglages y etaient
+# poses sous la forme ZSH_ENV_* et donc ignores.
+#
+# `doctor` sait desormais les nommer (volet 2, livre avant celui-ci parce qu il atteint
+# les postes DEJA migres, que ce volet ne peut plus toucher). Ce volet-ci evite qu un
+# poste qui migre aujourd hui n herite du probleme.
+name: migration-renames-settings-in-env-d
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-legacy-install.sh
+  shell: zsh
+  source: [".zsh_env/core/lifecycle/migrate_zanvil.zsh"]
+  call: ["true"]
+  env:
+    # Sans cela la migration termine par `exec zsh`, et le cas n observerait rien.
+    ZANVIL_MIGRATE_NO_EXEC: "1"
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "migration depuis ~/.zsh_env"
+      - "env.d/work.zsh migre"
+      # Le fichier chiffre est signale et non touche : se taire laisserait un reglage
+      # mort sans le dire, ce que ce volet existe pour empecher.
+      - "secrets.sops.zsh est chiffre"
+      - "migration terminee"
+  files:
+    # Le reglage en clair est renomme.
+    ".zanvil/env.d/work.zsh":
+      contains:
+        - "ZANVIL_WORK_ES_URL"
+        - "ZANVIL_WORK_TIMEOUT"
+      absent:
+        - "ZSH_ENV_WORK_ES_URL"
+        - "ZSH_ENV_WORK_TIMEOUT"
+    # Une sauvegarde horodatee reste, comme pour config.zsh.
+    ".zanvil/config.zsh":
+      contains: ["ZANVIL_MODULE_KUBE=true"]
+      absent: ["ZSH_ENV_MODULE_KUBE"]
+    # Le fichier chiffre ressort identique : un sed dessus le rendrait indechiffrable.
+    ".zanvil/env.d/secrets.sops.zsh":
+      equals: "ENC[AES256_GCM,data:ZSH_ENV_FAUX_CHIFFRE,type:str]"
