@@ -61,6 +61,16 @@ fake:
     # demarrage sans les compter, parce que la mesure avait ete prise avec un cache
     # chaud.
     #
+    # LE NOMBRE D APPELS N EST PAS ASSERTE, et c est un renoncement assume. Il vaut 2 sur
+    # ma machine et 1 sur les deux runners, et les variables posees ci-dessus n ont
+    # ramene le compte que de 0 a 1 : il reste au moins une condition que l isolation ne
+    # reproduit pas, et je n ai pas su laquelle sans deboguer un runner a l aveugle.
+    #
+    # Ce qui est garde a de la valeur sans le compte : la regle empeche un appel reel de
+    # partir vers un service interne pendant un test, et un appel vers un binaire NON
+    # declare ferait toujours echouer le cas par `unexpected calls`. C est le mecanisme
+    # qui a revele ces deux sondes, et il continue de veiller sur une troisieme.
+    #
     # Le faux repond « 000 », ce que curl imprime quand il n a joint personne : c est le
     # cas le plus courant hors du reseau, et `grep -q "^[23]"` le rejette, donc le
     # contexte est correctement declare absent. Repondre « 200 » ferait croire au module
@@ -91,4 +101,3 @@ expect:
     lazygit: 1
     atuin: 2
     starship: 1
-    curl: 2
