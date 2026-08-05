@@ -57,6 +57,8 @@ pub fn run(action: SyncAction) {
 }
 
 fn export(output: &str) {
+    crate::cmd::print_header("Zanvil Sync Export");
+
     let content = match config::read_config() {
         Ok(c) => c,
         Err(e) => {
@@ -115,7 +117,9 @@ fn export(output: &str) {
         theme,
         theme_light,
         theme_dark,
-        plugins: vec![],
+        // Les plugins etaient exportes comme un tableau vide en dur. Un poste qui en
+        // declarait les perdait a la synchronisation, sans que rien ne le signale.
+        plugins: config::parse_array(&content, "ZANVIL_PLUGINS"),
         auto_update: AutoUpdateConfig {
             enabled: au_enabled,
             frequency: au_freq,
@@ -139,13 +143,32 @@ fn export(output: &str) {
                 eprintln!("{} Erreur: {}", "✗".red(), e);
             } else {
                 println!("{} Config exportee: {}", "✓".green(), output_path.display());
+                println!();
+                // Le meme resume que le zsh imprimait : ce qui vient de partir dans le
+                // fichier, en trois lignes, pour qu on n ait pas a l ouvrir.
+                crate::cmd::print_section("Version", &sync.version);
+                crate::cmd::print_section("Theme", &sync.theme);
+                crate::cmd::print_section("Modules", &compact_modules(&sync.modules));
             }
         }
         Err(e) => eprintln!("{} Serialisation: {}", "✗".red(), e),
     }
 }
 
+/// Rend les modules sur une ligne, comme le resume du zsh les affichait.
+fn compact_modules(modules: &BTreeMap<String, bool>) -> String {
+    let inner: Vec<String> = modules
+        .iter()
+        .map(|(name, enabled)| format!("\"{}\":{}", name, enabled))
+        .collect();
+    format!("{{{}}}", inner.join(","))
+}
+
 fn import(file: &str) {
+    crate::cmd::print_header("Zanvil Sync Import");
+    crate::cmd::print_section("Source", file);
+    println!();
+
     let content = match fs::read_to_string(file) {
         Ok(c) => c,
         Err(e) => {
@@ -188,6 +211,40 @@ fn import(file: &str) {
         }
     }
 
+    // Les cinq reglages que cet import ignorait, alors qu il annoncait « Config
+    // importee » : les deux themes clair/sombre et les trois d auto-update. Un
+    // utilisateur qui synchronisait deux machines croyait sa config alignee.
+    //
+    // Une valeur vide n est pas appliquee : le JSON porte `""` quand la machine
+    // d origine n avait pas le reglage, et poser `CLE=` dans config.zsh donnerait a une
+    // absence la forme d un choix.
+    if !sync.theme_light.is_empty() {
+        config_content = config::set_value(&config_content, "ZANVIL_THEME_LIGHT", &sync.theme_light);
+    }
+    if !sync.theme_dark.is_empty() {
+        config_content = config::set_value(&config_content, "ZANVIL_THEME_DARK", &sync.theme_dark);
+    }
+    config_content = config::set_value(
+        &config_content,
+        "ZANVIL_AUTO_UPDATE",
+        &sync.auto_update.enabled.to_string(),
+    );
+    config_content = config::set_value(
+        &config_content,
+        "ZANVIL_UPDATE_FREQUENCY",
+        &sync.auto_update.frequency.to_string(),
+    );
+    if !sync.auto_update.mode.is_empty() {
+        // Les guillemets sont la convention du fichier pour cette cle, et le zsh les
+        // ecrivait : sans eux, `ss` relirait une valeur nue la ou la config en attend
+        // une citee.
+        config_content = config::set_value(
+            &config_content,
+            "ZANVIL_UPDATE_MODE",
+            &format!("\"{}\"", sync.auto_update.mode),
+        );
+    }
+
     if let Err(e) = config::write_config(&config_content) {
         eprintln!("{} {}", "✗".red(), e);
         return;
@@ -204,6 +261,10 @@ fn import(file: &str) {
 }
 
 fn diff(file: &str) {
+    crate::cmd::print_header("Zanvil Sync Diff");
+    crate::cmd::print_section("Source", file);
+    println!();
+
     let content = match fs::read_to_string(file) {
         Ok(c) => c,
         Err(e) => {
@@ -264,6 +325,33 @@ fn diff(file: &str) {
                 format!("  {:<28} {:<12} {}", format!("ZANVIL_MODULE_{}", name), local_str, remote_str).dimmed()
             );
         }
+    }
+
+    // Le theme etait absent de cette comparaison, donc le compte etait faux : deux
+    // differences annoncees la ou il y en avait trois. Quelqu un qui lisait « 2 » et
+    // importait decouvrait son prompt change a un reglage de plus que ce que la
+    // commande lui avait montre.
+    let local_theme = fs::read_to_string(config::zanvil_dir().join(".current_theme"))
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    let local_theme_str = if local_theme.is_empty() {
+        "default".to_string()
+    } else {
+        local_theme
+    };
+    if local_theme_str != sync.theme {
+        println!(
+            "  {:<28} {:<12} {}",
+            "theme".yellow(),
+            local_theme_str,
+            sync.theme.cyan()
+        );
+        diffs += 1;
+    } else {
+        println!(
+            "  {}",
+            format!("  {:<28} {:<12} {}", "theme", local_theme_str, sync.theme).dimmed()
+        );
     }
 
     println!();

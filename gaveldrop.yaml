@@ -7,10 +7,5 @@ cases: tests/cases/**/*.yaml
 #
 # fzf sert les cas du viewer : les uns le simulent pour choisir son code de sortie, un
 # autre le cache pour eprouver le repli. Les deux coexistent depuis la v0.1.1.
-# `zanvil` est declare parmi les faux pour une raison differente des autres : ce n est
-# pas une dependance externe, c est notre propre binaire. Une fonction zsh qui delegue
-# fait `command -v zanvil` puis l appelle par son nom, donc seul un faux dans le PATH
-# permet de verifier AVEC QUELS ARGUMENTS elle l appelle. Les cas qui veulent le vrai
-# binaire l invoquent par chemin absolu, que le shadowing du PATH n atteint pas.
 fake:
-  bins: [posting, delta, lazygit, atuin, fzf, zanvil]
+  bins: [posting, delta, lazygit, atuin, fzf]

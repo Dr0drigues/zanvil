@@ -332,6 +332,77 @@ exactement ce que cette commande doit savoir faire.
 
 ---
 
+# Deux demandes nées de la migration de `sync`
+
+Le chantier 2 du spec zsh/Rust a été mené jusqu'au bout avec gaveldrop comme filet : huit cas
+caractérisent la fonction zsh, le Rust a été complété jusqu'à les satisfaire, puis la délégation a été
+branchée. **Les huit passent inchangés dans les deux configurations** — le Rust quand le binaire est
+installé, le repli zsh quand il ne l'est pas. C'est exactement la non-régression que le format promet, et
+elle a tenu.
+
+Deux choses ont manqué en route.
+
+## 10. Rien ne permet d'asserter qu'un fichier n'a **pas** été écrit
+
+Un import qui refuse un fichier illisible ne doit rien laisser derrière lui — en particulier pas la
+sauvegarde `config.zsh.pre-import`, dont la présence signifierait qu'il avait déjà commencé à travailler.
+
+Le cas ne peut pas le dire. Les quatre champs de `expect.files` portent tous sur un contenu :
+
+```console
+case ...sync-import-refuses-a-missing-file.yaml is invalid:
+  expect.files.zanvil/config.zsh.pre-import: unknown field `absent_file`,
+  expected one of `contains`, `absent`, `equals`, `ignore_ansi`
+```
+
+Le message est bon — il liste les champs valides — mais il n'y en a aucun pour l'absence. Écrire
+`contains: []` ne dit rien, et `equals: ""` teste un fichier vide, ce qui est un autre fait.
+
+**Demandé :** un moyen de déclarer qu'un chemin ne doit pas exister à la fin du cas. L'information est
+déjà côté moteur, puisque `unmentioned files` sait lister ce qui a été écrit sans être asserté ; il
+manque de pouvoir la retourner en exigence.
+
+**Écarté :** un `expect.files` où la clé seule, sans valeur, vaudrait « absent ». Une clé qui change de
+sens selon qu'elle a un corps ou non se lit mal en revue, et le format tire sa valeur de l'inverse.
+
+## 11. `fake.bins` est global, donc falsifier son propre binaire interdit de l'utiliser ailleurs
+
+Le pattern de délégation est central dans zanvil : douze sous-commandes, invoquées depuis le zsh, dont
+`zanvil project` 47 fois. Une fonction fait `command -v zanvil` puis appelle le binaire **par son nom**.
+
+Pour vérifier *avec quels arguments* elle l'appelle, il faut un faux — donc `fake.bins: [zanvil]`. Mais
+`bins` est global à `gaveldrop.yaml`, et le faux prend la tête du `PATH` : les huit cas de
+`tests/cases/sync/` se sont alors mis à parler à un faux muet et à échouer en bloc, alors qu'ils ont
+besoin du vrai pour prouver que la délégation rend le même résultat que le repli.
+
+Les trois portes de sortie sont fermées, et chacune pour une bonne raison :
+
+- **`setup.env` refuse `PATH`** — « isolation defines it, and a case that could point it elsewhere would
+  undo the isolation it is running in ». Le refus est juste, et le message le dit bien.
+- **`setup.hide`** retire des répertoires entiers et ne pose pas de symlink pour l'outil hidé : il donne
+  « aucun zanvil », pas « le vrai zanvil ».
+- **`fake` par cas** n'accepte que `rules` et `render`, pas `bins`.
+
+Le résultat est qu'on doit choisir, pour toute la suite, entre observer les appels à son propre binaire
+et s'en servir. J'ai choisi de m'en servir, et le cas de délégation a perdu son assertion la plus forte —
+le nom exact de la sous-commande, vérifiable partout. Il ne détecte plus un renommage que là où le
+binaire est installé.
+
+**Demandé :** de quoi lever le choix. Deux formes possibles, par ordre de préférence :
+
+1. **`bins` déclarable par cas**, en complément du global — la symétrie de `setup.hide`, qui permet déjà
+   à un cas de se soustraire à une falsification globale. Ici il s'agirait de s'y ajouter.
+2. **Un `setup.expose`** qui ajoute un répertoire du projet devant le `PATH` de l'isolation sans le
+   remplacer. Plus général, mais il entame la propriété que le refus de `env.PATH` protège, donc la
+   première forme me paraît plus sûre.
+
+**Écarté :** qu'un hook dépose lui-même un script `zanvil` journalisant ses arguments dans un répertoire
+du `PATH`. C'est faisable — le `PATH` de l'isolation contient `$HOME/.local/bin` — et c'est
+précisément le contournement qu'il ne faut pas : ce serait réécrire `fake` et son journal à la main, dans
+un hook, sans le verdict `unexpected calls` qui en fait la valeur.
+
+---
+
 ## Ce qui tient, et qu'il ne faut pas retoucher
 
 Éprouvé et solide, consigné pour que personne n'y touche en corrigeant le reste :
