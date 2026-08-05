@@ -1,9 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
 #
-# `kube_k9s_setup` ECRASAIT le plugins.yaml de l utilisateur, sans sauvegarde ni
-# avertissement : quiconque avait ses propres plugins k9s les perdait au premier appel. Le
-# defaut a ete trouve en construisant l installateur autonome du plugin de logs, qui a du
-# resoudre le meme probleme et l a resolu autrement.
+# La SECONDE branche de _zanvil_k9s_apply_skin : un config.yaml sans ligne `skin:`, ou la
+# cle doit etre INSEREE apres `noIcons:` et non remplacee.
+#
+# Elle etait cassee sur macOS pour une raison propre : le remplacement d un `sed` portait
+# un `\n`, que BSD ne developpe pas. L autre branche l etait a cause de `\s`, que BSD ne
+# connait pas. Deux causes distinctes, donc deux cas — et les deux embranchements
+# `darwin*` du code donnaient l illusion d un traitement portable la ou les deux cotes
+# etaient faux.
 #
 # k9s lit `plugins.yaml` ET `plugins/*.yaml`. Le second format porte ses entrees A LA
 # RACINE, sans la cle `plugins:` — verifie en deposant une sonde et en lisant le journal de
@@ -17,10 +21,10 @@
 # en nommerait un serait vrai sur une plateforme et trivialement vrai sur l autre — le
 # fichier n y existant pas, l assertion ne prouverait rien. La fonction est donc invoquee,
 # puis le cas lit ce qu elle a produit LA OU elle l a produit.
-name: k9s-setup-leaves-an-existing-plugins-file-alone
+name: k9s-setup-adds-a-skin-key-when-none-exists
 weight: 9
 setup:
-  exec: ./tests/hooks/prepare-k9s-with-existing-plugins.sh
+  exec: ./tests/hooks/prepare-k9s-without-a-skin-key.sh
   shell: zsh
   # theme.zsh d abord : il definit _k9s_config_dir, que kube_config.zsh appelle sans la
   # declarer — une dependance implicite entre un module et le core, que le loader satisfait
@@ -28,7 +32,7 @@ setup:
   source: ["core/ui.zsh", "core/commands/theme.zsh", "modules/kube/kube_config.zsh"]
   # La fonction depose QUATRE fichiers ; chacun est verifie, et le plugins.yaml de
   # l utilisateur est verifie intact.
-  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/tokyo-night-pro.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$(grep -c 'skin: tokyo-night-pro' \"$d/config.yaml\" 2>/dev/null)\"; printf 'ANCIEN_SKIN:%s\\n' \"$(grep -c 'un-skin-que-l-utilisateur-avait' \"$d/config.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
+  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/tokyo-night-pro.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$(grep -c 'skin: tokyo-night-pro' \"$d/config.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
   env:
     ZANVIL_DIR: "$HOME/zanvil"
     ZANVIL_MODULE_KUBE: "true"
@@ -61,10 +65,6 @@ expect:
       - "HOTKEYS:1"
       - "SKIN_FICHIER:oui"
       - "SKIN_CHOISI:1"
-      # L ancien skin doit avoir DISPARU, pas cohabiter. Sans cette ligne, une
-      # implementation qui insererait la nouvelle cle sans retirer l ancienne passait :
-      # k9s lirait alors deux `skin:` dans la meme section et en choisirait un.
-      - "ANCIEN_SKIN:0"
       # Un plugins.yaml present est signale : k9s chargerait les deux et l un gagnerait
       # sans le dire.
       - "plugins.yaml existe"

@@ -45,18 +45,59 @@ k9s:
     noIcons: false
     skin: $theme
 EOF
-    elif grep -q "^\s*skin:" "$k9s_config"; then
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
-        else
-            sed -i "s|^\(\s*skin:\).*|\1 $theme|" "$k9s_config"
-        fi
     else
-        # Config existante sans skin: → injecter après noIcons: dans la section ui:
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+        # Réécriture ligne par ligne, en zsh, sans `sed`.
+        #
+        # Les deux branches précédentes étaient CASSÉES SUR macOS, et silencieusement :
+        #
+        #   - `grep -q "^\s*skin:"` et le `sed` qui suivait employaient `\s`, que BSD ne
+        #     connaît pas. La condition était donc fausse et le remplacement sans effet.
+        #   - la branche d'insertion mettait un `\n` dans le remplacement d'un `sed`, ce
+        #     que BSD ne développe pas non plus.
+        #
+        # Résultat : `zanvil-theme <nom>` laissait le skin k9s inchangé dès qu'un
+        # config.yaml existait, sans rien dire. Les deux embranchements `darwin*` donnaient
+        # l'illusion d'un traitement portable là où les deux côtés étaient faux.
+        #
+        # Le zsh ne dépend d'aucune variante : il lit, décide, réécrit. Lire un fichier de
+        # configuration de quelques lignes n'a jamais eu besoin de `sed`.
+        #
+        # `(#b)` — les backreferences dans un motif — demande extendedglob, et
+        # `localoptions` limite l'activation à cette fonction : la poser globalement
+        # changerait le comportement des globs du shell appelant.
+        setopt localoptions extendedglob
+
+        # Deux passes, et l'ordre compte : décider AVANT d'écrire. Une seule passe qui
+        # insérait après `noIcons:` puis remplaçait un `skin:` plus loin en posait deux —
+        # c'est ce que le cas a montré, avec un « SKIN_CHOISI:2 » qu'aucune relecture du
+        # code n'aurait rendu évident.
+        local -a lignes
+        local ligne
+        local remplace=false trouve=false
+        while IFS= read -r ligne; do
+            [[ "$ligne" == [[:space:]]#skin:* ]] && remplace=true
+        done < "$k9s_config"
+
+        while IFS= read -r ligne; do
+            if [[ "$remplace" == true && "$ligne" == (#b)([[:space:]]#)skin:* ]]; then
+                lignes+=("${match[1]}skin: $theme")
+                trouve=true
+            else
+                lignes+=("$ligne")
+                # Config sans `skin:` : la clé s'insère après `noIcons:`, dans la même
+                # section et avec la même indentation.
+                if [[ "$remplace" == false && "$trouve" == false \
+                    && "$ligne" == (#b)([[:space:]]#)noIcons:* ]]; then
+                    lignes+=("${match[1]}skin: $theme")
+                    trouve=true
+                fi
+            fi
+        done < "$k9s_config"
+
+        if [[ "$trouve" == true ]]; then
+            print -rl -- "${lignes[@]}" > "$k9s_config"
         else
-            sed -i "s|^\(    noIcons:.*\)|\1\n    skin: $theme|" "$k9s_config"
+            _ui_msg_warn "config.yaml k9s sans 'ui:' reconnaissable — skin non applique"
         fi
     fi
 }

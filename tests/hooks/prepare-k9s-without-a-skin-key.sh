@@ -1,5 +1,8 @@
 #!/bin/sh
-# Depose un plugins.yaml k9s DEJA present, pour que le cas puisse prouver qu il survit.
+# Comme prepare-k9s-with-existing-plugins.sh, mais le config.yaml n a PAS de ligne
+# `skin:` — ce qui exerce la branche d insertion de _zanvil_k9s_apply_skin au lieu de
+# celle du remplacement. Les deux etaient cassees sur macOS, chacune pour une raison
+# differente, et il faut donc deux cas.
 #
 # `not_written` ne dit rien de l existence : un fichier jamais cree n est pas ecrit, et un
 # fichier deja la et laisse tranquille non plus. Pour prouver qu une chose SURVIT, il faut
@@ -41,7 +44,6 @@ k9s:
   liveViewAutoRefresh: false
   ui:
     noIcons: false
-    skin: un-skin-que-l-utilisateur-avait
 YAML
     cat >"$d/plugins.yaml" <<'YAML'
 plugins:
