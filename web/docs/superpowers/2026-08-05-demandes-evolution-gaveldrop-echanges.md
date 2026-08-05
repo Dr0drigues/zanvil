@@ -1,0 +1,358 @@
+# Demandes d'évolution gaveldrop — les échanges, depuis zanvil
+
+**Pour un agent travaillant dans `~/work/misc/gaveldrop`.** Rien n'a été modifié là-bas ; tout ce qui
+suit est décrit, jamais corrigé sur place.
+
+## Ce qui a produit ces demandes
+
+zanvil est passé de la 0.1.5 à la 0.1.12 d'un coup, sans document de mise à jour dans le canal. **Les 59
+cas passent inchangés** : 223/223, en 11,2 s contre 13,8 s — sept versions d'écart, zéro adaptation. La
+deuxième propriété du format tient, et c'est ce qui a permis de travailler sur le reste.
+
+Les quatre findings du rapport 0.1.5 sont corrigés et vérifiés par comportement, pas d'après le
+changelog : le groupe de processus est bien tué (l'enfant tourne pendant le run, zéro après), le nom vide
+est refusé avec les trois arguments demandés, le `..` est résolu avant la comparaison, et `timeout: 0`
+est refusé avec « disarms the guard rather than tightening it ».
+
+Les demandes ci-dessous portent toutes sur les **échanges** (0.1.11/0.1.12), parce que c'est le code le
+plus récent et que zanvil en est le premier consommateur shell. Elles sont classées par ce qu'elles
+coûtent, pas par difficulté.
+
+Le rapport complet, avec les reproductions et ce qui tient :
+`~/.zanvil/web/docs/superpowers/reports/2026-08-05-gaveldrop-0-1-12-echanges.md`.
+
+---
+
+## 1. Bloquant : `docs/shell.md` ne mentionne pas les échanges
+
+C'est la seule demande qui a coûté du travail immédiat. Pour écrire mon premier cas à échanges, j'ai dû
+lire `crates/gaveldrop/src/adapters/process.rs` — le geste exact que la troisième propriété du projet
+cherche à rendre inutile.
+
+Le support existe et il est **double**, ce que rien n'annonce côté doc :
+
+```yaml
+steps:
+  - name: "l ecriture pose l etat"
+    request: { run: ["sh", "-c", "echo ecrit > note.txt"] }   # commande propre a l echange
+    expect: { exit_code: 0 }
+  - name: "la relecture retrouve le meme etat"
+    request: { run: ["sh", "-c", "cat note.txt"] }
+    expect: { stdout: { contains: ["ecrit"] } }
+```
+
+et un échange **sans** `request`, qui réinvoque le `setup.run` — la répétition d'invocation de la #142,
+vérifiée sur `process.rs:504-512`.
+
+**Demandé :** une section « Exchanges » dans `docs/shell.md`, avec les deux formes et une phrase sur ce
+qui est partagé entre échanges. Deux points valent d'y figurer parce qu'ils m'ont coûté un aller-retour
+chacun : **`weight` est requis**, et **`expect:` au niveau du cas l'est aussi** — même quand chaque
+échange porte le sien, il faut écrire `expect: {}`.
+
+Un troisième mérite une phrase, parce qu'il décide de la faisabilité d'un scénario : **l'état de la
+racine isolée persiste entre les échanges**. C'est ce qui rend testable un export suivi d'une relecture,
+et c'est exactement l'usage pour lequel zanvil va s'en servir.
+
+**Écarté :** générer cette section depuis `case.schema.json`. Le schéma dit ce qu'une clé accepte ;
+`shell.md` doit dire ce qu'un `run` répété *signifie* pour un processus, ce qu'aucune description de
+champ ne porte.
+
+## 2. Majeur : le `timeout:` borne chaque échange, pas le cas
+
+Reproduction, contre l'archive publiée de la 0.1.12 :
+
+```yaml
+name: quatre-echanges-bloques
+weight: 1
+timeout: 2
+setup: { run: ["sh", "-c", "true"] }
+steps:
+  - { name: "premier bloque",   request: { run: ["sh", "-c", "while true; do sleep 1; done"] }, expect: {} }
+  - { name: "deuxieme bloque",  request: { run: ["sh", "-c", "while true; do sleep 1; done"] }, expect: {} }
+  - { name: "troisieme bloque", request: { run: ["sh", "-c", "while true; do sleep 1; done"] }, expect: {} }
+  - { name: "quatrieme bloque", request: { run: ["sh", "-c", "while true; do sleep 1; done"] }, expect: {} }
+expect: {}
+```
+
+```console
+FAIL quatre-echanges-bloques  0/1  8.3s
+    timeout
+      expected  the subject exits within 2.0s
+      got       still running after 2.0s, so it was killed. […] it wrote nothing at all
+```
+
+Le cas annonce 2 s et tient **8,3 s**. Le verdict imprime « exits within 2.0s » à trois caractères du
+`8.3s` qu'il vient de mesurer. Un cas à vingt échanges avec `timeout: 30` peut tenir dix minutes en
+annonçant trente secondes.
+
+Le comptage est aussi partiel. Dans `gathered()` :
+
+```rust
+let timed_out_after_ms = steps.iter().filter_map(|seen| seen.timed_out_after_ms).next();
+```
+
+Quatre échanges ont été tués ; le rapport en mentionne un.
+
+**Pourquoi ça mérite mieux qu'une ligne de doc.** C'est le motif du finding `timeout: 0` que la 0.1.6 a
+corrigé en refusant la valeur — une protection qui paraît resserrée et qui se relâche. Ici elle se dilue
+par le nombre d'échanges, et le facteur n'apparaît nulle part : `grep -i timeout docs/*.md` ne renvoie
+rien sur les échanges, et le schéma dit « how many seconds **this case's subject** may run before it is
+killed », au singulier.
+
+**Demandé :** trancher entre les deux lectures, et que le rapport dise laquelle.
+
+- Si `timeout:` borne le **cas**, chaque échange consomme le budget restant, et le verdict reste exact.
+- S'il borne l'**échange**, le dire dans le schéma, écrire « each exchange exits within 2.0s » dans le
+  verdict, et compter les dépassements au lieu d'en garder un.
+
+Ma préférence va au premier : c'est la lecture que le mot « case » induit, et c'est celle qui préserve la
+promesse « la suite ne se bloque pas » indépendamment du nombre d'échanges.
+
+**Écarté :** une clé `timeout_per_step:` séparée. Deux limites à tenir dans la tête pour un format dont
+la valeur est qu'un cas se lit d'un coup — et le jour où elles se contredisent, il faut documenter
+laquelle gagne.
+
+## 3. Majeur : `expect.calls` dans un échange compte depuis le début du cas
+
+| Échange | Appels réels | Ce qu'il voit |
+|---|---|---|
+| `steps[0]` | 1 | **1** ✓ |
+| `steps[1]` | 1 | **2** ✗ |
+| global | 2 | 2 ✓ |
+
+Vérifié par élimination : `calls: { outil: 1 }` au premier échange passe, la même assertion au second
+échoue, `{ outil: 2 }` au second passe. Le journal n'est pas segmenté par échange.
+
+**La conséquence est celle que `writing-cases.md` promet d'éviter.** Cette page défend les assertions qui
+ne cassent pas « the day the subject gains one log line ». Ici, insérer un échange en amont fausse le
+`calls` de tous les suivants, et écrire celui du troisième échange demande de compter les appels des
+deux premiers.
+
+Pour zanvil ça mord tout de suite : les cas du viewer k9s assertent `calls: { fzf: 1 }`, et leur forme
+naturelle en échanges — ouvrir, puis rafraîchir par `Ctrl-R` — verrait 2 au second.
+
+**Le remède est déjà écrit, dans la même boucle.** `process.rs:92-94` segmente les effets fichiers
+ainsi :
+
+```rust
+let before = crate::iso::snapshot::Snapshot::take(iso.root());
+let mut seen = one_run(case, iso, &argv)?;
+seen.files = before.changes_since(iso.root());
+```
+
+**Demandé :** le même avant/après appliqué au journal d'appels, pour que `calls` ait par échange la
+granularité que les fichiers ont déjà. Le global doit continuer à voir le cumul — il est juste
+aujourd'hui.
+
+**Un détail qui explique pourquoi ça n'a pas été vu.** Le commentaire de `gathered()` dit « the last exit
+and **the last call journal**, because that is what "the run" ended as ». Comme le journal est cumulatif,
+« le dernier » vaut « tous » : le résultat global est correct, mais pour une raison différente de celle
+que le commentaire énonce. Le code et son commentaire décrivent deux mécanismes qui coïncident au niveau
+global et divergent par échange. Ça vaut d'être corrigé aussi, sinon la prochaine lecture repart sur la
+même hypothèse — c'est celle sur laquelle je suis parti, et elle m'a fait annoncer un défaut au mauvais
+endroit avant que la sonde me corrige.
+
+**Écarté :** demander aux cas d'écrire des compteurs cumulés. Ça marche et c'est exactement ce que la
+page sur l'écriture des suites déconseille : une assertion dont la valeur dépend de tout ce qui précède
+casse à la première insertion.
+
+## 4. Mécanique : un `calls` violé dans un échange est rapporté comme s'il était global
+
+```console
+FAIL un-appel-par-echange  0/3
+    expect.calls.outil          ← l assertion violee est celle de steps[1]
+      expected  1
+      got       2
+```
+
+On cherche donc un défaut dans le bloc `expect:` du cas, qui est correct. À comparer avec ce que le même
+verdict produit pour `stdout` :
+
+```console
+    steps[1] "le deuxieme se trompe".stdout.contains[0]
+```
+
+`verdict.rs:230` est **la seule des sept vérifications de `check()` à ne pas recevoir le préfixe `at`** :
+
+```rust
+if let Some(expected) = &expect.calls {
+    diffs.extend(calls::check(expected, &observations.calls));   // ← pas de `at`
+}
+```
+
+Ses voisines le prennent toutes — `stdout` via `&format!("{at}.stdout")`, `stderr`, `events`,
+`event_counts`, `invariants`, `status`. Et `verdict/calls.rs:21` écrit le chemin en dur :
+`path: format!("expect.calls.{bin}")`.
+
+**Demandé :** ajouter le paramètre `at` à `calls::check` et composer le chemin comme les six autres.
+Indépendant du nº 3 : cette correction ne rend pas les comptes justes, elle dit seulement où regarder.
+
+## 5. Mineur : « The body was empty » pour un sujet qui n'a pas de body
+
+Un `capture:` sur un sujet process est correctement refusé, et pour la bonne raison — le commentaire de
+`process.rs` la formule mieux que je ne le ferais : « a process answers text, and deciding that its
+output is a JSON document to walk by path would invent a meaning for the format rather than implement
+one ». Mais le message emprunte le vocabulaire du web :
+
+```console
+steps[0] "il capture un identifiant".capture.ident
+  expected  a value at id
+  got       the path yielded no value, so `$ident` stays literal in every later request.
+            The body was empty
+```
+
+Le sujet avait écrit `{"id":7}` sur sa sortie standard. Le lecteur cherche donc pourquoi son sujet n'a
+rien produit, alors qu'il a produit exactement ce qui était attendu, et que le vrai motif est qu'un
+processus n'a pas de body du tout.
+
+**Demandé :** pour l'adaptateur process, dire ce que le commentaire du code dit déjà. La phrase existe,
+elle est juste restée dans la source.
+
+## 6. Mineur : les nœuds JUnit d'échange n'ont pas de durée
+
+```xml
+<testcase name="the run as a whole" classname="gaveldrop.timeout-par-echange" time="4.645"/>
+<testcase name="un et demi"         classname="gaveldrop.timeout-par-echange"/>
+<testcase name="encore un et demi"  classname="gaveldrop.timeout-par-echange"/>
+```
+
+`writing-cases.md` pose que les durées « are reported everywhere and asserted nowhere », et la 0.1.12 a
+ajouté la durée par cas. Les échanges n'en ont pas, ce qui laisse les 4,645 s indécomposables — c'est
+précisément l'information qui aurait rendu le nº 2 visible sans qu'il faille le chercher.
+
+**Demandé :** l'attribut `time` sur les nœuds d'échange, si la durée est déjà mesurée par échange. Si
+elle ne l'est pas, ça ne vaut pas de l'ajouter pour ce seul motif — traitez le nº 2 et celui-ci tombe.
+
+## 7. Documentation seule : `expect.exit_code` sélectionne, ses voisines agrègent
+
+Ce cas passe :
+
+```yaml
+steps:
+  - { name: "celui du milieu echoue vraiment", request: { run: ["sh", "-c", "echo boum >&2; exit 42"] },
+      expect: { stderr: { contains: ["boum"] } } }
+  - { name: "le dernier reussit", request: { run: ["sh", "-c", "echo fini"] },
+      expect: { stdout: { contains: ["fini"] } } }
+expect:
+  exit_code: 0        # ← vrai, et un echange est sorti en 42
+```
+
+**Je ne demande pas de le changer.** `gathered()` l'assume — « that is what "the run" ended as » — la
+définition se défend, et un échange qui échoue exprès au milieu d'un scénario est un usage légitime.
+
+Ce qui manque, c'est de le dire côté utilisateur : `expect.stdout` concatène tous les échanges,
+`expect.exit_code` en sélectionne un. Deux clés voisines dans le même bloc, deux règles d'agrégation
+opposées, aucune des deux écrite dans le schéma. Un cas qui n'observe pas ses échanges un par un croira
+avoir vérifié que rien n'a échoué.
+
+**Demandé :** une phrase dans la description de `exit_code` et une dans celle de `steps`.
+
+---
+
+# Deux demandes nées d'une campagne d'injection
+
+Douze défauts volontaires ont été injectés dans zanvil sur un worktree isolé, classés en mineurs,
+majeurs et complexes, pour mesurer ce que la suite attrape. Rapport complet :
+`~/.zanvil/web/docs/superpowers/reports/2026-08-05-injection-de-defauts-classes.md`.
+
+Résultat : **les quatre défauts majeurs sont tous attrapés**, avec des portées cohérentes — `pad()`
+neutralisé fait rougir 17 cas, un troncage de logger 2, un raccourci disparu 1. Deux trous existaient,
+tous deux comblés côté zanvil. Mais les deux ont demandé une contorsion, et c'est là que portent ces
+demandes.
+
+## 8. `args_contain` ne distingue pas un nom de sous-commande de son préfixe
+
+Le défaut injecté : renommer `zanvil theme` en `zanvil themes` dans une fonction zsh qui délègue. C'est
+la panne réelle de zanvil, rejouée — un binaire renommé a laissé trois commandes en mode dégradé pendant
+quatre mois.
+
+Le cas écrit pour l'attraper :
+
+```yaml
+fake:
+  rules:
+    - match: { bin: zanvil, args_contain: "theme" }
+      stdout: "Available themes:"
+    - match: {}
+      exit: 127
+```
+
+**Il passe aussi sous la mutation.** `args_contain` est documenté comme « substring searched for in the
+arguments joined by spaces », et « themes » contient « theme » : la règle nommée sert le mauvais appel,
+donc le catch-all ne voit rien et `unexpected calls` reste vide.
+
+La parade existe — inclure l'argument suivant :
+
+```yaml
+    - match: { bin: zanvil, args_contain: "theme list" }
+```
+
+« themes list » ne contient plus « theme list », et le cas mord. Mais la règle est désormais couplée à la
+forme complète de l'appel : le jour où la fonction insère un drapeau entre les deux, elle cesse de
+matcher pour une raison qui n'a rien à voir avec ce qu'elle vérifie.
+
+**Demandé :** un critère qui compare un argument comme **mot** plutôt que comme sous-chaîne — soit un
+`args:` qui prend la liste exacte, soit la sémantique « l'un des arguments égale cette valeur ». Le cas
+d'usage n'est pas exotique : vérifier qu'une délégation appelle la bonne sous-commande est le premier
+usage d'un `fake` sur son propre binaire, et distinguer un nom de son préfixe est exactement ce qu'un
+renommage exige.
+
+**Écarté :** une expression régulière dans `args_contain`. Ça résoudrait ce cas et ouvrirait la porte à
+des règles illisibles en revue, ce qui coûterait la première propriété du format. Un critère nommé qui
+dit ce qu'il fait vaut mieux qu'un langage dans une chaîne.
+
+## 9. Rien n'exprime « ces deux fragments sur la même ligne »
+
+Le défaut injecté : inverser `if enabled` en `if !enabled` dans le CLI, ce qui échange tous les statuts
+d'une table `MODULE / STATUT / DESCRIPTION`.
+
+Le cas assertait `contains: ["KUBE", "DOCKER", "actif", "inactif"]`. Les quatre mots restent présents
+après l'inversion, l'assertion reste vraie, et **la sortie est entièrement fausse**. `contains` dit qu'un
+fragment existe, jamais que deux fragments sont associés.
+
+La seule parade disponible est de figer la ligne avec son espacement :
+
+```yaml
+      - "KUBE         actif"
+```
+
+Elle mord, et c'est ce qui est en place aujourd'hui. Le coût est écrit dans le cas : treize espaces
+figés, donc passer `{:<12}` à `{:<14}` — une décision de présentation — fera rougir un test de
+comportement. C'est précisément ce que `writing-cases.md` déconseille : « a case that breaks for that
+reason gets deleted rather than maintained ».
+
+**Demandé :** un moyen d'asserter une association sans figer la mise en forme. La forme la plus proche de
+l'existant serait une entrée de `TextExpectation` qui prend plusieurs fragments à trouver dans une même
+ligne — quelque chose comme `line_contains: [["KUBE", "actif"]]`, dont l'échec dirait quelle ligne a été
+trouvée et ce qui y manquait.
+
+**Écarté :** `equals` sur la sortie entière. C'est possible aujourd'hui et c'est pire : treize lignes
+figées au lieu d'une, et un cas qui rougit dès qu'un module s'ajoute — alors que l'ajout d'un module est
+exactement ce que cette commande doit savoir faire.
+
+---
+
+## Ce qui tient, et qu'il ne faut pas retoucher
+
+Éprouvé et solide, consigné pour que personne n'y touche en corrigeant le reste :
+
+- l'état de la racine isolée **persiste** entre les échanges ;
+- **tous** les échanges tournent, même après un échec, et **toutes** les assertions sont rapportées —
+  le global d'abord, puis les échanges dans l'ordre ;
+- le verdict situe l'assertion par index **et** par nom : `steps[1] "le deuxieme se trompe".stdout.contains[0]` ;
+- un échange **sans nom** donne `<testcase name="step 1">` dans le JUnit, pas le `name=""` que le nom de
+  cas vide produisait — le raisonnement de la #130 est bien appliqué aux échanges, je m'attendais à le
+  trouver à moitié et il ne l'est pas ;
+- les effets **fichiers** sont correctement segmentés par échange ;
+- le **catch-all reste obligatoire**, et le message le justifie ;
+- `steps: []` est accepté et se comporte comme un cas sans échanges ;
+- un échange déclaré mais non effectué est rapporté avec le compte des deux côtés, et l'inverse est
+  traité comme « the same class of surprise as an unexpected call ».
+
+## Une remarque sur le canal
+
+La 0.1.6 à la 0.1.12 sont arrivées sans document dans `docs/superpowers/`. Ce n'est pas un reproche — le
+changelog et les docs suffisaient — mais deux choses m'ont coûté du temps et une aurait tenu en une
+ligne : que **les quatre findings de zanvil étaient traités** (je l'ai vérifié en le testant), et que
+`@v1` avait déjà emmené la CI de zanvil en 0.1.12 sans qu'aucun commit de zanvil ne le dise. Le tag
+mobile fait ce qu'on lui demande ; c'est juste qu'un consommateur ne sait pas quand il change de version.

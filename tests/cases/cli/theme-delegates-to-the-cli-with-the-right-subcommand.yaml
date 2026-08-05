@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le trou que ce cas ferme a ete trouve par injection : renommer `zanvil theme` en
+# `zanvil themes` dans core/commands/theme.zsh ne faisait rougir aucun des 59 cas. La
+# delegation cassait, le repli zsh prenait la main, et la suite restait verte — parce
+# que les cas `cli-theme-*` invoquent le binaire par chemin absolu et ne passent jamais
+# par la fonction zsh qui, sur un poste, est le seul point d entree.
+#
+# C est la panne du chantier 1 reproduite a l identique : pendant quatre mois,
+# `command -v zanvil` echouait et trois commandes tournaient en mode degrade sans le
+# dire. Un repli est acceptable s il est visible ; ce cas est ce qui le rend visible.
+name: theme-delegates-to-the-cli-with-the-right-subcommand
+weight: 7
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  # ui.zsh d abord : theme.zsh utilise les _ui_* et l ordre de chargement compte.
+  source: ["core/ui.zsh", "core/commands/theme.zsh"]
+  call: ["zanvil-theme", "list"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+fake:
+  rules:
+    # « theme list » et non « theme » : args_contain est une sous-chaine des arguments
+    # joints par des espaces, donc « theme » matcherait aussi « themes ». Ecrit ainsi,
+    # la regle a d abord laisse passer le renommage qu elle etait censee attraper — le
+    # cas ne prouvait rien tant que la mutation ne l avait pas fait rougir.
+    #
+    # Avec l argument suivant, « themes list » ne contient plus « theme list » : le
+    # mauvais nom tombe dans le catch-all, qui compte un appel non prevu. C est ce
+    # mecanisme, et non une assertion sur la sortie, qui attrape le renommage.
+    - match: { bin: zanvil, args_contain: "theme list" }
+      stdout: "Available themes:"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  # Un seul appel : la fonction delegue et s arrete la. Si elle repliait en zsh apres
+  # avoir appele le binaire, le compte resterait a 1 mais la sortie changerait — d ou
+  # l assertion sur les deux.
+  calls:
+    zanvil: 1
+  stdout:
+    contains: ["Available themes:"]
