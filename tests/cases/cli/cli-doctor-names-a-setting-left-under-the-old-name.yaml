@@ -29,6 +29,29 @@ setup:
     # Une variable vide ne compte pas : c est ce que fait `${X:-…}`, donc elle n ecrase
     # aucun choix. Celle-ci verifie la regle.
     ZSH_ENV_WORK_TIMEOUT: ""
+fake:
+  # Declare pour ces trois cas seulement, ce que la 0.1.15 de gaveldrop permet. `az` est
+  # le plus lent des trois outils que doctor interroge, et le seul a ecrire : chaque run
+  # deposait DOUZE fichiers sous .azure/ dans la racine isolee, dont la telemetrie
+  # Microsoft et un journal horodate. Un test ne doit pas contacter un service externe
+  # pour verifier que doctor sait lire un numero de version.
+  #
+  # kubectl et helm sont laisses tels quels : ils ne joignent personne pour rendre leur
+  # version, et leur presence ou absence sur un runner est justement ce que les cas
+  # existants observent.
+  bins: [az]
+  rules:
+    # La forme que `az_version` parse : il cherche la ligne contenant « azure-cli » et
+    # prend la valeur entre les quatrieme et cinquieme guillemets.
+    - match: { bin: az, args_include: ["version"] }
+      stdout: |
+        {
+          "azure-cli": "2.9.0",
+          "azure-cli-core": "2.9.0"
+        }
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
 expect:
   exit_code: 0
   stdout:
