@@ -25,19 +25,27 @@ expect:
     contains:
       - "MODULE"
       - "STATUT"
-      - "KUBE"
-      - "DOCKER"
-      - "actif"
-      - "inactif"
       - "Gestion kubeconfig"
       - "Utilitaires Docker"
-      # Les espaces sont volontaires, et c est le seul endroit de la suite ou l on
-      # fige un alignement. Motif : `["KUBE", "actif"]` ne dit pas que les deux sont
-      # sur la MEME ligne, donc une inversion de condition qui echange les statuts
-      # laisse les deux mots presents et l assertion vraie. Verifie par mutation :
-      # `if !enabled` dans modules.rs ne faisait rougir aucun cas avant cette ligne.
-      #
-      # Le cout est assume : changer `{:<12}` en `{:<14}` fera rougir ce cas pour une
-      # raison cosmetique. Un statut faux est un defaut majeur, une largeur de colonne
-      # est un choix qu on assume en mettant le test a jour.
-      - "KUBE         actif"
+  # L association module/statut, et non les mots pris separement : une inversion de
+  # condition qui echange les statuts laisse « actif » et « inactif » tous les deux
+  # presents dans la sortie, donc un `contains` sur les mots isoles reste vrai alors
+  # que la table est entierement fausse. Verifie par mutation : `if !enabled` dans
+  # modules.rs ne faisait rougir aucun cas avant qu on asserte l association.
+  #
+  # Les valeurs sont comparees comme des MOTS, pas comme des sous-chaines — c est la
+  # difference entre `include` et `contain` dans ce format, et elle decide ici : avec
+  # des sous-chaines, « inactif » contiendrait « actif » et l assertion passerait sur
+  # la table inversee. La premiere version de cette demande a gaveldrop proposait
+  # justement des sous-chaines ; c est leur correction qui la rend mordante.
+  #
+  # Effet secondaire : la comparaison par mot ignore le remplissage, donc passer
+  # `{:<12}` a `{:<14}` ne touche plus rien. La version precedente de ce cas figeait
+  # treize espaces et aurait rougi pour une raison cosmetique.
+  #
+  # `line_includes` demande gaveldrop >= 0.1.14. Une version anterieure refuse le cas
+  # au chargement en nommant le champ inconnu et en listant ceux qu elle accepte, donc
+  # le plancher est explicite et non silencieux.
+    line_includes:
+      - ["KUBE", "actif"]
+      - ["DOCKER", "inactif"]
