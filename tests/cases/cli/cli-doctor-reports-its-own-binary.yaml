@@ -13,9 +13,36 @@ setup:
   env:
     ZANVIL_DIR: "$HOME/zanvil"
   run: ["$GAVELDROP_PROJECT/cli/target/release/zanvil", "doctor"]
+fake:
+  # Declare pour les cas doctor seulement, ce que la 0.1.15 de gaveldrop permet. `az`
+  # etait le plus lent des trois outils que doctor interroge, et le seul a ecrire : chaque
+  # run deposait DOUZE fichiers sous .azure/ dans la racine isolee, dont la telemetrie
+  # Microsoft et un journal horodate. Les trois cas passaient de 11,4 s a 1,8 s.
+  #
+  # kubectl et helm restent reels : ils ne joignent personne pour rendre leur version, et
+  # leur presence ou absence sur un runner est ce que les cas existants observent.
+  bins: [az]
+  rules:
+    # La forme que `az_version` parse — il prend la valeur entre les 4e et 5e guillemets.
+    # La version tient en cinq caracteres exprès : doctor.rs tronque au-dela, donc un
+    # « 2.99.0 » ressortirait « 2.99. » et l assertion ci-dessous serait fausse pour une
+    # raison qui n a rien a voir avec ce qu elle verifie.
+    - match: { bin: az, args_include: ["version"] }
+      stdout: |
+        {
+          "azure-cli": "2.9.0",
+          "azure-cli-core": "2.9.0"
+        }
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
 expect:
   exit_code: 0
   stdout:
     # « Binaire » seul : la valeur qui suit depend de la machine — un poste equipe
     # affiche un chemin, un runner affiche l absence — mais la SECTION existe partout.
-    contains: ["Binaire"]
+    contains:
+      - "Binaire"
+      # La version que le faux annonce. Sans elle, un faux muet passerait aussi bien
+      # qu un faux qui repond : le cas ne prouverait pas que doctor a lu quelque chose.
+      - "2.9.0"
