@@ -14,6 +14,11 @@ setup:
   call: ["eval", "printf 'version=%s\\n' \"$ZANVIL_VERSION\""]
   env:
     ZANVIL_DIR: "$HOME/zanvil"
+    # Sans cette ligne le cas rendait un verdict different selon la machine : la sonde
+    # reseau de work_context.zsh ne part que si l URL est renseignee, et elle l est dans
+    # mon environnement mais pas sur un runner. Le domaine .invalide est reserve par la
+    # RFC 2606, donc il ne resoudra jamais — et de toute facon curl est falsifie ici.
+    ZANVIL_WORK_NEXUS_URL: "https://nexus.exemple.invalide"
 # Les quatre outils declares dans gaveldrop.yaml sont appeles au demarrage : les
 # completions de chaque module en invoquent un, et core/hooks.zsh:192 y ajoute
 # « atuin init ». Chaque reponse est vide, ce qui est correct : ces sorties sont
@@ -38,10 +43,20 @@ fake:
     # quatre autres : elle est passee a eval, et eval de rien ne fait rien.
     - match: { bin: starship, args_contain: "init" }
       stdout: ""
-    # Le demarrage sonde le reseau. modules/work/work_context.zsh:56 interroge le Nexus
-    # interne pour decider si le poste est en contexte Work, et le resultat est mis en
-    # cache dans .work_context_cache. Sur un poste hors du reseau, cet appel attend son
-    # timeout a chaque shell qui n a pas de cache valide.
+    # LE DEMARRAGE SONDE LE RESEAU DEUX FOIS, ce que rien ne disait avant que `curl`
+    # rejoigne les faux et que ce cas signale des appels non prevus :
+    #
+    #   - modules/gitlab/gitlab_logic.zsh verifie la validite du jeton personnel. C est
+    #     le .gitlab_secrets factice pose par le hook qui le declenche — il avait ete
+    #     ajoute pour representer un poste configure, et il fait donc partir la requete.
+    #   - modules/work/work_context.zsh:56 interroge le Nexus interne pour decider si le
+    #     poste est en contexte Work, et met le resultat en cache. Cette sonde ne part
+    #     que si son URL est renseignee, d ou la variable posee dans `env:` ci-dessus.
+    #
+    # Sur un poste hors du reseau, ces appels attendent leur timeout — 3 s et 2 s — a
+    # chaque shell dont le cache n est plus valide. Le spec zsh-ou-rust mesure 1,76 s de
+    # demarrage sans les compter, parce que la mesure avait ete prise avec un cache
+    # chaud.
     #
     # Le faux repond « 000 », ce que curl imprime quand il n a joint personne : c est le
     # cas le plus courant hors du reseau, et `grep -q "^[23]"` le rejette, donc le
@@ -73,4 +88,4 @@ expect:
     lazygit: 1
     atuin: 2
     starship: 1
-    curl: 1
+    curl: 2
