@@ -1,5 +1,7 @@
 pub mod audit;
 pub mod bench;
+pub mod conflicts;
+pub mod convert;
 pub mod context;
 pub mod doctor;
 pub mod es;

@@ -120,7 +120,9 @@ Rust et non plus depuis son repli.
 | | ↳ **fait le 5 août 2026**, et « doublon » était faux — voir ci-dessous. |
 | 3 | **`work/elasticsearch`** | 38 dépendances fragiles, le détecteur `date`, la duplication annotée avec `fetch_es_logs.sh`. |
 | 4 | **`core/commands/commands.zsh`** | 24 appels `jq`/`awk`/`sed` dans `zanvil-list`, `-status`, `-help`, `-doctor-conflicts`. `zanvil-doctor` est hors périmètre : il délègue déjà. |
+| | ↳ **fait le 5 août 2026** — 7 appels sur 22, pas 24 : voir ci-dessous. |
 | 5 | **`gitlab_logic`** | 20 fragiles, mais 7 effets shell : migration **partielle**, la façade et les `export` restent en zsh. |
+| | ↳ **fait le 5 août 2026** — les 6 `date`, pas les 14 `jq` : voir ci-dessous. |
 
 ### Chantier 2 — ce que la caractérisation a corrigé dans ce spec
 
@@ -150,6 +152,31 @@ binaire manque.
 40 caractères pour une ligne de 44 : le cadre était ouvert à droite dans les **sept** commandes qui
 l'appellent. Le zsh compte les quatre espaces intérieurs, le Rust les oubliait. Sans cette correction, la
 délégation aurait dégradé l'affichage — les deux dessinent maintenant la même boîte, au caractère près.
+
+### Chantiers 4 et 5 — les comptes du tableau sont trop larges
+
+Le tableau annonce 24 appels fragiles pour `commands.zsh` et 20 pour `gitlab_logic`. Le critère du spec
+lui-même n'en retient qu'une fraction, et il faut le dire plutôt que de laisser croire à une dette non
+payée :
+
+| Fonction | Appels | Verdict du critère |
+|---|---|---|
+| `zanvil-list` | 10 | **Orchestration** — extraire un numéro de version de dix outils externes. « On ne migre pas un `for` autour d'un `kubectl` ». |
+| `zanvil-doctor` | 5 | **Dans son repli** — il délègue depuis sa première ligne. |
+| `zanvil-doctor-conflicts` | 7 | **Migré.** Analyse statique de fichiers, zéro effet shell. |
+| `gitlab_logic` — les `jq` | 14 | **Restent.** Ils parsent des réponses de l'API GitLab ; les migrer demanderait de porter le client HTTP, ce qui est un chantier distinct — `mr_fanout.rs` en est le précédent. |
+| `gitlab_logic` — les `date` | 6 | **Migrés.** Le calcul d'expiration d'un jeton, écrit **deux fois** avec son propre embranchement GNU/BSD. |
+
+**Deux défauts trouvés en caractérisant, et corrigés.** `zanvil-doctor-conflicts` annonçait « 4 hooks
+chpwd » et n'en affichait que 2, parce que le compte et la liste employaient des filtres différents — les
+deux de trop étaient ses propres lignes, et elles n'apparaissaient pas parce qu'elles portent un dièse
+dans leur motif. Et sa détection de fonctions ignorait la syntaxe `function nom() {`, donc les neuf
+fonctions de `modules/gitlab/` lui étaient invisibles.
+
+**Une primitive a changé de place.** `zanvil es convert` est devenue `zanvil convert` : le chantier 5 a
+trouvé le même calcul de date dans GitLab, et une primitive partagée par deux modules n'a pas à porter le
+nom de l'un d'eux. Les 86 cas sont passés inchangés à travers ce déplacement, ce qui est la meilleure
+démonstration qu'ils ignorent la mécanique interne.
 
 ## La méthode : caractériser avant de migrer
 

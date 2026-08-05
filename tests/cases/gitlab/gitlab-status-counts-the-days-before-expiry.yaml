@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Caracterisation avant migration (chantier 5). Le calcul de jours restants existait DEUX
+# FOIS dans gitlab_logic.zsh, chacune avec son embranchement `date -j -f` pour BSD et
+# `date -d` pour GNU — le meme motif que le chantier 3 a paye dans le module
+# Elasticsearch.
+#
+# La date exacte n est pas assertee : le nombre de jours depend de « maintenant », donc
+# seule la CATEGORIE l est. Avec une echeance lointaine, l ecart de deux heures entre
+# minuit local et minuit UTC ne peut pas changer le verdict.
+name: gitlab-status-counts-the-days-before-expiry
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/gitlab/gitlab_logic.zsh"]
+  call: ["zanvil-gitlab-status"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    GITLAB_TOKEN: "jeton-de-test-sans-valeur"
+    GITLAB_BASE_DOMAIN: "gitlab.exemple.invalide"
+    # Le module rend la main d entree si son garde n est pas pose.
+    ZANVIL_MODULE_GITLAB: "true"
+fake:
+  rules:
+    # La reponse de l API GitLab pour un jeton personnel, reduite aux champs lus.
+    - match: { bin: curl }
+      stdout: '{"id":1,"name":"jeton-de-test","active":true,"revoked":false,"scopes":["api"],"expires_at":"2099-12-31","created_at":"2026-01-01T00:00:00Z","last_used_at":"2026-08-01T00:00:00Z"}'
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "jeton-de-test"
+      - "2099-12-31"
+      - "jours restants"
+    absent:
+      - "EXPIRÉ"
+      - "Expire dans"

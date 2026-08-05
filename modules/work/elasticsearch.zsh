@@ -77,7 +77,7 @@ _work_es_json() {
 # --- Dates et durees ---
 #
 # Il n y a plus deux versions a synchroniser. Ce bloc et son homologue de
-# modules/work/fetch_es_logs.sh deleguent au meme code — `zanvil es convert` et
+# modules/work/fetch_es_logs.sh deleguent au meme code — `zanvil convert` et
 # `zanvil es window` — donc le calcul n existe qu une fois, en Rust, avec deux appelants.
 #
 # Ce qui restait a maintenir en double : trois conversions ecrites chacune deux fois, une
@@ -125,7 +125,7 @@ _work_es_parse_duration() {
 _work_es_epoch_to_iso() {
     local epoch=$1
     if command -v zanvil &>/dev/null; then
-        zanvil es convert --from-epoch "$epoch"; return $?
+        zanvil convert --from-epoch "$epoch"; return $?
     fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         date -u -d "@$epoch" +"%Y-%m-%dT%H:%M:%S.000Z"
@@ -138,7 +138,7 @@ _work_es_epoch_to_iso() {
 _work_es_iso_to_epoch() {
     local ts=$1
     if command -v zanvil &>/dev/null; then
-        zanvil es convert --from-iso "$ts"; return $?
+        zanvil convert --from-iso "$ts"; return $?
     fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         date -u -d "$ts" +%s
@@ -153,7 +153,7 @@ _work_es_iso_to_epoch() {
 _work_es_paris_to_epoch() {
     local dt=$1
     if command -v zanvil &>/dev/null; then
-        zanvil es convert --from-paris "$dt"; return $?
+        zanvil convert --from-paris "$dt"; return $?
     fi
     if [[ $(_work_es_date_flavor) == gnu ]]; then
         TZ=Europe/Paris date -d "$dt" +%s

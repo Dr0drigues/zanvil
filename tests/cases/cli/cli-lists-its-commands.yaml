@@ -30,3 +30,5 @@ expect:
       - "project"
       - "mr-fanout"
       - "config"
+      # Ajoutee par le chantier 4 : zanvil-doctor-conflicts la delegue.
+      - "conflicts"
