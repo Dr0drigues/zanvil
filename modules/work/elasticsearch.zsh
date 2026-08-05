@@ -7,8 +7,18 @@ _WORK_ES_APPS_CACHE="${ZANVIL_DIR:-$HOME/.zanvil}/.work_es_apps_cache"
 
 # --- Configuration ES (surchargeable via env.d/work.zsh) ---
 
+# L URL de l instance, telle que la config la porte — et rien si elle ne la porte pas.
+#
+# Un defaut en dur vivait ici, et c etait le nom d hote d un service interne dans un
+# depot public : aucun secret, mais la nomenclature d une infrastructure, offerte a qui
+# lit le code. `examples/env.d/work.zsh` documentait deja cette variable avec un defaut
+# VIDE, donc le code contredisait la convention du projet.
+#
+# Rendre une chaine vide plutot qu une URL de repli change le comportement : sans
+# reglage, les commandes refusent au lieu d interroger une instance qui n est pas la
+# leur. C est le bon sens du refus — un poste non configure ne doit pas deviner.
 _work_es_url() {
-    echo "${ES_URL:-${ZANVIL_WORK_ES_URL:-https://hote-interne}}"
+    echo "${ES_URL:-${ZANVIL_WORK_ES_URL:-}}"
 }
 
 _work_es_index() {
@@ -25,6 +35,10 @@ _work_es_require() {
     fi
     if ! command -v jq &>/dev/null; then
         _ui_msg_fail "jq requis (brew install jq / apt install jq)"
+        return 1
+    fi
+    if [[ -z "$(_work_es_url)" ]]; then
+        _ui_msg_fail "ZANVIL_WORK_ES_URL non definie (voir env.d/work.zsh)"
         return 1
     fi
     if [[ -z "${ES_USER:-}" || -z "${ES_PASSWORD:-}" ]]; then

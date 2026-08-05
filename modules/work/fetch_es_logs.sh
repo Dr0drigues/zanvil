@@ -189,7 +189,14 @@ if [[ -n "$SEARCH" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ES_URL="${ES_URL:-https://hote-interne}"
+# Voir le commentaire de `_work_es_url` dans elasticsearch.zsh : le nom d hote d un
+# service interne n a rien a faire en dur dans un depot public, et la convention du
+# projet demandait deja que cette variable vienne de env.d/.
+ES_URL="${ES_URL:-${ZANVIL_WORK_ES_URL:-}}"
+if [[ -z "$ES_URL" ]]; then
+  echo "Erreur: ZANVIL_WORK_ES_URL non definie (voir env.d/work.zsh)"
+  exit 1
+fi
 INDEX="es-apis-*"
 BATCH_SIZE=10000
 
