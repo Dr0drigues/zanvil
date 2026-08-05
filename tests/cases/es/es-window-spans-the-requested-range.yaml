@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# La fenetre explicite, celle qui est deterministe. Les deux bornes sont converties
+# depuis Europe/Paris et rendues en UTC, et le libelle nomme le fuseau d entree — sans
+# quoi un lecteur ne saurait pas si « 15:30 » etait local ou UTC.
+name: es-window-spans-the-requested-range
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "_work_es_window '' 2026-03-30T12:00:00 2026-03-30T14:00:00 && printf 'gte=%s\\nlte=%s\\ndisplay=%s\\n' $_work_es_gte $_work_es_lte $_work_es_display"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "gte=2026-03-30T10:00:00.000Z"
+      - "lte=2026-03-30T12:00:00.000Z"
+      - "display=2026-03-30T12:00:00 -> 2026-03-30T14:00:00 (Europe/Paris)"

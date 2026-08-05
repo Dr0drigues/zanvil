@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# L aller-retour ISO -> epoch -> ISO doit rendre la valeur de depart. Teste avec et sans
+# millisecondes, parce que le module recoit les deux formes : ses propres requetes
+# portent des `.000Z`, les reponses d Elasticsearch pas toujours.
+name: es-round-trips-an-iso-timestamp
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/elasticsearch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call: ["eval", "for ts in 2026-05-28T20:26:40.000Z 2026-05-28T20:26:40Z; do printf '%s=%s\\n' $ts $(_work_es_epoch_to_iso $(_work_es_iso_to_epoch $ts)); done"]
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "2026-05-28T20:26:40.000Z=2026-05-28T20:26:40.000Z"
+      - "2026-05-28T20:26:40Z=2026-05-28T20:26:40.000Z"
