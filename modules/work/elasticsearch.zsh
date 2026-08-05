@@ -75,8 +75,18 @@ _work_es_json() {
 }
 
 # --- Dates et durees ---
-# Duplication annotee de modules/work/fetch_es_logs.sh (bash, BASH_REMATCH) :
-# reecrit en zsh ($match). Garder les deux versions synchronisees.
+#
+# Il n y a plus deux versions a synchroniser. Ce bloc et son homologue de
+# modules/work/fetch_es_logs.sh deleguent au meme code — `zanvil es convert` et
+# `zanvil es window` — donc le calcul n existe qu une fois, en Rust, avec deux appelants.
+#
+# Ce qui restait a maintenir en double : trois conversions ecrites chacune deux fois, une
+# en zsh avec $match et une en bash avec BASH_REMATCH, chacune avec son propre
+# embranchement GNU/BSD. Les deux replis les gardent, parce qu un repli doit rester
+# complet, mais ils ne sont plus le chemin emprunte quand le binaire est installe.
+#
+# `_work_es_parse_duration` ne delegue pas : c est une regex, sans appel a `date`, donc
+# elle n a jamais fait partie de la dette que ce chantier paie.
 
 typeset -g _WORK_ES_DATE_FLAVOR=""
 # Detecteur de variante `date`, garde pour le seul repli.
