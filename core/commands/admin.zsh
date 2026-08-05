@@ -15,14 +15,14 @@ zanvil-completion-add() {
     local cmd="$2"
 
     if [[ -z "$name" ]] || [[ -z "$cmd" ]]; then
-        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zanvil-completion-add <nom> <commande>"
+        echo -e "${_ui_bold}Usage:${_ui_nc} zanvil-completion-add <nom> <commande>"
         echo ""
-        echo -e "${_zsh_cmd_cyan}Exemples:${_zsh_cmd_nc}"
+        echo -e "${_ui_cyan}Exemples:${_ui_nc}"
         echo "  zanvil-completion-add bun \"bun completions\""
         echo "  zanvil-completion-add deno \"deno completions zsh\""
         echo "  zanvil-completion-add turbo \"turbo completion zsh\""
         echo ""
-        echo -e "Les completions sont stockees dans: ${_zsh_cmd_bold}~/.zanvil/completions.zsh${_zsh_cmd_nc}"
+        echo -e "Les completions sont stockees dans: ${_ui_bold}~/.zanvil/completions.zsh${_ui_nc}"
         return 1
     fi
 
@@ -30,7 +30,7 @@ zanvil-completion-add() {
 
     # Vérifier si la completion existe déjà
     if grep -q "\"$name:" "$config_file" 2>/dev/null; then
-        echo -e "${_zsh_cmd_yellow}[WARN]${_zsh_cmd_nc} La completion '$name' existe deja."
+        echo -e "${_ui_yellow}[WARN]${_ui_nc} La completion '$name' existe deja."
         return 1
     fi
 
@@ -46,8 +46,8 @@ zanvil-completion-add() {
         sed -i '/^)$/i\    "'"$name:$cmd"'"' "$config_file"
     fi
 
-    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Completion '$name' ajoutee."
-    echo -e "Lancez ${_zsh_cmd_bold}zanvil-completions${_zsh_cmd_nc} pour la charger."
+    echo -e "${_ui_green}[OK]${_ui_nc} Completion '$name' ajoutee."
+    echo -e "Lancez ${_ui_bold}zanvil-completions${_ui_nc} pour la charger."
 }
 
 # ==============================================================================
@@ -57,7 +57,7 @@ zanvil-completion-remove() {
     local name="$1"
 
     if [[ -z "$name" ]]; then
-        echo -e "${_zsh_cmd_bold}Usage:${_zsh_cmd_nc} zanvil-completion-remove <nom>"
+        echo -e "${_ui_bold}Usage:${_ui_nc} zanvil-completion-remove <nom>"
         echo ""
         # Lister les completions disponibles
         local config_file="$ZANVIL_DIR/completions.zsh"
@@ -65,7 +65,7 @@ zanvil-completion-remove() {
             local available
             available=$(grep -oP '"\K[^:]+(?=:)' "$config_file" 2>/dev/null)
             if [[ -n "$available" ]]; then
-                echo -e "${_zsh_cmd_cyan}Completions installees:${_zsh_cmd_nc}"
+                echo -e "${_ui_cyan}Completions installees:${_ui_nc}"
                 echo "$available" | while read -r comp; do
                     echo "  $comp"
                 done
@@ -77,7 +77,7 @@ zanvil-completion-remove() {
     local config_file="$ZANVIL_DIR/completions.zsh"
 
     if ! grep -q "\"$name:" "$config_file" 2>/dev/null; then
-        echo -e "${_zsh_cmd_yellow}[WARN]${_zsh_cmd_nc} La completion '$name' n'existe pas."
+        echo -e "${_ui_yellow}[WARN]${_ui_nc} La completion '$name' n'existe pas."
         return 1
     fi
 
@@ -88,7 +88,7 @@ zanvil-completion-remove() {
         sed -i "/\"$name:/d" "$config_file"
     fi
 
-    echo -e "${_zsh_cmd_green}[OK]${_zsh_cmd_nc} Completion '$name' supprimee."
+    echo -e "${_ui_green}[OK]${_ui_nc} Completion '$name' supprimee."
 }
 
 # ==============================================================================
@@ -98,7 +98,7 @@ zanvil-completions() {
     # Initialiser le système de completion AVANT de charger les completions
     autoload -Uz compinit && compinit -u -C
 
-    _zsh_header "Zanvil Completions"
+    _ui_header "Zanvil Completions"
 
     local loaded=0
 
@@ -106,7 +106,7 @@ zanvil-completions() {
     if command -v docker &> /dev/null; then
         if docker completion zsh &> /dev/null; then
             source <(docker completion zsh)
-            echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Docker"
+            echo -e "  ${_ui_green}✓${_ui_nc} Docker"
             ((loaded++))
         fi
     fi
@@ -114,63 +114,63 @@ zanvil-completions() {
     # kubectl
     if command -v kubectl &> /dev/null; then
         source <(kubectl completion zsh)
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Kubectl"
+        echo -e "  ${_ui_green}✓${_ui_nc} Kubectl"
         ((loaded++))
     fi
 
     # helm
     if command -v helm &> /dev/null; then
         source <(helm completion zsh)
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Helm"
+        echo -e "  ${_ui_green}✓${_ui_nc} Helm"
         ((loaded++))
     fi
 
     # gh (GitHub CLI)
     if command -v gh &> /dev/null; then
         source <(gh completion -s zsh)
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GitHub CLI"
+        echo -e "  ${_ui_green}✓${_ui_nc} GitHub CLI"
         ((loaded++))
     fi
 
     # glab (GitLab CLI)
     if command -v glab &> /dev/null; then
         source <(glab completion -s zsh)
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} GitLab CLI"
+        echo -e "  ${_ui_green}✓${_ui_nc} GitLab CLI"
         ((loaded++))
     fi
 
     # terraform
     if command -v terraform &> /dev/null; then
         complete -o nospace -C terraform terraform
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Terraform"
+        echo -e "  ${_ui_green}✓${_ui_nc} Terraform"
         ((loaded++))
     fi
 
     # aws
     if command -v aws_completer &> /dev/null; then
         complete -C aws_completer aws
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} AWS CLI"
+        echo -e "  ${_ui_green}✓${_ui_nc} AWS CLI"
         ((loaded++))
     fi
 
     # gcloud
     if [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]]; then
         source "$HOME/google-cloud-sdk/completion.zsh.inc"
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Google Cloud SDK"
+        echo -e "  ${_ui_green}✓${_ui_nc} Google Cloud SDK"
         ((loaded++))
     fi
 
     # npm (eval au lieu de source pour éviter l'erreur _arguments)
     if command -v npm &> /dev/null; then
         eval "$(npm completion 2>/dev/null)" 2>/dev/null
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} npm"
+        echo -e "  ${_ui_green}✓${_ui_nc} npm"
         ((loaded++))
     fi
 
     # pnpm
     if command -v pnpm &> /dev/null; then
         source <(pnpm completion zsh 2>/dev/null)
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} pnpm"
+        echo -e "  ${_ui_green}✓${_ui_nc} pnpm"
         ((loaded++))
     fi
 
@@ -178,7 +178,7 @@ zanvil-completions() {
     if command -v rustup &> /dev/null; then
         { source <(rustup completions zsh 2>/dev/null); } 2>/dev/null
         { source <(rustup completions zsh cargo 2>/dev/null); } 2>/dev/null
-        echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} Rustup/Cargo"
+        echo -e "  ${_ui_green}✓${_ui_nc} Rustup/Cargo"
         ((loaded++))
     fi
 
@@ -201,23 +201,23 @@ zanvil-completions() {
                 comp_script="$(${(z)cmd} 2>/dev/null)"
                 if [[ -n "$comp_script" ]]; then
                     { eval "$comp_script"; } 2>/dev/null
-                    echo -e "  ${_zsh_cmd_green}✓${_zsh_cmd_nc} $name ${_zsh_cmd_cyan}(custom)${_zsh_cmd_nc}"
+                    echo -e "  ${_ui_green}✓${_ui_nc} $name ${_ui_cyan}(custom)${_ui_nc}"
                     ((loaded++))
                     ((custom_loaded++))
                 else
-                    echo -e "  ${_zsh_cmd_red}✗${_zsh_cmd_nc} $name ${_zsh_cmd_yellow}(erreur)${_zsh_cmd_nc}"
+                    echo -e "  ${_ui_red}✗${_ui_nc} $name ${_ui_yellow}(erreur)${_ui_nc}"
                 fi
             fi
         done
 
         if [[ $custom_loaded -gt 0 ]]; then
-            echo -e "\n  ${_zsh_cmd_dim}$custom_loaded completion(s) personnalisee(s)${_zsh_cmd_nc}"
+            echo -e "\n  ${_ui_dim}$custom_loaded completion(s) personnalisee(s)${_ui_nc}"
         fi
     fi
 
     echo ""
-    _zsh_separator 44
-    echo -e "${_zsh_cmd_green}$loaded${_zsh_cmd_nc} completions chargees"
+    _ui_separator 44
+    echo -e "${_ui_green}$loaded${_ui_nc} completions chargees"
 
 }
 

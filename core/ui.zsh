@@ -34,7 +34,18 @@ _ui_italic=$'\033[3m'
 _ui_underline=$'\033[4m'
 _ui_nc=$'\033[0m'  # No Color / Reset
 
-# Aliases pour compatibilité (utilisés dans zanvil_commands.zsh)
+# Alias de compatibilité, hérités du renommage zsh_env -> zanvil de la v4.0.0.
+#
+# PLUS AUCUN FICHIER DU PROJET NE LES UTILISE. Ils ont porté 416 occurrences dans quatre
+# fichiers jusqu'au 5 août 2026, et `tests/bin/legacy-ui-names` empêche désormais qu'une
+# nouvelle en apparaisse — c'est le même garde-fou que pour l'ancien nom du binaire, et
+# ici comme là-bas le seul endroit qui doit encore nommer l'ancienne forme est celui qui
+# assure la compatibilité.
+#
+# Ils restent pour ce qui vit hors du dépôt : un `.zanvil.local` de projet, une fonction
+# personnelle dans `env.d/`, un thème tiers. Les retirer casserait ce code sans que rien
+# ne le signale, ce qui est exactement la panne que ce renommage a déjà produite trois
+# fois — le binaire, les variables d'environnement, l'URL en dur.
 _zsh_cmd_green=$_ui_green
 _zsh_cmd_red=$_ui_red
 _zsh_cmd_yellow=$_ui_yellow
