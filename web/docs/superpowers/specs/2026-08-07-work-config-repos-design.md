@@ -62,9 +62,14 @@ Aucun contenu commun entre ces repos : chacun a son arborescence propre (`helm/`
 
 ### `technical-assets`
 
-Hors périmètre d'écriture, sur décision explicite. Il sert de témoin en lecture seule.
-Ses protections sont identiques à celles des `cls-*` (Maintainers / Maintainers / force=off),
-mais sa topologie de branches ne l'est pas (mono-branche `master` ou `main`).
+**Entièrement hors périmètre**, sur décision explicite : ni écriture, ni audit. La commande le
+refuse avant tout appel réseau, quels que soient les flags.
+
+Ce repo appartient à une autre chaîne de responsabilité et sa topologie n'est de toute façon
+pas celle de la norme : il est mono-branche (`master` ou `main`), là où la norme en attend
+quatre. L'auditer produirait un rapport d'écarts qui n'aurait aucun sens à corriger. Ses
+protections ont servi de point de comparaison pendant la conception ; elles ne sont pas lues
+à l'exécution.
 
 ## Périmètre
 
@@ -72,7 +77,7 @@ mais sa topologie de branches ne l'est pas (mono-branche `master` ou `main`).
 
 **Hors périmètre, refusé avant tout appel réseau** :
 
-- `technical-assets` — audit en lecture seule autorisé, **toute écriture refusée**, `--fix` compris
+- `technical-assets` — **refusé entièrement**, audit compris
 - tout chemin sous `configurations/companion/`
 - une BU hors `blg|edt|udb|tsc|shared`
 - un chemin hors d'un groupe `configurations`
@@ -325,5 +330,5 @@ Volontairement écartés :
 - persistance du sous-ensemble d'envs (topic GitLab, fichier local, fichier dans le repo)
 - balayage de tous les repos d'un groupe en une commande
 - alignement des `merge_method`, `squash_option`, règles d'approbation
-- toute écriture sur `technical-assets`
+- toute opération sur `technical-assets`, audit compris
 - suppression de branches autres que `master`/`main`
