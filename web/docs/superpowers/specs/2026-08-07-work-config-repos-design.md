@@ -122,6 +122,7 @@ plus un `GET /repository/files/README.md/raw?ref=<branche>` par branche d'env.
 | 3 | `pprd`/`prd` protégées : push=40, merge=40, force=off | `✗ protection divergente → réappliquer` |
 | 4 | `dev`/`qlf` **non** protégées | `✗ protégée → déprotéger` |
 | 5 | pas de règle de protection sans branche | `! orpheline → supprimer la règle` |
+| | *orpheline* = règle dont la branche **n'existe pas et ne sera pas créée** par ce plan | |
 | 6 | `README.md` conforme sur chaque branche d'env | `✗ divergent → réécrire` (opt-in, cf. plus bas) |
 | 7 | branches hors norme | voir ci-dessous |
 
@@ -187,6 +188,9 @@ signalée, jamais renommée.
 
 L'audit produit un rapport. `--fix` transforme le même rapport en plan et demande.
 
+L'état réel de `cls-docs` : branches `dev` (défaut, non protégée) et `prd` (protégée) ;
+règles de protection `pprd` et `prd`, toutes deux déjà conformes.
+
 ```
 work_config_repo — blg/applications/frontlibreservice/configurations/cls-docs
 
@@ -194,22 +198,35 @@ work_config_repo — blg/applications/frontlibreservice/configurations/cls-docs
   prd     ✓ existe              ✓ protégée (Maintainers/Maintainers, force=off)
   qlf     ✗ absente
   pprd    ✗ absente
-          ! règle de protection « pprd » orpheline
 
-Plan (3 actions)
-  + créer qlf  depuis dev   (README normalisé)
-  + créer pprd depuis dev   (README normalisé)
-  - supprimer la règle orpheline « pprd »
+Plan (4 actions)
+  + créer qlf  depuis dev
+  + créer pprd depuis dev
+  ~ README de qlf   → « # cls-docs qlf »
+  ~ README de pprd  → « # cls-docs pprd »
 
 Appliquer ? [y/N/u]
 ```
+
+La règle `pprd` **n'est pas orpheline ici** : sa branche est absente, mais le plan la crée.
+Elle deviendra une protection légitime — aucune action.
 
 - `y` — applique le plan
 - `N` (défaut) — n'écrit rien ; une frappe sur Entrée est sans conséquence
 - `u` — redemande la liste d'envs, recalcule le plan, repropose le même prompt
 
-Répondre `u` puis `dev,qlf` sur l'exemple ci-dessus ramène le plan à une seule action : la
-suppression de la règle orpheline.
+Répondre `u` puis `dev,qlf` change complètement le plan : `pprd` n'est plus créée, donc sa
+règle **devient** orpheline et part ; `prd` sort du périmètre et rejoint les branches hors
+norme conservées.
+
+```
+Plan (3 actions)
+  + créer qlf depuis dev
+  ~ README de qlf → « # cls-docs qlf »
+  - supprimer la règle orpheline « pprd »
+
+  ! branche hors norme conservée : prd
+```
 
 ## Ordre d'application
 
@@ -317,8 +334,8 @@ Pas de shellspec (convention du projet).
 - hors réseau borné : `GITLAB_BASE_DOMAIN=127.0.0.1:9` échoue immédiatement, ne pend pas
 - refus durs à sec — `technical-assets`, un chemin `companion/`, une BU inconnue — chacun doit
   sortir **avant** le premier `curl`
-- audit réel en lecture seule : `cls-bff` attendu conforme (code 0), `cls-docs` attendu à
-  3 écarts (code 2)
+- audit réel en lecture seule : `cls-bff` attendu conforme (code 0), `cls-docs` attendu non
+  conforme (code 2, `qlf` et `pprd` absentes)
 - parsing d'options : `work_config_repo --envs` en dernier argument ne doit pas boucler
   (`shift 2` gardé — piège zsh déjà rencontré en review)
 
