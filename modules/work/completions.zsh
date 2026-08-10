@@ -67,3 +67,15 @@ _work_es_tail() {
         '--interval[Intervalle de poll en secondes (defaut 5, min 2)]:secondes:(2 5 10 30)'
 }
 compdef _work_es_tail work_es_tail
+
+_work_config_repo() {
+    _arguments \
+        '--bu[Business unit]:bu:(blg edt udb tsc shared)' \
+        '--app[Application]:app:' \
+        '--envs[Sous-ensemble d envs, separes par des virgules]:envs:(dev dev,qlf dev,qlf,pprd dev,qlf,pprd,prd)' \
+        '--readme[Autorise la reecriture des README preexistants]' \
+        '--fix[Applique les corrections au lieu d auditer]' \
+        '(-h --help)'{-h,--help}'[Afficher l aide]' \
+        '1:repo de configuration:'
+}
+compdef _work_config_repo work_config_repo
