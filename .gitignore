@@ -69,6 +69,11 @@ secrets/work/certificates_unix.sh
 .work_es_apps_cache
 
 # Superpowers files
+# Specs, plans et rapports superpowers : ils decrivent l infrastructure qu ils
+# outillent — noms d hotes, projets, topologie — et ce depot est public.
+# NE JAMAIS forcer avec `git add -f` : le gitignore ne protege que les fichiers non
+# suivis, donc un seul add force ouvre la porte pour toujours. La garde
+# tests/bin/tracked-superpowers echoue si l un d eux revient dans l index.
 web/docs/superpowers
 
 # Faux HOME des tests de chargement (test_load.sh)

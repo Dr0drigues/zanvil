@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Imprime les documents de web/docs/superpowers/ que git suit encore.
+#
+# Pourquoi ce controle existe : `web/docs/superpowers` figure dans .gitignore depuis
+# longtemps, et ca n'a rien protege. Un `git add -f` passe outre, et un fichier une fois
+# suivi le reste — le gitignore ne s'applique qu'aux fichiers NON suivis. Trente
+# documents ont ete forces dans l'index de cette facon, puis pousses sur un depot public.
+#
+# Ce que ces documents portent : specs et plans decrivent l'infrastructure qu'ils
+# outillent. Celui des repos de configuration nommait le nom d'hote de la forge
+# d'entreprise, six projets reels, une application, et la topologie du groupe avec le
+# nombre d'applications qu'il contient. Aucun secret — un `.intranet` ne resout pas
+# depuis l'exterieur — mais une carte du patrimoine, offerte a qui lit le depot.
+#
+# La regle est donc : ces documents vivent sur le disque et n'entrent jamais dans git.
+# `tests/bin/internal-hostnames` exempte `web/` deliberement, pour qu'un rapport puisse
+# citer une URL en expliquant pourquoi elle ne doit pas etre en dur ; cette exemption
+# n'a de sens que si le repertoire reste hors de l'index.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+git -C "$ROOT" ls-files web/docs/superpowers/ 2>/dev/null || true

@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le garde-fou imprime les documents de web/docs/superpowers/ que git suit encore, et ce
+# cas exige qu il n imprime rien.
+#
+# Motif : le repertoire figure dans .gitignore depuis longtemps, et ca n a rien protege.
+# Un `git add -f` passe outre, et un fichier une fois suivi le reste — le gitignore ne
+# s applique qu aux fichiers NON suivis. Trente documents y sont entres de cette facon,
+# puis ont ete pousses sur un depot public.
+#
+# Ce que specs et plans portent, par nature : la description de l infrastructure qu ils
+# outillent. Celui des repos de configuration nommait le nom d hote de la forge, six
+# projets reels, une application, et la topologie du groupe. Aucun secret, mais une
+# carte du patrimoine.
+#
+# La regle : ces documents vivent sur le disque, jamais dans git.
+name: no-superpowers-doc-is-tracked
+weight: 7
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/tracked-superpowers"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Le garde imprime un chemin par fichier suivi : rien a suivre, rien a imprimer.
+    equals: ""
