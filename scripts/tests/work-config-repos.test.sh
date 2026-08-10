@@ -52,8 +52,17 @@ zc '_work_cfg_parse_path "$WORK_DIR/xxx/applications/demoapp/configurations/demo
 zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/components/demo-front" || print refuse' \
     | assert_equals "hors groupe configurations refuse" "refuse"
 
-zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/companion/app" || print refuse' \
-    | assert_equals "chemin companion refuse" "refuse"
+# Un chemin companion est RECONNU, pas rejete par l arite. Le rejeter ici renverrait
+# « BU inconnue » a quelqu un dont la BU est valide : le message nommerait le mauvais
+# probleme. C est _work_cfg_guard_target qui refuse, et qui sait dire pourquoi.
+zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/companion/app"' \
+    | assert_equals "chemin companion reconnu, pas rejete par l arite" "$(printf 'blg\tdemoapp\tcompanion/app')"
+
+zc '_work_cfg_guard_target blg demoapp companion/app 2>&1 | grep -o "companion est hors perimetre"' \
+    | assert_equals "le garde nomme le sous-groupe companion" "companion est hors perimetre"
+
+zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/pasompanion/app" || print refuse' \
+    | assert_equals "six segments hors companion : toujours refuse" "refuse"
 
 zc '_work_cfg_parse_path "/ailleurs/blg/applications/demoapp/configurations/demo-front" || print refuse' \
     | assert_equals "hors WORK_DIR refuse" "refuse"
@@ -78,6 +87,36 @@ zc '_work_cfg_guard_target blg "" demo-front >/dev/null 2>&1 || print refuse' \
 
 zc '_work_cfg_guard_target blg demoapp "" >/dev/null 2>&1 || print refuse' \
     | assert_equals "repo vide refuse" "refuse"
+
+echo
+echo "== un nom de repo est un segment de chemin, pas une chaine libre =="
+
+zc '_work_cfg_guard_target blg demoapp "../x" >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom avec une barre est refuse" "refuse"
+
+zc '_work_cfg_guard_target blg demoapp "a b" >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom avec une espace est refuse" "refuse"
+
+# Ferme en amont ce que la construction jq echappe en aval : mieux vaut refuser
+# un nom porteur de guillemets que de compter sur l echappement seul.
+zc '_work_cfg_guard_target blg demoapp '"'"'x","visibility":"public'"'"' >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom porteur de guillemets est refuse" "refuse"
+
+# Le motif ne doit pas dependre d EXTENDED_GLOB : sous zsh -f les operateurs # et (...)
+# sont litteraux, et une forme qui en depend rejetait « cls-bff ».
+zc '_work_cfg_guard_target blg demoapp demo-front && print ok' \
+    | assert_equals "un nom legitime avec tiret passe" "ok"
+
+zc '_work_cfg_guard_target blg demoapp demo_front.v2 && print ok' \
+    | assert_equals "un nom legitime avec _ et . passe" "ok"
+
+# « . » veut dire « ici ». Le prendre au pied de la lettre construisait une cible
+# .../configurations/. sans que rien ne proteste.
+zc 'd="$WORK_DIR/blg/applications/demoapp/configurations/demo-front"
+    mkdir -p "$d"; cd "$d"
+    GITLAB_BASE_DOMAIN=127.0.0.1:9 GITLAB_TOKEN=x
+    work_config_repo . 2>&1 | grep -o "configurations/demo-front"' \
+    | assert_equals "« . » vaut ici, pas un repo nomme point" "configurations/demo-front"
 
 # Le refus doit tomber AVANT tout appel reseau. Un curl factice depose un marqueur :
 # comparer la sortie ne suffirait pas, _ui_msg_fail ecrit sur stdout (core/ui.zsh:202)

@@ -34,12 +34,22 @@ _work_cfg_parse_path() {
     local -a parts
     parts=(${(s:/:)rel})
 
-    (( ${#parts} == 5 )) || return 1
+    # Cinq segments pour un repo, six pour un sous-groupe companion. Ce dernier est
+    # hors perimetre, mais il doit etre RECONNU pour que _work_cfg_guard_target puisse
+    # le dire. Le refuser ici par l arite renverrait « BU inconnue » a quelqu un dont
+    # la BU est parfaitement valide — le message nommerait le mauvais probleme.
+    local repo
+    case ${#parts} in
+        5) repo="$parts[5]" ;;
+        6) [[ "$parts[5]" == companion ]] || return 1
+           repo="companion/$parts[6]" ;;
+        *) return 1 ;;
+    esac
     [[ "$parts[2]" == applications ]] || return 1
     [[ "$parts[4]" == configurations ]] || return 1
     (( ${_WORK_CFG_BU_ALL[(Ie)$parts[1]]} )) || return 1
 
-    print -r -- "$parts[1]	$parts[3]	$parts[5]"
+    print -r -- "$parts[1]	$parts[3]	$repo"
     return 0
 }
 
@@ -70,6 +80,17 @@ _work_cfg_guard_target() {
     fi
     if [[ "$repo" == companion || "$repo" == companion/* ]]; then
         _ui_msg_fail "le sous-groupe companion est hors perimetre"
+        return 1
+    fi
+    # Un nom de repo est un segment de chemin GitLab, pas une chaine libre. Le verifier
+    # ici ferme d un coup les noms qui n ont pas de sens (« . », « ../x ») et ceux qui
+    # fabriqueraient des cles dans un corps JSON — la construction par jq protege deja
+    # ce dernier cas, mais un refus en amont vaut mieux qu un echappement en aval.
+    # Forme volontairement sans `#` ni `(...)` : ces operateurs exigent EXTENDED_GLOB,
+    # qui n est pas garanti — sous `zsh -f` ils sont litteraux et le test rejetait
+    # « cls-bff ». Une classe negative et un prefixe suffisent, sans dependre d une option.
+    if [[ "$repo" == *[^A-Za-z0-9._-]* || "$repo" == .* ]]; then
+        _ui_msg_fail "nom de repo invalide : « $repo » (attendu : lettres, chiffres, . _ -)"
         return 1
     fi
     return 0
@@ -519,6 +540,10 @@ work_config_repo() {
             --fix)    do_fix=1; shift ;;
             -h|--help) _work_cfg_usage; return 0 ;;
             -*) _ui_msg_fail "option inconnue : $1"; _work_cfg_usage; return 1 ;;
+            # « . » et « ./ » veulent dire « ici », pas « un repo nomme point ». C est
+            # ce qu on tape spontanement, et le prendre au pied de la lettre construisait
+            # une cible .../configurations/. sans que rien ne proteste.
+            .|./) shift ;;
             *)  repo="$1"; shift ;;
         esac
     done
