@@ -204,6 +204,43 @@ zc '_work_cfg_readme_content companion/api dev' \
     | assert_equals "un repo de sous-groupe porte son nom seul dans son README" "# api dev"
 
 echo
+echo "== volet local du plan : le clone suit la norme =="
+
+# Un clone mono-main resterait sur une branche que le plan supprime en amont.
+zc 'd="$WORK_DIR/clone"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev | cut -f1 | sort | tr "\n" " "' \
+    | assert_equals "clone sur main : bascule et elagage prevus" "local_checkout local_prune "
+
+# Un arbre sale ne se fait pas deplacer par une commande de normalisation.
+zc 'd="$WORK_DIR/sale"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" commit -q --allow-empty -m x
+    print modif > "$d/fichier"
+    _work_cfg_local_plan "$d" dev | cut -f1' \
+    | assert_equals "arbre sale : aucune action locale, un avertissement" "warn"
+
+# Deja sur la bonne branche : rien a basculer.
+zc 'd="$WORK_DIR/bon"; mkdir -p "$d"
+    command git -C "$d" init -q -b dev
+    command git -C "$d" commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev | cut -f1 | tr "\n" " "' \
+    | assert_equals "deja sur dev : rien a basculer" ""
+
+# Pas de clone local : le volet est vide, pas en erreur.
+zc '_work_cfg_local_plan "$WORK_DIR/absent" dev | wc -l | tr -d " "' \
+    | assert_equals "sans clone local : aucune ligne" "0"
+
+# Le local vient APRES le distant : basculer sur dev avant de l avoir creee echouerait.
+# La fixture porte une ligne `warn` a dessein : sans elle, deplacer le volet local
+# apres `ecart warn` dans l ordre ne changerait pas la sortie, et l assertion serait
+# aveugle a la regression qu elle pretend surveiller.
+zc '_work_cfg_sort_plan "$(printf "warn\tbla\nlocal_checkout\tdev\t/d\nbranch_create\tdev\tmain\nmaster_delete\tmain")" | cut -f1' \
+    | assert_equals "le volet local s applique apres le distant, avant les avis" \
+"$(printf 'branch_create\nmaster_delete\nlocal_checkout\nwarn')"
+
+echo
 echo "== planificateur : repo conforme =="
 
 # demo-front conforme : 4 branches, defaut dev, pprd et prd protegees 40/40/false.

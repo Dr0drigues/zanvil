@@ -453,6 +453,38 @@ _work_cfg_collect() {
     return 0
 }
 
+# --- Volet local du plan ---
+
+# Ajoute au plan ce qu il faut faire au clone local. Le planificateur reste pur : ces
+# lignes viennent d ici, ou l I/O a deja droit de cite.
+#
+# Sans ce volet, une mise aux normes laisse le clone sur une branche que la commande
+# vient de supprimer en amont — c est le cas de tous les depots mono-main d aujourd hui.
+#
+# Rien n est ajoute si l arbre local porte des modifications : basculer de branche les
+# emporterait ailleurs, et ce n est pas a une commande de normalisation d en decider.
+_work_cfg_local_plan() {
+    local dest="$1" want="$2"
+    [[ -d "$dest/.git" ]] || return 0
+
+    if [[ -n "$(command git -C "$dest" status --porcelain 2>/dev/null)" ]]; then
+        print -r -- "warn	clone local non synchronise : $dest porte des modifications"
+        return 0
+    fi
+
+    local cur; cur=$(command git -C "$dest" branch --show-current 2>/dev/null)
+    [[ "$cur" != "$want" ]] && print -r -- "local_checkout	$want	$dest"
+
+    # Les branches locales que la norme ne garde pas. `git branch -d` refusera celles
+    # qui portent des commits non fusionnes : c est la garde, on ne la contourne pas.
+    local b
+    for b in ${(f)"$(command git -C "$dest" branch --format='%(refname:short)' 2>/dev/null)"}; do
+        [[ "$b" == master || "$b" == main ]] || continue
+        print -r -- "local_prune	$b	$dest"
+    done
+    return 0
+}
+
 # --- Rendu ---
 
 # Compte les actions reelles d un plan : ni `warn` ni `ecart` n en sont.
@@ -517,6 +549,8 @@ _work_cfg_render() {
             rule_delete_orphan) print -r -- "  - supprimer la regle orpheline « $a »" ;;
             readme_write)  print -r -- "  ~ README de $a → « $(_work_cfg_readme_content "$repo" "$a") »" ;;
             master_delete) print -r -- "  - supprimer $a (sa protection sera retiree), sous reserve du merge-base" ;;
+            local_checkout) print -r -- "  ~ clone local : fetch --prune puis basculer sur $a" ;;
+            local_prune)   print -r -- "  - clone local : supprimer la branche $a (refuse si non fusionnee)" ;;
             ecart)         print -r -- "  ${_ui_yellow}!${_ui_nc} $a" ;;
             warn)          print -r -- "  ${_ui_yellow}!${_ui_nc} $a" ;;
         esac
@@ -620,9 +654,16 @@ _work_cfg_run() {
         return $?
     fi
 
-    local plan
+    local plan plan_local
     plan=$(_work_cfg_build_plan "$repo" "$envs_csv" "$readme_optin" "$_work_cfg_default" \
             "$_work_cfg_branches" "$_work_cfg_rules" "$_work_cfg_readmes")
+
+    # Le clone local fait partie de la mise aux normes : sans lui, le depot reste sur
+    # une branche que le plan vient de supprimer en amont.
+    plan_local=$(_work_cfg_local_plan \
+        "$(_work_cfg_local_path "$bu" "$app" "$repo")" \
+        "$(_work_cfg_expected_default "$envs_csv")")
+    [[ -n "$plan_local" ]] && plan="${plan:+$plan$'\n'}$plan_local"
 
     echo ""
     _work_cfg_render "$repo" "$plan"
@@ -740,7 +781,8 @@ _work_cfg_is_merged() {
 _work_cfg_sort_plan() {
     local -a order
     order=(branch_create default_set unprotect readme_write protect_create
-           protect_replace protect_patch rule_delete_orphan master_delete ecart warn)
+           protect_replace protect_patch rule_delete_orphan master_delete
+           local_checkout local_prune ecart warn)
     local kind line
     for kind in $order; do
         for line in ${(f)${1:-}}; do
@@ -846,6 +888,20 @@ _work_cfg_apply() {
                     return 1
                 fi
                 _ui_msg_ok "$a supprimee (contenu repris dans $target)" ;;
+            local_checkout)
+                command git -C "$b" fetch --prune --quiet \
+                    || { _ui_msg_fail "fetch dans $b"; return 1 }
+                command git -C "$b" checkout --quiet "$a" \
+                    || { _ui_msg_fail "bascule du clone local sur $a"; return 1 }
+                _ui_msg_ok "clone local sur $a" ;;
+            local_prune)
+                # `-d` et non `-D` : git refuse une branche portant des commits non
+                # fusionnes, et ce refus est la garde. On le rapporte au lieu de forcer.
+                if command git -C "$b" branch -d "$a" >/dev/null 2>&1; then
+                    _ui_msg_ok "branche locale $a supprimee"
+                else
+                    _ui_msg_warn "branche locale $a conservee : git la dit non fusionnee"
+                fi ;;
             ecart|warn)
                 _ui_msg_warn "$a" ;;
         esac
