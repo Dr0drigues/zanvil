@@ -78,21 +78,37 @@ _work_cfg_guard_target() {
         _ui_msg_fail "technical-assets est hors perimetre — ni ecriture, ni audit"
         return 1
     fi
-    if [[ "$repo" == companion || "$repo" == companion/* ]]; then
-        _ui_msg_fail "le sous-groupe companion est hors perimetre"
+    # `companion` seul designe le sous-groupe, pas un projet. Quelqu un debout dans
+    # configurations/companion obtiendrait ce nom par deduction et auditerait un groupe
+    # comme s il etait un depot : la lecture 404 et la creation entrerait en collision
+    # avec le sous-groupe existant. On le dit, et on indique ou descendre.
+    if [[ "$repo" == companion ]]; then
+        _ui_msg_fail "companion est un sous-groupe, pas un repo"
+        _ui_msg_info "descendre dans l un de ses projets, ou le nommer : companion/<repo>"
         return 1
     fi
-    # Un nom de repo est un segment de chemin GitLab, pas une chaine libre. Le verifier
-    # ici ferme d un coup les noms qui n ont pas de sens (« . », « ../x ») et ceux qui
+    # Un repo peut vivre dans un sous-groupe : configurations/companion/{app,api,loader}
+    # en sont, et ils portent la meme topologie que les autres — main unique et protegee,
+    # donc hors norme. Rien ne justifie de les ecarter de l audit.
+    local -a segs; segs=(${(s:/:)repo})
+    if (( ${#segs} > 2 )); then
+        _ui_msg_fail "trop de niveaux : « $repo » (au plus <sous-groupe>/<repo>)"
+        return 1
+    fi
+    # Chaque segment est un segment de chemin GitLab, pas une chaine libre. Le verifier
+    # ferme d un coup les noms qui n ont pas de sens (« . », « ../x ») et ceux qui
     # fabriqueraient des cles dans un corps JSON — la construction par jq protege deja
     # ce dernier cas, mais un refus en amont vaut mieux qu un echappement en aval.
     # Forme volontairement sans `#` ni `(...)` : ces operateurs exigent EXTENDED_GLOB,
-    # qui n est pas garanti — sous `zsh -f` ils sont litteraux et le test rejetait
-    # « cls-bff ». Une classe negative et un prefixe suffisent, sans dependre d une option.
-    if [[ "$repo" == *[^A-Za-z0-9._-]* || "$repo" == .* ]]; then
-        _ui_msg_fail "nom de repo invalide : « $repo » (attendu : lettres, chiffres, . _ -)"
-        return 1
-    fi
+    # qui n est pas garanti — sous `zsh -f` ils sont litteraux et une premiere version
+    # rejetait « cls-bff ».
+    local seg
+    for seg in $segs; do
+        if [[ -z "$seg" || "$seg" == *[^A-Za-z0-9._-]* || "$seg" == .* ]]; then
+            _ui_msg_fail "nom de repo invalide : « $repo » (attendu : lettres, chiffres, . _ -)"
+            return 1
+        fi
+    done
     return 0
 }
 
@@ -141,8 +157,12 @@ _work_cfg_env_is_protected() {
 }
 
 # Contenu attendu du README d une branche d env : un titre H1, une ligne, rien d autre.
+#
+# Le nom du repo, pas son chemin : un repo de sous-groupe est designe « companion/api »
+# dans toute la commande, mais son README porte « # api <branche> ». La spec dit « nom du
+# repo », et c est ce que GitLab appelle le `path` du projet.
 _work_cfg_readme_content() {
-    print -r -- "# ${1} ${2}"
+    print -r -- "# ${1##*/} ${2}"
 }
 
 # --- Planificateur ---
@@ -877,6 +897,21 @@ _work_cfg_write_readme() {
 
 # Chemin canonique local, pur : aucun acces disque, aucun reseau.
 # Usage : _work_cfg_local_path <bu> <app> <repo>
+# Le groupe qui porte le projet. Un repo de premier niveau vit dans `configurations` ;
+# un repo de sous-groupe (companion/api) vit dans `configurations/companion`. La
+# distinction ne compte qu a la creation — la lecture passe par le chemin complet.
+_work_cfg_repo_group() {
+    local bu="$1" app="$2" repo="$3"
+    local grp="$bu/applications/$app/configurations"
+    [[ "$repo" == */* ]] && grp="$grp/${repo%/*}"
+    print -r -- "$grp"
+}
+
+# Le nom du projet seul, sans son sous-groupe : GitLab n accepte pas de / dans un `path`.
+_work_cfg_repo_leaf() {
+    print -r -- "${1##*/}"
+}
+
 _work_cfg_local_path() {
     print -r -- "${WORK_DIR:-$HOME/work}/$1/applications/$2/configurations/$3"
 }
@@ -887,7 +922,9 @@ _work_cfg_local_path() {
 _work_cfg_create() {
     local bu="$1" app="$2" repo="$3" envs_csv="$4"
     local -a envs; envs=(${(s:,:)envs_csv})
-    local grp="$bu/applications/$app/configurations"
+    local grp leaf
+    grp=$(_work_cfg_repo_group "$bu" "$app" "$repo")
+    leaf=$(_work_cfg_repo_leaf "$repo")
     local enc; enc=$(_work_cfg_enc "$grp")
 
     # Ne PAS ecrire `_work_cfg_json ... | jq ... || { ... }` : le code de sortie d un
@@ -936,7 +973,7 @@ _work_cfg_create() {
     # echappe deja correctement le contenu des README (jq -Rs) ; il n y a aucune
     # raison que la creation soit la seule exception.
     local body proj
-    body=$(jq -n --arg name "$repo" --arg path "$repo" \
+    body=$(jq -n --arg name "$leaf" --arg path "$leaf" \
                  --argjson nsid "$gid" --arg def "$default_env" \
         '{name:$name, path:$path, namespace_id:$nsid, visibility:"internal",
           default_branch:$def, initialize_with_readme:true}') \

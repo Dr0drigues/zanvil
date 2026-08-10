@@ -58,8 +58,26 @@ zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/components/demo-fro
 zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/companion/app"' \
     | assert_equals "chemin companion reconnu, pas rejete par l arite" "$(printf 'blg\tdemoapp\tcompanion/app')"
 
-zc '_work_cfg_guard_target blg demoapp companion/app 2>&1 | grep -o "companion est hors perimetre"' \
-    | assert_equals "le garde nomme le sous-groupe companion" "companion est hors perimetre"
+zc '_work_cfg_guard_target blg demoapp companion/app && print ok' \
+    | assert_equals "un repo de sous-groupe est dans le perimetre" "ok"
+
+zc '_work_cfg_guard_target blg demoapp a/b/c >/dev/null 2>&1 || print refuse' \
+    | assert_equals "trois niveaux : refuse" "refuse"
+
+zc '_work_cfg_repo_group blg demoapp companion/api' \
+    | assert_equals "le groupe porteur descend dans le sous-groupe" \
+"blg/applications/demoapp/configurations/companion"
+
+zc '_work_cfg_repo_group blg demoapp demo-front' \
+    | assert_equals "un repo de premier niveau reste dans configurations" \
+"blg/applications/demoapp/configurations"
+
+zc '_work_cfg_repo_leaf companion/api' \
+    | assert_equals "le nom du projet perd son sous-groupe" "api"
+
+zc '_work_cfg_parse_path "$(_work_cfg_local_path blg demoapp companion/api)"' \
+    | assert_equals "aller-retour chemin sur un repo de sous-groupe" \
+"$(printf 'blg\tdemoapp\tcompanion/api')"
 
 zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/pasompanion/app" || print refuse' \
     | assert_equals "six segments hors companion : toujours refuse" "refuse"
@@ -76,8 +94,8 @@ zc '_work_cfg_guard_target blg demoapp demo-front && print ok' \
 zc '_work_cfg_guard_target blg demoapp technical-assets >/dev/null 2>&1 || print refuse' \
     | assert_equals "technical-assets refuse" "refuse"
 
-zc '_work_cfg_guard_target blg demoapp companion >/dev/null 2>&1 || print refuse' \
-    | assert_equals "companion refuse" "refuse"
+zc '_work_cfg_guard_target blg demoapp companion 2>&1 | grep -o "un sous-groupe, pas un repo"' \
+    | assert_equals "companion seul : un sous-groupe n est pas un repo" "un sous-groupe, pas un repo"
 
 zc '_work_cfg_guard_target xxx demoapp demo-front >/dev/null 2>&1 || print refuse' \
     | assert_equals "BU inconnue refusee au garde" "refuse"
@@ -180,6 +198,10 @@ zc '_work_cfg_readme_content demo-front dev' \
 
 zc '_work_cfg_readme_content demo-front prd | wc -l | tr -d " "' \
     | assert_equals "README fait exactement une ligne" "1"
+
+# Le nom du repo, pas son chemin : « companion/api » se lit « # api » dans son README.
+zc '_work_cfg_readme_content companion/api dev' \
+    | assert_equals "un repo de sous-groupe porte son nom seul dans son README" "# api dev"
 
 echo
 echo "== planificateur : repo conforme =="
@@ -831,6 +853,23 @@ zc '_work_cfg_json() { [[ "$2" == projects ]] && print -r -u2 -- "$3"; typeset -
     print -r -- "$out" | jq -r ".name"' \
     | assert_equals "un nom hostile arrive entier, non tronque par l interpolation" \
 'x","visibility":"public'
+
+# GitLab n accepte pas de / dans un `path` de projet : un repo de sous-groupe se cree
+# avec son nom seul, dans le groupe qui le porte.
+zc '_work_cfg_json() {
+        case "$2" in
+            groups/*) typeset -g _work_cfg_body="{\"id\":7}" ;;
+            projects) print -r -u2 -- "$3"; typeset -g _work_cfg_body="{\"id\":42,\"http_url_to_repo\":\"https://e.test/x.git\"}" ;;
+            *)        typeset -g _work_cfg_body="{}" ;;
+        esac
+        return 0
+    }
+    _work_cfg_write_readme() { return 0 }; _work_cfg_protect() { return 0 }
+    _work_cfg_read_answer() { print y }
+    git() { return 0 }; cd() { return 0 }
+    out=$(_work_cfg_create blg demoapp companion/api dev 2>&1 >/dev/null)
+    print -r -- "$out" | jq -r ".path"' \
+    | assert_equals "un repo de sous-groupe se cree avec son nom seul" "api"
 
 echo
 echo "== creation : la confirmation qui manquait avant le premier POST =="
