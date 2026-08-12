@@ -1,6 +1,6 @@
 [package]
 name = "zanvil"
-version = "4.4.0"
+version = "3.13.1"
 edition = "2021"
 description = "CLI companion for zanvil"
 
