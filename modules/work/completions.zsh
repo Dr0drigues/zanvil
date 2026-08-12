@@ -79,3 +79,19 @@ _work_config_repo() {
         '1:repo de configuration:'
 }
 compdef _work_config_repo work_config_repo
+
+# Les quatre criteres s excluent l un l autre : l API n en prend qu un, donc la completion
+# cesse de proposer les trois autres des qu un est frappe.
+_work_merch_product() {
+    local excl='(-e --ean -o --offerId -s --sapId -p --pimId)'
+    _arguments \
+        "${excl}"{-e,--ean}'[Code EAN]:ean:' \
+        "${excl}"{-o,--offerId}'[Identifiant d offre]:offerId:' \
+        "${excl}"{-s,--sapId}'[Identifiant SAP]:sapId:' \
+        "${excl}"{-p,--pimId}'[Identifiant PIM]:pimId:' \
+        '(--qlf)--prod[Production (defaut)]' \
+        '(--prod)--qlf[Qualification]' \
+        '(-h --help)'{-h,--help}'[Afficher l aide]'
+}
+compdef _work_merch_product work_merch_product
+compdef _work_merch_product get_merch_product

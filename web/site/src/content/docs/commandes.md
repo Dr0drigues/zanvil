@@ -136,6 +136,26 @@ l'environnement — voir `env.d/` et le chiffrement sops.
 
 Les plages s'écrivent `Xs`, `Xm`, `Xh` ou `Xd`. `work_es_apps --refresh` ignore le cache.
 
+## API produits merch (module work)
+
+Recherche un produit par l'un de quatre identifiants. Les hôtes et les clés sont attendus
+dans l'environnement — voir `examples/env.d/work.zsh` ; les clés vont dans `~/.secrets` ou
+sous sops, jamais dans un fichier versionné.
+
+| Commande | Description |
+|----------|-------------|
+| `work_merch_product <critère>` | Interroge l'API produits ; `get_merch_product` est le même |
+
+Un seul critère à la fois, l'API n'en accepte pas davantage : `-e/--ean`, `-o/--offerId`,
+`-s/--sapId`, `-p/--pimId`. L'environnement se choisit avec `--prod` (défaut) ou `--qlf`.
+La sortie est indentée par `jq` sur un terminal et brute dans un pipe, donc composable :
+
+```bash
+get_merch_product -e 3660000000000
+get_merch_product --offerId 12345 --qlf
+get_merch_product -s 987654 | jq '.products[0].label'
+```
+
 ## Git Hooks
 
 | Commande | Description |

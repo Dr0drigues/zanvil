@@ -15,6 +15,18 @@ export ES_USER="${ES_USER:-}"
 # ES_PASSWORD a definir dans ~/.secrets ou via SOPS, jamais ici en clair
 # export ES_PASSWORD=""
 
+# API produits merch (work_merch_product / get_merch_product)
+# Les hotes restent vides ici : ce depot est public, et un nom d hote d entreprise en dur y
+# serait de la nomenclature d infrastructure. Les renseigner dans env.d/work.zsh, qui est
+# gitignore. Sans eux, la commande refuse au lieu de deviner.
+export ZANVIL_WORK_MERCH_HOST_PROD="${ZANVIL_WORK_MERCH_HOST_PROD:-}"
+export ZANVIL_WORK_MERCH_HOST_QLF="${ZANVIL_WORK_MERCH_HOST_QLF:-}"
+export ZANVIL_WORK_MERCH_ORG="${ZANVIL_WORK_MERCH_ORG:-OCFR}"
+# Une cle par environnement, sans repli de l une sur l autre — a definir dans ~/.secrets ou
+# via SOPS, jamais ici en clair.
+# export ZANVIL_WORK_MERCH_API_KEY_PROD=""
+# export ZANVIL_WORK_MERCH_API_KEY_QLF=""
+
 # PKI entreprise — URL du bundle de certificats (certificates_unix.sh)
 export ZANVIL_WORK_PKI_URL="${ZANVIL_WORK_PKI_URL:-}"
 

@@ -206,6 +206,9 @@ work_status() {
 
     # Volet Elasticsearch (defini dans elasticsearch.zsh)
     (( $+functions[_work_es_status_section] )) && _work_es_status_section
+
+    # Volet Merch (defini dans merch.zsh)
+    (( $+functions[_work_merch_status_section] )) && _work_merch_status_section
 }
 
 # --- Auto-initialisation au chargement ---
