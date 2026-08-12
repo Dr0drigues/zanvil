@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Imprime les expressions GitHub vides ecrites dans un fichier de workflow.
+#
+# Une expression vide fait rejeter le fichier ENTIER par GitHub. Le workflow ne tourne alors
+# plus du tout : il n'echoue pas dans un job, il n'en cree AUCUN. L'interface affiche « This
+# run likely failed because of a workflow file issue », sans log a lire, et `gh run view
+# --log-failed` repond « log not found ».
+#
+# C'est arrive le 2026-08-03 a auto-release.yml, et personne ne l'a vu pendant neuf jours :
+#
+#   # l'imbriquer dans une expression ${'{'}{ } } de GitHub ne l'est pas.
+#
+# Le commentaire qui expliquait qu'on ne peut pas imbriquer du bash dans une expression
+# GitHub en a ecrit une, vide. Le diese n'y change rien : il commente pour le SHELL, alors
+# que les expressions sont substituees dans tout le bloc `run` avant qu'aucun shell ne le
+# lise. Aucune release n'est sortie pendant ces neuf jours, et rien ne le signalait — les
+# runs en echec portaient l'evenement `push` sur un workflow declenche par `pull_request`,
+# ce qui ressemblait a un bruit d'infrastructure plutot qu'a une panne.
+#
+# Deux signes qui trahissent cette panne, si elle revient malgre ce controle :
+#   - `gh workflow list` affiche le CHEMIN du fichier au lieu de son `name:` ;
+#   - les runs ont 0 job et l'evenement ne correspond pas au declencheur declare.
+#
+# actionlint couvre ce defaut et bien d'autres, mais il faudrait l'ajouter au CI et au poste
+# de chacun. Ce controle ne demande rien : il ne verifie qu'un cas, celui qui a mordu.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+if ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "workflow-expressions: $ROOT n'est pas un depot git — controle impossible" >&2
+    exit 2
+fi
+
+# Une ouverture, des espaces facultatifs, une fermeture. Les accolades sont echappees parce
+# qu'en ERE `{` ouvre un quantificateur. Pas de `\s` ni de `\b` : POSIX ERE ne les connait
+# pas, et `git grep -E` rendrait zero resultat en silence — c'est le piege qui a deja coute
+# une iteration a tests/bin/internal-hostnames.
+PATTERN='\$\{\{[[:space:]]*\}\}'
+
+# Ce fichier se decrit lui-meme sans se signaler : l'exemple du commentaire ci-dessus coupe
+# la sequence par une chaine, donc il ne forme pas le motif. Un controle qui doit s'exclure
+# du scan cree un angle mort a l'endroit meme ou il regarde.
+git -C "$ROOT" grep -nIoE "$PATTERN" -- '.github/workflows/*.yml' '.github/workflows/*.yaml' \
+    || true

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le garde-fou imprime les expressions GitHub vides trouvees dans un fichier de workflow, et
+# ce cas exige qu il n en imprime aucune.
+#
+# Motif : le 2026-08-03, auto-release.yml a recu ce commentaire, cense expliquer qu on ne
+# peut pas imbriquer une substitution bash dans une expression GitHub :
+#
+#   # l imbriquer dans une expression ${'{'}{ } } de GitHub ne l est pas.
+#
+# En l ecrivant, il a produit une expression VIDE, et GitHub rejette alors le fichier
+# ENTIER. Le workflow n a plus tourne du tout : il n echouait pas dans un job, il n en
+# creait AUCUN. Aucune release n est sortie pendant neuf jours, jusqu au 2026-08-12.
+#
+# CE DEFAUT NE RESSEMBLE PAS A UNE PANNE, et c est ce qui l a rendu invisible. Les runs
+# portaient l evenement `push` sur un workflow declenche par `pull_request`, ce qui passait
+# pour un bruit d infrastructure. L interface disait « This run likely failed because of a
+# workflow file issue » sans log, et `gh run view --log-failed` repondait « log not found ».
+# La correlation etait pourtant nette : 13 runs `pull_request` tous en succes, 47 runs
+# `push` tous en echec.
+#
+# Le diese ne protege pas : il commente pour le SHELL, alors que les expressions sont
+# substituees dans tout le bloc `run` avant qu aucun shell ne le lise.
+name: no-empty-workflow-expression
+weight: 7
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/workflow-expressions"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Une ligne par occurrence : rien a dire, rien a imprimer.
+    equals: ""
