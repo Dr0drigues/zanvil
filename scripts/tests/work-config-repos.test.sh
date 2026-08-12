@@ -52,8 +52,35 @@ zc '_work_cfg_parse_path "$WORK_DIR/xxx/applications/demoapp/configurations/demo
 zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/components/demo-front" || print refuse' \
     | assert_equals "hors groupe configurations refuse" "refuse"
 
-zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/companion/app" || print refuse' \
-    | assert_equals "chemin companion refuse" "refuse"
+# Un chemin companion est RECONNU, pas rejete par l arite. Le rejeter ici renverrait
+# « BU inconnue » a quelqu un dont la BU est valide : le message nommerait le mauvais
+# probleme. C est _work_cfg_guard_target qui refuse, et qui sait dire pourquoi.
+zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/companion/app"' \
+    | assert_equals "chemin companion reconnu, pas rejete par l arite" "$(printf 'blg\tdemoapp\tcompanion/app')"
+
+zc '_work_cfg_guard_target blg demoapp companion/app && print ok' \
+    | assert_equals "un repo de sous-groupe est dans le perimetre" "ok"
+
+zc '_work_cfg_guard_target blg demoapp a/b/c >/dev/null 2>&1 || print refuse' \
+    | assert_equals "trois niveaux : refuse" "refuse"
+
+zc '_work_cfg_repo_group blg demoapp companion/api' \
+    | assert_equals "le groupe porteur descend dans le sous-groupe" \
+"blg/applications/demoapp/configurations/companion"
+
+zc '_work_cfg_repo_group blg demoapp demo-front' \
+    | assert_equals "un repo de premier niveau reste dans configurations" \
+"blg/applications/demoapp/configurations"
+
+zc '_work_cfg_repo_leaf companion/api' \
+    | assert_equals "le nom du projet perd son sous-groupe" "api"
+
+zc '_work_cfg_parse_path "$(_work_cfg_local_path blg demoapp companion/api)"' \
+    | assert_equals "aller-retour chemin sur un repo de sous-groupe" \
+"$(printf 'blg\tdemoapp\tcompanion/api')"
+
+zc '_work_cfg_parse_path "$WORK_DIR/blg/applications/demoapp/configurations/pasompanion/app" || print refuse' \
+    | assert_equals "six segments hors companion : toujours refuse" "refuse"
 
 zc '_work_cfg_parse_path "/ailleurs/blg/applications/demoapp/configurations/demo-front" || print refuse' \
     | assert_equals "hors WORK_DIR refuse" "refuse"
@@ -67,8 +94,8 @@ zc '_work_cfg_guard_target blg demoapp demo-front && print ok' \
 zc '_work_cfg_guard_target blg demoapp technical-assets >/dev/null 2>&1 || print refuse' \
     | assert_equals "technical-assets refuse" "refuse"
 
-zc '_work_cfg_guard_target blg demoapp companion >/dev/null 2>&1 || print refuse' \
-    | assert_equals "companion refuse" "refuse"
+zc '_work_cfg_guard_target blg demoapp companion 2>&1 | grep -o "un sous-groupe, pas un repo"' \
+    | assert_equals "companion seul : un sous-groupe n est pas un repo" "un sous-groupe, pas un repo"
 
 zc '_work_cfg_guard_target xxx demoapp demo-front >/dev/null 2>&1 || print refuse' \
     | assert_equals "BU inconnue refusee au garde" "refuse"
@@ -78,6 +105,36 @@ zc '_work_cfg_guard_target blg "" demo-front >/dev/null 2>&1 || print refuse' \
 
 zc '_work_cfg_guard_target blg demoapp "" >/dev/null 2>&1 || print refuse' \
     | assert_equals "repo vide refuse" "refuse"
+
+echo
+echo "== un nom de repo est un segment de chemin, pas une chaine libre =="
+
+zc '_work_cfg_guard_target blg demoapp "../x" >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom avec une barre est refuse" "refuse"
+
+zc '_work_cfg_guard_target blg demoapp "a b" >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom avec une espace est refuse" "refuse"
+
+# Ferme en amont ce que la construction jq echappe en aval : mieux vaut refuser
+# un nom porteur de guillemets que de compter sur l echappement seul.
+zc '_work_cfg_guard_target blg demoapp '"'"'x","visibility":"public'"'"' >/dev/null 2>&1 || print refuse' \
+    | assert_equals "un nom porteur de guillemets est refuse" "refuse"
+
+# Le motif ne doit pas dependre d EXTENDED_GLOB : sous zsh -f les operateurs # et (...)
+# sont litteraux, et une forme qui en depend rejetait « cls-bff ».
+zc '_work_cfg_guard_target blg demoapp demo-front && print ok' \
+    | assert_equals "un nom legitime avec tiret passe" "ok"
+
+zc '_work_cfg_guard_target blg demoapp demo_front.v2 && print ok' \
+    | assert_equals "un nom legitime avec _ et . passe" "ok"
+
+# « . » veut dire « ici ». Le prendre au pied de la lettre construisait une cible
+# .../configurations/. sans que rien ne proteste.
+zc 'd="$WORK_DIR/blg/applications/demoapp/configurations/demo-front"
+    mkdir -p "$d"; cd "$d"
+    GITLAB_BASE_DOMAIN=127.0.0.1:9 GITLAB_TOKEN=x
+    work_config_repo . 2>&1 | grep -o "configurations/demo-front"' \
+    | assert_equals "« . » vaut ici, pas un repo nomme point" "configurations/demo-front"
 
 # Le refus doit tomber AVANT tout appel reseau. Un curl factice depose un marqueur :
 # comparer la sortie ne suffirait pas, _ui_msg_fail ecrit sur stdout (core/ui.zsh:202)
@@ -141,6 +198,94 @@ zc '_work_cfg_readme_content demo-front dev' \
 
 zc '_work_cfg_readme_content demo-front prd | wc -l | tr -d " "' \
     | assert_equals "README fait exactement une ligne" "1"
+
+# Le nom du repo, pas son chemin : « companion/api » se lit « # api » dans son README.
+zc '_work_cfg_readme_content companion/api dev' \
+    | assert_equals "un repo de sous-groupe porte son nom seul dans son README" "# api dev"
+
+echo
+echo "== volet local du plan : le clone suit la norme =="
+
+# Un clone mono-main resterait sur une branche que le plan supprime en amont.
+zc 'd="$WORK_DIR/clone"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev | cut -f1 | sort | tr "\n" " "' \
+    | assert_equals "clone sur main : bascule et elagage prevus" "local_checkout local_prune "
+
+# Un arbre sale ne se fait pas deplacer par une commande de normalisation.
+zc 'd="$WORK_DIR/sale"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    print modif > "$d/fichier"
+    _work_cfg_local_plan "$d" dev | cut -f1' \
+    | assert_equals "arbre sale : aucune action locale, un avertissement" "warn"
+
+# Deja sur la bonne branche : rien a basculer.
+zc 'd="$WORK_DIR/bon"; mkdir -p "$d"
+    command git -C "$d" init -q -b dev
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev | cut -f1 | tr "\n" " "' \
+    | assert_equals "deja sur dev : rien a basculer" ""
+
+# Pas de clone local : le volet est vide, pas en erreur.
+zc '_work_cfg_local_plan "$WORK_DIR/absent" dev | wc -l | tr -d " "' \
+    | assert_equals "sans clone local : aucune ligne" "0"
+
+# Une branche d env de la norme n est pas une anomalie. Sans le troisieme argument, le
+# volet emettait local_checkout des que la branche differait du defaut : un depot conforme
+# dont le clone etait sur prd — parce qu on y editait la config de production — etait
+# rapporte non conforme, et --fix l en sortait sans que rien ne l ait demande.
+zc 'd="$WORK_DIR/sur-prd"; mkdir -p "$d"
+    command git -C "$d" init -q -b prd
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf,pprd,prd" | cut -f1 | tr "\n" " "' \
+    | assert_equals "clone sur une branche d env de la norme : rien a basculer" ""
+
+# Le meme clone, mais prd HORS de la norme demandee : la bascule redevient legitime.
+zc 'd="$WORK_DIR/prd-hors-norme"; mkdir -p "$d"
+    command git -C "$d" init -q -b prd
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf" | cut -f1 | tr "\n" " "' \
+    | assert_equals "clone sur un env hors norme : bascule prevue" "local_checkout "
+
+# main reste a quitter, norme ou pas : c est la branche que le plan vient de supprimer.
+zc 'd="$WORK_DIR/main-avec-norme"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf,pprd,prd" | cut -f1 | sort | tr "\n" " "' \
+    | assert_equals "clone sur main : bascule et elagage, meme avec la norme fournie" \
+        "local_checkout local_prune "
+
+echo
+echo "== chemin distant affiche : le sous-groupe ne double pas =="
+
+# `$grp` descend deja dans le sous-groupe et `$repo` le porte encore : les concatener
+# affichait « configurations/companion/companion/api », un chemin qui n existe pas — sur le
+# seul ecran qui sert a reperer une cible erronee avant creation.
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations/companion" \
+        "companion/api" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "companion/companion"' \
+    | assert_equals "aucun sous-groupe double dans le chemin annonce" "0"
+
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations/companion" \
+        "companion/api" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "configurations/companion/api"' \
+    | assert_equals "le chemin annonce est celui du projet" "1"
+
+# Un repo de premier niveau n a pas de sous-groupe a doubler : il ne doit pas regresser.
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations" \
+        "demo-front" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "configurations/demo-front"' \
+    | assert_equals "repo de premier niveau : chemin inchange" "1"
+
+# Le local vient APRES le distant : basculer sur dev avant de l avoir creee echouerait.
+# La fixture porte une ligne `warn` a dessein : sans elle, deplacer le volet local
+# apres `ecart warn` dans l ordre ne changerait pas la sortie, et l assertion serait
+# aveugle a la regression qu elle pretend surveiller.
+zc '_work_cfg_sort_plan "$(printf "warn\tbla\nlocal_checkout\tdev\t/d\nbranch_create\tdev\tmain\nmaster_delete\tmain")" | cut -f1' \
+    | assert_equals "le volet local s applique apres le distant, avant les avis" \
+"$(printf 'branch_create\nmaster_delete\nlocal_checkout\nwarn')"
 
 echo
 echo "== planificateur : repo conforme =="
@@ -792,6 +937,23 @@ zc '_work_cfg_json() { [[ "$2" == projects ]] && print -r -u2 -- "$3"; typeset -
     print -r -- "$out" | jq -r ".name"' \
     | assert_equals "un nom hostile arrive entier, non tronque par l interpolation" \
 'x","visibility":"public'
+
+# GitLab n accepte pas de / dans un `path` de projet : un repo de sous-groupe se cree
+# avec son nom seul, dans le groupe qui le porte.
+zc '_work_cfg_json() {
+        case "$2" in
+            groups/*) typeset -g _work_cfg_body="{\"id\":7}" ;;
+            projects) print -r -u2 -- "$3"; typeset -g _work_cfg_body="{\"id\":42,\"http_url_to_repo\":\"https://e.test/x.git\"}" ;;
+            *)        typeset -g _work_cfg_body="{}" ;;
+        esac
+        return 0
+    }
+    _work_cfg_write_readme() { return 0 }; _work_cfg_protect() { return 0 }
+    _work_cfg_read_answer() { print y }
+    git() { return 0 }; cd() { return 0 }
+    out=$(_work_cfg_create blg demoapp companion/api dev 2>&1 >/dev/null)
+    print -r -- "$out" | jq -r ".path"' \
+    | assert_equals "un repo de sous-groupe se cree avec son nom seul" "api"
 
 echo
 echo "== creation : la confirmation qui manquait avant le premier POST =="

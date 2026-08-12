@@ -34,12 +34,22 @@ _work_cfg_parse_path() {
     local -a parts
     parts=(${(s:/:)rel})
 
-    (( ${#parts} == 5 )) || return 1
+    # Cinq segments pour un repo, six pour un sous-groupe companion. Ce dernier est
+    # hors perimetre, mais il doit etre RECONNU pour que _work_cfg_guard_target puisse
+    # le dire. Le refuser ici par l arite renverrait « BU inconnue » a quelqu un dont
+    # la BU est parfaitement valide — le message nommerait le mauvais probleme.
+    local repo
+    case ${#parts} in
+        5) repo="$parts[5]" ;;
+        6) [[ "$parts[5]" == companion ]] || return 1
+           repo="companion/$parts[6]" ;;
+        *) return 1 ;;
+    esac
     [[ "$parts[2]" == applications ]] || return 1
     [[ "$parts[4]" == configurations ]] || return 1
     (( ${_WORK_CFG_BU_ALL[(Ie)$parts[1]]} )) || return 1
 
-    print -r -- "$parts[1]	$parts[3]	$parts[5]"
+    print -r -- "$parts[1]	$parts[3]	$repo"
     return 0
 }
 
@@ -68,10 +78,37 @@ _work_cfg_guard_target() {
         _ui_msg_fail "technical-assets est hors perimetre — ni ecriture, ni audit"
         return 1
     fi
-    if [[ "$repo" == companion || "$repo" == companion/* ]]; then
-        _ui_msg_fail "le sous-groupe companion est hors perimetre"
+    # `companion` seul designe le sous-groupe, pas un projet. Quelqu un debout dans
+    # configurations/companion obtiendrait ce nom par deduction et auditerait un groupe
+    # comme s il etait un depot : la lecture 404 et la creation entrerait en collision
+    # avec le sous-groupe existant. On le dit, et on indique ou descendre.
+    if [[ "$repo" == companion ]]; then
+        _ui_msg_fail "companion est un sous-groupe, pas un repo"
+        _ui_msg_info "descendre dans l un de ses projets, ou le nommer : companion/<repo>"
         return 1
     fi
+    # Un repo peut vivre dans un sous-groupe : configurations/companion/{app,api,loader}
+    # en sont, et ils portent la meme topologie que les autres — main unique et protegee,
+    # donc hors norme. Rien ne justifie de les ecarter de l audit.
+    local -a segs; segs=(${(s:/:)repo})
+    if (( ${#segs} > 2 )); then
+        _ui_msg_fail "trop de niveaux : « $repo » (au plus <sous-groupe>/<repo>)"
+        return 1
+    fi
+    # Chaque segment est un segment de chemin GitLab, pas une chaine libre. Le verifier
+    # ferme d un coup les noms qui n ont pas de sens (« . », « ../x ») et ceux qui
+    # fabriqueraient des cles dans un corps JSON — la construction par jq protege deja
+    # ce dernier cas, mais un refus en amont vaut mieux qu un echappement en aval.
+    # Forme volontairement sans `#` ni `(...)` : ces operateurs exigent EXTENDED_GLOB,
+    # qui n est pas garanti — sous `zsh -f` ils sont litteraux et une premiere version
+    # rejetait « cls-bff ».
+    local seg
+    for seg in $segs; do
+        if [[ -z "$seg" || "$seg" == *[^A-Za-z0-9._-]* || "$seg" == .* ]]; then
+            _ui_msg_fail "nom de repo invalide : « $repo » (attendu : lettres, chiffres, . _ -)"
+            return 1
+        fi
+    done
     return 0
 }
 
@@ -120,8 +157,12 @@ _work_cfg_env_is_protected() {
 }
 
 # Contenu attendu du README d une branche d env : un titre H1, une ligne, rien d autre.
+#
+# Le nom du repo, pas son chemin : un repo de sous-groupe est designe « companion/api »
+# dans toute la commande, mais son README porte « # api <branche> ». La spec dit « nom du
+# repo », et c est ce que GitLab appelle le `path` du projet.
 _work_cfg_readme_content() {
-    print -r -- "# ${1} ${2}"
+    print -r -- "# ${1##*/} ${2}"
 }
 
 # --- Planificateur ---
@@ -412,6 +453,52 @@ _work_cfg_collect() {
     return 0
 }
 
+# --- Volet local du plan ---
+
+# Ajoute au plan ce qu il faut faire au clone local. Le planificateur reste pur : ces
+# lignes viennent d ici, ou l I/O a deja droit de cite.
+#
+# Sans ce volet, une mise aux normes laisse le clone sur une branche que la commande
+# vient de supprimer en amont — c est le cas de tous les depots mono-main d aujourd hui.
+#
+# Rien n est ajoute si l arbre local porte des modifications : basculer de branche les
+# emporterait ailleurs, et ce n est pas a une commande de normalisation d en decider.
+#
+# Le troisieme argument, facultatif, porte les envs de la norme. Quand il est fourni, une
+# branche courante qui EST un env de la norme n est pas deplacee : sans cette exception,
+# `local_checkout` etait emis des que la branche differait du defaut, et un depot
+# parfaitement conforme dont le clone etait sur `prd` — parce qu on y editait la config de
+# production — etait rapporte non conforme, avec un code 2 et un plan d une action. Sous
+# `--fix`, la branche etait quittee sans que rien ne l ait demande. Le besoin reel ne
+# concerne que les branches que la norme ne garde pas : `main`, `master`, ou une branche
+# qui n existe plus en face.
+_work_cfg_local_plan() {
+    local dest="$1" want="$2" envs_csv="${3:-}"
+    [[ -d "$dest/.git" ]] || return 0
+
+    if [[ -n "$(command git -C "$dest" status --porcelain 2>/dev/null)" ]]; then
+        print -r -- "warn	clone local non synchronise : $dest porte des modifications"
+        return 0
+    fi
+
+    local cur; cur=$(command git -C "$dest" branch --show-current 2>/dev/null)
+    local -a norme; norme=(${(s:,:)envs_csv})
+    # Un HEAD detache rend une chaine vide, qui n est dans aucune norme : la bascule est
+    # alors proposee, et c est bien ce qu on veut.
+    if [[ "$cur" != "$want" ]] && ! (( ${norme[(Ie)$cur]} )); then
+        print -r -- "local_checkout	$want	$dest"
+    fi
+
+    # Les branches locales que la norme ne garde pas. `git branch -d` refusera celles
+    # qui portent des commits non fusionnes : c est la garde, on ne la contourne pas.
+    local b
+    for b in ${(f)"$(command git -C "$dest" branch --format='%(refname:short)' 2>/dev/null)"}; do
+        [[ "$b" == master || "$b" == main ]] || continue
+        print -r -- "local_prune	$b	$dest"
+    done
+    return 0
+}
+
 # --- Rendu ---
 
 # Compte les actions reelles d un plan : ni `warn` ni `ecart` n en sont.
@@ -476,6 +563,8 @@ _work_cfg_render() {
             rule_delete_orphan) print -r -- "  - supprimer la regle orpheline « $a »" ;;
             readme_write)  print -r -- "  ~ README de $a → « $(_work_cfg_readme_content "$repo" "$a") »" ;;
             master_delete) print -r -- "  - supprimer $a (sa protection sera retiree), sous reserve du merge-base" ;;
+            local_checkout) print -r -- "  ~ clone local : fetch --prune puis basculer sur $a" ;;
+            local_prune)   print -r -- "  - clone local : supprimer la branche $a (refuse si non fusionnee)" ;;
             ecart)         print -r -- "  ${_ui_yellow}!${_ui_nc} $a" ;;
             warn)          print -r -- "  ${_ui_yellow}!${_ui_nc} $a" ;;
         esac
@@ -519,6 +608,10 @@ work_config_repo() {
             --fix)    do_fix=1; shift ;;
             -h|--help) _work_cfg_usage; return 0 ;;
             -*) _ui_msg_fail "option inconnue : $1"; _work_cfg_usage; return 1 ;;
+            # « . » et « ./ » veulent dire « ici », pas « un repo nomme point ». C est
+            # ce qu on tape spontanement, et le prendre au pied de la lettre construisait
+            # une cible .../configurations/. sans que rien ne proteste.
+            .|./) shift ;;
             *)  repo="$1"; shift ;;
         esac
     done
@@ -575,9 +668,17 @@ _work_cfg_run() {
         return $?
     fi
 
-    local plan
+    local plan plan_local
     plan=$(_work_cfg_build_plan "$repo" "$envs_csv" "$readme_optin" "$_work_cfg_default" \
             "$_work_cfg_branches" "$_work_cfg_rules" "$_work_cfg_readmes")
+
+    # Le clone local fait partie de la mise aux normes : sans lui, le depot reste sur
+    # une branche que le plan vient de supprimer en amont.
+    plan_local=$(_work_cfg_local_plan \
+        "$(_work_cfg_local_path "$bu" "$app" "$repo")" \
+        "$(_work_cfg_expected_default "$envs_csv")" \
+        "$envs_csv")
+    [[ -n "$plan_local" ]] && plan="${plan:+$plan$'\n'}$plan_local"
 
     echo ""
     _work_cfg_render "$repo" "$plan"
@@ -592,7 +693,8 @@ _work_cfg_run() {
     (( n == 0 )) && return 2
     (( do_fix )) || return 2
 
-    _work_cfg_confirm_and_apply "$repo" "$envs_csv" "$readme_optin" "$plan"
+    _work_cfg_confirm_and_apply "$repo" "$envs_csv" "$readme_optin" "$plan" \
+        "$(_work_cfg_local_path "$bu" "$app" "$repo")"
 }
 
 # --- Dialogue de confirmation ---
@@ -614,8 +716,12 @@ _work_cfg_read_answer() {
 
 # Boucle de confirmation. `u` recalcule le plan avec une nouvelle liste d envs et
 # repropose : le sous-ensemble n est jamais persiste nulle part.
+#
+# Le cinquieme argument, facultatif, porte le chemin du clone local. Il sert au recalcul du
+# volet local par `u` : ce chemin ne depend pas des envs, contrairement au defaut attendu,
+# donc l appelant le calcule une fois et le passe.
 _work_cfg_confirm_and_apply() {
-    local repo="$1" envs_csv="$2" readme_optin="$3" plan="$4"
+    local repo="$1" envs_csv="$2" readme_optin="$3" plan="$4" local_dest="${5:-}"
 
     while true; do
         echo ""
@@ -642,6 +748,18 @@ _work_cfg_confirm_and_apply() {
                 plan=$(_work_cfg_build_plan "$repo" "$envs_csv" "$readme_optin" \
                         "$_work_cfg_default" "$_work_cfg_branches" "$_work_cfg_rules" \
                         "$_work_cfg_readmes")
+                # Le volet local, RECALCULE et non recopie : la nouvelle liste d envs
+                # change le defaut attendu, donc les anciennes lignes viseraient la
+                # mauvaise branche. Sans ce bloc, `--fix` puis `u` normalisait le distant
+                # et laissait le clone sur la branche qui venait d etre supprimee — le
+                # defaut meme que ce volet existe pour corriger, atteint par le chemin
+                # interactif.
+                if [[ -n "$local_dest" ]]; then
+                    local plan_local_u=
+                    plan_local_u=$(_work_cfg_local_plan "$local_dest" \
+                        "$(_work_cfg_expected_default "$envs_csv")" "$envs_csv")
+                    [[ -n "$plan_local_u" ]] && plan="${plan:+$plan$'\n'}$plan_local_u"
+                fi
                 echo ""
                 _work_cfg_render "$repo" "$plan"
                 (( $(_work_cfg_count_actions "$plan") == 0 )) && \
@@ -695,7 +813,8 @@ _work_cfg_is_merged() {
 _work_cfg_sort_plan() {
     local -a order
     order=(branch_create default_set unprotect readme_write protect_create
-           protect_replace protect_patch rule_delete_orphan master_delete ecart warn)
+           protect_replace protect_patch rule_delete_orphan master_delete
+           local_checkout local_prune ecart warn)
     local kind line
     for kind in $order; do
         for line in ${(f)${1:-}}; do
@@ -801,6 +920,20 @@ _work_cfg_apply() {
                     return 1
                 fi
                 _ui_msg_ok "$a supprimee (contenu repris dans $target)" ;;
+            local_checkout)
+                command git -C "$b" fetch --prune --quiet \
+                    || { _ui_msg_fail "fetch dans $b"; return 1 }
+                command git -C "$b" checkout --quiet "$a" \
+                    || { _ui_msg_fail "bascule du clone local sur $a"; return 1 }
+                _ui_msg_ok "clone local sur $a" ;;
+            local_prune)
+                # `-d` et non `-D` : git refuse une branche portant des commits non
+                # fusionnes, et ce refus est la garde. On le rapporte au lieu de forcer.
+                if command git -C "$b" branch -d "$a" >/dev/null 2>&1; then
+                    _ui_msg_ok "branche locale $a supprimee"
+                else
+                    _ui_msg_warn "branche locale $a conservee : git la dit non fusionnee"
+                fi ;;
             ecart|warn)
                 _ui_msg_warn "$a" ;;
         esac
@@ -852,6 +985,21 @@ _work_cfg_write_readme() {
 
 # Chemin canonique local, pur : aucun acces disque, aucun reseau.
 # Usage : _work_cfg_local_path <bu> <app> <repo>
+# Le groupe qui porte le projet. Un repo de premier niveau vit dans `configurations` ;
+# un repo de sous-groupe (companion/api) vit dans `configurations/companion`. La
+# distinction ne compte qu a la creation — la lecture passe par le chemin complet.
+_work_cfg_repo_group() {
+    local bu="$1" app="$2" repo="$3"
+    local grp="$bu/applications/$app/configurations"
+    [[ "$repo" == */* ]] && grp="$grp/${repo%/*}"
+    print -r -- "$grp"
+}
+
+# Le nom du projet seul, sans son sous-groupe : GitLab n accepte pas de / dans un `path`.
+_work_cfg_repo_leaf() {
+    print -r -- "${1##*/}"
+}
+
 _work_cfg_local_path() {
     print -r -- "${WORK_DIR:-$HOME/work}/$1/applications/$2/configurations/$3"
 }
@@ -862,7 +1010,9 @@ _work_cfg_local_path() {
 _work_cfg_create() {
     local bu="$1" app="$2" repo="$3" envs_csv="$4"
     local -a envs; envs=(${(s:,:)envs_csv})
-    local grp="$bu/applications/$app/configurations"
+    local grp leaf
+    grp=$(_work_cfg_repo_group "$bu" "$app" "$repo")
+    leaf=$(_work_cfg_repo_leaf "$repo")
     local enc; enc=$(_work_cfg_enc "$grp")
 
     # Ne PAS ecrire `_work_cfg_json ... | jq ... || { ... }` : le code de sortie d un
@@ -892,7 +1042,11 @@ _work_cfg_create() {
     # n existe sur la forge.
     echo ""
     print -r -- "${_ui_bold}Plan de creation${_ui_nc}"
-    _ui_section "Chemin distant" "$grp/$repo"
+    # `$grp/$leaf` et non `$grp/$repo` : `$grp` descend deja dans le sous-groupe, et
+    # `$repo` le porte encore. Les concatener affichait
+    # « configurations/companion/companion/api » — un chemin qui n existe pas, sur le seul
+    # ecran qui sert a reperer une cible erronee avant que quoi que ce soit ne soit cree.
+    _ui_section "Chemin distant" "$grp/$leaf"
     _ui_section "Envs" "$envs_csv"
     _ui_section "Visibilite" "internal"
     _ui_section "Branche defaut" "$default_env"
@@ -911,7 +1065,7 @@ _work_cfg_create() {
     # echappe deja correctement le contenu des README (jq -Rs) ; il n y a aucune
     # raison que la creation soit la seule exception.
     local body proj
-    body=$(jq -n --arg name "$repo" --arg path "$repo" \
+    body=$(jq -n --arg name "$leaf" --arg path "$leaf" \
                  --argjson nsid "$gid" --arg def "$default_env" \
         '{name:$name, path:$path, namespace_id:$nsid, visibility:"internal",
           default_branch:$def, initialize_with_readme:true}') \
@@ -922,7 +1076,7 @@ _work_cfg_create() {
     proj="$_work_cfg_body"
 
     typeset -g _work_cfg_pid; _work_cfg_pid=$(print -r -- "$proj" | jq -r '.id')
-    _ui_msg_ok "projet $grp/$repo cree"
+    _ui_msg_ok "projet $grp/$leaf cree"
 
     # A partir d ici, le projet EXISTE sur la forge. Toute sortie en erreur doit le
     # dire : sinon l utilisateur lit « HTTP 403 » et ignore qu un projet a ete cree,
@@ -979,10 +1133,15 @@ _work_cfg_create() {
 # distant, mais elle ne clonera jamais — le clone n existe que dans la creation.
 _work_cfg_create_partiel() {
     local grp="$1" repo="$2" url="$3" dest="$4"
+    # Meme raison qu au plan de creation : `$grp` descend deja dans le sous-groupe. Ce
+    # helper recoit `grp` et `repo`, pas la feuille, donc il la derive lui-meme — le
+    # chemin qu il imprime sert a retrouver le projet sur la forge, et un chemin double
+    # n y menerait pas.
+    local leaf; leaf=$(_work_cfg_repo_leaf "$repo")
     # Volontairement neutre sur l etat d avancement : ce helper sert aussi bien apres
     # un echec distant qu apres un echec de mkdir ou de clone, ou le distant est
     # complet. Annoncer « incomplet » serait faux dans la moitie des cas.
-    _ui_msg_info "le projet $grp/$repo existe desormais sur la forge"
+    _ui_msg_info "le projet $grp/$leaf existe desormais sur la forge"
     _ui_msg_info "verifier ou terminer la mise aux normes : work_config_repo --fix $repo"
     _ui_msg_info "recuperer le clone local   : git -c \"http.extraheader=PRIVATE-TOKEN: \$GITLAB_TOKEN\" clone $url $dest"
 }
