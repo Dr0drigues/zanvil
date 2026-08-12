@@ -628,7 +628,7 @@ _work_cfg_confirm_and_apply() {
             u)
                 print -n -- "Quels envs ? (${(j:,:)_WORK_CFG_ENVS_ALL}) "
                 local raw; read -r raw || raw=""
-                local new_envs
+                local new_envs=
                 # _ui_msg_fail ecrit sur stdout, donc la capture avale la plainte.
                 # Sans ce reemis, une saisie fautive fait juste reapparaitre le
                 # prompt, muet : l utilisateur ne sait pas ce qu on lui reproche.
@@ -735,7 +735,7 @@ _work_cfg_apply() {
                 # Corps construit par jq, comme les autres : $a est un nom de branche
                 # normalise par ce module, mais rien ne justifie que ce corps reste le
                 # seul construit par interpolation brute.
-                local _body_defset
+                local _body_defset=
                 _body_defset=$(jq -n --arg br "$a" '{default_branch:$br}') \
                     || { _ui_msg_fail "construction du corps de bascule sur $a"; return 1 }
                 _work_cfg_json PUT "projects/$pid" "$_body_defset" \

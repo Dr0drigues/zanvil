@@ -188,7 +188,7 @@ kube_init() {
 
             local basename="${sops_file:t}"
             # Retire l'extension .sops.yml ou .sops.yaml
-            local dest_name
+            local dest_name=
             if [[ "$basename" == *.sops.yml ]]; then
                 dest_name="${basename%.sops.yml}.yml"
             elif [[ "$basename" == *.sops.yaml ]]; then
