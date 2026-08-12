@@ -45,7 +45,17 @@ jobs:
         id: version
         if: steps.bump.outputs.type != 'skip'
         run: |
-          CURRENT=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "v0.0.0")
+          # Le tag le plus ELEVE, tous tags confondus — et non le plus PROCHE dans
+          # l'historique. `git describe --tags origin/main` rendait ce dernier, ce qui
+          # suppose que le tag le plus recent soit un ancetre de main. La reecriture
+          # d'historique du 2026-08-12 a casse cette hypothese : six tags v4.x n'ont pas pu
+          # etre reecrits — leurs releases sont immuables et GitHub refuse de les deplacer —
+          # donc ils pointent vers des commits devenus orphelins. `git describe` remontait
+          # alors a v3.13.0, et le workflow a publie v3.13.1 APRES v4.4.0, en faisant
+          # reculer la version du projet dans core/ui.zsh et cli/Cargo.toml.
+          CURRENT=$(git tag --list 'v[0-9]*' | sed 's/^v//' \
+              | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          CURRENT="v${CURRENT:-0.0.0}"
           VERSION=${CURRENT#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
@@ -56,9 +66,29 @@ jobs:
           esac
 
           NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+          # Le filet, et non le calcul : quelle que soit la raison, une version ne recule
+          # pas. Sans ce refus, l'erreur ci-dessus s'est publiee toute seule — et une
+          # release GitHub est IMMUABLE, donc irreparable une fois sortie. Echouer
+          # bruyamment coute une relance ; publier a l'envers coute un numero definitif.
+          DECLARED=$(sed -n 's/.*ZANVIL_VERSION="v\([0-9][0-9.]*\)".*/\1/p' core/ui.zsh | head -1)
+          if [[ -n "$DECLARED" ]]; then
+            HIGHEST=$(printf '%s\n%s\n' "$DECLARED" "${NEW_TAG#v}" \
+                | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+            # L'egalite est refusee elle aussi : apres un bump normal, la version declaree
+            # vaut le tag publie, donc le bump suivant est strictement superieur. Retomber
+            # sur le meme numero signale une anomalie — et republier un tag existant
+            # echouerait plus loin, sur une etape qui ne dirait pas pourquoi.
+            if [[ "$DECLARED" == "${NEW_TAG#v}" || "$HIGHEST" != "${NEW_TAG#v}" ]]; then
+              echo "::error::$NEW_TAG n'est pas strictement superieur a la version declaree v$DECLARED dans core/ui.zsh."
+              echo "::error::Publier reculerait ou repeterait la version. Verifier les tags : un tag orphelin fausse le calcul."
+              exit 1
+            fi
+          fi
+
           echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
           echo "previous=$CURRENT" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_TAG (was $CURRENT)"
+          echo "New version: $NEW_TAG (was $CURRENT, declared v$DECLARED)"
 
       # Les DEUX versions, et pas seulement celle du zsh : un binaire qui annonce une
       # version differente de son projet est precisement ce qui a fait passer
@@ -97,8 +127,25 @@ jobs:
           j = s.index("\n[", i + 1) if "\n[" in s[i + 1:] else len(s)
           bloc = re.sub(r'^version = ".*"$', f'version = "{sys.argv[1]}"', s[i:j], count=1, flags=re.M)
           p.write_text(s[:i] + bloc + s[j:])
+
+          # Cargo.lock porte aussi la version du paquet, et il etait laisse en arriere : le
+          # 2026-08-12, main avait Cargo.toml en 3.13.1 et Cargo.lock en 4.4.0. Rien n'a
+          # casse — aucune etape du CI n'emploie `--locked`, donc cargo regenere le fichier
+          # en silence — mais c'est la meme incoherence de version que ce workflow existe
+          # pour supprimer, et elle reviendrait a chaque release.
+          #
+          # L'edition est directe, faute de toolchain Rust a cette etape : y installer cargo
+          # pour changer trois caracteres couterait une minute a chaque release.
+          lock = pathlib.Path("cli/Cargo.lock")
+          if lock.exists():
+              t = lock.read_text()
+              # Seul le bloc du paquet zanvil : les dependances ont leurs propres versions.
+              t2 = re.sub(r'(\[\[package\]\]\nname = "zanvil"\nversion = )"[^"]*"',
+                          lambda m: m.group(1) + f'"{sys.argv[1]}"', t, count=1)
+              if t2 != t:
+                  lock.write_text(t2)
           PY
-          git add core/ui.zsh cli/Cargo.toml
+          git add core/ui.zsh cli/Cargo.toml cli/Cargo.lock
           git commit -m "chore(release): bump version to ${{ steps.version.outputs.tag }}"
           git push origin main
 
