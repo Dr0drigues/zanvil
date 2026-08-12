@@ -463,8 +463,17 @@ _work_cfg_collect() {
 #
 # Rien n est ajoute si l arbre local porte des modifications : basculer de branche les
 # emporterait ailleurs, et ce n est pas a une commande de normalisation d en decider.
+#
+# Le troisieme argument, facultatif, porte les envs de la norme. Quand il est fourni, une
+# branche courante qui EST un env de la norme n est pas deplacee : sans cette exception,
+# `local_checkout` etait emis des que la branche differait du defaut, et un depot
+# parfaitement conforme dont le clone etait sur `prd` — parce qu on y editait la config de
+# production — etait rapporte non conforme, avec un code 2 et un plan d une action. Sous
+# `--fix`, la branche etait quittee sans que rien ne l ait demande. Le besoin reel ne
+# concerne que les branches que la norme ne garde pas : `main`, `master`, ou une branche
+# qui n existe plus en face.
 _work_cfg_local_plan() {
-    local dest="$1" want="$2"
+    local dest="$1" want="$2" envs_csv="${3:-}"
     [[ -d "$dest/.git" ]] || return 0
 
     if [[ -n "$(command git -C "$dest" status --porcelain 2>/dev/null)" ]]; then
@@ -473,7 +482,12 @@ _work_cfg_local_plan() {
     fi
 
     local cur; cur=$(command git -C "$dest" branch --show-current 2>/dev/null)
-    [[ "$cur" != "$want" ]] && print -r -- "local_checkout	$want	$dest"
+    local -a norme; norme=(${(s:,:)envs_csv})
+    # Un HEAD detache rend une chaine vide, qui n est dans aucune norme : la bascule est
+    # alors proposee, et c est bien ce qu on veut.
+    if [[ "$cur" != "$want" ]] && ! (( ${norme[(Ie)$cur]} )); then
+        print -r -- "local_checkout	$want	$dest"
+    fi
 
     # Les branches locales que la norme ne garde pas. `git branch -d` refusera celles
     # qui portent des commits non fusionnes : c est la garde, on ne la contourne pas.
@@ -662,7 +676,8 @@ _work_cfg_run() {
     # une branche que le plan vient de supprimer en amont.
     plan_local=$(_work_cfg_local_plan \
         "$(_work_cfg_local_path "$bu" "$app" "$repo")" \
-        "$(_work_cfg_expected_default "$envs_csv")")
+        "$(_work_cfg_expected_default "$envs_csv")" \
+        "$envs_csv")
     [[ -n "$plan_local" ]] && plan="${plan:+$plan$'\n'}$plan_local"
 
     echo ""
@@ -678,7 +693,8 @@ _work_cfg_run() {
     (( n == 0 )) && return 2
     (( do_fix )) || return 2
 
-    _work_cfg_confirm_and_apply "$repo" "$envs_csv" "$readme_optin" "$plan"
+    _work_cfg_confirm_and_apply "$repo" "$envs_csv" "$readme_optin" "$plan" \
+        "$(_work_cfg_local_path "$bu" "$app" "$repo")"
 }
 
 # --- Dialogue de confirmation ---
@@ -700,8 +716,12 @@ _work_cfg_read_answer() {
 
 # Boucle de confirmation. `u` recalcule le plan avec une nouvelle liste d envs et
 # repropose : le sous-ensemble n est jamais persiste nulle part.
+#
+# Le cinquieme argument, facultatif, porte le chemin du clone local. Il sert au recalcul du
+# volet local par `u` : ce chemin ne depend pas des envs, contrairement au defaut attendu,
+# donc l appelant le calcule une fois et le passe.
 _work_cfg_confirm_and_apply() {
-    local repo="$1" envs_csv="$2" readme_optin="$3" plan="$4"
+    local repo="$1" envs_csv="$2" readme_optin="$3" plan="$4" local_dest="${5:-}"
 
     while true; do
         echo ""
@@ -714,7 +734,7 @@ _work_cfg_confirm_and_apply() {
             u)
                 print -n -- "Quels envs ? (${(j:,:)_WORK_CFG_ENVS_ALL}) "
                 local raw; read -r raw || raw=""
-                local new_envs
+                local new_envs=
                 # _ui_msg_fail ecrit sur stdout, donc la capture avale la plainte.
                 # Sans ce reemis, une saisie fautive fait juste reapparaitre le
                 # prompt, muet : l utilisateur ne sait pas ce qu on lui reproche.
@@ -728,6 +748,18 @@ _work_cfg_confirm_and_apply() {
                 plan=$(_work_cfg_build_plan "$repo" "$envs_csv" "$readme_optin" \
                         "$_work_cfg_default" "$_work_cfg_branches" "$_work_cfg_rules" \
                         "$_work_cfg_readmes")
+                # Le volet local, RECALCULE et non recopie : la nouvelle liste d envs
+                # change le defaut attendu, donc les anciennes lignes viseraient la
+                # mauvaise branche. Sans ce bloc, `--fix` puis `u` normalisait le distant
+                # et laissait le clone sur la branche qui venait d etre supprimee — le
+                # defaut meme que ce volet existe pour corriger, atteint par le chemin
+                # interactif.
+                if [[ -n "$local_dest" ]]; then
+                    local plan_local_u=
+                    plan_local_u=$(_work_cfg_local_plan "$local_dest" \
+                        "$(_work_cfg_expected_default "$envs_csv")" "$envs_csv")
+                    [[ -n "$plan_local_u" ]] && plan="${plan:+$plan$'\n'}$plan_local_u"
+                fi
                 echo ""
                 _work_cfg_render "$repo" "$plan"
                 (( $(_work_cfg_count_actions "$plan") == 0 )) && \
@@ -822,7 +854,7 @@ _work_cfg_apply() {
                 # Corps construit par jq, comme les autres : $a est un nom de branche
                 # normalise par ce module, mais rien ne justifie que ce corps reste le
                 # seul construit par interpolation brute.
-                local _body_defset
+                local _body_defset=
                 _body_defset=$(jq -n --arg br "$a" '{default_branch:$br}') \
                     || { _ui_msg_fail "construction du corps de bascule sur $a"; return 1 }
                 _work_cfg_json PUT "projects/$pid" "$_body_defset" \
@@ -1010,7 +1042,11 @@ _work_cfg_create() {
     # n existe sur la forge.
     echo ""
     print -r -- "${_ui_bold}Plan de creation${_ui_nc}"
-    _ui_section "Chemin distant" "$grp/$repo"
+    # `$grp/$leaf` et non `$grp/$repo` : `$grp` descend deja dans le sous-groupe, et
+    # `$repo` le porte encore. Les concatener affichait
+    # « configurations/companion/companion/api » — un chemin qui n existe pas, sur le seul
+    # ecran qui sert a reperer une cible erronee avant que quoi que ce soit ne soit cree.
+    _ui_section "Chemin distant" "$grp/$leaf"
     _ui_section "Envs" "$envs_csv"
     _ui_section "Visibilite" "internal"
     _ui_section "Branche defaut" "$default_env"
@@ -1040,7 +1076,7 @@ _work_cfg_create() {
     proj="$_work_cfg_body"
 
     typeset -g _work_cfg_pid; _work_cfg_pid=$(print -r -- "$proj" | jq -r '.id')
-    _ui_msg_ok "projet $grp/$repo cree"
+    _ui_msg_ok "projet $grp/$leaf cree"
 
     # A partir d ici, le projet EXISTE sur la forge. Toute sortie en erreur doit le
     # dire : sinon l utilisateur lit « HTTP 403 » et ignore qu un projet a ete cree,
@@ -1097,10 +1133,15 @@ _work_cfg_create() {
 # distant, mais elle ne clonera jamais — le clone n existe que dans la creation.
 _work_cfg_create_partiel() {
     local grp="$1" repo="$2" url="$3" dest="$4"
+    # Meme raison qu au plan de creation : `$grp` descend deja dans le sous-groupe. Ce
+    # helper recoit `grp` et `repo`, pas la feuille, donc il la derive lui-meme — le
+    # chemin qu il imprime sert a retrouver le projet sur la forge, et un chemin double
+    # n y menerait pas.
+    local leaf; leaf=$(_work_cfg_repo_leaf "$repo")
     # Volontairement neutre sur l etat d avancement : ce helper sert aussi bien apres
     # un echec distant qu apres un echec de mkdir ou de clone, ou le distant est
     # complet. Annoncer « incomplet » serait faux dans la moitie des cas.
-    _ui_msg_info "le projet $grp/$repo existe desormais sur la forge"
+    _ui_msg_info "le projet $grp/$leaf existe desormais sur la forge"
     _ui_msg_info "verifier ou terminer la mise aux normes : work_config_repo --fix $repo"
     _ui_msg_info "recuperer le clone local   : git -c \"http.extraheader=PRIVATE-TOKEN: \$GITLAB_TOKEN\" clone $url $dest"
 }

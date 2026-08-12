@@ -209,14 +209,14 @@ echo "== volet local du plan : le clone suit la norme =="
 # Un clone mono-main resterait sur une branche que le plan supprime en amont.
 zc 'd="$WORK_DIR/clone"; mkdir -p "$d"
     command git -C "$d" init -q -b main
-    command git -C "$d" commit -q --allow-empty -m x
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
     _work_cfg_local_plan "$d" dev | cut -f1 | sort | tr "\n" " "' \
     | assert_equals "clone sur main : bascule et elagage prevus" "local_checkout local_prune "
 
 # Un arbre sale ne se fait pas deplacer par une commande de normalisation.
 zc 'd="$WORK_DIR/sale"; mkdir -p "$d"
     command git -C "$d" init -q -b main
-    command git -C "$d" commit -q --allow-empty -m x
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
     print modif > "$d/fichier"
     _work_cfg_local_plan "$d" dev | cut -f1' \
     | assert_equals "arbre sale : aucune action locale, un avertissement" "warn"
@@ -224,13 +224,60 @@ zc 'd="$WORK_DIR/sale"; mkdir -p "$d"
 # Deja sur la bonne branche : rien a basculer.
 zc 'd="$WORK_DIR/bon"; mkdir -p "$d"
     command git -C "$d" init -q -b dev
-    command git -C "$d" commit -q --allow-empty -m x
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
     _work_cfg_local_plan "$d" dev | cut -f1 | tr "\n" " "' \
     | assert_equals "deja sur dev : rien a basculer" ""
 
 # Pas de clone local : le volet est vide, pas en erreur.
 zc '_work_cfg_local_plan "$WORK_DIR/absent" dev | wc -l | tr -d " "' \
     | assert_equals "sans clone local : aucune ligne" "0"
+
+# Une branche d env de la norme n est pas une anomalie. Sans le troisieme argument, le
+# volet emettait local_checkout des que la branche differait du defaut : un depot conforme
+# dont le clone etait sur prd — parce qu on y editait la config de production — etait
+# rapporte non conforme, et --fix l en sortait sans que rien ne l ait demande.
+zc 'd="$WORK_DIR/sur-prd"; mkdir -p "$d"
+    command git -C "$d" init -q -b prd
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf,pprd,prd" | cut -f1 | tr "\n" " "' \
+    | assert_equals "clone sur une branche d env de la norme : rien a basculer" ""
+
+# Le meme clone, mais prd HORS de la norme demandee : la bascule redevient legitime.
+zc 'd="$WORK_DIR/prd-hors-norme"; mkdir -p "$d"
+    command git -C "$d" init -q -b prd
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf" | cut -f1 | tr "\n" " "' \
+    | assert_equals "clone sur un env hors norme : bascule prevue" "local_checkout "
+
+# main reste a quitter, norme ou pas : c est la branche que le plan vient de supprimer.
+zc 'd="$WORK_DIR/main-avec-norme"; mkdir -p "$d"
+    command git -C "$d" init -q -b main
+    command git -C "$d" -c user.email=t@t.invalide -c user.name=t commit -q --allow-empty -m x
+    _work_cfg_local_plan "$d" dev "dev,qlf,pprd,prd" | cut -f1 | sort | tr "\n" " "' \
+    | assert_equals "clone sur main : bascule et elagage, meme avec la norme fournie" \
+        "local_checkout local_prune "
+
+echo
+echo "== chemin distant affiche : le sous-groupe ne double pas =="
+
+# `$grp` descend deja dans le sous-groupe et `$repo` le porte encore : les concatener
+# affichait « configurations/companion/companion/api », un chemin qui n existe pas — sur le
+# seul ecran qui sert a reperer une cible erronee avant creation.
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations/companion" \
+        "companion/api" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "companion/companion"' \
+    | assert_equals "aucun sous-groupe double dans le chemin annonce" "0"
+
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations/companion" \
+        "companion/api" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "configurations/companion/api"' \
+    | assert_equals "le chemin annonce est celui du projet" "1"
+
+# Un repo de premier niveau n a pas de sous-groupe a doubler : il ne doit pas regresser.
+zc '_work_cfg_create_partiel "blg/applications/demoapp/configurations" \
+        "demo-front" "https://forge.invalide/x.git" "/tmp/x" \
+    | grep -c "configurations/demo-front"' \
+    | assert_equals "repo de premier niveau : chemin inchange" "1"
 
 # Le local vient APRES le distant : basculer sur dev avant de l avoir creee echouerait.
 # La fixture porte une ligne `warn` a dessein : sans elle, deplacer le volet local

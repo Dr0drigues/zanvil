@@ -52,6 +52,11 @@ jobs:
           export ZANVIL_DIR="$PWD"
           bash scripts/tests/k9s-log-fmt.test.sh
           bash scripts/tests/zsh-special-vars.test.sh
+          # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de
+          # work_config_repo et n a jamais ete appelee ici, donc aucune de ses gardes ne
+          # protegeait la branche. Elle ne demande ni reseau ni identite git — ses `git
+          # commit` portent la leur, faute de quoi trois cas echouaient sur un runner nu.
+          bash scripts/tests/work-config-repos.test.sh
 
       # « Test binary-absent fallback warnings » a ete retiree. Elle amputait PATH a
       # la main pour prouver qu un module previent quand son binaire manque, ce que le
