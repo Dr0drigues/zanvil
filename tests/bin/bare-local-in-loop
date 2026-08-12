@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Imprime les declarations `local` NUES faites a l'interieur d'une boucle zsh.
+#
+# En zsh — et pas en bash — `local v` sur une variable qui a DEJA une valeur imprime
+# « v=valeur » sur stdout. A la deuxieme passe d'une boucle, une declaration nue affiche
+# donc le contenu de la variable au milieu de la sortie de la commande :
+#
+#   f() { for i in 1 2; do local v; v="x$i"; done; }   # affiche « v=x1 »
+#   f() { for i in 1 2; do local v=; v="x$i"; done; }  # n'affiche rien
+#
+# Ce que ca a coute, trouve le 2026-08-12 :
+#
+#   - `_work_merch_status_section` affichait « k=<cle API> ». La cle etait tenue hors de
+#     `ps` par `curl --config -`, et `work_status` la mettait a l'ecran.
+#   - `_git_bulk_pull` affichait « output=$'There is no tracking information...' » a partir
+#     du deuxieme depot, au milieu de son tableau.
+#
+# Quarante et une declarations etaient concernees, dans huit fichiers.
+#
+# La correction est d'ajouter `=` a la declaration, ou de sortir celle-ci de la boucle. Ne
+# PAS fusionner en `local v=$(cmd)` : `$?` deviendrait celui de `local`, donc toujours 0, et
+# le code retour de la commande serait perdu en silence.
+#
+# python3 plutot que grep : savoir si une ligne est DANS une boucle demande de suivre les
+# `do`/`done`, ce qu'une expression reguliere ne fait pas. python3 est deja requis par
+# .github/workflows/auto-release.yml, et present sur les deux images de la CI.
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+if ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "bare-local-in-loop: $ROOT n'est pas un depot git — controle impossible" >&2
+    exit 2
+fi
+
+cd "$ROOT" || exit 2
+git ls-files '*.zsh' | python3 -c '
+import re, sys
+
+def strip_comment(s):
+    # Un `#` ne commence pas toujours un commentaire : `$#` est le nombre d arguments, et
+    # `${v#prefixe}` retire un prefixe. Les confondre supprimait le `do` de
+    # `while (( $# )); do`, la profondeur retombait a zero, et le controle manquait la
+    # declaration qui suivait — c est arrive a la premiere version de ce script.
+    prot = s.replace("$#", "\x01")
+    prot = re.sub(r"(\$\{[^}]*?)#", lambda m: m.group(1) + "\x02", prot)
+    prot = re.split(r"(?:^|\s)#", prot)[0]
+    return prot.replace("\x01", "$#").replace("\x02", "#")
+
+OPEN  = re.compile(r"(?:^|;|\s)do(?:\s*$|\s*;)")
+CLOSE = re.compile(r"(?:^|;|\s)done(?:\s*$|\s*;|\s)")
+DECL  = re.compile(r"^(local|typeset)\s+(.*)$")
+NAME  = re.compile(r"[A-Za-z_][A-Za-z0-9_]*$")
+
+for path in (p.strip() for p in sys.stdin if p.strip()):
+    try:
+        lines = open(path, encoding="utf-8").read().split("\n")
+    except OSError:
+        continue
+    depth = 0
+    for n, line in enumerate(lines, 1):
+        s = line.strip()
+        if s.startswith("#"):
+            continue
+        code = strip_comment(s)
+        m = DECL.match(code) if depth > 0 else None
+        if m:
+            body = m.group(2).rstrip()
+            # Les declarations avec option (-a, -A, -g) ont une autre semantique et ne
+            # sont pas visees. Une declaration deja porteuse de `=` est correcte.
+            if body and "=" not in body and not body.startswith("-"):
+                if all(NAME.fullmatch(x) for x in body.split()):
+                    print(f"{path}:{n}:{s}")
+        depth += len(OPEN.findall(code)) - len(CLOSE.findall(code))
+        if depth < 0:
+            depth = 0
+' || true

@@ -305,7 +305,7 @@ _git_bulk_pull() {
         local name=$(basename "$repo")
         printf "  %-24s " "$name"
 
-        local output
+        local output=
         output=$(git -C "$repo" pull 2>&1)
         local rc=$?
 
@@ -356,7 +356,7 @@ _git_bulk_push() {
             continue
         fi
 
-        local output
+        local output=
         output=$(git -C "$repo" push 2>/dev/null)
         local rc=$?
 
@@ -392,7 +392,7 @@ _git_bulk_fetch() {
         local name=$(basename "$repo")
         printf "  %-24s " "$name"
 
-        local output
+        local output=
         output=$(git -C "$repo" fetch --all --prune 2>&1)
         local rc=$?
 
@@ -520,7 +520,7 @@ _git_bulk_commit() {
             printf "  %-24s " "$name"
         fi
 
-        local output
+        local output=
         output=$(git -C "$repo" commit -m "$msg" 2>&1)
         local rc=$?
 
@@ -580,7 +580,7 @@ _git_bulk_pull_dry() {
             continue
         fi
 
-        local behind_n
+        local behind_n=
         behind_n=$(git -C "$repo" rev-list --count HEAD..@{u} 2>/dev/null || echo "0")
 
         if [[ $behind_n -gt 0 ]]; then
@@ -613,7 +613,7 @@ _git_bulk_push_dry() {
         local name=$(basename "$repo")
         printf "  %-24s " "$name"
 
-        local ahead_n
+        local ahead_n=
         ahead_n=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null)
         local rc=$?
 
@@ -654,7 +654,7 @@ _git_bulk_commit_dry() {
         local name=$(basename "$repo")
         printf "  %-24s " "$name"
 
-        local changes
+        local changes=
         changes=$(git -C "$repo" status --porcelain 2>/dev/null)
         local file_count=$(echo "$changes" | grep -c '.' 2>/dev/null || echo "0")
 
@@ -716,7 +716,7 @@ _git_bulk_checkout() {
             continue
         fi
 
-        local output rc
+        local output= rc=
         if [[ "$create" == "true" ]]; then
             if [[ -n "$base" ]]; then
                 output=$(git -C "$repo" checkout -b "$branch" "$base" 2>&1)
@@ -864,7 +864,7 @@ _git_bulk_stash_push() {
             continue
         fi
 
-        local output rc
+        local output= rc=
         if [[ -n "$msg" ]]; then
             output=$(git -C "$repo" stash push -m "$msg" 2>&1)
         else
@@ -909,7 +909,7 @@ _git_bulk_stash_pop() {
             continue
         fi
 
-        local output
+        local output=
         output=$(git -C "$repo" stash pop 2>&1)
         local rc=$?
 
@@ -1111,7 +1111,7 @@ _git_bulk_branch_delete() {
         fi
 
         if [[ "$do_apply" == "true" ]]; then
-            local output
+            local output=
             output=$(git -C "$repo" branch -d "$target" 2>&1)
             local rc=$?
             if [[ $rc -eq 0 ]]; then
@@ -1164,7 +1164,7 @@ _git_bulk_log() {
         [[ -n "$since" ]] && log_args+=("--since=$since")
         [[ -n "$author" ]] && log_args+=("--author=$author")
 
-        local output
+        local output=
         output=$(git -C "$repo" "${log_args[@]}" 2>/dev/null)
 
         if [[ -z "$output" ]]; then
@@ -1201,7 +1201,7 @@ _git_bulk_merge() {
         for repo in "${repos[@]}"; do
             local name=$(basename "$repo")
             printf "  %-24s " "$name"
-            local output
+            local output=
             output=$(git -C "$repo" merge --abort 2>&1)
             if [[ $? -eq 0 ]]; then
                 _ui_ok "" "abort"
@@ -1244,7 +1244,7 @@ _git_bulk_merge() {
             continue
         fi
 
-        local output
+        local output=
         output=$(git -C "$repo" merge "$branch" 2>&1)
         local rc=$?
 
@@ -1317,7 +1317,7 @@ _git_bulk_merge_dry() {
         fi
 
         # Tenter le merge sans commit
-        local output
+        local output=
         output=$(git -C "$repo" merge --no-commit --no-ff "$branch" 2>&1)
         local rc=$?
 
@@ -1370,7 +1370,7 @@ _git_bulk_clean() {
         local name=$(basename "$repo")
         printf "  %-24s " "$name"
 
-        local output
+        local output=
         if [[ "$do_apply" == "true" ]]; then
             output=$(git -C "$repo" clean -fd 2>&1)
         else
@@ -1431,7 +1431,7 @@ _git_bulk_reset() {
         printf "  %-24s " "$name"
 
         # Verifier upstream
-        local upstream
+        local upstream=
         upstream=$(git -C "$repo" rev-parse --abbrev-ref "@{upstream}" 2>/dev/null)
         if [[ -z "$upstream" ]]; then
             _ui_skip "pas d'upstream"
@@ -1457,7 +1457,7 @@ _git_bulk_reset() {
         ((total_dirty++))
 
         if [[ "$do_apply" == "true" ]]; then
-            local output
+            local output=
             output=$(git -C "$repo" reset --hard "@{upstream}" 2>&1)
             local rc=$?
             if [[ $rc -eq 0 ]]; then
@@ -1517,13 +1517,13 @@ _git_bulk_prune() {
         git -C "$repo" fetch --prune 2>/dev/null
 
         # Detecter la branche par defaut
-        local default_branch
+        local default_branch=
         default_branch=$(git -C "$repo" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
         [[ -z "$default_branch" ]] && default_branch="main"
 
         # Collecter les branches gone
         local gone_branches=()
-        local line
+        local line=
         while IFS= read -r line; do
             [[ -z "$line" ]] && continue
             local br=$(echo "$line" | awk '{print $1}')
@@ -1582,7 +1582,7 @@ _git_bulk_prune() {
                 local delete_flag="-d"
                 [[ "$reason" == "gone" ]] && delete_flag="-D"
 
-                local output
+                local output=
                 output=$(git -C "$repo" branch "$delete_flag" "$br" 2>&1)
                 local rc=$?
 

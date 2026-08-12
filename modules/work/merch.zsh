@@ -132,12 +132,15 @@ EOF
 # --- Fonction publique ---
 
 work_merch_product() {
-    local env=prod param="" value="" crit_opt=""
+    # `p` est declaree ici, avec les autres, et non dans la boucle : en zsh, un `local`
+    # NU sur une variable qui a deja une valeur IMPRIME « nom=valeur » sur stdout. A la
+    # deuxieme passe de cette boucle, `local p` affichait donc « p=ean » au milieu de la
+    # sortie. Voir tests/bin/bare-local-in-loop.
+    local env=prod param="" value="" crit_opt="" p=""
 
     while (( $# )); do
         case "$1" in
             -e|--ean|-o|--offerId|-s|--sapId|-p|--pimId)
-                local p
                 case "$1" in
                     -e|--ean)     p=ean     ;;
                     -o|--offerId) p=offerId ;;
@@ -249,7 +252,7 @@ _work_merch_status_section() {
     _ui_separator 44
     local env
     for env in prod qlf; do
-        local h k
+        local h= k=
         h="$(_work_merch_host "$env")"
         k="$(_work_merch_api_key "$env")"
         if [[ -n "$h" && -n "$k" ]]; then

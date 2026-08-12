@@ -414,7 +414,7 @@ _mise_chpwd_hook() {
         for tool in java maven; do
             version=$(command mise current "$tool" 2>/dev/null)
             if [[ -z "$version" ]]; then
-                local requested
+                local requested=
                 requested=$(command mise ls --missing "$tool" 2>/dev/null | head -1 | awk '{print $2}')
                 if [[ -n "$requested" ]]; then
                     missing_tools="${missing_tools:+$missing_tools, }${tool}@${requested}"

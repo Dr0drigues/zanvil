@@ -357,7 +357,7 @@ zanvil-doctor-conflicts() {
         | sed "s/alias \([^=]*\)=.*/\1/" | sort | uniq -d)"
     if [[ -n "$alias_dups" ]]; then
         while IFS= read -r a; do
-            local files
+            local files=
             files="$(grep -rl "^alias ${a}=" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${a}' → ${files}"
             ((issues++))
@@ -377,7 +377,7 @@ zanvil-doctor-conflicts() {
         | sed -e "s/^function //" -e "s/\([^(]*\)() {.*/\1/" | sort | uniq -d)"
     if [[ -n "$fn_dups" ]]; then
         while IFS= read -r f; do
-            local files
+            local files=
             files="$(grep -rlE "^(function )?${f}\(\) \{" "$ZANVIL_DIR/modules" "$ZANVIL_DIR/core" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${f}' → ${files}"
             ((issues++))
@@ -418,7 +418,7 @@ zanvil-doctor-conflicts() {
         | sed "s/export \([^=]*\)=.*/\1/" | sort | uniq -d)"
     if [[ -n "$export_dups" ]]; then
         while IFS= read -r e; do
-            local files
+            local files=
             files="$(grep -rl "^export ${e}=" "$ZANVIL_DIR/modules" --include="*.zsh" 2>/dev/null | sed "s|$ZANVIL_DIR/||" | tr '\n' '  ')"
             _ui_msg_warn "'${e}' → ${files}"
             ((issues++))

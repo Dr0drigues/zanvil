@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le garde-fou imprime les declarations `local` nues faites dans une boucle, et ce cas exige
+# qu il n en imprime aucune.
+#
+# Motif : en zsh — et PAS en bash — `local v` sur une variable qui a deja une valeur imprime
+# « v=valeur » sur stdout. Dans une boucle, la deuxieme passe affiche donc le contenu de la
+# variable au milieu de la sortie de la commande. Quarante et une declarations etaient
+# concernees le 2026-08-12, dans huit fichiers, dont deux aux consequences visibles :
+#
+#   - `work_status` affichait « k=<cle API> ». La cle etait tenue hors de `ps` par
+#     `curl --config -`, et l affichage d etat la mettait a l ecran.
+#   - `git_bulk` affichait « output=$'There is no tracking information...' » a partir du
+#     deuxieme depot, au milieu de son tableau.
+#
+# CE DEFAUT NE SE VOIT QUE SUR LA DEUXIEME ITERATION, ce qui explique qu il ait survecu :
+# un essai sur un seul depot, ou sur un seul environnement, ne montre rien. Il ne casse rien
+# non plus — aucun code retour ne change, seule la sortie se salit, ce qui le rend invisible
+# a un test qui ne verifie que le code de sortie.
+#
+# La correction est d ajouter `=` a la declaration, ou de la sortir de la boucle. Fusionner
+# en `local v=$(cmd)` serait pire : `$?` deviendrait celui de `local`, donc toujours 0.
+name: no-bare-local-in-a-loop
+weight: 7
+setup:
+  run: ["$GAVELDROP_PROJECT/tests/bin/bare-local-in-loop"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+expect:
+  exit_code: 0
+  stdout:
+    # Une ligne par occurrence : rien a dire, rien a imprimer.
+    equals: ""

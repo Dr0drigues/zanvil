@@ -411,7 +411,7 @@ zanvil-restore() {
 
     for f in "$src"/*; do
         local name="$(basename "$f")"
-        local target
+        local target=
 
         case "$name" in
             config.zsh|completions.zsh)

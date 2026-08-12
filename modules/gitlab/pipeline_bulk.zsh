@@ -159,7 +159,7 @@ _pipeline_bulk_scan() {
         fi
 
         # Verifier que la remote pointe vers GitLab
-        local remote_url
+        local remote_url=
         remote_url=$(git -C "$sub" remote get-url origin 2>/dev/null)
         if [[ "$remote_url" == *gitlab* ]]; then
             echo "${sub%/}"
@@ -199,7 +199,7 @@ _pipeline_bulk_status() {
         printf "  %-24s ${_ui_cyan}%-14s${_ui_nc} " "$name" "$current_branch"
 
         # Recuperer le dernier pipeline via glab
-        local pipeline_info
+        local pipeline_info=
         pipeline_info=$(_pipeline_bulk_glab "$repo" ci list -F json 2>/dev/null | _pipeline_bulk_parse_first 2>/dev/null)
 
         if [[ -z "$pipeline_info" || "$pipeline_info" == "none" ]]; then
@@ -208,7 +208,7 @@ _pipeline_bulk_status() {
             continue
         fi
 
-        local p_id p_status p_duration
+        local p_id= p_status= p_duration=
         p_id=$(echo "$pipeline_info" | cut -d'|' -f1)
         p_status=$(echo "$pipeline_info" | cut -d'|' -f2)
         p_duration=$(echo "$pipeline_info" | cut -d'|' -f3)
@@ -292,12 +292,12 @@ _pipeline_bulk_trigger() {
         fi
 
         # Trigger le pipeline
-        local output
+        local output=
         output=$(_pipeline_bulk_glab "$repo" ci run -b "$target_branch" 2>&1)
         local rc=$?
 
         if [[ $rc -eq 0 ]]; then
-            local pipeline_id
+            local pipeline_id=
             pipeline_id=$(echo "$output" | grep -oE '[0-9]+' | tail -1)
             if [[ -n "$pipeline_id" ]]; then
                 _ui_ok "" "#${pipeline_id} on ${target_branch}"
@@ -309,7 +309,7 @@ _pipeline_bulk_trigger() {
             triggered_repos+=("$repo")
         else
             # Extraire un message d'erreur propre
-            local err_msg
+            local err_msg=
             err_msg=$(echo "$output" | grep -v -E '^\s*$|^\s*ERROR\s*$' | head -1 | sed 's/^[[:space:]]*//' | cut -c1-40)
             _ui_fail "" "${err_msg:-erreur inconnue}"
             echo ""
@@ -363,10 +363,10 @@ _pipeline_bulk_watch() {
             local name=$(_ui_truncate "$(basename "$repo")" 22)
 
             # Recuperer le dernier pipeline
-            local pipeline_info
+            local pipeline_info=
             pipeline_info=$(_pipeline_bulk_glab "$repo" ci list -F json 2>/dev/null | _pipeline_bulk_parse_first 2>/dev/null)
 
-            local p_id p_status p_duration
+            local p_id= p_status= p_duration=
             p_id=$(echo "$pipeline_info" | cut -d'|' -f1)
             p_status=$(echo "$pipeline_info" | cut -d'|' -f2)
             p_duration=$(echo "$pipeline_info" | cut -d'|' -f3)
@@ -507,7 +507,7 @@ _pipeline_bulk_get_stages() {
     local summary=""
     while IFS= read -r line; do
         if echo "$line" | grep -qE '(passed|failed|running|pending|created|skipped)'; then
-            local status_icon
+            local status_icon=
             if echo "$line" | grep -q 'failed'; then
                 status_icon="${_ui_red}${_ui_cross}${_ui_nc}"
             elif echo "$line" | grep -q 'passed\|success'; then
@@ -517,7 +517,7 @@ _pipeline_bulk_get_stages() {
             else
                 status_icon="${_ui_dim}${_ui_circle}${_ui_nc}"
             fi
-            local job
+            local job=
             job=$(echo "$line" | sed -E 's/[[:space:]]*(.*)[[:space:]]*[-:].*/\1/' | xargs)
             if [[ -n "$job" ]]; then
                 [[ -n "$summary" ]] && summary+=" ${_ui_arrow} "
