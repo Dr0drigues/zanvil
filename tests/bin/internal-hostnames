@@ -1,36 +1,67 @@
 #!/usr/bin/env bash
-# Imprime les endroits ou le CODE porte en dur un nom d'hote interne.
+# Imprime les endroits ou le depot porte en dur un nom d'hote interne.
 #
-# Un `hote-interne` a vecu comme valeur de repli dans
-# modules/work/, dans un depot public. Aucun secret n'etait expose — les credentials
-# passent par sops et ~/.secrets, comme la convention l'exige — mais la nomenclature
-# d'une infrastructure interne l'etait : le prefixe de production, le nom du service, le
-# domaine Azure. Un `.intranet` ne resout pas depuis l'exterieur, donc le prejudice est de
-# la reconnaissance et non un acces ; ca reste une pratique a ne pas laisser revenir.
+# Un nom d'hote d'observabilite interne a vecu comme valeur de repli dans modules/work/,
+# dans un depot public. Aucun secret n'etait expose — les credentials passent par sops et
+# ~/.secrets, comme la convention l'exige — mais la nomenclature d'une infrastructure
+# interne l'etait : le prefixe de production, le nom du service, le domaine Azure. Un
+# `.intranet` ne resout pas depuis l'exterieur, donc le prejudice est de la reconnaissance
+# et non un acces ; ca reste une pratique a ne pas laisser revenir.
+#
+# Ce fichier ne nomme plus cet hote, et c'est le fond de l'affaire : la premiere version du
+# controle l'ecrivait en clair ici et dans le commentaire de son cas. Le garde-fou publiait
+# donc exactement ce qu'il interdit, sur la branche principale d'un depot public, et il ne
+# se voyait pas. Trois mecanismes cumules l'y aidaient :
+#
+#   1. le motif exigeait un prefixe `https://`, donc un hote nu dans une phrase passait ;
+#   2. le scan portait sur core/ modules/ cli/src/ scripts/, donc pas sur tests/ ;
+#   3. les lignes de commentaire etaient exemptees.
+#
+# Les trois sont levees ci-dessous. L'exemption des commentaires repondait a un besoin
+# reel — expliquer pourquoi une URL ne doit pas etre en dur demande de pouvoir en montrer
+# une — mais elle repondait mal : un hote d'exemple suffit a illustrer, et le vrai n'ajoute
+# rien qu'une publication. Pour illustrer, employer un domaine en `.invalide` (RFC 2606),
+# que le motif ne reconnait pas, comme le font deja les fixtures des cas.
 #
 # `examples/env.d/work.zsh` documentait deja ces variables avec un defaut VIDE. Ce
 # controle fait respecter cette convention plutot qu'il n'en invente une.
-#
-# Trois exclusions, chacune avec sa raison :
-#
-#   1. les commentaires. Expliquer pourquoi une URL ne doit pas etre en dur demande de
-#      pouvoir en montrer une ; c'est le cas dans elasticsearch.zsh et dans le cas
-#      gaveldrop qui accompagne ce controle.
-#   2. examples/ et web/. Le premier documente les variables a definir, le second porte
-#      les rapports et les specs, qui nomment le probleme pour le decrire.
-#   3. tests/. La fixture d'un cas a besoin d'une adresse, et elle en emploie une en
-#      .invalide — reserve par la RFC 2606 — mais le repertoire est exclu pour que la
-#      regle ne depende pas du choix de domaine d'un cas.
 set -uo pipefail
 
 ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-# Les suffixes qui trahissent un hote d'entreprise. `.invalide` et `.exemple` n'y sont
-# pas : ce sont ceux que les cas doivent employer.
-PATTERN='https?://[a-z0-9.-]+\.(intranet|udb|azr)\b'
+# Une garde qui ne peut pas verifier doit le dire. Sans ce refus, un ROOT sans depot git
+# rendrait une sortie vide — et une sortie vide est precisement ce que le cas attend, donc
+# le controle passerait en n'ayant rien regarde. C'est le meme angle mort que ci-dessus,
+# une marche plus haut.
+if ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "internal-hostnames: $ROOT n'est pas un depot git — controle impossible" >&2
+    exit 2
+fi
 
-grep -rnoE "$PATTERN" \
-        --include='*.zsh' --include='*.sh' --include='*.rs' --include='*.toml' \
-        "$ROOT/core" "$ROOT/modules" "$ROOT/cli/src" "$ROOT/scripts" 2>/dev/null \
-    | grep -vE ':[0-9]+:[[:space:]]*(#|//)' \
-    | sed "s|^$ROOT/||" || true
+# Les suffixes qui trahissent un hote d'entreprise. `.invalide` et `.exemple` n'y sont pas :
+# ce sont ceux que les commentaires et les fixtures doivent employer.
+#
+# Sans prefixe de schema, delibere : un hote nu dans une phrase est aussi publie qu'une URL,
+# et c'est sous cette forme que celui de modules/work/ a survecu ici. Le motif exige un
+# caractere de nom d'hote avant le point, ce qui laisse passer un `.intranet` cite seul —
+# le mot, pas une adresse.
+#
+# La fin de mot s'ecrit `([^a-z0-9.-]|$)` et non `\b`, parce que `\b` n'existe pas dans les
+# regex POSIX etendues : `git grep -E` ne le reconnait pas et rend zero resultat, en
+# silence. La premiere version de cette correction l'employait, et ses trois sondes de
+# mutation sont passees inapercues — la garde ne detectait plus rien du tout. `-P` reglerait
+# le probleme mais `tests/bin/gnu-only-patterns` proscrit cette option, absente du grep de
+# macOS. Le prix de la portabilite est un caractere de trop dans la sortie de `-o` ; il est
+# derisoire compare a un controle muet.
+PATTERN='[a-z0-9][a-z0-9.-]*\.(intranet|udb|azr)([^a-z0-9.-]|$)'
+
+# `git grep` plutot que `grep -r`, pour trois raisons qui vont dans le meme sens : ce qui
+# est public, c'est ce que git suit ; les fichiers sans extension sont couverts, or
+# tests/bin/ n'en porte aucune et l'ancien `--include='*.sh'` passait a cote de ce fichier
+# meme ; et web/docs/ (gitignore) comme node_modules/ sortent du perimetre sans avoir a
+# etre nommes. Le worktree est lu tel qu'il est sur le disque, donc un hote est signale
+# avant d'entrer dans un commit, pas apres.
+git -C "$ROOT" grep -nIoE "$PATTERN" -- \
+        ':!web/site/package-lock.json' \
+        ':!web/site/pnpm-lock.yaml' \
+    || true

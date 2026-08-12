@@ -3,11 +3,16 @@
 # Le garde-fou imprime les endroits ou le code porte en dur un nom d hote interne, et ce
 # cas exige qu il n imprime rien.
 #
-# Motif : `hote-interne` a vecu comme valeur de repli dans
+# Motif : un nom d hote d observabilite interne a vecu comme valeur de repli dans
 # modules/work/, dans un depot PUBLIC. Aucun secret n etait expose, mais la nomenclature
 # d une infrastructure interne l etait. `examples/env.d/work.zsh` documentait deja ces
 # variables avec un defaut vide, donc le controle fait respecter la convention du projet
 # plutot qu il n en invente une.
+#
+# Ce commentaire nommait cet hote en clair jusqu au 2026-08-12, comme celui du garde-fou
+# qu il exerce : le cas qui exige qu aucun hote interne ne soit publie le publiait
+# lui-meme. Pour illustrer, employer un domaine en `.invalide` (RFC 2606), que le motif ne
+# reconnait pas.
 name: no-internal-hostname-in-the-code
 weight: 7
 setup:
