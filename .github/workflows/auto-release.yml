@@ -72,7 +72,14 @@ jobs:
           sed -i 's/export ZANVIL_VERSION="v[^"]*"/export ZANVIL_VERSION="${{ steps.version.outputs.tag }}"/' core/ui.zsh
           # Le tag porte un « v » que Cargo n'accepte pas dans un champ version. Le
           # retrait passe par une variable intermediaire : ${VAR#v} est du bash, et
-          # l'imbriquer dans une expression ${{ }} de GitHub ne l'est pas.
+          # l'imbriquer dans une expression GitHub ne l'est pas.
+          #
+          # Ne PAS ecrire cette expression en clair ici, meme derriere un diese. Le diese
+          # commente pour le shell, pas pour GitHub : les expressions sont substituees dans
+          # tout le bloc `run` avant qu'aucun shell ne le lise. Une expression vide est
+          # invalide, elle fait rejeter le fichier ENTIER, et le workflow ne tourne plus du
+          # tout — il n'echoue pas dans un job, il n'en cree aucun. C'est arrive le
+          # 2026-08-03 et plus aucune release n'est sortie pendant neuf jours.
           TAG="${{ steps.version.outputs.tag }}"
           CARGO_VERSION="${TAG#v}"
           # python3 plutot que sed : la premiere version de cette etape utilisait
