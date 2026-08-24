@@ -124,8 +124,12 @@ Utilise par : `kube_switch`, `k` (k9s), `zanvil context` (prompt Starship)
 
 ### .zanvil.local (direnv-like)
 
-Fichier `.zanvil.local` a la racine d'un projet, auto-source au `cd`.
-Trust hash-based (sha256). Auto-unload en sortant du dossier.
+Fichier `.zanvil.local` par dossier, auto-source au `cd` avec **heritage hierarchique** :
+la chaine complete (racine projet -> dossier courant) est chargee, l'enfant override
+le parent. Borne a `$HOME` (exclu). Trust hash-based (sha256) par fichier ; refuser
+un parent coupe l'heritage des enfants. Au unload : vars ajoutees unset, vars
+modifiees restaurees, fonctions definies retirees.
+Exemple : `examples/zanvil.local.overthewire.example`.
 
 ## Systeme UI (`core/ui.zsh`)
 
