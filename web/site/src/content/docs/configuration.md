@@ -98,7 +98,7 @@ sops ~/.zanvil/env.d/secrets.env
 
 ## Chargement local (.zanvil.local)
 
-Le fichier `.zanvil.local` dans un répertoire est auto-chargé lorsque vous y entrez (similaire à direnv). Un mécanisme de confiance basé sur un hash empêche l'exécution de fichiers non approuvés.
+Le fichier `.zanvil.local` est auto-chargé lorsque vous entrez dans un répertoire (similaire à direnv). Un mécanisme de confiance basé sur un hash empêche l'exécution de fichiers non approuvés.
 
 ```bash
 # Créer un fichier local
@@ -107,6 +107,24 @@ echo 'export NODE_ENV=development' > /path/to/project/.zanvil.local
 # La première fois, zanvil demandera d'approuver le fichier
 # Après approbation, il sera chargé automatiquement
 ```
+
+### Héritage hiérarchique
+
+Le système gère les arborescences : en entrant dans un dossier, zanvil charge **toute la chaîne** des `.zanvil.local`, de la racine projet vers le dossier courant. L'enfant override les variables du parent.
+
+```text
+~/ctf/otw/.zanvil.local          # racine : serveur, port, fonctions helper
+~/ctf/otw/bandit0/.zanvil.local  # enfant : USER, PASSWORD
+```
+
+Règles :
+
+- La remontée s'arrête à `$HOME` (exclu) — pour du global, utilisez `config.zsh` ou `env.d/`
+- Le trust est évalué **par fichier** ; refuser un parent coupe l'héritage pour ses enfants
+- Au déchargement : variables ajoutées supprimées, variables modifiées restaurées, fonctions définies retirées
+- N'utilisez que des `export VAR=...` (les assignations non exportées ne sont pas tracées)
+
+Un exemple complet (serveur/port + fonction qui génère les dossiers enfants) est disponible dans [`examples/zanvil.local.overthewire.example`](https://github.com/Dr0drigues/zanvil/blob/main/examples/zanvil.local.overthewire.example).
 
 ## Profils d'environnement
 

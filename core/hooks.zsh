@@ -65,13 +65,19 @@ if command -v direnv &> /dev/null; then
 fi
 
 # =======================================================
-# ZANVIL LOCAL (auto-chargement par projet, style direnv)
+# ZANVIL LOCAL (auto-chargement hierarchique, style direnv)
 # =======================================================
-# Detecte .zanvil.local dans le repertoire courant au cd
-# Trust hash-based : demande confirmation la premiere fois ou si modifie
+# Chaque dossier peut contenir un .zanvil.local. En entrant dans un dossier,
+# la chaine complete des .zanvil.local est chargee, de la racine projet vers
+# le dossier courant (l'enfant override le parent). Borne : $HOME n'est pas
+# couvert — utilisez config.zsh / env.d/ pour du global.
+# Trust hash-based par fichier + cache de refus par session.
 _ZANVIL_LOCAL_TRUST_DIR="${ZANVIL_DIR:-$HOME/.zanvil}/.trusted"
-_ZANVIL_LOCAL_LOADED=""
-_ZANVIL_LOCAL_VARS=()
+_ZANVIL_LOCAL_FILES=()      # pile des fichiers appliques (racine -> feuille)
+_ZANVIL_LOCAL_ADDED=()      # vars exportees ajoutees (unset au dechargement)
+_ZANVIL_LOCAL_RESTORE=()    # paires NAME=value des vars modifiees/supprimees
+_ZANVIL_LOCAL_FUNCS=()      # fonctions definies par les fichiers
+_ZANVIL_LOCAL_DENIED=()     # hashes refuses durant cette session
 
 _zanvil_local_hash() {
     shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
@@ -91,10 +97,34 @@ _zanvil_local_trust() {
     echo "$file" > "$_ZANVIL_LOCAL_TRUST_DIR/${hash}"
 }
 
-_zanvil_local_load() {
+# Construit _ZANVIL_LOCAL_STACK : les .zanvil.local presents entre le dossier
+# courant et $HOME (exclu), ordonnes racine -> feuille.
+_zanvil_local_stack() {
+    _ZANVIL_LOCAL_STACK=()
+    local -a rev=()
+    local dir="${PWD:A}"
+    local home="${HOME:A}"
+    while :; do
+        [[ "$dir" == "$home" || "$dir" == "/" ]] && break
+        [[ -f "$dir/.zanvil.local" ]] && rev+=("$dir/.zanvil.local")
+        dir="${dir:h}"
+    done
+    local i
+    for (( i = ${#rev[@]}; i >= 1; i-- )); do
+        _ZANVIL_LOCAL_STACK+=("${rev[$i]}")
+    done
+}
+
+# Source un fichier apres validation du trust. Retourne 1 si refuse.
+_zanvil_local_source() {
     local file="$1"
 
     if ! _zanvil_local_is_trusted "$file"; then
+        local hash=$(_zanvil_local_hash "$file")
+        # Deja refuse cette session -> pas de re-prompt
+        if (( ${_ZANVIL_LOCAL_DENIED[(Ie)$hash]} )); then
+            return 1
+        fi
         echo ""
         echo -e "${_ui_yellow}[zanvil]${_ui_nc} Fichier .zanvil.local detecte dans ${_ui_bold}$(dirname "$file")${_ui_nc}"
         echo -e "  ${_ui_dim}$(head -3 "$file" | sed 's/^/  /')${_ui_nc}"
@@ -103,54 +133,109 @@ _zanvil_local_load() {
         read -q "response?Autoriser ce fichier ? [y/N] "
         echo ""
         if [[ "$response" != "y" ]]; then
-            echo -e "${_ui_dim}Ignore. Lancez 'zanvil-trust' pour autoriser plus tard.${_ui_nc}"
+            _ZANVIL_LOCAL_DENIED+=("$hash")
+            echo -e "${_ui_dim}Ignore. Lancez 'zanvil-trust [$file]' pour autoriser plus tard.${_ui_nc}"
             return 1
         fi
         _zanvil_local_trust "$file"
     fi
 
-    # Capturer les variables avant/apres pour le unload
-    local before_vars=$(env | sort)
     source "$file"
-    local after_vars=$(env | sort)
-
-    # Stocker les nouvelles variables pour cleanup
-    _ZANVIL_LOCAL_VARS=($(comm -13 <(echo "$before_vars") <(echo "$after_vars") | cut -d= -f1))
-    _ZANVIL_LOCAL_LOADED="$file"
-
-    echo -e "${_ui_green}[zanvil]${_ui_nc} Charge: ${_ui_dim}$(dirname "$file")/.zanvil.local${_ui_nc}"
 }
 
 _zanvil_local_unload() {
-    if [[ -n "$_ZANVIL_LOCAL_LOADED" ]]; then
-        # Unset les variables ajoutees par le fichier
-        for var in "${_ZANVIL_LOCAL_VARS[@]}"; do
-            unset "$var" 2>/dev/null
-        done
-        echo -e "${_ui_dim}[zanvil] Decharge: $(dirname "$_ZANVIL_LOCAL_LOADED")/.zanvil.local${_ui_nc}"
-        _ZANVIL_LOCAL_LOADED=""
-        _ZANVIL_LOCAL_VARS=()
-    fi
+    (( ${#_ZANVIL_LOCAL_FILES[@]} )) || return 0
+
+    local pair var fn
+    # Restaurer les vars modifiees/supprimees par les fichiers
+    for pair in "${_ZANVIL_LOCAL_RESTORE[@]}"; do
+        export "${pair}" 2>/dev/null
+    done
+    # Unset les vars ajoutees
+    for var in "${_ZANVIL_LOCAL_ADDED[@]}"; do
+        unset "${var}" 2>/dev/null
+    done
+    # Retirer les fonctions definies
+    for fn in "${_ZANVIL_LOCAL_FUNCS[@]}"; do
+        unfunction "${fn}" 2>/dev/null
+    done
+
+    echo -e "${_ui_dim}[zanvil] Decharge: ${#_ZANVIL_LOCAL_FILES[@]} fichier(s) .zanvil.local${_ui_nc}"
+    _ZANVIL_LOCAL_FILES=()
+    _ZANVIL_LOCAL_ADDED=()
+    _ZANVIL_LOCAL_RESTORE=()
+    _ZANVIL_LOCAL_FUNCS=()
 }
 
 _zanvil_local_chpwd() {
-    local local_file="$PWD/.zanvil.local"
+    _zanvil_local_stack
+    local -a wanted=("${_ZANVIL_LOCAL_STACK[@]}")
 
-    # Si on a un fichier charge et on est sorti du dossier
-    if [[ -n "$_ZANVIL_LOCAL_LOADED" ]]; then
-        local loaded_dir="$(dirname "$_ZANVIL_LOCAL_LOADED")"
-        if [[ "$PWD" != "$loaded_dir"* ]]; then
-            _zanvil_local_unload
+    # Rien a faire si la pile voulue est identique a celle deja appliquee
+    if [[ "${(j:\n:)wanted}" == "${(j:\n:)_ZANVIL_LOCAL_FILES}" ]]; then
+        return 0
+    fi
+
+    _zanvil_local_unload
+    (( ${#wanted[@]} )) || return 0
+
+    # Snapshots avant chargement (vars exportees + fonctions)
+    local before_env=$(env | LC_ALL=C sort)
+    local -a before_funcs=($(print -rl -- ${(ko)functions}))
+
+    # Charger la pile racine -> feuille ; un refus coupe l'heritage en dessous
+    local file
+    local -a applied=()
+    for file in "${wanted[@]}"; do
+        if ! _zanvil_local_source "$file"; then
+            break
         fi
-    fi
+        applied+=("$file")
+    done
+    (( ${#applied[@]} )) || return 0
 
-    # Si un .zanvil.local existe dans le nouveau dossier
-    if [[ -f "$local_file" && "$local_file" != "$_ZANVIL_LOCAL_LOADED" ]]; then
-        _zanvil_local_load "$local_file"
+    # Diff vars : ajoutees -> unset au unload ; modifiees/supprimees -> restaurees
+    local after_env=$(env | LC_ALL=C sort)
+    local -A before_map=()
+    local -A after_map=()
+    local line
+    for line in "${(@f)before_env}"; do
+        before_map[${line%%=*}]=${line#*=}
+    done
+    for line in "${(@f)after_env}"; do
+        after_map[${line%%=*}]=${line#*=}
+    done
+
+    local key
+    for key in "${(k)after_map[@]}"; do
+        if [[ -z "${before_map[$key]+x}" ]]; then
+            _ZANVIL_LOCAL_ADDED+=("$key")
+        elif [[ "${before_map[$key]}" != "${after_map[$key]}" ]]; then
+            _ZANVIL_LOCAL_RESTORE+=("${key}=${before_map[$key]}")
+        fi
+    done
+    for key in "${(k)before_map[@]}"; do
+        if [[ -z "${after_map[$key]+x}" ]]; then
+            _ZANVIL_LOCAL_RESTORE+=("${key}=${before_map[$key]}")
+        fi
+    done
+
+    # Diff fonctions : celles qui n'existaient pas avant le chargement
+    _ZANVIL_LOCAL_FUNCS=($(comm -13 \
+        <(print -rl -- ${(ko)before_funcs}) \
+        <(print -rl -- ${(ko)functions})))
+
+    _ZANVIL_LOCAL_FILES=("${applied[@]}")
+
+    local leaf="${applied[-1]}"
+    local msg="$(dirname "$leaf")/.zanvil.local"
+    if (( ${#applied[@]} > 1 )); then
+        msg+=" ${_ui_dim}(+$((${#applied[@]} - 1)) herite(s))${_ui_nc}"
     fi
+    echo -e "${_ui_green}[zanvil]${_ui_nc} Charge: ${_ui_dim}${msg}${_ui_nc}"
 }
 
-# Commande manuelle pour trust le fichier courant
+# Commande manuelle pour trust un fichier (defaut : repertoire courant)
 zanvil-trust() {
     local file="${1:-$PWD/.zanvil.local}"
     if [[ ! -f "$file" ]]; then
@@ -158,16 +243,19 @@ zanvil-trust() {
         return 1
     fi
     _zanvil_local_trust "$file"
+    # Retirer du cache de refus de la session si present
+    local hash=$(_zanvil_local_hash "$file")
+    _ZANVIL_LOCAL_DENIED=("${_ZANVIL_LOCAL_DENIED[@]:#$hash}")
     _ui_msg_ok "Fichier autorise: $file"
-    _zanvil_local_load "$file"
+    _zanvil_local_chpwd
 }
 
 # Enregistrer le hook chpwd
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd _zanvil_local_chpwd
 
-# Charger si on est deja dans un dossier avec .zanvil.local
-[[ -f "$PWD/.zanvil.local" ]] && _zanvil_local_load "$PWD/.zanvil.local"
+# Charger la pile si on demarre deja dans un dossier couvert
+_zanvil_local_chpwd
 
 # =======================================================
 # KEYBINDINGS
