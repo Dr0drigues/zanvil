@@ -24,10 +24,11 @@ Installation, deux binaires — le second est ce qui remplace les dépendances q
 cargo install gaveldrop-cli gaveldrop-fake --locked
 ```
 
-Deux suites en bash complètent les cas, pour ce que le format n'exprime pas :
+Trois suites en bash complètent les cas, pour ce que le format n'exprime pas :
 
 ```bash
 bash scripts/tests/k9s-log-fmt.test.sh      # decoupage de champs, contrat --pairs
+bash scripts/tests/k9s-log-grep.test.sh     # filtre regex : champ rendu, codes ANSI
 bash scripts/tests/zsh-special-vars.test.sh # lint des variables reservees zsh
 ```
 

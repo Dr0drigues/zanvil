@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le viewer n est plus un filtre pur : le mode regex relance un filtre a chaque frappe et
+# Ctrl-R rejoue kubectl, donc les lignes sont deversees dans un fichier temporaire qu on
+# puisse relire. Ce fichier porte des logs de production — il ne doit pas survivre a la
+# session, ni s accumuler a chaque ouverture de l explorateur.
+#
+# Le nom du fichier est tire par mktemp, donc inconnu du cas : c est l absence de TOUT
+# nouveau fichier qui est constatee, et le hook ramene TMPDIR dans la racine isolee pour
+# qu elle porte sur le bon repertoire.
+name: viewer-leaves-no-temporary-file-behind
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-a-writable-tmpdir.sh
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  env:
+    TMPDIR: "$HOME/tmp"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf }
+      exit: 130
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  no_new_files: true
+  calls:
+    fzf: 1

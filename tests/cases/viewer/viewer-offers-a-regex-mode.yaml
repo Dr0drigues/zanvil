@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# fzf ne filtre pas par expression reguliere : sa syntaxe etendue ne connait que l exact,
+# les ancres, la negation et le |. Le mode regex de Ctrl-X lui retire donc la recherche et
+# la confie a k9s-log-grep.sh — encore faut-il que le viewer construise le binding.
+#
+# Meme mecanisme d assertion que les cas ctrl-r : c est la SELECTION de la regle qui juge.
+# Ce cas ne depend d aucune variable d environnement : le mode regex ne tient qu a fzf, il
+# doit donc etre la meme quand le viewer est invoque a la main, hors du plugin k9s.
+name: viewer-offers-a-regex-mode
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf, args_contain: "ctrl-x:transform" }
+      exit: 130
+    - match: { bin: fzf }
+      exit: 3
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  calls:
+    fzf: 1
