@@ -48,6 +48,12 @@ opts=(
     --ansi
     --multi
     --no-sort
+    # exact : le matching flou de fzf n a pas de sens sur des lignes de log. Il
+    # retrouve les lettres d une requete, disperses n importe ou dans la ligne, et
+    # celles-ci sont longues : « contact » ramenait 486 evenements sur 500, dont aucun
+    # ne contenait le mot — « InsuranceContractDatasource » satisfait c-o-n-t-a-c-t.
+    # Le flou reste joignable terme par terme : sous --exact, le prefixe ' le rend.
+    --exact
     --delimiter=$'\t'
     --with-nth=1
     --prompt="log > "

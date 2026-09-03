@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le matching fuzzy de fzf n a pas de sens sur des lignes de log : une requete de sept
+# lettres retrouve ses caracteres, disperses, dans presque n importe quelle ligne longue.
+# « contact » ramenait ainsi 486 evenements sur 500, dont aucun ne contenait le mot —
+# « InsuranceContractDatasource » suffit a satisfaire c-o-n-t-a-c-t.
+#
+# Le viewer doit donc demander a fzf le mode exact. Le fuzzy reste joignable a la demande :
+# sous --exact, le prefixe ' d un terme l « dequote » et lui rend son comportement flou.
+#
+# Meme mecanisme d assertion que les cas ctrl-r : c est la SELECTION de la regle qui juge.
+name: viewer-matches-substrings-not-fuzzily
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf, args_contain: "--exact" }
+      exit: 130
+    - match: { bin: fzf }
+      exit: 3
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  calls:
+    fzf: 1

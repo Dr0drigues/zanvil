@@ -94,11 +94,14 @@ Une ligne qui n'est pas du JSON valide est réémise telle quelle.
 kubectl logs … | k9s-log-fmt.sh --pairs | k9s-log-view.sh
 ```
 
-`fzf` filtre en fuzzy sur le texte rendu, tandis que le JSON source reste accessible aux raccourcis.
+`fzf` filtre sur le texte rendu — par correspondance exacte, et non en fuzzy — tandis que le JSON
+source reste accessible aux raccourcis. Le fuzzy retrouve les lettres d'un motif dispersées n'importe
+où dans la ligne : sur des lignes de log, longues, il ramène presque tout (une recherche de `contact`
+remontait 486 événements sur 500, dont aucun ne contenait le mot). Il reste joignable terme à terme.
 
 | Touche | Action |
 |--------|--------|
-| *(saisie)* | Filtrage fuzzy. `'motif` pour une correspondance exacte |
+| *(saisie)* | Garde les lignes qui contiennent le motif. `'motif` pour un filtrage fuzzy |
 | `Tab` | Marque une ligne (sélection multiple) |
 | `Ctrl-R` | Recharge les logs — relance la commande `kubectl` d'origine |
 | `Ctrl-Y` | Copie le texte rendu, codes ANSI retirés |
