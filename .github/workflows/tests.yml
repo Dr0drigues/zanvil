@@ -51,6 +51,7 @@ jobs:
         run: |
           export ZANVIL_DIR="$PWD"
           bash scripts/tests/k9s-log-fmt.test.sh
+          bash scripts/tests/k9s-log-grep.test.sh
           bash scripts/tests/zsh-special-vars.test.sh
           # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de
           # work_config_repo et n a jamais ete appelee ici, donc aucune de ses gardes ne

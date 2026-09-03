@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Le pendant du precedent. En mode regex, « change » relance le filtre externe a chaque
+# frappe ; en mode exact, il ne doit RIEN relancer, sinon chaque touche ferait partir un
+# sous-processus et remplacerait la liste que fzf vient de filtrer lui-meme.
+#
+# Le viewer delie donc « change » au demarrage, et Ctrl-X seul le rebranche. Ce cas garde
+# le « start:unbind(change) » : sans lui le mode exact serait filtre par k9s-log-grep.sh
+# a l insu de l utilisateur, ce qui ne se verrait qu a l usage.
+name: viewer-searches-with-fzf-until-the-regex-mode-is-asked
+weight: 5
+setup:
+  stdin: "             INFO  x\t{\"level\":\"INFO\",\"message\":\"x\"}\n"
+  run: ["$GAVELDROP_PROJECT/scripts/k9s-log-view.sh"]
+fake:
+  rules:
+    - match: { bin: fzf, args_contain: "start:unbind(change)" }
+      exit: 130
+    - match: { bin: fzf }
+      exit: 3
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  calls:
+    fzf: 1
