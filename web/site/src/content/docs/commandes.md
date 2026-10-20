@@ -16,6 +16,7 @@ description: Toutes les commandes zanvil (zanvil-*) et le CLI Rust
 | `zanvil-audit-fix` | Corrige automatiquement les permissions |
 | `zanvil-theme [nom]` | Gère les thèmes unifiés (Starship + palette) |
 | `zanvil-ghostty [nom\|sync]` | Gère les thèmes Ghostty |
+| `zanvil-dotfiles [sous-commande]` | Dépôt dotfiles : Brewfiles et liens Stow (voir ci-dessous) |
 | `zanvil-completions` | Charge les auto-complétions |
 | `zanvil-completion-add` | Ajoute une complétion personnalisée |
 | `zanvil-completion-remove` | Supprime une complétion personnalisée |
@@ -30,6 +31,29 @@ description: Toutes les commandes zanvil (zanvil-*) et le CLI Rust
 | `zanvil-config-reset` | Réinitialise la configuration |
 
 Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via le système UI.
+
+## Dotfiles
+
+`zanvil-dotfiles` gère le dépôt dotfiles (`ZANVIL_DOTFILES_DIR`, défaut `~/.dotfiles`) pour le profil `ZANVIL_PROFILE`.
+
+| Sous-commande | Description |
+|---------------|-------------|
+| `status` (défaut) | Profil, dépôt, état et Brewfiles utilisés |
+| `pull` | Met à jour le dépôt (fast-forward uniquement) |
+| `install` | `brew bundle` sur base + `common` + profil |
+| `cleanup` | Liste ce que `brew` retirerait, puis demande confirmation |
+| `link` | Relie `stow/common` et `stow/<profil>` dans `$HOME` |
+| `adopt <chemin> [couche]` | Déplace un fichier réel de `$HOME` dans le dépôt (`common` par défaut) et le relie |
+| `apply` | `pull`, `install`, puis `link` |
+
+- `cleanup` affiche la liste, puis ne supprime qu'après une réponse explicite `o`, `oui`, `y` ou `yes`. Toute autre réponse, ou une entrée qui n'est pas un terminal, n'efface rien.
+- `link` utilise Stow avec `--no-folding` : les dossiers restent réels, seuls les fichiers sont des liens. En cas de conflit (un fichier réel à la place d'un lien), il affiche les conflits et s'arrête sans rien écraser. Lancer alors `adopt` sur ce fichier, puis `link`.
+- `adopt` refuse les secrets et ce que gère `install.sh` : `gh/hosts.yml`, `glab-cli`, `sops`, `gcloud`, `~/.ssh/*` et `~/.zshrc`.
+
+```bash
+zanvil-dotfiles adopt .config/lazygit/config.yml
+zanvil-dotfiles link
+```
 
 ## CLI Rust (zanvil)
 

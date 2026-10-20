@@ -42,6 +42,33 @@ L'installation vous guide et permet de choisir :
 
 Installe tout avec les paramètres par défaut.
 
+### Profil et dépôt dotfiles
+
+```bash
+./install.sh --profile pro --dotfiles git@github.com:<toi>/dotfiles.git
+```
+
+- `--profile pro|perso` : profil de la machine. Sans option, le script le demande (ou prend `perso` avec `--default`). `pro` écrit `ZANVIL_WORK_DETECTED=true` dans `config.zsh`, `perso` écrit `false`.
+- `--dotfiles <url>` : dépôt dotfiles à cloner dans `~/.dotfiles` (ou mis à jour s'il existe déjà). Vide, ou option absente en mode `--default` : pas de dépôt.
+
+Le clone se fait en SSH : une clé SSH autorisée sur le dépôt est un prérequis. Si le clone échoue, l'installation continue sans les dotfiles et le signale.
+
+Une fois cloné, le script lance `zanvil-dotfiles install` (Brewfiles) puis `zanvil-dotfiles link` (liens Stow). Le dépôt est attendu ainsi :
+
+```
+dotfiles/
+├── brew/
+│   ├── common.Brewfile
+│   ├── pro.Brewfile
+│   └── perso.Brewfile
+└── stow/
+    ├── common/    # fichiers reproduits sous $HOME
+    ├── pro/
+    └── perso/
+```
+
+Les paquets de zanvil lui-même sont dans `brew/base.Brewfile` (dans zanvil). Les trois couches (base, `common`, profil) sont fusionnées à l'installation.
+
 ## Ce que fait le script
 
 1. **Détecte le système** (macOS/Debian/Fedora)
@@ -70,6 +97,8 @@ cp target/release/zanvil ~/.local/bin/
 ```
 
 Le CLI fournit les commandes : `theme`, `doctor`, `audit`, `context`, `modules`.
+
+Les thèmes générés vivent désormais dans `~/.config/zanvil/theme/` : un binaire compilé avant ce changement est obsolète. `zanvil-theme` le détecte et demande de le reconstruire (`cargo build --release`).
 
 ```bash
 # Vérifier l'installation du CLI

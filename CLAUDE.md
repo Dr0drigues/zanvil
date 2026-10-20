@@ -30,7 +30,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── aliases.zsh     # Alias globaux
 │   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zanvil.local)
 │   ├── completions.zsh # Completions des commandes core
-│   ├── commands/       # Commandes zanvil-* (admin, commands, theme, setup, check_env_deps)
+│   ├── commands/       # Commandes zanvil-* (admin, commands, theme, setup, check_env_deps, dotfiles)
 │   └── lifecycle/      # Migration, sync, auto-update (auto_update, migrate, sync)
 ├── modules/            # Features modulaires (init.zsh + completions.zsh par module)
 │   ├── git/            # git_bulk, git_hooks, git_change_author, git_root
@@ -45,6 +45,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── utils/          # utils, extract, fkill, net_utils (lazy)
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile
 │   └── boulanger/      # boulanger_context
+├── brew/               # base.Brewfile : dependances de zanvil (common/profil vivent dans le depot dotfiles)
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
 │   └── themes/         # Themes Starship (flat .toml ou directory avec palette.zsh)
 │       ├── tokyo-night-pro/
@@ -113,6 +114,11 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 - **Flat .toml** : theme Starship uniquement (couleurs UI par defaut)
 - **Directory** : `prompt.toml` + `palette.zsh` (override des `_ui_*` variables en true color)
 - Etat stocke dans `.current_theme`, lu par `core/ui.zsh` au startup
+- Fichiers generes dans `~/.config/zanvil/theme/` (jamais dans les configs versionnees ni le depot dotfiles) : `starship.toml` (`STARSHIP_CONFIG` exporte par `core/hooks.zsh`), `ghostty` (inclus par `config-file = ?~/.config/zanvil/theme/ghostty`), k9s via `K9S_SKIN`. Un CLI Rust compile avant ce changement doit etre reconstruit
+
+### Dotfiles (core/commands/dotfiles.zsh)
+
+`zanvil-dotfiles status|pull|install|cleanup|link|adopt|apply`. Brewfiles en couches (`brew/base.Brewfile` + `common` + profil du depot dotfiles), liens Stow toujours `--no-folding`. `cleanup` liste puis exige une confirmation explicite ; `link` bloque sur conflit ; `adopt` refuse les secrets. Variables : `ZANVIL_PROFILE` (pro|perso), `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` (defaut `~/.dotfiles`). `install.sh --profile --dotfiles` les renseigne.
 
 ### Kube aliases
 
