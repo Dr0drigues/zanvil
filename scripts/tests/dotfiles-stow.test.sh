@@ -39,7 +39,7 @@ mkdir -p "$DOT/brew"; echo "" > "$DOT/brew/common.Brewfile"; echo "" > "$DOT/bre
 
 # $1 = commande, lancee dans un zsh vierge qui ne depend que de core/ui.zsh
 zd() {
-    HOME="$H" ZANVIL_DIR="$ROOT" ZANVIL_DOTFILES_DIR="$DOT" ZANVIL_PROFILE=pro \
+    HOME="$H" ZANVIL_DIR="$ROOT" ZANVIL_DOTFILES_DIR="${ZD_DOT:-$DOT}" ZANVIL_PROFILE="${ZD_PROFILE:-pro}" \
         zsh -f -c "
         source '$ROOT/core/ui.zsh'
         source '$ROOT/core/commands/dotfiles.zsh'
@@ -60,11 +60,17 @@ rm "$H/.config/demo/a.conf" "$H/.config/demo/b.conf"
 echo local > "$H/.config/demo/a.conf"
 out=$(zd 'zanvil-dotfiles link; echo "rc=$?"')
 echo "$out" | tail -1 | assert_equals "conflit : code 1" "rc=1"
-{ [[ "$out" == *a.conf* ]] && echo nomme || echo muet; } | assert_equals "conflit : la sortie nomme a.conf" "nomme"
+echo "$out" | grep -c '^cannot stow .*a\.conf' | tr -d ' ' | assert_equals "conflit : une ligne par conflit, qui nomme a.conf" "1"
 { cat "$H/.config/demo/a.conf"; } | assert_equals "conflit : le fichier local est intact" "local"
 { kind "$H/.config/demo/b.conf"; } | assert_equals "conflit : rien n'est lie" "absent"
 
-zd 'zanvil-dotfiles adopt .config/demo/a.conf'
+out=$(zd 'zanvil-dotfiles adopt .config/demo/a.conf; echo "rc=$?"')
+echo "$out" | tail -1 | assert_equals "adopt sur une copie differente du depot : code 1" "rc=1"
+{ [[ "$out" == *"diff "* ]] && echo diff || echo "$out"; } | assert_equals "adopt refuse : propose diff" "diff"
+{ echo "$(cat "$DOT/stow/common/.config/demo/a.conf") $(kind "$H/.config/demo/a.conf")"; } \
+    | assert_equals "adopt refuse : depot et fichier local intacts" "repo-a reel"
+echo local > "$DOT/stow/common/.config/demo/a.conf"
+zd 'zanvil-dotfiles adopt .config/demo/a.conf' >/dev/null
 { cat "$DOT/stow/common/.config/demo/a.conf"; } | assert_equals "adopt : le depot contient le contenu local" "local"
 { kind "$H/.config/demo/a.conf"; } | assert_equals "adopt : le fichier de HOME est un lien" "lien"
 
@@ -86,6 +92,59 @@ zd 'zanvil-dotfiles adopt .config/gh/hosts.yml >/dev/null 2>&1; echo "rc=$?"' | 
 rm "$H/.config/demo/a.conf"
 zd 'zanvil-dotfiles apply >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply hors depot git : code 1" "rc=1"
 { kind "$H/.config/demo/a.conf"; } | assert_equals "apply hors depot git : aucun lien" "absent"
+
+echo "perso sans dossier stow/perso"
+rm -rf "$H"; mkdir -p "$H"
+ZD_PROFILE=perso zd 'zanvil-dotfiles link >/dev/null 2>&1; echo "rc=$?"' | assert_equals "perso sans stow/perso : code 0" "rc=0"
+{ echo "$(kind "$H/.config/demo/a.conf") $(kind "$H/.config/demo/b.conf")"; } \
+    | assert_equals "perso : common lie, pro ignore" "lien absent"
+mkdir -p "$TEST_TMPDIR/empty/stow"
+ZD_DOT="$TEST_TMPDIR/empty" zd 'zanvil-dotfiles link; echo "rc=$?"' > "$TEST_TMPDIR/out"
+tail -1 "$TEST_TMPDIR/out" | assert_equals "aucun paquet : code 0" "rc=0"
+grep -c 'rien a lier' "$TEST_TMPDIR/out" | tr -d ' ' | assert_equals "aucun paquet : info" "1"
+
+echo "pull : clone si absent"
+BARE="$TEST_TMPDIR/remote.git"
+SEED="$TEST_TMPDIR/seed"
+GC=(-c user.name=t -c user.email=t@t)
+mkdir -p "$SEED/stow/common/.config/demo" "$SEED/brew"
+echo repo-a > "$SEED/stow/common/.config/demo/a.conf"
+: > "$SEED/brew/common.Brewfile"; : > "$SEED/brew/pro.Brewfile"
+git init -q "$SEED"
+git -C "$SEED" add -A
+git -C "$SEED" "${GC[@]}" commit -q -m seed
+git clone -q --bare "$SEED" "$BARE"
+CL="$TEST_TMPDIR/clone"
+ZD_DOT="$CL" ZANVIL_DOTFILES_REPO="file://$BARE" zd 'zanvil-dotfiles pull >/dev/null 2>&1; echo "rc=$?"' \
+    | assert_equals "pull dossier absent : code 0" "rc=0"
+{ [[ -d "$CL/.git" ]] && echo oui || echo non; } | assert_equals "pull dossier absent : depot clone" "oui"
+mkdir -p "$TEST_TMPDIR/plain"; echo keep > "$TEST_TMPDIR/plain/f"
+ZD_DOT="$TEST_TMPDIR/plain" ZANVIL_DOTFILES_REPO="file://$BARE" zd 'zanvil-dotfiles pull >/dev/null 2>&1; echo "rc=$?"' \
+    | assert_equals "pull dossier sans .git : code 1" "rc=1"
+ls "$TEST_TMPDIR/plain" | assert_equals "pull dossier sans .git : intact" "f"
+ls -d "$TEST_TMPDIR"/*.tmp.* 2>/dev/null | wc -l | tr -d ' ' | assert_equals "pull : pas de dossier temporaire restant" "0"
+
+echo "apply : pull, install, link, cleanup"
+BIN="$TEST_TMPDIR/bin"; LOG="$TEST_TMPDIR/brew.log"; mkdir -p "$BIN"
+cat > "$BIN/brew" <<EOF2
+#!/bin/sh
+echo "\$*" >> "$LOG"
+case "\$*" in
+    *"bundle install"*) [ -n "\$FAKE_INSTALL_FAIL" ] && exit 1; exit 0 ;;
+    *"bundle cleanup"*--force*) exit 0 ;;
+    *"bundle cleanup"*) printf 'Would uninstall formulae:\nredis\n'; exit 1 ;;
+esac
+EOF2
+chmod +x "$BIN/brew"
+rm -rf "$H"; mkdir -p "$H"; : > "$LOG"
+PATH="$BIN:$PATH" ZD_DOT="$CL" zd 'zanvil-dotfiles apply </dev/null >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply : code 0" "rc=0"
+sed 's/ --file=.*//' "$LOG" | tr '\n' ';' | assert_equals "apply : install puis cleanup (simulation seule hors terminal)" \
+    "bundle install --no-upgrade;bundle cleanup --formula --cask --tap;"
+kind "$H/.config/demo/a.conf" | assert_equals "apply : lien cree" "lien"
+rm -rf "$H"; mkdir -p "$H"; : > "$LOG"
+FAKE_INSTALL_FAIL=1 PATH="$BIN:$PATH" ZD_DOT="$CL" zd 'zanvil-dotfiles apply </dev/null >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply install en echec : code 1" "rc=1"
+grep -c 'bundle cleanup' "$LOG" | tr -d ' ' | assert_equals "apply install en echec : pas de cleanup" "0"
+kind "$H/.config/demo/a.conf" | assert_equals "apply install en echec : pas de lien" "absent"
 
 zd 'zanvil-dotfiles status' | grep -c 'Brewfile' | tr -d ' ' | assert_equals "status : liste les 3 Brewfile" "3"
 

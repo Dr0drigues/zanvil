@@ -37,6 +37,7 @@ case "\$*" in
     *"bundle cleanup"*--force*) [ -n "\$FAKE_FORCE_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*)
         [ -n "\$FAKE_DRY_FAIL" ] && { echo "Error: boom" >&2; exit 1; }
+        [ -n "\$FAKE_NOTHING" ] && { printf 'Would \`brew cleanup\`\nWould remove: /cache/x\n'; exit 0; }
         printf 'Would uninstall formulae:\nredis\n'; exit 1 ;;
 esac
 EOF2
@@ -85,6 +86,21 @@ FAKE_DRY_FAIL=1 zd pro 'zanvil-dotfiles cleanup >/dev/null 2>&1; echo "rc=$?"' "
 forced | assert_equals "simulation en echec : pas de --force" "0"
 FAKE_FORCE_FAIL=1 zd pro 'zanvil-dotfiles cleanup >/dev/null 2>&1; echo "rc=$?"' "oui
 " 1 | tail -1 | assert_equals "--force en echec : code non nul" "rc=1"
+
+# brew 7 nettoie aussi vscode, npm, uv... sans filtre de type : limite a brew
+zd pro 'zanvil-dotfiles cleanup' "oui
+" 1 >/dev/null
+grep -c -- '^bundle cleanup --formula --cask --tap ' "$LOG" | tr -d ' ' | assert_equals "cleanup : simulation et --force limites a brew" "2"
+zd pro 'zanvil-dotfiles install' >/dev/null
+grep -c -- '^bundle install --no-upgrade --file=' "$LOG" | tr -d ' ' | assert_equals "install : --no-upgrade" "1"
+
+out=$(FAKE_NOTHING=1 zd pro 'zanvil-dotfiles cleanup' "oui
+" 1)
+forced | assert_equals "rien a desinstaller : pas de --force" "0"
+{ [[ "$out" == *"Rien a desinstaller"* && "$out" != *"[o/N]"* ]] && echo info || echo "$out"; } \
+    | assert_equals "rien a desinstaller : info, pas de question" "info"
+zd pro 'zanvil-dotfiles cleanup' "non
+" 1 | grep -c "Rien n a ete desinstalle" | tr -d ' ' | assert_equals "refus : info rien desinstalle" "1"
 
 mv "$DOT/brew/pro.Brewfile" "$DOT/brew/pro.Brewfile.off"
 zd pro 'zanvil-dotfiles cleanup' "oui
