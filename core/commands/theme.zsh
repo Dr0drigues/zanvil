@@ -407,6 +407,12 @@ zanvil-ghostty() {
             return 1
         fi
 
+        # La config (zanvil ou dotfiles) inclut le fichier genere : sans lui, pas de theme
+        if [[ ! -f "$generated" ]]; then
+            mkdir -p "${generated:h}"
+            cp "$themes_dir/tokyo-light-storm" "$generated" && _ui_msg_ok "Theme par defaut (tokyo-light-storm) ecrit dans $generated"
+        fi
+
         # Une config liee (Stow) appartient au depot dotfiles : ne pas l ecraser
         if [[ -L "$ghostty_config" ]]; then
             _ui_msg_info "Config Ghostty fournie par les dotfiles ($ghostty_config) : rien a synchroniser"
@@ -443,5 +449,9 @@ zanvil-ghostty() {
     cp "$theme_file" "$generated"
 
     _ui_msg_ok "Theme '$theme' ecrit dans $generated"
+    if ! grep -q "zanvil/theme/ghostty" "$ghostty_config" 2>/dev/null; then
+        _ui_msg_warn "$ghostty_config n inclut pas $generated : lancez zanvil-ghostty sync (ou ajoutez 'config-file = ?$generated' dans vos dotfiles)"
+        return 0
+    fi
     _ui_msg_info "Rechargez la config Ghostty (cmd+shift+,) pour l appliquer"
 }

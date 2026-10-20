@@ -121,6 +121,19 @@ zt 'zanvil-ghostty sync | grep -c dotfiles; cat "$HOME/.config/ghostty/config"; 
 zt 'zanvil-ghostty sync >/dev/null; cmp -s "$ZANVIL_DIR/config/ghostty/config" "$HOME/.config/ghostty/config" && echo copie' \
     | assert_equals "sync : copie sans lien" "copie"
 
+DEF="$Z/config/ghostty/themes/tokyo-light-storm"
+zt 'zanvil-ghostty sync >/dev/null; cmp -s "'"$DEF"'" "$XDG_CONFIG_HOME/zanvil/theme/ghostty" && echo defaut' \
+    | assert_equals "sync : cree le theme genere par defaut" "defaut"
+zt 'zanvil-ghostty sync >/dev/null; cmp -s "'"$DEF"'" "$XDG_CONFIG_HOME/zanvil/theme/ghostty" && echo defaut' "$LINK" \
+    | assert_equals "sync config liee : cree aussi le theme genere" "defaut"
+zt 'zanvil-ghostty tokyo-night >/dev/null; zanvil-ghostty sync >/dev/null; cmp -s "$ZANVIL_DIR/config/ghostty/themes/tokyo-night" "$XDG_CONFIG_HOME/zanvil/theme/ghostty" && echo garde' \
+    | assert_equals "sync : theme genere existant garde" "garde"
+OLDG='mkdir -p "$H/.config/ghostty"; echo "config-file = themes/tokyo-night" > "$H/.config/ghostty/config"'
+zt 'zanvil-ghostty tokyo-night | grep -c "zanvil-ghostty sync"' "$OLDG" \
+    | assert_equals "config sans include : avertit et propose sync" "1"
+zt 'zanvil-ghostty sync >/dev/null; zanvil-ghostty tokyo-night | grep -c "zanvil-ghostty sync"' \
+    | assert_equals "config avec include : pas d avertissement" "0"
+
 echo "hooks : STARSHIP_CONFIG"
 zh() {
     rm -rf "$H" "$X"; mkdir -p "$H" "$X"
