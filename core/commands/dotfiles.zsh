@@ -93,7 +93,12 @@ _zanvil_dotfiles_adopt() {
     if [[ "$target" != "$HOME/"* || "$rel" == *..* ]]; then
         _ui_msg_fail "Hors de \$HOME : $target" >&2; return 1
     fi
-    case "$rel" in
+    # segments vides et "." retires : "./.zshrc" ou ".//.ssh/config" ne doivent pas echapper a la liste
+    local -a segs=("${(@s:/:)rel}"); segs=("${(@)segs:#(|.)}"); rel="${(j:/:)segs}"
+    [[ -n "$rel" ]] || { _ui_msg_fail "Chemin invalide" >&2; return 1; }
+    target="$HOME/$rel"
+    # casse ignoree : APFS ne la distingue pas (.ZSHRC, .SSH/config)
+    case "${(L)rel}" in
         */gh/hosts.yml|*/glab-cli/*|*/sops/*|*/gcloud/*|.ssh/*|.zshrc)
             _ui_msg_fail "Secret ou fichier gere par install.sh, refuse : $rel" >&2; return 1 ;;
     esac

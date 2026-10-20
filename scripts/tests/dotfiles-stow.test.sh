@@ -71,6 +71,13 @@ zd 'zanvil-dotfiles adopt .config/demo/a.conf'
 echo secret > "$H/.zshrc"
 zd 'zanvil-dotfiles adopt .zshrc >/dev/null 2>&1; echo "rc=$?"' | assert_equals "adopt .zshrc : code 1" "rc=1"
 { kind "$H/.zshrc"; } | assert_equals "adopt .zshrc : fichier non deplace" "reel"
+mkdir -p "$H/.ssh"
+echo key > "$H/.ssh/config"
+for p in ./.zshrc .//.ssh/config .ZSHRC .SSH/config; do
+    zd "zanvil-dotfiles adopt '$p' >/dev/null 2>&1; echo \"rc=\$?\"" | assert_equals "adopt $p : code 1" "rc=1"
+done
+{ echo "$(kind "$H/.zshrc") $(kind "$H/.ssh/config") $(kind "$DOT/stow/common/.zshrc")"; } \
+    | assert_equals "adopt chemins deguises : rien n'est deplace" "reel reel absent"
 mkdir -p "$H/.config/gh"
 echo tok > "$H/.config/gh/hosts.yml"
 zd 'zanvil-dotfiles adopt .config/gh/hosts.yml >/dev/null 2>&1; echo "rc=$?"' | assert_equals "adopt gh/hosts.yml : code 1" "rc=1"
