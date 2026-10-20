@@ -129,7 +129,9 @@ DZ="$TEST_TMPDIR/dep"
 rm -rf "$DZ"; mkdir -p "$DZ/home" "$DZ/bin" "$DZ/repo"
 printf '#!/bin/sh\necho delta 0\n' > "$DZ/bin/delta"; : > "$DZ/bin/k9s"; chmod +x "$DZ/bin/delta" "$DZ/bin/k9s"
 echo "[user]" > "$DZ/repo/gitconfig"; ln -s "$DZ/repo/gitconfig" "$DZ/home/.gitconfig"
-HOME="$DZ/home" ZANVIL_DIR="$ROOT" ZANVIL_MODULE_DELTA=true PATH="$DZ/bin:/usr/bin:/bin" zsh -f -c "
+# ZANVIL_DIR jetable : delta_setup modifie config/lazygit/config.yml du depot
+mkdir -p "$DZ/z/config/delta"; cp "$ROOT/config/delta/gitconfig" "$DZ/z/config/delta/"
+HOME="$DZ/home" ZANVIL_DIR="$DZ/z" ZANVIL_MODULE_DELTA=true PATH="$DZ/bin:/usr/bin:/bin" zsh -f -c "
     source '$ROOT/core/ui.zsh'; source '$ROOT/modules/tools/delta/init.zsh'; delta_setup" >/dev/null 2>&1
 cat "$DZ/repo/gitconfig" | assert_equals "delta : .gitconfig lie intact" "[user]"
 K9D="$DZ/k9s"; mkdir -p "$K9D/plugins"
