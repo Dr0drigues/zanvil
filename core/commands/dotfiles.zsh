@@ -54,12 +54,23 @@ zanvil-dotfiles() {
         cleanup)
             _zanvil_dotfiles_merged || return 1
             local merged="$REPLY"
-            out=$(brew bundle cleanup --file="$merged")
-            [[ -n "$out" ]] && echo "$out"
-            if [[ "$out" == *"Would "* ]] && _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
-                brew bundle cleanup --force --file="$merged"
+            # brew sort 1 en simulation quand il y a quoi retirer : l'erreur, c'est un code
+            # non nul sans ligne "Would " (depend du libelle de brew)
+            local rc=0
+            out=$(brew bundle cleanup --file="$merged" 2>&1) || rc=$?
+            if [[ "$out" == *"Would "* ]]; then
+                echo "$out"
+                rc=0
+                if _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
+                    brew bundle cleanup --force --file="$merged" || rc=$?
+                fi
+            elif (( rc != 0 )); then
+                _ui_msg_fail "brew bundle cleanup a echoue (code $rc) : $out" >&2
+            else
+                [[ -n "$out" ]] && echo "$out"
             fi
             rm -f "$merged"
+            return $rc
             ;;
         *)
             _ui_msg_info "Usage : zanvil-dotfiles install|cleanup"

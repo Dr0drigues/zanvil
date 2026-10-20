@@ -34,8 +34,10 @@ cat > "$BIN/brew" <<EOF2
 #!/bin/sh
 echo "\$*" >> "$LOG"
 case "\$*" in
-    *"bundle cleanup"*--force*) ;;
-    *"bundle cleanup"*) printf 'Would uninstall formulae:\nredis\n' ;;
+    *"bundle cleanup"*--force*) [ -n "\$FAKE_FORCE_FAIL" ] && exit 1; exit 0 ;;
+    *"bundle cleanup"*)
+        [ -n "\$FAKE_DRY_FAIL" ] && { echo "Error: boom" >&2; exit 1; }
+        printf 'Would uninstall formulae:\nredis\n'; exit 1 ;;
 esac
 EOF2
 chmod +x "$BIN/brew"
@@ -75,6 +77,14 @@ forced | assert_equals "cleanup + reponse vide : pas de --force" "0"
 zd pro 'zanvil-dotfiles cleanup' "oui
 " >/dev/null
 forced | assert_equals "cleanup hors terminal : pas de --force" "0"
+
+zd pro 'zanvil-dotfiles cleanup >/dev/null 2>&1; echo "rc=$?"' "oui
+" 1 | tail -1 | assert_equals "cleanup + oui : code 0 malgre le code 1 de la simulation" "rc=0"
+FAKE_DRY_FAIL=1 zd pro 'zanvil-dotfiles cleanup >/dev/null 2>&1; echo "rc=$?"' "oui
+" 1 | tail -1 | assert_equals "simulation en echec : code non nul" "rc=1"
+forced | assert_equals "simulation en echec : pas de --force" "0"
+FAKE_FORCE_FAIL=1 zd pro 'zanvil-dotfiles cleanup >/dev/null 2>&1; echo "rc=$?"' "oui
+" 1 | tail -1 | assert_equals "--force en echec : code non nul" "rc=1"
 
 mv "$DOT/brew/pro.Brewfile" "$DOT/brew/pro.Brewfile.off"
 zd pro 'zanvil-dotfiles cleanup' "oui
