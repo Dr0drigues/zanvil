@@ -122,12 +122,17 @@ zanvil-theme custom
 
 ## Integration Ghostty
 
-Le theme Ghostty peut etre synchronise avec le theme zanvil :
+zanvil n ecrit jamais dans les configs (elles peuvent venir de vos dotfiles). Les themes
+sont generes dans `~/.config/zanvil/theme/` :
+
+- `starship.toml` : exporte dans `STARSHIP_CONFIG` au demarrage du shell ;
+- `ghostty` : inclus par la config Ghostty avec `config-file = ?~/.config/zanvil/theme/ghostty` ;
+- k9s : le skin est copie dans `skins/` et selectionne par `K9S_SKIN`, sans toucher `config.yaml`.
 
 ```bash
 # Appliquer un theme Ghostty
-zanvil-ghostty gruvbox
+zanvil-ghostty tokyo-night
 
-# Synchroniser avec le theme zanvil actif
+# Copier la config Ghostty de zanvil (sans effet si ~/.config/ghostty/config est un lien)
 zanvil-ghostty sync
 ```

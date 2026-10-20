@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
 #
-# La SECONDE branche de _zanvil_k9s_apply_skin : un config.yaml sans ligne `skin:`, ou la
-# cle doit etre INSEREE apres `noIcons:` et non remplacee.
+# Un config.yaml sans ligne `skin:` : le skin est selectionne par K9S_SKIN, et config.yaml
+# n est plus touche (il peut etre un lien Stow vers le depot dotfiles).
 #
+# Historique : zanvil inserait la cle apres `noIcons:`.
 # Elle etait cassee sur macOS pour une raison propre : le remplacement d un `sed` portait
 # un `\n`, que BSD ne developpe pas. L autre branche l etait a cause de `\s`, que BSD ne
 # connait pas. Deux causes distinctes, donc deux cas — et les deux embranchements
@@ -21,7 +22,7 @@
 # en nommerait un serait vrai sur une plateforme et trivialement vrai sur l autre — le
 # fichier n y existant pas, l assertion ne prouverait rien. La fonction est donc invoquee,
 # puis le cas lit ce qu elle a produit LA OU elle l a produit.
-name: k9s-setup-adds-a-skin-key-when-none-exists
+name: k9s-setup-selects-the-skin-without-editing-config
 weight: 9
 setup:
   exec: ./tests/hooks/prepare-k9s-without-a-skin-key.sh
@@ -32,7 +33,7 @@ setup:
   source: ["core/ui.zsh", "core/commands/theme.zsh", "modules/kube/kube_config.zsh"]
   # La fonction depose QUATRE fichiers ; chacun est verifie, et le plugins.yaml de
   # l utilisateur est verifie intact.
-  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/tokyo-night-pro.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$(grep -c 'skin: tokyo-night-pro' \"$d/config.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
+  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/tokyo-night-pro.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$K9S_SKIN\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
   env:
     ZANVIL_DIR: "$HOME/zanvil"
     ZANVIL_MODULE_KUBE: "true"
@@ -59,12 +60,12 @@ expect:
       # rien — ils apparaissaient en « ecritures non assertees » du rapport.
       #
       # hotkeys.yaml est une copie simple ; le skin passe par _zanvil_k9s_apply_skin, qui
-      # ecrit deux choses : le fichier de skin, et le NOM du skin dans config.yaml. La
-      # seconde est la plus fragile — elle emploie `sed -i` avec un embranchement GNU/BSD,
-      # la meme dette que le chantier 3 a payee sur `date`, et rien ne la couvrait.
+      # ecrit le fichier de skin et selectionne son NOM par K9S_SKIN, que k9s lit avant
+      # config.yaml. config.yaml n est plus edite : il peut etre un lien Stow vers les
+      # dotfiles (voir not_written).
       - "HOTKEYS:1"
       - "SKIN_FICHIER:oui"
-      - "SKIN_CHOISI:1"
+      - "SKIN_CHOISI:tokyo-night-pro"
       # Un plugins.yaml present est signale : k9s chargerait les deux et l un gagnerait
       # sans le dire.
       - "plugins.yaml existe"
@@ -75,3 +76,6 @@ expect:
     # tranquille » et non « jamais cree ».
     - "$HOME/Library/Application Support/k9s/plugins.yaml"
     - "$XDG_CONFIG_HOME/k9s/plugins.yaml"
+    # config.yaml n est plus edite (lien Stow possible) : le skin passe par K9S_SKIN.
+    - "$HOME/Library/Application Support/k9s/config.yaml"
+    - "$XDG_CONFIG_HOME/k9s/config.yaml"

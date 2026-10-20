@@ -753,11 +753,13 @@ fi
 
 # Appliquer le theme Starship si choisi
 if [[ -n "$STARSHIP_THEME" ]]; then
-    mkdir -p "$HOME/.config"
+    # Fichier genere, exporte dans STARSHIP_CONFIG par core/hooks.zsh
+    THEME_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme"
+    mkdir -p "$THEME_DIR"
     if [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" ]]; then
-        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" "$THEME_DIR/starship.toml"
     elif [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" ]]; then
-        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" "$THEME_DIR/starship.toml"
     fi
     echo "$STARSHIP_THEME" > "$TARGET_DIR/.current_theme"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
