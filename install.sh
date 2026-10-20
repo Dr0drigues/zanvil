@@ -253,12 +253,21 @@ ZANVIL_WORK_DETECTED=$WORK_DETECTED
 EOF
 }
 
+# Le profil decide du contexte Work
+_install_work_detected() {
+    [[ "$1" = pro ]] && echo true || echo false
+}
+
 # --- Depot dotfiles : clone, ou pull si deja present ---
 _install_clone_dotfiles() {
     local url="$1" dir="$2" tmp
     if [[ -d "$dir/.git" ]]; then
         git -C "$dir" pull --ff-only
         return $?
+    fi
+    if [[ -e "$dir" ]]; then
+        log_warn "$dir existe mais n'est pas un depot git, rien clone"
+        return 1
     fi
     tmp="$dir.tmp.$$"
     if git clone "$url" "$tmp" && mv "$tmp" "$dir"; then
@@ -501,8 +510,7 @@ echo ""
 # URL de probe interne (definir ZANVIL_WORK_NEXUS_URL dans env.d/work.zsh ou env)
 NEXUS_URL="${ZANVIL_WORK_NEXUS_URL:-}"
 # Le profil decide ; la probe ne sert plus qu'au chiffrement des fichiers work
-WORK_DETECTED="false"
-[[ "$PROFILE" = pro ]] && WORK_DETECTED="true"
+WORK_DETECTED=$(_install_work_detected "$PROFILE")
 
 if [[ "$PROFILE" != pro ]]; then
     log_info "Profil perso : contexte Work ignore"
@@ -698,11 +706,11 @@ fi
 
 # --- Docker BuildKit (si module Docker actif) ---
 if [[ "$MODULE_DOCKER" = "true" ]]; then
-    if ! docker buildx version &>/dev/null 2>&1; then
+    if [[ "$PROFILE" != pro ]]; then
+        log_info "Profil perso : docker-buildx ignore"
+    elif ! docker buildx version &>/dev/null 2>&1; then
         log_info "Installation de docker-buildx (BuildKit)..."
-        if [[ "$PROFILE" = pro ]]; then
-            install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
-        fi
+        install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
 
         # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
         if ! docker buildx version &>/dev/null 2>&1; then

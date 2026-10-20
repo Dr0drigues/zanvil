@@ -38,10 +38,14 @@ log_info() { :; }
 log_success() { :; }
 load_fn _install_clone_dotfiles
 load_fn _install_write_config
+load_fn _install_work_detected
 
 echo "_install_clone_dotfiles"
 D="$TEST_TMPDIR/dot"
 _install_clone_dotfiles "file:///nope" "$D" >/dev/null 2>&1; echo "rc=$?" | assert_equals "URL inexistante : code 1" "rc=1"
+mkdir -p "$TEST_TMPDIR/plain"; echo keep > "$TEST_TMPDIR/plain/f"
+_install_clone_dotfiles "file:///nope" "$TEST_TMPDIR/plain" >/dev/null 2>&1; echo "rc=$?" | assert_equals "dossier sans .git : code 1" "rc=1"
+ls -d "$TEST_TMPDIR"/plain/* "$TEST_TMPDIR"/plain.tmp.* 2>/dev/null | xargs -n1 basename | assert_equals "dossier sans .git intact, pas de tmp" "f"
 ls -d "$D" "$D".tmp.* 2>/dev/null | wc -l | tr -d ' ' | assert_equals "rien ne reste apres l'echec" "0"
 _install_clone_dotfiles "file:///nope" "$D" 2>&1 | grep -c 'cle SSH' | assert_equals "avertit avec la cause probable" "1"
 
@@ -65,14 +69,32 @@ MODULE_GITLAB=true MODULE_DOCKER=true MODULE_MISE=true MODULE_NUSHELL=true MODUL
 AUTO_UPDATE=true UPDATE_FREQ=7 UPDATE_MODE=prompt DOTFILES_REPO=""
 for p in pro perso; do
     PROFILE=$p
-    WORK_DETECTED=false
-    [[ $p = pro ]] && WORK_DETECTED=true
+    WORK_DETECTED=$(_install_work_detected "$p")
     CONFIG_FILE="$TEST_TMPDIR/config-$p.zsh"
     _install_write_config
     grep -c "^ZANVIL_PROFILE=$p\$" "$CONFIG_FILE" | assert_equals "$p : ZANVIL_PROFILE=$p" "1"
     grep "^ZANVIL_WORK_DETECTED=" "$CONFIG_FILE" | assert_equals "$p : ZANVIL_WORK_DETECTED" "ZANVIL_WORK_DETECTED=$WORK_DETECTED"
 done
 grep "^ZANVIL_DOTFILES_REPO=" "$TEST_TMPDIR/config-pro.zsh" | assert_equals "repo vide ecrit entre guillemets" 'ZANVIL_DOTFILES_REPO=""'
+
+echo "_install_work_detected"
+_install_work_detected pro | assert_equals "pro : true" "true"
+_install_work_detected perso | assert_equals "perso : false" "false"
+
+echo "lazygit"
+LGZ="$TEST_TMPDIR/lg"
+lg_env() { # $1 = setup shell
+    rm -rf "$LGZ"; mkdir -p "$LGZ/home/.config/lazygit" "$LGZ/bin" "$LGZ/z/config/lazygit"
+    : > "$LGZ/bin/lazygit"; chmod +x "$LGZ/bin/lazygit"
+    eval "$1"
+    HOME="$LGZ/home" ZANVIL_DIR="$LGZ/z" ZANVIL_MODULE_LAZYGIT=true PATH="$LGZ/bin:/usr/bin:/bin" \
+        zsh -f -c "source '$ROOT/modules/tools/lazygit/init.zsh'; print -r -- \"\${LG_CONFIG_FILE:-vide}\"" 2>&1
+}
+LNK='echo x > "$LGZ/real.yml"; ln -s "$LGZ/real.yml" "$LGZ/home/.config/lazygit/config.yml"'
+lg_env ':' | assert_equals "sans lien : config zanvil" "$LGZ/z/config/lazygit/config.yml"
+lg_env "$LNK" | assert_equals "lien : config dotfiles" "$LGZ/home/.config/lazygit/config.yml"
+lg_env "$LNK"'; : > "$LGZ/home/.config/lazygit/config-local.yml"' \
+    | assert_equals "lien + config-local" "$LGZ/home/.config/lazygit/config.yml,$LGZ/home/.config/lazygit/config-local.yml"
 
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
