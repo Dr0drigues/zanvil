@@ -118,7 +118,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 
 ### Dotfiles (core/commands/dotfiles.zsh)
 
-`zanvil-dotfiles status|pull|install|cleanup|link|adopt|apply`. Brewfiles en couches (`brew/base.Brewfile` + `common` + profil du depot dotfiles), liens Stow toujours `--no-folding`. `cleanup` liste puis exige une confirmation explicite ; `link` bloque sur conflit ; `adopt` refuse les secrets. Variables : `ZANVIL_PROFILE` (pro|perso), `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` (defaut `~/.dotfiles`). `install.sh --profile --dotfiles` les renseigne.
+`zanvil-dotfiles status|pull|install|cleanup|link|adopt|apply`. Brewfiles en couches (`brew/base.Brewfile` + `common` + profil du depot dotfiles), liens Stow toujours `--no-folding`. `cleanup` liste puis exige une confirmation explicite ; `link` bloque sur conflit ; `adopt` refuse les secrets. Variables : `ZANVIL_PROFILE` (pro|perso), `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` (defaut `~/.dotfiles`). `install.sh` ecrit les trois dans `config.zsh` (`--profile`, `--dotfiles`, sinon question ou valeur deja presente dans `config.zsh`).
 
 ### Kube aliases
 

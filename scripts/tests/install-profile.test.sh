@@ -66,7 +66,7 @@ git -C "$D" log --oneline | wc -l | tr -d ' ' | assert_equals "le pull a recuper
 
 echo "_install_write_config"
 MODULE_GITLAB=true MODULE_DOCKER=true MODULE_MISE=true MODULE_NUSHELL=true MODULE_KUBE=true
-AUTO_UPDATE=true UPDATE_FREQ=7 UPDATE_MODE=prompt DOTFILES_REPO=""
+AUTO_UPDATE=true UPDATE_FREQ=7 UPDATE_MODE=prompt DOTFILES_REPO="" DOTFILES_DIR=""
 for p in pro perso; do
     PROFILE=$p
     WORK_DETECTED=$(_install_work_detected "$p")
@@ -76,6 +76,34 @@ for p in pro perso; do
     grep "^ZANVIL_WORK_DETECTED=" "$CONFIG_FILE" | assert_equals "$p : ZANVIL_WORK_DETECTED" "ZANVIL_WORK_DETECTED=$WORK_DETECTED"
 done
 grep "^ZANVIL_DOTFILES_REPO=" "$TEST_TMPDIR/config-pro.zsh" | assert_equals "repo vide ecrit entre guillemets" 'ZANVIL_DOTFILES_REPO=""'
+
+DOTFILES_DIR="/d/.dotfiles"
+_install_write_config
+grep "^ZANVIL_DOTFILES_DIR=" "$CONFIG_FILE" | assert_equals "ZANVIL_DOTFILES_DIR ecrit" 'ZANVIL_DOTFILES_DIR="/d/.dotfiles"'
+
+echo "_install_existing_value"
+load_fn _install_existing_value
+_install_existing_value "$TEST_TMPDIR/absent.zsh" ZANVIL_PROFILE | assert_equals "fichier absent : vide" ""
+PREV="$TEST_TMPDIR/prev.zsh"
+printf 'ZANVIL_PROFILE=pro\nZANVIL_DOTFILES_REPO="git@h:me/dot.git"\nZANVIL_DOTFILES_DIR="/x/dot"\n' > "$PREV"
+_install_existing_value "$PREV" ZANVIL_PROFILE | assert_equals "profil existant" "pro"
+_install_existing_value "$PREV" ZANVIL_DOTFILES_REPO | assert_equals "repo existant, sans guillemets" "git@h:me/dot.git"
+_install_existing_value "$PREV" ZANVIL_DOTFILES_DIR | assert_equals "dossier existant" "/x/dot"
+# config.zsh relu = config.zsh ecrit : un second passage garde les valeurs
+PROFILE=pro DOTFILES_REPO="git@h:me/dot.git" DOTFILES_DIR="/x/dot" WORK_DETECTED=true CONFIG_FILE="$TEST_TMPDIR/round.zsh"
+_install_write_config
+for v in ZANVIL_PROFILE ZANVIL_DOTFILES_REPO ZANVIL_DOTFILES_DIR; do _install_existing_value "$CONFIG_FILE" $v; done | tr '\n' ' ' \
+    | assert_equals "aller-retour config.zsh" "pro git@h:me/dot.git /x/dot "
+
+echo "_install_module_default"
+load_fn _install_module_default
+_install_module_default perso | assert_equals "perso : kube et docker desactives" "false"
+_install_module_default pro | assert_equals "pro : actives" "true"
+
+echo "_install_check_dotfiles_access"
+load_fn _install_check_dotfiles_access
+_install_check_dotfiles_access "file:///nope" 2>&1 | grep -c 'cle SSH' | assert_equals "depot inaccessible : avertit" "1"
+_install_check_dotfiles_access "file://$BARE" 2>&1 | wc -l | tr -d ' ' | assert_equals "depot accessible : silencieux" "0"
 
 echo "_install_work_detected"
 _install_work_detected pro | assert_equals "pro : true" "true"

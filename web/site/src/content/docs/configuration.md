@@ -148,7 +148,7 @@ ZANVIL_DOTFILES_REPO="git@github.com:<toi>/dotfiles.git"  # pas de valeur par d�
 ZANVIL_DOTFILES_DIR="$HOME/.dotfiles"                     # défaut
 ```
 
-`install.sh` écrit `ZANVIL_PROFILE` et `ZANVIL_DOTFILES_REPO` dans `config.zsh`. `zanvil-dotfiles` lit `ZANVIL_PROFILE` et `ZANVIL_DOTFILES_DIR` (voir la page Commandes).
+`install.sh` écrit `ZANVIL_PROFILE`, `ZANVIL_DOTFILES_REPO` et `ZANVIL_DOTFILES_DIR` dans `config.zsh`. `zanvil-dotfiles` lit `ZANVIL_PROFILE` et `ZANVIL_DOTFILES_DIR` (voir la page Commandes).
 
 ## Versions de runtimes (mise)
 

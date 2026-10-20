@@ -247,10 +247,29 @@ ZANVIL_UPDATE_MODE="$UPDATE_MODE"
 # Profil de la machine et depot dotfiles
 ZANVIL_PROFILE=$PROFILE
 ZANVIL_DOTFILES_REPO="$DOTFILES_REPO"
+ZANVIL_DOTFILES_DIR="$DOTFILES_DIR"
 
 # Contexte Work (deduit du profil pro)
 ZANVIL_WORK_DETECTED=$WORK_DETECTED
 EOF
+}
+
+# Valeur d'une variable dans un config.zsh existant (vide si absent), sans le sourcer
+_install_existing_value() {
+    [[ -f "$1" ]] || return 0
+    sed -n "s/^$2=//p" "$1" | tail -1 | sed 's/^"\(.*\)"$/\1/'
+}
+
+# Docker et Kube : outils pro (stern, buildx...), desactives par defaut en perso
+_install_module_default() {
+    [[ "$1" = perso ]] && echo false || echo true
+}
+
+# Pre-requis SSH verifie tot : l'URL reste enregistree meme si l'acces echoue
+_install_check_dotfiles_access() {
+    git ls-remote "$1" >/dev/null 2>&1 && return 0
+    log_warn "Depot dotfiles inaccessible ($1) : cle SSH absente ou sans acces au depot ? L'installation continue, relancer 'zanvil-dotfiles apply' une fois l'acces regle."
+    return 1
 }
 
 # Le profil decide du contexte Work
@@ -285,21 +304,32 @@ echo -e "${BOLD}=== Initialisation de l'environnement de Dev ===${NC}\n"
 detect_platform
 
 # --- Profil et depot dotfiles ---
+# Une relance garde les valeurs du config.zsh existant ; les options gardent la priorite
+_install_prev_config="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/config.zsh"
+_install_prev_profile=$(_install_existing_value "$_install_prev_config" ZANVIL_PROFILE)
+[[ "$_install_prev_profile" = pro || "$_install_prev_profile" = perso ]] || _install_prev_profile=perso
+[[ "$DOTFILES_REPO_SET" = true ]] || DOTFILES_REPO=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_REPO)
+DOTFILES_DIR=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_DIR)
+DOTFILES_DIR="${DOTFILES_DIR:-${ZANVIL_DOTFILES_DIR:-$HOME/.dotfiles}}"
 if [[ -z "$PROFILE" ]]; then
     if [[ "$INTERACTIVE" = true ]]; then
         while [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; do
-            printf "Profil de la machine (pro/perso) [perso]: "
+            printf "Profil de la machine (pro/perso) [%s]: " "$_install_prev_profile"
             read -r PROFILE
-            PROFILE="${PROFILE:-perso}"
+            PROFILE="${PROFILE:-$_install_prev_profile}"
         done
     else
-        PROFILE="perso"
+        PROFILE="$_install_prev_profile"
     fi
 fi
 log_info "Profil : $PROFILE"
 if [[ "$DOTFILES_REPO_SET" = false && "$INTERACTIVE" = true ]]; then
-    printf "URL du depot dotfiles (vide = aucun): "
-    read -r DOTFILES_REPO
+    printf "URL du depot dotfiles (vide = aucun) [%s]: " "$DOTFILES_REPO"
+    read -r _install_answer
+    DOTFILES_REPO="${_install_answer:-$DOTFILES_REPO}"
+fi
+if [[ -n "$DOTFILES_REPO" ]]; then
+    _install_check_dotfiles_access "$DOTFILES_REPO"
 fi
 
 # Mise à jour des index de paquets (Linux uniquement)
@@ -584,11 +614,11 @@ if [[ "$INTERACTIVE" = true ]]; then
 
     # Poser les questions pour les modules
     MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
-    MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "true")
+    MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "$(_install_module_default "$PROFILE")")
     MODULE_MISE=$(ask_module "Mise" "Gestionnaire de versions (Node, Java, Maven, etc.)" "true")
 
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
-    MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "true")
+    MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "$(_install_module_default "$PROFILE")")
 
     # Configuration SOPS/Age (si module Kube actif)
     SOPS_CONFIGURED="false"
@@ -679,12 +709,12 @@ if [[ "$INTERACTIVE" = true ]]; then
         UPDATE_MODE="prompt"
     fi
 else
-    log_info "Mode --default : tous les modules actives"
+    log_info "Mode --default : modules actives (Docker et Kube selon le profil)"
     MODULE_GITLAB="true"
-    MODULE_DOCKER="true"
+    MODULE_DOCKER=$(_install_module_default "$PROFILE")
     MODULE_MISE="true"
     MODULE_NUSHELL="true"
-    MODULE_KUBE="true"
+    MODULE_KUBE=$(_install_module_default "$PROFILE")
     STARSHIP_THEME="forge"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
@@ -715,8 +745,7 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
         # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
         if ! docker buildx version &>/dev/null 2>&1; then
             log_info "Installation manuelle de docker-buildx..."
-            local buildx_version="v0.21.1"
-            local buildx_arch
+            buildx_version="v0.21.1"
             case "$(uname -m)" in
                 x86_64)  buildx_arch="amd64" ;;
                 arm64|aarch64) buildx_arch="arm64" ;;
@@ -724,13 +753,13 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
             esac
 
             if [[ -n "$buildx_arch" ]]; then
-                local buildx_os
+                buildx_os=""
                 case "$(uname -s)" in
                     Darwin) buildx_os="darwin" ;;
                     Linux)  buildx_os="linux" ;;
                 esac
-                local buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
-                local buildx_dir="$HOME/.docker/cli-plugins"
+                buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
+                buildx_dir="$HOME/.docker/cli-plugins"
                 mkdir -p "$buildx_dir"
                 if curl -sSL "$buildx_url" -o "$buildx_dir/docker-buildx"; then
                     chmod +x "$buildx_dir/docker-buildx"
@@ -746,9 +775,9 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
 
     # --- Configuration Colima pour contexte Work ---
     if [[ "$WORK_DETECTED" = "true" ]] && command -v colima &>/dev/null; then
-        local colima_config="$HOME/.colima/default/colima.yaml"
-        local colima_pool="${ZANVIL_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
-        local colima_pool_escaped="${colima_pool//\//\\/}"
+        colima_config="$HOME/.colima/default/colima.yaml"
+        colima_pool="${ZANVIL_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
+        colima_pool_escaped="${colima_pool//\//\\/}"
 
         if [[ -f "$colima_config" ]]; then
             log_info "Configuration de Colima pour le contexte Work..."
@@ -920,9 +949,8 @@ fi
 if [[ -n "$DOTFILES_REPO" ]]; then
     echo ""
     log_info "Depot dotfiles..."
-    _dotfiles_dir="${ZANVIL_DOTFILES_DIR:-$HOME/.dotfiles}"
-    if _install_clone_dotfiles "$DOTFILES_REPO" "$_dotfiles_dir"; then
-        if ! ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$_dotfiles_dir" \
+    if _install_clone_dotfiles "$DOTFILES_REPO" "$DOTFILES_DIR"; then
+        if ! ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$DOTFILES_DIR" \
             zsh -c 'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/core/commands/dotfiles.zsh"; zanvil-dotfiles install && zanvil-dotfiles link'; then
             log_warn "Dotfiles incomplets (conflits ou echec brew) : lancer 'zanvil-dotfiles adopt' puis 'zanvil-dotfiles link'"
         fi
