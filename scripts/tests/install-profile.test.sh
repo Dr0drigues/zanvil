@@ -124,6 +124,24 @@ lg_env "$LNK" | assert_equals "lien : config dotfiles" "$LGZ/home/.config/lazygi
 lg_env "$LNK"'; : > "$LGZ/home/.config/lazygit/config-local.yml"' \
     | assert_equals "lien + config-local" "$LGZ/home/.config/lazygit/config.yml,$LGZ/home/.config/lazygit/config-local.yml"
 
+echo "deployeurs : un lien (dotfiles) n est jamais ecrit"
+DZ="$TEST_TMPDIR/dep"
+rm -rf "$DZ"; mkdir -p "$DZ/home" "$DZ/bin" "$DZ/repo"
+printf '#!/bin/sh\necho delta 0\n' > "$DZ/bin/delta"; : > "$DZ/bin/k9s"; chmod +x "$DZ/bin/delta" "$DZ/bin/k9s"
+echo "[user]" > "$DZ/repo/gitconfig"; ln -s "$DZ/repo/gitconfig" "$DZ/home/.gitconfig"
+HOME="$DZ/home" ZANVIL_DIR="$ROOT" ZANVIL_MODULE_DELTA=true PATH="$DZ/bin:/usr/bin:/bin" zsh -f -c "
+    source '$ROOT/core/ui.zsh'; source '$ROOT/modules/tools/delta/init.zsh'; delta_setup" >/dev/null 2>&1
+cat "$DZ/repo/gitconfig" | assert_equals "delta : .gitconfig lie intact" "[user]"
+K9D="$DZ/k9s"; mkdir -p "$K9D/plugins"
+echo mine > "$DZ/repo/hotkeys.yaml"; ln -s "$DZ/repo/hotkeys.yaml" "$K9D/hotkeys.yaml"
+echo mine > "$DZ/repo/zanvil.yaml"; ln -s "$DZ/repo/zanvil.yaml" "$K9D/plugins/zanvil.yaml"
+HOME="$DZ/home" ZANVIL_DIR="$ROOT" ZANVIL_MODULE_KUBE=true PATH="$DZ/bin:/usr/bin:/bin" zsh -f -c "
+    source '$ROOT/core/ui.zsh'; source '$ROOT/modules/kube/kube_config.zsh'
+    _k9s_config_dir() { echo '$K9D'; }
+    _zanvil_k9s_apply_skin() { :; }
+    kube_k9s_setup" >/dev/null 2>&1
+echo "$(cat "$DZ/repo/hotkeys.yaml") $(cat "$DZ/repo/zanvil.yaml")" | assert_equals "k9s : hotkeys et plugins lies intacts" "mine mine"
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]

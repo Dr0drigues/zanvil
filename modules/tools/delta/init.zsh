@@ -18,7 +18,9 @@ if command -v delta &>/dev/null; then
         fi
         cp "${ZANVIL_DIR}/config/delta/gitconfig" "${include_file}"
 
-        if ! grep -q "gitconfig.d/delta" "${gitconfig}" 2>/dev/null; then
+        if [[ -L "${gitconfig}" ]]; then
+            _ui_msg_info "${gitconfig} est un lien (dotfiles), include non ajoute"
+        elif ! grep -q "gitconfig.d/delta" "${gitconfig}" 2>/dev/null; then
             printf '\n[include]\n\tpath = %s\n' "${include_file}" >> "${gitconfig}"
             _ui_msg_ok "include ajouté dans ${gitconfig}"
         else
