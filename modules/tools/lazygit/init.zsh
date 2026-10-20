@@ -8,7 +8,9 @@
 if command -v lazygit &>/dev/null; then
     local _lg_config="${ZANVIL_DIR}/config/lazygit/config.yml"
     local _lg_local="${HOME}/.config/lazygit/config-local.yml"
-    if [[ -f "$_lg_local" ]]; then
+    if [[ -L "${HOME}/.config/lazygit/config.yml" ]]; then
+        : # config geree par dotfiles : lazygit la lit seul, pas d'export
+    elif [[ -f "$_lg_local" ]]; then
         export LG_CONFIG_FILE="${_lg_config},${_lg_local}"
     else
         export LG_CONFIG_FILE="${_lg_config}"

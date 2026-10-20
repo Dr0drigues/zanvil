@@ -21,6 +21,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --- Gestion des Arguments ---
 INTERACTIVE=true
+PROFILE=""
+DOTFILES_REPO=""
+DOTFILES_REPO_SET=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -31,6 +34,8 @@ while [[ $# -gt 0 ]]; do
             echo -e "${BOLD}OPTIONS${NC}"
             echo "    --default     Installation sans configuration interactive"
             echo "    --check       Verifie les dependances sans rien installer"
+            echo "    --profile P   Profil de la machine : pro ou perso (defaut : question, ou perso avec --default)"
+            echo "    --dotfiles U  URL du depot dotfiles (vide = pas de depot)"
             echo "    -h, --help    Affiche cette aide"
             exit 0
             ;;
@@ -41,6 +46,19 @@ while [[ $# -gt 0 ]]; do
         --check)
             CHECK_MODE=true
             shift
+            ;;
+        --profile)
+            PROFILE="${2:-}"
+            if [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; then
+                log_error "--profile attend pro ou perso (recu : '${PROFILE}')"
+                exit 1
+            fi
+            if [[ $# -ge 2 ]]; then shift 2; else shift; fi
+            ;;
+        --dotfiles)
+            DOTFILES_REPO="${2:-}"
+            DOTFILES_REPO_SET=true
+            if [[ $# -ge 2 ]]; then shift 2; else shift; fi
             ;;
         *)
             log_error "Option inconnue: $1"
@@ -195,11 +213,85 @@ install_tool() {
     fi
 }
 
+_install_write_config() {
+cat > "$CONFIG_FILE" << EOF
+# ==============================================================================
+# Configuration ZANVIL - Generee par install.sh
+# ==============================================================================
+# Modifiez ce fichier pour activer/desactiver des modules
+# Rechargez avec: ss (ou source ~/.zshrc)
+# ==============================================================================
+
+# Modules (true = active, false = desactive)
+ZANVIL_MODULE_GITLAB=$MODULE_GITLAB
+ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
+ZANVIL_MODULE_MISE=$MODULE_MISE
+ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
+ZANVIL_MODULE_KUBE=$MODULE_KUBE
+
+# Plugins
+ZANVIL_PLUGINS_ORG=zsh-users
+ZANVIL_PLUGINS=(
+    zsh-syntax-highlighting
+    zsh-autosuggestions
+)
+
+# Auto-Update
+ZANVIL_AUTO_UPDATE=$AUTO_UPDATE
+ZANVIL_UPDATE_FREQUENCY=$UPDATE_FREQ
+ZANVIL_UPDATE_MODE="$UPDATE_MODE"
+
+# Banniere de demarrage
+# ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
+
+# Profil de la machine et depot dotfiles
+ZANVIL_PROFILE=$PROFILE
+ZANVIL_DOTFILES_REPO="$DOTFILES_REPO"
+
+# Contexte Work (deduit du profil pro)
+ZANVIL_WORK_DETECTED=$WORK_DETECTED
+EOF
+}
+
+# --- Depot dotfiles : clone, ou pull si deja present ---
+_install_clone_dotfiles() {
+    local url="$1" dir="$2" tmp
+    if [[ -d "$dir/.git" ]]; then
+        git -C "$dir" pull --ff-only
+        return $?
+    fi
+    tmp="$dir.tmp.$$"
+    if git clone "$url" "$tmp" && mv "$tmp" "$dir"; then
+        return 0
+    fi
+    rm -rf "$tmp"
+    log_warn "Clone du depot dotfiles impossible (cle SSH ou acces au depot ?)"
+    return 1
+}
+
 # --- Main Script ---
 
 echo -e "${BOLD}=== Initialisation de l'environnement de Dev ===${NC}\n"
 
 detect_platform
+
+# --- Profil et depot dotfiles ---
+if [[ -z "$PROFILE" ]]; then
+    if [[ "$INTERACTIVE" = true ]]; then
+        while [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; do
+            printf "Profil de la machine (pro/perso) [perso]: "
+            read -r PROFILE
+            PROFILE="${PROFILE:-perso}"
+        done
+    else
+        PROFILE="perso"
+    fi
+fi
+log_info "Profil : $PROFILE"
+if [[ "$DOTFILES_REPO_SET" = false && "$INTERACTIVE" = true ]]; then
+    printf "URL du depot dotfiles (vide = aucun): "
+    read -r DOTFILES_REPO
+fi
 
 # Mise à jour des index de paquets (Linux uniquement)
 if [[ "$PKG_MANAGER" == "apt" ]]; then
@@ -249,10 +341,12 @@ install_tool "sops"     "sops"      "sops"      "sops"
 install_tool "age"      "age"       "age"       "age"
 
 # 4. Outils Kubernetes / Azure
-install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
-install_tool "kubelogin"  "kubelogin"   ""            ""
-install_tool "az"         "azure-cli"   ""            ""
-install_tool "helm"       "helm"        "helm"        "helm"
+if [[ "$PROFILE" = pro ]]; then
+    install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
+    install_tool "kubelogin"  "kubelogin"   ""            ""
+    install_tool "az"         "azure-cli"   ""            ""
+    install_tool "helm"       "helm"        "helm"        "helm"
+fi
 
 # --- Outils optionnels modules/tools/* ---
 # Installés automatiquement si le module est activé dans config.zsh mais le binaire absent.
@@ -406,15 +500,18 @@ echo ""
 
 # URL de probe interne (definir ZANVIL_WORK_NEXUS_URL dans env.d/work.zsh ou env)
 NEXUS_URL="${ZANVIL_WORK_NEXUS_URL:-}"
+# Le profil decide ; la probe ne sert plus qu'au chiffrement des fichiers work
 WORK_DETECTED="false"
+[[ "$PROFILE" = pro ]] && WORK_DETECTED="true"
 
-if [[ -n "$NEXUS_URL" ]]; then
-    log_info "Detection du contexte Work (probe: $NEXUS_URL)..."
+if [[ "$PROFILE" != pro ]]; then
+    log_info "Profil perso : contexte Work ignore"
+elif [[ -n "$NEXUS_URL" ]]; then
+    log_info "Verification du contexte Work (probe: $NEXUS_URL)..."
     _install_curl_opts="-s --connect-timeout 2 --max-time 2"
     [[ -f "$HOME/.ssl/ca-bundle.pem" ]] && _install_curl_opts+=" --cacert $HOME/.ssl/ca-bundle.pem"
     if curl $_install_curl_opts -o /dev/null -w "%{http_code}" "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
-        log_success "Contexte Work detecte (probe accessible)"
-        WORK_DETECTED="true"
+        log_success "Probe Work accessible"
 
         # Si SOPS est configure et les fichiers en clair existent sans .enc
         if command -v sops &>/dev/null && [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
@@ -442,7 +539,7 @@ if [[ -n "$NEXUS_URL" ]]; then
             fi
         fi
     else
-        log_info "Hors contexte Work (mode personnel)"
+        log_warn "Profil pro mais probe Work inaccessible (VPN ?), chiffrement work ignore"
     fi
 else
     log_info "Aucune URL de probe Work configuree (voir env.d/work.zsh)"
@@ -603,7 +700,9 @@ fi
 if [[ "$MODULE_DOCKER" = "true" ]]; then
     if ! docker buildx version &>/dev/null 2>&1; then
         log_info "Installation de docker-buildx (BuildKit)..."
-        install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
+        if [[ "$PROFILE" = pro ]]; then
+            install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
+        fi
 
         # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
         if ! docker buildx version &>/dev/null 2>&1; then
@@ -694,39 +793,7 @@ CONFIG_FILE="$TARGET_DIR/config.zsh"
 echo ""
 log_info "Generation de $CONFIG_FILE..."
 
-cat > "$CONFIG_FILE" << EOF
-# ==============================================================================
-# Configuration ZANVIL - Generee par install.sh
-# ==============================================================================
-# Modifiez ce fichier pour activer/desactiver des modules
-# Rechargez avec: ss (ou source ~/.zshrc)
-# ==============================================================================
-
-# Modules (true = active, false = desactive)
-ZANVIL_MODULE_GITLAB=$MODULE_GITLAB
-ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
-ZANVIL_MODULE_MISE=$MODULE_MISE
-ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
-ZANVIL_MODULE_KUBE=$MODULE_KUBE
-
-# Plugins
-ZANVIL_PLUGINS_ORG=zsh-users
-ZANVIL_PLUGINS=(
-    zsh-syntax-highlighting
-    zsh-autosuggestions
-)
-
-# Auto-Update
-ZANVIL_AUTO_UPDATE=$AUTO_UPDATE
-ZANVIL_UPDATE_FREQUENCY=$UPDATE_FREQ
-ZANVIL_UPDATE_MODE="$UPDATE_MODE"
-
-# Banniere de demarrage
-# ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
-
-# Contexte Work (detecte a l'installation)
-ZANVIL_WORK_DETECTED=$WORK_DETECTED
-EOF
+_install_write_config
 
 log_success "Configuration sauvegardee"
 
@@ -839,6 +906,19 @@ if [[ -f "$TARGET_DIR/web/assets/zanvil-logo.txt" ]]; then
     _zanvil_ver=$(grep -m1 'ZANVIL_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
     echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"
+fi
+
+# --- Depot dotfiles : brew bundle + liens Stow ---
+if [[ -n "$DOTFILES_REPO" ]]; then
+    echo ""
+    log_info "Depot dotfiles..."
+    _dotfiles_dir="${ZANVIL_DOTFILES_DIR:-$HOME/.dotfiles}"
+    if _install_clone_dotfiles "$DOTFILES_REPO" "$_dotfiles_dir"; then
+        if ! ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$_dotfiles_dir" \
+            zsh -c 'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/core/commands/dotfiles.zsh"; zanvil-dotfiles install && zanvil-dotfiles link'; then
+            log_warn "Dotfiles incomplets (conflits ou echec brew) : lancer 'zanvil-dotfiles adopt' puis 'zanvil-dotfiles link'"
+        fi
+    fi
 fi
 
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"
