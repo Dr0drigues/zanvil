@@ -64,24 +64,40 @@ zanvil-theme() {
         return $?
     fi
 
-    # Delegation au CLI Rust si disponible
-    if command -v zanvil &>/dev/null; then
+    local _noticed=false
+
+    # Delegation au CLI Rust si disponible. Pas si ~/.config/starship.toml est un lien :
+    # un CLI obsolete ecrirait a travers, dans le depot dotfiles.
+    if command -v zanvil &>/dev/null && [[ ! -L "$HOME/.config/starship.toml" ]]; then
         local cli_args=("$@")
         # Mapper l'ancien usage: zanvil-theme <name> -> zanvil theme apply <name>
         if [[ -n "$1" && "$1" != "list" && "$1" != "current" && "$1" != "apply" ]]; then
             cli_args=(apply "$@")
         fi
-        [[ "${cli_args[1]}" == "apply" ]] && _zanvil_theme_legacy_notice
+        if [[ "${cli_args[1]}" != "apply" ]]; then
+            zanvil theme "${cli_args[@]}"
+            return $?
+        fi
+
+        _zanvil_theme_legacy_notice
+        _noticed=true
         zanvil theme "${cli_args[@]}"
         local rc=$?
-        # Sourcer la palette pour la session courante apres apply
+        (( rc == 0 )) || return $rc
         local _theme_name="${cli_args[-1]}"
-        if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
+        local _src="$ZANVIL_DIR/config/themes/$_theme_name/prompt.toml"
+        [[ -f "$_src" ]] || _src="$ZANVIL_DIR/config/themes/$_theme_name.toml"
+        if cmp -s "$_src" "$(_zanvil_theme_dir)/starship.toml"; then
+            [[ -z "$STARSHIP_CONFIG" ]] && export STARSHIP_CONFIG="$(_zanvil_theme_dir)/starship.toml"
+            # Sourcer la palette pour la session courante apres apply
             local _p="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
             _zanvil_k9s_apply_skin "$_theme_name"
+            return 0
         fi
-        return $rc
+        # CLI d avant ~/.config/zanvil/theme : le repli zsh ecrit le bon fichier
+        _ui_msg_warn "CLI zanvil obsolete : reconstruisez-le (${_ui_bold}cd \$ZANVIL_DIR/cli && cargo build --release${_ui_nc})"
+        set -- "$_theme_name"
     fi
 
     # --- Fallback zsh ---
@@ -163,11 +179,12 @@ zanvil-theme() {
         return 1
     fi
 
-    _zanvil_theme_legacy_notice
+    [[ "$_noticed" == true ]] || _zanvil_theme_legacy_notice
     mkdir -p "${starship_config:h}"
 
-    # Appliquer : core/hooks.zsh exporte STARSHIP_CONFIG vers ce fichier
+    # Appliquer : core/hooks.zsh exporte STARSHIP_CONFIG vers ce fichier au demarrage
     cp "$toml_source" "$starship_config"
+    [[ -z "$STARSHIP_CONFIG" ]] && export STARSHIP_CONFIG="$starship_config"
     echo "$theme" > "$state_file"
 
     # Sourcer la palette si disponible

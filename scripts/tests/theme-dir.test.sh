@@ -43,7 +43,7 @@ TD="$X/zanvil/theme"
 zt() {
     rm -rf "$H" "$X"; mkdir -p "$H/.config" "$X"
     eval "${2:-}"
-    HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="$BIN:/usr/bin:/bin" zsh -f -c "
+    HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="${ZT_PATH:-}$BIN:/usr/bin:/bin" zsh -f -c "
         source '$Z/core/ui.zsh'
         source '$Z/core/commands/theme.zsh'
         $1
@@ -71,6 +71,39 @@ zt 'zanvil-theme minimal >/dev/null; zanvil-theme minimal | grep -c "starship.to
     | assert_equals "signale une seule fois" "0"
 zt 'zanvil-theme minimal | grep -c "starship.toml"' 'printf "format = \"perso\"\n" > "$H/.config/starship.toml"' \
     | assert_equals "starship.toml perso : pas de proposition" "0"
+
+zt 'zanvil-theme minimal >/dev/null; print -r -- $STARSHIP_CONFIG' \
+    | assert_equals "STARSHIP_CONFIG exporte dans le shell courant" "$TD/starship.toml"
+zt 'export STARSHIP_CONFIG=/perso.toml; zanvil-theme minimal >/dev/null; print -r -- $STARSHIP_CONFIG' \
+    | assert_equals "STARSHIP_CONFIG perso respecte" "/perso.toml"
+
+echo "zanvil-theme (delegation au CLI)"
+# Un CLI obsolete ecrit encore ~/.config/starship.toml ; un CLI a jour ecrit <theme_dir>
+for v in stale fresh; do
+    mkdir -p "$TEST_TMPDIR/cli-$v"
+    if [[ $v == stale ]]; then dest='$HOME/.config/starship.toml'; else dest='$XDG_CONFIG_HOME/zanvil/theme/starship.toml'; fi
+    cat > "$TEST_TMPDIR/cli-$v/zanvil" <<EOF
+#!/bin/sh
+[ "\$1 \$2" = "theme apply" ] || exit 0
+mkdir -p "\$(dirname "$dest")"
+cp "\$ZANVIL_DIR/config/themes/\$3.toml" "$dest"
+echo "\$3" > "\$ZANVIL_DIR/.current_theme"
+EOF
+    chmod +x "$TEST_TMPDIR/cli-$v/zanvil"
+done
+STALE="$TEST_TMPDIR/cli-stale:"
+FRESH="$TEST_TMPDIR/cli-fresh:"
+ZT_PATH="$STALE" zt 'zanvil-theme minimal >/dev/null; cmp -s "$ZANVIL_DIR/config/themes/minimal.toml" "$XDG_CONFIG_HOME/zanvil/theme/starship.toml" && echo copie' \
+    | assert_equals "CLI obsolete : le fichier genere porte le theme" "copie"
+ZT_PATH="$STALE" zt 'zanvil-theme minimal | grep -c "obsolete"' \
+    | assert_equals "CLI obsolete : averti" "1"
+ZT_PATH="$STALE" zt 'zanvil-theme apply minimal >/dev/null; print -r -- $STARSHIP_CONFIG' \
+    | assert_equals "CLI obsolete : STARSHIP_CONFIG exporte (forme apply)" "$TD/starship.toml"
+SLINK='mkdir -p "$TEST_TMPDIR/dotfiles"; echo "format = \"dotfiles\"" > "$TEST_TMPDIR/dotfiles/starship.toml"; ln -s "$TEST_TMPDIR/dotfiles/starship.toml" "$H/.config/starship.toml"'
+ZT_PATH="$STALE" zt 'zanvil-theme minimal >/dev/null; cat "$HOME/.config/starship.toml"' "$SLINK" \
+    | assert_equals "CLI obsolete : starship.toml lie (dotfiles) intact" 'format = "dotfiles"'
+ZT_PATH="$FRESH" zt 'zanvil-theme minimal > $HOME/out; grep -c "obsolete" $HOME/out; print -r -- $STARSHIP_CONFIG' \
+    | assert_equals "CLI a jour : pas d avertissement" "$(printf '0\n%s' "$TD/starship.toml")"
 
 echo "zanvil-ghostty"
 before=$(sum "$Z/config/ghostty/config")
