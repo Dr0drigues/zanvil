@@ -68,6 +68,14 @@ _zanvil_modules() {
 }
 compdef _zanvil_modules zanvil-modules
 
+_zanvil_dotfiles() {
+    _arguments \
+        '1:action:(status pull install cleanup link adopt apply)' \
+        '2:fichier:_files' \
+        '3:couche:(common pro perso)'
+}
+compdef _zanvil_dotfiles zanvil-dotfiles
+
 _zanvil_gitlab_browse() {
     _arguments \
         '(-m --mrs -p --pipelines -i --issues)'{-m,--mrs}'[Merge Requests]' \

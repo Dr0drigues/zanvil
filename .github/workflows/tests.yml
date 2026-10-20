@@ -49,7 +49,7 @@ jobs:
 
       - name: Test shell script suites
         run: |
-          sudo apt-get install -y stow
+          sudo apt-get update && sudo apt-get install -y stow
           export ZANVIL_DIR="$PWD"
           bash scripts/tests/k9s-log-fmt.test.sh
           bash scripts/tests/k9s-log-grep.test.sh
