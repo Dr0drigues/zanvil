@@ -40,16 +40,97 @@ _zanvil_dotfiles_confirm() {
     esac
 }
 
+_zanvil_dotfiles_install() {
+    _zanvil_dotfiles_merged || return 1
+    brew bundle install --file="$REPLY"
+    local rc=$?
+    rm -f "$REPLY"
+    return $rc
+}
+
+_zanvil_dotfiles_pull() {
+    local dir=$(_zanvil_dotfiles_dir)
+    if [[ ! -e "$dir/.git" ]]; then
+        _ui_msg_fail "Depot dotfiles absent ou sans versionnage : $dir" >&2
+        return 1
+    fi
+    command git -C "$dir" pull --ff-only || { _ui_msg_fail "pull echoue dans $dir" >&2; return 1; }
+}
+
+# Stow --no-folding : les dossiers restent reels, seuls les fichiers sont des liens.
+# Un conflit (fichier reel a la place d'un lien) est affiche et bloque, rien n'est ecrase.
+_zanvil_dotfiles_link() {
+    case "${ZANVIL_PROFILE:-}" in
+        pro|perso) ;;
+        *) _ui_msg_fail "ZANVIL_PROFILE doit valoir pro ou perso (actuel : '${ZANVIL_PROFILE:-}')" >&2; return 1 ;;
+    esac
+    command -v stow &>/dev/null || { _ui_msg_fail "stow est absent (brew install stow)" >&2; return 1; }
+    local dir=$(_zanvil_dotfiles_dir)
+    local out= rc=0 line=
+    out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" common "$ZANVIL_PROFILE" 2>&1) || rc=$?
+    if (( rc != 0 )); then
+        # stow 2.4 : "  * cannot stow <src> over existing target <cible> since ..."
+        local -a conflicts=("${(@M)${(@f)out}:#[[:space:]]#\** *}")
+        if (( ${#conflicts} )); then
+            for line in "${conflicts[@]}"; do
+                _ui_fail "${line##[[:space:]]#\* }" >&2
+            done
+        else
+            _ui_msg_fail "stow a echoue : $out" >&2
+        fi
+        return 1
+    fi
+    stow --no-folding -v -d "$dir/stow" -t "$HOME" common "$ZANVIL_PROFILE"
+}
+
+# Deplace un fichier reel de $HOME dans la couche du depot, puis le relie
+_zanvil_dotfiles_adopt() {
+    local target="${1:-}" layer="${2:-common}"
+    [[ -n "$target" ]] || { _ui_msg_fail "Usage : zanvil-dotfiles adopt <chemin> [common|pro|perso]" >&2; return 1; }
+    case "$layer" in common|pro|perso) ;; *) _ui_msg_fail "Couche inconnue : $layer" >&2; return 1 ;; esac
+    [[ "$target" == /* ]] || target="$HOME/$target"
+    local rel="${target#$HOME/}"
+    if [[ "$target" != "$HOME/"* || "$rel" == *..* ]]; then
+        _ui_msg_fail "Hors de \$HOME : $target" >&2; return 1
+    fi
+    case "$rel" in
+        */gh/hosts.yml|*/glab-cli/*|*/sops/*|*/gcloud/*|.ssh/*|.zshrc)
+            _ui_msg_fail "Secret ou fichier gere par install.sh, refuse : $rel" >&2; return 1 ;;
+    esac
+    [[ -L "$target" ]] && { _ui_msg_fail "Deja un lien : $target" >&2; return 1; }
+    [[ -f "$target" ]] || { _ui_msg_fail "Fichier introuvable : $target" >&2; return 1; }
+    command -v stow &>/dev/null || { _ui_msg_fail "stow est absent (brew install stow)" >&2; return 1; }
+    local dir=$(_zanvil_dotfiles_dir)
+    local dest="$dir/stow/$layer/$rel"
+    mkdir -p "${dest:h}" && mv "$target" "$dest" || return 1
+    if ! stow --no-folding -v -d "$dir/stow" -t "$HOME" "$layer"; then
+        mv "$dest" "$target"
+        _ui_msg_fail "stow a echoue, fichier remis en place : $target" >&2
+        return 1
+    fi
+    _ui_msg_ok "Adopte : $rel -> $layer"
+}
+
 zanvil-dotfiles() {
     _ui_header "Dotfiles"
-    local sub="${1:-}" out=
+    local sub="${1:-status}" out=
     case "$sub" in
-        install)
-            _zanvil_dotfiles_merged || return 1
-            brew bundle install --file="$REPLY"
-            local rc=$?
-            rm -f "$REPLY"
-            return $rc
+        install) _zanvil_dotfiles_install ;;
+        link) _zanvil_dotfiles_link ;;
+        pull) _zanvil_dotfiles_pull ;;
+        adopt) shift; _zanvil_dotfiles_adopt "$@" ;;
+        apply) _zanvil_dotfiles_pull && _zanvil_dotfiles_install && _zanvil_dotfiles_link ;;
+        status)
+            local dir=$(_zanvil_dotfiles_dir)
+            _ui_section "Profil" "${ZANVIL_PROFILE:-non defini}"
+            _ui_section "Depot" "$dir"
+            if [[ -e "$dir/.git" ]]; then
+                out=$(command git -C "$dir" status --short)
+                _ui_section "Etat" "${out:-propre}"
+            else
+                _ui_section "Etat" "depot absent"
+            fi
+            _zanvil_dotfiles_brewfiles | sed 's/^/  /'
             ;;
         cleanup)
             _zanvil_dotfiles_merged || return 1
@@ -73,7 +154,7 @@ zanvil-dotfiles() {
             return $rc
             ;;
         *)
-            _ui_msg_info "Usage : zanvil-dotfiles install|cleanup"
+            _ui_msg_info "Usage : zanvil-dotfiles status|install|cleanup|link|adopt|pull|apply"
             return 1
             ;;
     esac
