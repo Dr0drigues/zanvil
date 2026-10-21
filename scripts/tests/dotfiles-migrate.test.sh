@@ -53,7 +53,9 @@ mkdir -p "$TEST_TMPDIR/nostow" "$TEST_TMPDIR/sysnostow"; printf '#!/bin/sh\nexit
 for f in /usr/bin/* /bin/*; do
     [[ "${f##*/}" == stow ]] || ln -sf "$f" "$TEST_TMPDIR/sysnostow/${f##*/}" 2>/dev/null
 done
-out=$(ZD_PATH="$TEST_TMPDIR/nostow:$GITDIR:$TEST_TMPDIR/sysnostow" ZD_ENV="ZANVIL_ASSUME_TTY=1" zd '_zanvil_dotfiles_migrate; echo rc=$?')
+# Pas de $GITDIR ici : sur Ubuntu c'est /usr/bin, qui contient stow ; git est deja dans sysnostow
+[[ -e "$TEST_TMPDIR/sysnostow/git" ]] || ln -sf "$(command -v git)" "$TEST_TMPDIR/sysnostow/git"
+out=$(ZD_PATH="$TEST_TMPDIR/nostow:$TEST_TMPDIR/sysnostow" ZD_ENV="ZANVIL_ASSUME_TTY=1" zd '_zanvil_dotfiles_migrate; echo rc=$?')
 { [[ "$out" == *stow* && "$out" == *rc=1 ]] && echo ok || echo "$out"; } | assert_equals "stow absent : nomme, code 1" ok
 
 # --- config_key ---
