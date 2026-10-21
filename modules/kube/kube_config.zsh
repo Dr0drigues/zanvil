@@ -1203,7 +1203,10 @@ kube_k9s_setup() {
 
     # Deployer hotkeys
     local hotkeys_src="$ZANVIL_DIR/config/k9s/hotkeys.yaml"
-    if [[ -f "$hotkeys_src" ]]; then
+    # Un lien (Stow) appartient au depot dotfiles : cp ecrirait a travers
+    if [[ -L "$k9s_dir/hotkeys.yaml" ]]; then
+        _ui_msg_info "hotkeys.yaml est un lien (dotfiles), rien deploye"
+    elif [[ -f "$hotkeys_src" ]]; then
         cp "$hotkeys_src" "$k9s_dir/hotkeys.yaml"
         _ui_msg_ok "hotkeys.yaml deploye"
     else
@@ -1226,7 +1229,9 @@ kube_k9s_setup() {
     # allowed ». D ou le retrait de la premiere ligne utile et la desindentation de deux
     # espaces.
     local plugins_src="$ZANVIL_DIR/config/k9s/plugins.yaml"
-    if [[ -f "$plugins_src" ]]; then
+    if [[ -L "$k9s_dir/plugins/zanvil.yaml" ]]; then
+        _ui_msg_info "plugins/zanvil.yaml est un lien (dotfiles), rien deploye"
+    elif [[ -f "$plugins_src" ]]; then
         mkdir -p "$k9s_dir/plugins"
         # Trois passes, dans cet ordre : substituer $ZANVIL_DIR comme avant, retirer la
         # ligne `plugins:` seule, puis desindenter ce qu elle contenait. Les commentaires

@@ -11,9 +11,13 @@ if command -v posting &>/dev/null; then
             return 1
         fi
 
-        mkdir -p "${HOME}/.config/posting"
-        cp "${config_src}" "${config_dst}"
-        _ui_msg_ok "config.yaml déployée"
+        if [[ -L "${config_dst}" ]]; then
+            _ui_msg_info "config.yaml est un lien (dotfiles), rien deploye"
+        else
+            mkdir -p "${HOME}/.config/posting"
+            cp "${config_src}" "${config_dst}"
+            _ui_msg_ok "config.yaml déployée"
+        fi
 
         _ui_section "Version" "$(posting --version 2>/dev/null)"
         _ui_section "Config" "${config_dst}"

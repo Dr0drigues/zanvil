@@ -8,6 +8,8 @@
 if command -v lazygit &>/dev/null; then
     local _lg_config="${ZANVIL_DIR}/config/lazygit/config.yml"
     local _lg_local="${HOME}/.config/lazygit/config-local.yml"
+    # Lien dotfiles : cette config gagne (lazygit ne lit pas ~/.config sur macOS)
+    [[ -L "${HOME}/.config/lazygit/config.yml" ]] && _lg_config="${HOME}/.config/lazygit/config.yml"
     if [[ -f "$_lg_local" ]]; then
         export LG_CONFIG_FILE="${_lg_config},${_lg_local}"
     else

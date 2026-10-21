@@ -27,79 +27,29 @@ _zanvil_k9s_apply_skin() {
     local skin_src="$ZANVIL_DIR/config/themes/$theme/k9s-skin.yaml"
     [[ -f "$skin_src" ]] || return 0
 
-    local k9s_dir
-    k9s_dir=$(_k9s_config_dir)
-    local k9s_skins_dir="$k9s_dir/skins"
-    local k9s_config="$k9s_dir/config.yaml"
+    local k9s_skins_dir="$(_k9s_config_dir)/skins"
     mkdir -p "$k9s_skins_dir"
     cp "$skin_src" "$k9s_skins_dir/${theme}.yaml"
+    # k9s lit K9S_SKIN avant config.yaml (verifie sur k9s 0.51 : « Loading env skin »).
+    # config.yaml n est donc plus edite : il peut etre un lien Stow vers le depot dotfiles.
+    # core/ui.zsh exporte la meme variable au demarrage pour les shells suivants.
+    export K9S_SKIN="$theme"
+}
 
-    if [[ ! -f "$k9s_config" ]]; then
-        mkdir -p "$k9s_dir"
-        cat > "$k9s_config" << EOF
-k9s:
-  liveViewAutoRefresh: true
-  refreshRate: 2
-  ui:
-    reactive: false
-    noIcons: false
-    skin: $theme
-EOF
-    else
-        # Réécriture ligne par ligne, en zsh, sans `sed`.
-        #
-        # Les deux branches précédentes étaient CASSÉES SUR macOS, et silencieusement :
-        #
-        #   - `grep -q "^\s*skin:"` et le `sed` qui suivait employaient `\s`, que BSD ne
-        #     connaît pas. La condition était donc fausse et le remplacement sans effet.
-        #   - la branche d'insertion mettait un `\n` dans le remplacement d'un `sed`, ce
-        #     que BSD ne développe pas non plus.
-        #
-        # Résultat : `zanvil-theme <nom>` laissait le skin k9s inchangé dès qu'un
-        # config.yaml existait, sans rien dire. Les deux embranchements `darwin*` donnaient
-        # l'illusion d'un traitement portable là où les deux côtés étaient faux.
-        #
-        # Le zsh ne dépend d'aucune variante : il lit, décide, réécrit. Lire un fichier de
-        # configuration de quelques lignes n'a jamais eu besoin de `sed`.
-        #
-        # `(#b)` — les backreferences dans un motif — demande extendedglob, et
-        # `localoptions` limite l'activation à cette fonction : la poser globalement
-        # changerait le comportement des globs du shell appelant.
-        setopt localoptions extendedglob
+# Dossier des fichiers generes pour le theme courant. Les configs (souvent des liens
+# Stow vers le depot dotfiles) incluent ces fichiers ; zanvil n ecrit jamais dans les configs.
+_zanvil_theme_dir() {
+    print -r -- "${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme"
+}
 
-        # Deux passes, et l'ordre compte : décider AVANT d'écrire. Une seule passe qui
-        # insérait après `noIcons:` puis remplaçait un `skin:` plus loin en posait deux —
-        # c'est ce que le cas a montré, avec un « SKIN_CHOISI:2 » qu'aucune relecture du
-        # code n'aurait rendu évident.
-        local -a lignes
-        local ligne
-        local remplace=false trouve=false
-        while IFS= read -r ligne; do
-            [[ "$ligne" == [[:space:]]#skin:* ]] && remplace=true
-        done < "$k9s_config"
-
-        while IFS= read -r ligne; do
-            if [[ "$remplace" == true && "$ligne" == (#b)([[:space:]]#)skin:* ]]; then
-                lignes+=("${match[1]}skin: $theme")
-                trouve=true
-            else
-                lignes+=("$ligne")
-                # Config sans `skin:` : la clé s'insère après `noIcons:`, dans la même
-                # section et avec la même indentation.
-                if [[ "$remplace" == false && "$trouve" == false \
-                    && "$ligne" == (#b)([[:space:]]#)noIcons:* ]]; then
-                    lignes+=("${match[1]}skin: $theme")
-                    trouve=true
-                fi
-            fi
-        done < "$k9s_config"
-
-        if [[ "$trouve" == true ]]; then
-            print -rl -- "${lignes[@]}" > "$k9s_config"
-        else
-            _ui_msg_warn "config.yaml k9s sans 'ui:' reconnaissable — skin non applique"
-        fi
-    fi
+# Une seule fois, a la premiere ecriture dans <theme_dir> : signaler un starship.toml ecrit
+# par l ancien systeme, sans le supprimer.
+_zanvil_theme_legacy_notice() {
+    local legacy="$HOME/.config/starship.toml" first=""
+    [[ -f "$(_zanvil_theme_dir)/starship.toml" || ! -f "$legacy" ]] && return 0
+    IFS= read -r first < "$legacy"
+    [[ "$first" == "# Starship Theme:"* ]] || return 0
+    _ui_msg_info "$legacy (ancien theme zanvil) n est plus utilise : supprimez-le avec ${_ui_bold}rm $legacy${_ui_nc}"
 }
 
 zanvil-theme() {
@@ -114,28 +64,45 @@ zanvil-theme() {
         return $?
     fi
 
-    # Delegation au CLI Rust si disponible
-    if command -v zanvil &>/dev/null; then
+    local _noticed=false
+
+    # Delegation au CLI Rust si disponible. Pas si ~/.config/starship.toml est un lien :
+    # un CLI obsolete ecrirait a travers, dans le depot dotfiles.
+    if command -v zanvil &>/dev/null && [[ ! -L "$HOME/.config/starship.toml" ]]; then
         local cli_args=("$@")
         # Mapper l'ancien usage: zanvil-theme <name> -> zanvil theme apply <name>
         if [[ -n "$1" && "$1" != "list" && "$1" != "current" && "$1" != "apply" ]]; then
             cli_args=(apply "$@")
         fi
+        if [[ "${cli_args[1]}" != "apply" ]]; then
+            zanvil theme "${cli_args[@]}"
+            return $?
+        fi
+
+        _zanvil_theme_legacy_notice
+        _noticed=true
         zanvil theme "${cli_args[@]}"
         local rc=$?
-        # Sourcer la palette pour la session courante apres apply
+        (( rc == 0 )) || return $rc
         local _theme_name="${cli_args[-1]}"
-        if [[ $rc -eq 0 && "${cli_args[1]}" == "apply" ]]; then
+        local _src="$ZANVIL_DIR/config/themes/$_theme_name/prompt.toml"
+        [[ -f "$_src" ]] || _src="$ZANVIL_DIR/config/themes/$_theme_name.toml"
+        if cmp -s "$_src" "$(_zanvil_theme_dir)/starship.toml"; then
+            [[ -z "$STARSHIP_CONFIG" ]] && export STARSHIP_CONFIG="$(_zanvil_theme_dir)/starship.toml"
+            # Sourcer la palette pour la session courante apres apply
             local _p="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
             _zanvil_k9s_apply_skin "$_theme_name"
+            return 0
         fi
-        return $rc
+        # CLI d avant ~/.config/zanvil/theme : le repli zsh ecrit le bon fichier
+        _ui_msg_warn "CLI zanvil obsolete : reconstruisez-le (${_ui_bold}cd \$ZANVIL_DIR/cli && cargo build --release${_ui_nc})"
+        set -- "$_theme_name"
     fi
 
     # --- Fallback zsh ---
     local themes_dir="$ZANVIL_DIR/config/themes"
-    local starship_config="$HOME/.config/starship.toml"
+    local starship_config="$(_zanvil_theme_dir)/starship.toml"
     local state_file="$ZANVIL_DIR/.current_theme"
     local theme="$1"
 
@@ -212,18 +179,12 @@ zanvil-theme() {
         return 1
     fi
 
-    mkdir -p "$HOME/.config"
+    [[ "$_noticed" == true ]] || _zanvil_theme_legacy_notice
+    mkdir -p "${starship_config:h}"
 
-    # Backup si config existante non geree
-    if [[ -f "$starship_config" ]]; then
-        if ! grep -q "^# Starship Theme:" "$starship_config" 2>/dev/null; then
-            cp "$starship_config" "$starship_config.backup"
-            _ui_msg_info "Backup: $starship_config.backup"
-        fi
-    fi
-
-    # Appliquer
+    # Appliquer : core/hooks.zsh exporte STARSHIP_CONFIG vers ce fichier au demarrage
     cp "$toml_source" "$starship_config"
+    [[ -z "$STARSHIP_CONFIG" ]] && export STARSHIP_CONFIG="$starship_config"
     echo "$theme" > "$state_file"
 
     # Sourcer la palette si disponible
@@ -405,6 +366,7 @@ fi
 zanvil-ghostty() {
     local themes_dir="$ZANVIL_DIR/config/ghostty/themes"
     local ghostty_config="$HOME/.config/ghostty/config"
+    local generated="$(_zanvil_theme_dir)/ghostty"
     local theme="$1"
 
     # Sans argument ou "list" : afficher les themes disponibles
@@ -416,18 +378,13 @@ zanvil-ghostty() {
             return 1
         fi
 
-        # Theme actuel (lit la ligne config-file de la config Ghostty)
-        local current=""
-        if [[ -f "$ghostty_config" ]]; then
-            current=$(grep "^config-file" "$ghostty_config" 2>/dev/null | sed 's/.*themes\///' | tr -d ' ')
-        fi
-
         for theme_file in "$themes_dir"/*; do
             [[ -f "$theme_file" ]] || continue
             local name=$(basename "$theme_file")
             local desc=$(grep -m1 "^# Ghostty Theme:" "$theme_file" 2>/dev/null | sed 's/^# Ghostty Theme: //' || echo "")
 
-            if [[ "$name" = "$current" ]]; then
+            # Theme actuel : celui dont le fichier genere est la copie
+            if cmp -s "$theme_file" "$generated"; then
                 echo -e "  ${_ui_green}*${_ui_nc} ${_ui_bold}$name${_ui_nc} - $desc ${_ui_cyan}(actif)${_ui_nc}"
             else
                 echo -e "  ${_ui_cyan}○${_ui_nc} $name - $desc"
@@ -450,6 +407,18 @@ zanvil-ghostty() {
             return 1
         fi
 
+        # La config (zanvil ou dotfiles) inclut le fichier genere : sans lui, pas de theme
+        if [[ ! -f "$generated" ]]; then
+            mkdir -p "${generated:h}"
+            cp "$themes_dir/tokyo-light-storm" "$generated" && _ui_msg_ok "Theme par defaut (tokyo-light-storm) ecrit dans $generated"
+        fi
+
+        # Une config liee (Stow) appartient au depot dotfiles : ne pas l ecraser
+        if [[ -L "$ghostty_config" ]]; then
+            _ui_msg_info "Config Ghostty fournie par les dotfiles ($ghostty_config) : rien a synchroniser"
+            return 0
+        fi
+
         mkdir -p "$dest_dir"
 
         # Backup si existe et différent
@@ -458,9 +427,8 @@ zanvil-ghostty() {
             echo -e "${_ui_cyan}[INFO]${_ui_nc} Backup: $ghostty_config.backup"
         fi
 
-        # Copier config et themes
+        # Les themes ne sont plus copies : la config inclut le fichier genere
         cp "$src_config" "$ghostty_config"
-        cp -r "$themes_dir" "$dest_dir/"
 
         echo -e "${_ui_green}[OK]${_ui_nc} Config Ghostty synchronisee vers $dest_dir"
         echo -e "${_ui_cyan}[INFO]${_ui_nc} Redemarrez Ghostty pour appliquer les changements."
@@ -476,22 +444,14 @@ zanvil-ghostty() {
         return 1
     fi
 
-    # Mettre à jour le fichier config local (dans zanvil)
-    local local_config="$ZANVIL_DIR/config/ghostty/config"
+    # La config Ghostty inclut ce fichier (config-file = ?~/.config/zanvil/theme/ghostty)
+    mkdir -p "${generated:h}"
+    cp "$theme_file" "$generated"
 
-    if [[ -f "$local_config" ]]; then
-        # Remplacer la ligne config-file
-        if grep -q "^config-file" "$local_config"; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                sed -i '' "s|^config-file.*|config-file = themes/$theme|" "$local_config"
-            else
-                sed -i "s|^config-file.*|config-file = themes/$theme|" "$local_config"
-            fi
-        else
-            echo "config-file = themes/$theme" >> "$local_config"
-        fi
+    _ui_msg_ok "Theme '$theme' ecrit dans $generated"
+    if ! grep -q "zanvil/theme/ghostty" "$ghostty_config" 2>/dev/null; then
+        _ui_msg_warn "$ghostty_config n inclut pas $generated : lancez zanvil-ghostty sync (ou ajoutez 'config-file = ?$generated' dans vos dotfiles)"
+        return 0
     fi
-
-    echo -e "${_ui_green}[OK]${_ui_nc} Theme '$theme' selectionne."
-    echo -e "Lancez ${_ui_bold}zanvil-ghostty sync${_ui_nc} pour deployer vers ~/.config/ghostty"
+    _ui_msg_info "Rechargez la config Ghostty (cmd+shift+,) pour l appliquer"
 }

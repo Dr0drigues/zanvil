@@ -17,9 +17,13 @@ if command -v atuin &>/dev/null; then
             return 1
         fi
 
-        mkdir -p "${HOME}/.config/atuin"
-        cp "${config_src}" "${config_dst}"
-        _ui_msg_ok "config.toml déployée"
+        if [[ -L "${config_dst}" ]]; then
+            _ui_msg_info "config.toml est un lien (dotfiles), rien deploye"
+        else
+            mkdir -p "${HOME}/.config/atuin"
+            cp "${config_src}" "${config_dst}"
+            _ui_msg_ok "config.toml déployée"
+        fi
 
         _ui_section "Version" "$(atuin --version 2>/dev/null)"
         _ui_section "Config" "${config_dst}"

@@ -32,6 +32,10 @@ fi
 # STARSHIP (Prompt)
 # =======================================================
 if command -v starship &> /dev/null; then
+    # Theme genere par zanvil-theme ; expansion de parametres seulement, aucun binaire.
+    if [[ -z "$STARSHIP_CONFIG" && -f "${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme/starship.toml" ]]; then
+        export STARSHIP_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme/starship.toml"
+    fi
     _zanvil_cached starship starship init zsh && source "$REPLY"
 else
     # Fallback minimaliste si starship absent

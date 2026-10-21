@@ -130,7 +130,8 @@ zsh-plugin-install owner/nom-plugin
 
 2. Vérifier la config :
    ```bash
-   ls -la ~/.config/starship.toml
+   echo $STARSHIP_CONFIG    # ~/.config/zanvil/theme/starship.toml
+   ls -la ~/.config/zanvil/theme/starship.toml
    ```
 
 3. Réappliquer un thème :

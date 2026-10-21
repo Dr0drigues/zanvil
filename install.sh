@@ -21,6 +21,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --- Gestion des Arguments ---
 INTERACTIVE=true
+PROFILE=""
+DOTFILES_REPO=""
+DOTFILES_REPO_SET=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -31,6 +34,8 @@ while [[ $# -gt 0 ]]; do
             echo -e "${BOLD}OPTIONS${NC}"
             echo "    --default     Installation sans configuration interactive"
             echo "    --check       Verifie les dependances sans rien installer"
+            echo "    --profile P   Profil de la machine : pro ou perso (defaut : question, ou perso avec --default)"
+            echo "    --dotfiles U  URL du depot dotfiles (vide = pas de depot)"
             echo "    -h, --help    Affiche cette aide"
             exit 0
             ;;
@@ -41,6 +46,19 @@ while [[ $# -gt 0 ]]; do
         --check)
             CHECK_MODE=true
             shift
+            ;;
+        --profile)
+            PROFILE="${2:-}"
+            if [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; then
+                log_error "--profile attend pro ou perso (recu : '${PROFILE}')"
+                exit 1
+            fi
+            if [[ $# -ge 2 ]]; then shift 2; else shift; fi
+            ;;
+        --dotfiles)
+            DOTFILES_REPO="${2:-}"
+            DOTFILES_REPO_SET=true
+            if [[ $# -ge 2 ]]; then shift 2; else shift; fi
             ;;
         *)
             log_error "Option inconnue: $1"
@@ -139,8 +157,13 @@ detect_platform() {
             
             # Vérification présence Homebrew
             if ! command -v brew &> /dev/null; then
-                log_warn "Homebrew n'est pas installé. Installation en cours..."
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                if [[ ! -x /opt/homebrew/bin/brew && ! -x /usr/local/bin/brew ]]; then
+                    log_warn "Homebrew n'est pas installé. Installation en cours..."
+                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                fi
+                # Apple Silicon : /opt/homebrew ; Intel : /usr/local
+                _install_brew_shellenv /opt/homebrew/bin/brew || _install_brew_shellenv /usr/local/bin/brew \
+                    || { log_error "Homebrew introuvable apres installation"; exit 1; }
             fi
             ;;
         *)
@@ -195,11 +218,152 @@ install_tool() {
     fi
 }
 
+_install_write_config() {
+# Les lignes de l'ancien config.zsh que ce script ne genere pas (modules en plus,
+# exports, variables perso) sont recopiees a la fin au lieu d'etre perdues
+local kept=
+if [[ -f "$CONFIG_FILE" ]]; then
+    kept=$(awk '
+        skip { if ($0 ~ /^[[:space:]]*\)/) skip = 0; next }
+        /^[[:space:]]*(#|$)/ { next }
+        /^[[:space:]]*(ZANVIL_MODULE_(GITLAB|DOCKER|MISE|NUSHELL|KUBE)|ZANVIL_PLUGINS_ORG|ZANVIL_PLUGINS|ZANVIL_AUTO_UPDATE|ZANVIL_UPDATE_FREQUENCY|ZANVIL_UPDATE_MODE|ZANVIL_PROFILE|ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR|ZANVIL_WORK_DETECTED)=/ {
+            if ($0 ~ /\([[:space:]]*$/) skip = 1
+            next
+        }
+        { print }' "$CONFIG_FILE")
+fi
+cat > "$CONFIG_FILE" << EOF
+# ==============================================================================
+# Configuration ZANVIL - Generee par install.sh
+# ==============================================================================
+# Modifiez ce fichier pour activer/desactiver des modules
+# Rechargez avec: ss (ou source ~/.zshrc)
+# ==============================================================================
+
+# Modules (true = active, false = desactive)
+ZANVIL_MODULE_GITLAB=$MODULE_GITLAB
+ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
+ZANVIL_MODULE_MISE=$MODULE_MISE
+ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
+ZANVIL_MODULE_KUBE=$MODULE_KUBE
+
+# Plugins
+ZANVIL_PLUGINS_ORG=zsh-users
+ZANVIL_PLUGINS=(
+    zsh-syntax-highlighting
+    zsh-autosuggestions
+)
+
+# Auto-Update
+ZANVIL_AUTO_UPDATE=$AUTO_UPDATE
+ZANVIL_UPDATE_FREQUENCY=$UPDATE_FREQ
+ZANVIL_UPDATE_MODE="$UPDATE_MODE"
+
+# Banniere de demarrage
+# ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
+
+# Profil de la machine et depot dotfiles
+ZANVIL_PROFILE=$PROFILE
+ZANVIL_DOTFILES_REPO="$DOTFILES_REPO"
+ZANVIL_DOTFILES_DIR="$DOTFILES_DIR"
+
+# Contexte Work (deduit du profil pro)
+ZANVIL_WORK_DETECTED=$WORK_DETECTED
+EOF
+if [[ -n "$kept" ]]; then
+    printf '\n# Reglages personnels (conserves par install.sh)\n%s\n' "$kept" >> "$CONFIG_FILE"
+fi
+}
+
+# Valeur d'une variable dans un config.zsh existant (vide si absent), sans le sourcer
+_install_existing_value() {
+    [[ -f "$1" ]] || return 0
+    sed -n "s/^$2=//p" "$1" | tail -1 | sed 's/^"\(.*\)"$/\1/'
+}
+
+# Docker et Kube : outils pro (stern, buildx...), desactives par defaut en perso
+_install_module_default() {
+    [[ "$1" = perso ]] && echo false || echo true
+}
+
+# Pre-requis SSH verifie tot : l'URL reste enregistree meme si l'acces echoue
+_install_check_dotfiles_access() {
+    git ls-remote "$1" >/dev/null 2>&1 && return 0
+    log_warn "Depot dotfiles inaccessible ($1) : cle SSH absente ou sans acces au depot ? L'installation continue, relancer 'zanvil-dotfiles apply' une fois l'acces regle."
+    return 1
+}
+
+# Homebrew vient d'etre installe mais n'est pas dans le PATH (Mac neuf) :
+# le charger pour la suite du script et l'inscrire dans ~/.zprofile pour les shells suivants
+_install_brew_shellenv() {
+    local brew_bin="$1"
+    [[ -x "$brew_bin" ]] || return 1
+    eval "$("$brew_bin" shellenv)"
+    if ! grep -qF "$brew_bin shellenv" "$HOME/.zprofile" 2>/dev/null; then
+        printf '\neval "$(%s shellenv)"\n' "$brew_bin" >> "$HOME/.zprofile"
+        log_info "Homebrew ajoute au PATH dans ~/.zprofile"
+    fi
+}
+
+# Le profil decide du contexte Work
+_install_work_detected() {
+    [[ "$1" = pro ]] && echo true || echo false
+}
+
+# --- Depot dotfiles : clone, ou pull si deja present ---
+_install_clone_dotfiles() {
+    local url="$1" dir="$2" tmp
+    if [[ -d "$dir/.git" ]]; then
+        git -C "$dir" pull --ff-only
+        return $?
+    fi
+    if [[ -e "$dir" ]]; then
+        log_warn "$dir existe mais n'est pas un depot git, rien clone"
+        return 1
+    fi
+    tmp="$dir.tmp.$$"
+    if git clone "$url" "$tmp" && mv "$tmp" "$dir"; then
+        return 0
+    fi
+    rm -rf "$tmp"
+    log_warn "Clone du depot dotfiles impossible (cle SSH ou acces au depot ?)"
+    return 1
+}
+
 # --- Main Script ---
 
 echo -e "${BOLD}=== Initialisation de l'environnement de Dev ===${NC}\n"
 
 detect_platform
+
+# --- Profil et depot dotfiles ---
+# Une relance garde les valeurs du config.zsh existant ; les options gardent la priorite
+_install_prev_config="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/config.zsh"
+_install_prev_profile=$(_install_existing_value "$_install_prev_config" ZANVIL_PROFILE)
+[[ "$_install_prev_profile" = pro || "$_install_prev_profile" = perso ]] || _install_prev_profile=perso
+[[ "$DOTFILES_REPO_SET" = true ]] || DOTFILES_REPO=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_REPO)
+DOTFILES_DIR=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_DIR)
+DOTFILES_DIR="${DOTFILES_DIR:-${ZANVIL_DOTFILES_DIR:-$HOME/.dotfiles}}"
+if [[ -z "$PROFILE" ]]; then
+    if [[ "$INTERACTIVE" = true ]]; then
+        while [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; do
+            printf "Profil de la machine (pro/perso) [%s]: " "$_install_prev_profile"
+            read -r PROFILE
+            PROFILE="${PROFILE:-$_install_prev_profile}"
+        done
+    else
+        PROFILE="$_install_prev_profile"
+    fi
+fi
+log_info "Profil : $PROFILE"
+if [[ "$DOTFILES_REPO_SET" = false && "$INTERACTIVE" = true ]]; then
+    printf "URL du depot dotfiles (vide = aucun) [%s]: " "$DOTFILES_REPO"
+    read -r _install_answer
+    DOTFILES_REPO="${_install_answer:-$DOTFILES_REPO}"
+fi
+if [[ -n "$DOTFILES_REPO" ]]; then
+    _install_check_dotfiles_access "$DOTFILES_REPO"
+fi
 
 # Mise à jour des index de paquets (Linux uniquement)
 if [[ "$PKG_MANAGER" == "apt" ]]; then
@@ -249,10 +413,12 @@ install_tool "sops"     "sops"      "sops"      "sops"
 install_tool "age"      "age"       "age"       "age"
 
 # 4. Outils Kubernetes / Azure
-install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
-install_tool "kubelogin"  "kubelogin"   ""            ""
-install_tool "az"         "azure-cli"   ""            ""
-install_tool "helm"       "helm"        "helm"        "helm"
+if [[ "$PROFILE" = pro ]]; then
+    install_tool "kubectl"    "kubectl"     "kubectl"     "kubectl"
+    install_tool "kubelogin"  "kubelogin"   ""            ""
+    install_tool "az"         "azure-cli"   ""            ""
+    install_tool "helm"       "helm"        "helm"        "helm"
+fi
 
 # --- Outils optionnels modules/tools/* ---
 # Installés automatiquement si le module est activé dans config.zsh mais le binaire absent.
@@ -406,15 +572,17 @@ echo ""
 
 # URL de probe interne (definir ZANVIL_WORK_NEXUS_URL dans env.d/work.zsh ou env)
 NEXUS_URL="${ZANVIL_WORK_NEXUS_URL:-}"
-WORK_DETECTED="false"
+# Le profil decide ; la probe ne sert plus qu'au chiffrement des fichiers work
+WORK_DETECTED=$(_install_work_detected "$PROFILE")
 
-if [[ -n "$NEXUS_URL" ]]; then
-    log_info "Detection du contexte Work (probe: $NEXUS_URL)..."
+if [[ "$PROFILE" != pro ]]; then
+    log_info "Profil perso : contexte Work ignore"
+elif [[ -n "$NEXUS_URL" ]]; then
+    log_info "Verification du contexte Work (probe: $NEXUS_URL)..."
     _install_curl_opts="-s --connect-timeout 2 --max-time 2"
     [[ -f "$HOME/.ssl/ca-bundle.pem" ]] && _install_curl_opts+=" --cacert $HOME/.ssl/ca-bundle.pem"
     if curl $_install_curl_opts -o /dev/null -w "%{http_code}" "$NEXUS_URL" 2>/dev/null | grep -q "^[23]"; then
-        log_success "Contexte Work detecte (probe accessible)"
-        WORK_DETECTED="true"
+        log_success "Probe Work accessible"
 
         # Si SOPS est configure et les fichiers en clair existent sans .enc
         if command -v sops &>/dev/null && [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
@@ -442,7 +610,7 @@ if [[ -n "$NEXUS_URL" ]]; then
             fi
         fi
     else
-        log_info "Hors contexte Work (mode personnel)"
+        log_warn "Profil pro mais probe Work inaccessible (VPN ?), chiffrement work ignore"
     fi
 else
     log_info "Aucune URL de probe Work configuree (voir env.d/work.zsh)"
@@ -478,12 +646,12 @@ if [[ "$INTERACTIVE" = true ]]; then
     }
 
     # Poser les questions pour les modules
-    MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
-    MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "true")
+    MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "$(_install_module_default "$PROFILE")")
+    MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "$(_install_module_default "$PROFILE")")
     MODULE_MISE=$(ask_module "Mise" "Gestionnaire de versions (Node, Java, Maven, etc.)" "true")
 
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
-    MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "true")
+    MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "$(_install_module_default "$PROFILE")")
 
     # Configuration SOPS/Age (si module Kube actif)
     SOPS_CONFIGURED="false"
@@ -574,12 +742,12 @@ if [[ "$INTERACTIVE" = true ]]; then
         UPDATE_MODE="prompt"
     fi
 else
-    log_info "Mode --default : tous les modules actives"
-    MODULE_GITLAB="true"
-    MODULE_DOCKER="true"
+    log_info "Mode --default : modules actives (GitLab, Docker et Kube selon le profil)"
+    MODULE_GITLAB=$(_install_module_default "$PROFILE")
+    MODULE_DOCKER=$(_install_module_default "$PROFILE")
     MODULE_MISE="true"
     MODULE_NUSHELL="true"
-    MODULE_KUBE="true"
+    MODULE_KUBE=$(_install_module_default "$PROFILE")
     STARSHIP_THEME="forge"
     AUTO_UPDATE="true"
     UPDATE_FREQ=7
@@ -601,15 +769,16 @@ fi
 
 # --- Docker BuildKit (si module Docker actif) ---
 if [[ "$MODULE_DOCKER" = "true" ]]; then
-    if ! docker buildx version &>/dev/null 2>&1; then
+    if [[ "$PROFILE" != pro ]]; then
+        log_info "Profil perso : docker-buildx ignore"
+    elif ! docker buildx version &>/dev/null 2>&1; then
         log_info "Installation de docker-buildx (BuildKit)..."
         install_tool "docker-buildx" "docker-buildx" "docker-buildx-plugin" "docker-buildx-plugin"
 
         # Fallback : installation manuelle depuis GitHub si le paquet n'est pas disponible
         if ! docker buildx version &>/dev/null 2>&1; then
             log_info "Installation manuelle de docker-buildx..."
-            local buildx_version="v0.21.1"
-            local buildx_arch
+            buildx_version="v0.21.1"
             case "$(uname -m)" in
                 x86_64)  buildx_arch="amd64" ;;
                 arm64|aarch64) buildx_arch="arm64" ;;
@@ -617,13 +786,13 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
             esac
 
             if [[ -n "$buildx_arch" ]]; then
-                local buildx_os
+                buildx_os=""
                 case "$(uname -s)" in
                     Darwin) buildx_os="darwin" ;;
                     Linux)  buildx_os="linux" ;;
                 esac
-                local buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
-                local buildx_dir="$HOME/.docker/cli-plugins"
+                buildx_url="https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.${buildx_os}-${buildx_arch}"
+                buildx_dir="$HOME/.docker/cli-plugins"
                 mkdir -p "$buildx_dir"
                 if curl -sSL "$buildx_url" -o "$buildx_dir/docker-buildx"; then
                     chmod +x "$buildx_dir/docker-buildx"
@@ -639,9 +808,9 @@ if [[ "$MODULE_DOCKER" = "true" ]]; then
 
     # --- Configuration Colima pour contexte Work ---
     if [[ "$WORK_DETECTED" = "true" ]] && command -v colima &>/dev/null; then
-        local colima_config="$HOME/.colima/default/colima.yaml"
-        local colima_pool="${ZANVIL_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
-        local colima_pool_escaped="${colima_pool//\//\\/}"
+        colima_config="$HOME/.colima/default/colima.yaml"
+        colima_pool="${ZANVIL_DOCKER_ADDRESS_POOL:-172.20.0.0/16}"
+        colima_pool_escaped="${colima_pool//\//\\/}"
 
         if [[ -f "$colima_config" ]]; then
             log_info "Configuration de Colima pour le contexte Work..."
@@ -694,39 +863,7 @@ CONFIG_FILE="$TARGET_DIR/config.zsh"
 echo ""
 log_info "Generation de $CONFIG_FILE..."
 
-cat > "$CONFIG_FILE" << EOF
-# ==============================================================================
-# Configuration ZANVIL - Generee par install.sh
-# ==============================================================================
-# Modifiez ce fichier pour activer/desactiver des modules
-# Rechargez avec: ss (ou source ~/.zshrc)
-# ==============================================================================
-
-# Modules (true = active, false = desactive)
-ZANVIL_MODULE_GITLAB=$MODULE_GITLAB
-ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
-ZANVIL_MODULE_MISE=$MODULE_MISE
-ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
-ZANVIL_MODULE_KUBE=$MODULE_KUBE
-
-# Plugins
-ZANVIL_PLUGINS_ORG=zsh-users
-ZANVIL_PLUGINS=(
-    zsh-syntax-highlighting
-    zsh-autosuggestions
-)
-
-# Auto-Update
-ZANVIL_AUTO_UPDATE=$AUTO_UPDATE
-ZANVIL_UPDATE_FREQUENCY=$UPDATE_FREQ
-ZANVIL_UPDATE_MODE="$UPDATE_MODE"
-
-# Banniere de demarrage
-# ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
-
-# Contexte Work (detecte a l'installation)
-ZANVIL_WORK_DETECTED=$WORK_DETECTED
-EOF
+_install_write_config
 
 log_success "Configuration sauvegardee"
 
@@ -753,11 +890,13 @@ fi
 
 # Appliquer le theme Starship si choisi
 if [[ -n "$STARSHIP_THEME" ]]; then
-    mkdir -p "$HOME/.config"
+    # Fichier genere, exporte dans STARSHIP_CONFIG par core/hooks.zsh
+    THEME_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme"
+    mkdir -p "$THEME_DIR"
     if [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" ]]; then
-        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" "$HOME/.config/starship.toml"
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME/prompt.toml" "$THEME_DIR/starship.toml"
     elif [[ -f "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" ]]; then
-        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" "$HOME/.config/starship.toml"
+        cp "$TARGET_DIR/config/themes/$STARSHIP_THEME.toml" "$THEME_DIR/starship.toml"
     fi
     echo "$STARSHIP_THEME" > "$TARGET_DIR/.current_theme"
     log_success "Theme Starship '$STARSHIP_THEME' applique"
@@ -837,6 +976,23 @@ if [[ -f "$TARGET_DIR/web/assets/zanvil-logo.txt" ]]; then
     _zanvil_ver=$(grep -m1 'ZANVIL_VERSION=' "$TARGET_DIR/core/ui.zsh" | cut -d'"' -f2)
     echo -e "  ${BOLD}${_zanvil_ver}${NC}"
     echo -e "${NC}"
+fi
+
+# --- Depot dotfiles : brew bundle + liens Stow ---
+if [[ -n "$DOTFILES_REPO" ]]; then
+    echo ""
+    log_info "Depot dotfiles..."
+    if _install_clone_dotfiles "$DOTFILES_REPO" "$DOTFILES_DIR"; then
+        _dotfiles_step() {
+            ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$DOTFILES_DIR" \
+                zsh -c 'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/core/commands/dotfiles.zsh"; zanvil-dotfiles "$1"' _ "$1"
+        }
+        if ! _dotfiles_step install; then
+            log_warn "brew bundle a echoue (voir ci-dessus) : corriger puis lancer 'zanvil-dotfiles apply'"
+        elif ! _dotfiles_step link; then
+            log_warn "Conflits de liens : lancer 'zanvil-dotfiles adopt <fichier>' puis 'zanvil-dotfiles link'"
+        fi
+    fi
 fi
 
 echo -e "\n${BOLD}=== Installation Terminee ===${NC}"

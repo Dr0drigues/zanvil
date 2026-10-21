@@ -132,6 +132,24 @@ zanvil-theme minimal
 
 Le thème actif est enregistré dans `~/.zanvil/.current_theme`.
 
+Les fichiers générés vont dans `~/.config/zanvil/theme/` (hors du dépôt dotfiles) :
+
+- `starship.toml` : zanvil exporte `STARSHIP_CONFIG` vers ce fichier au démarrage, si la variable n'est pas déjà définie ;
+- `ghostty` : la config Ghostty l'inclut avec `config-file = ?~/.config/zanvil/theme/ghostty` (le `?` le rend facultatif) ;
+- k9s : le skin est choisi par la variable `K9S_SKIN`, sans toucher à `config.yaml`.
+
+Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le (`cd ~/.zanvil/cli && cargo build --release`).
+
+## Profil machine et dotfiles
+
+```zsh
+ZANVIL_PROFILE=pro                                        # pro ou perso
+ZANVIL_DOTFILES_REPO="git@github.com:<toi>/dotfiles.git"  # pas de valeur par défaut
+ZANVIL_DOTFILES_DIR="$HOME/.dotfiles"                     # défaut
+```
+
+`install.sh` écrit `ZANVIL_PROFILE`, `ZANVIL_DOTFILES_REPO` et `ZANVIL_DOTFILES_DIR` dans `config.zsh`. `zanvil-dotfiles` lit `ZANVIL_PROFILE` et `ZANVIL_DOTFILES_DIR` (voir la page Commandes).
+
 ## Versions de runtimes (mise)
 
 `mise` remplace NVM et couvre Node, Java et Maven. Il est activé par défaut et branché dans

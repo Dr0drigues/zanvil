@@ -11,6 +11,5 @@ cursor-style = block
 # 3.0 garantit la lisibilite sans casser les couleurs decoratives.
 minimum-contrast = 3.0
 
-# Theme (change this line to switch themes)
-# Available: high-contrast-light, tokyo-night, tokyo-night-storm
-config-file = themes/tokyo-light-storm
+# Theme : fichier genere par `zanvil-ghostty <nom>` (le `?` le rend facultatif)
+config-file = ?~/.config/zanvil/theme/ghostty

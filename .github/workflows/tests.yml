@@ -49,11 +49,16 @@ jobs:
 
       - name: Test shell script suites
         run: |
+          sudo apt-get update && sudo apt-get install -y stow
           export ZANVIL_DIR="$PWD"
           bash scripts/tests/k9s-log-fmt.test.sh
           bash scripts/tests/k9s-log-grep.test.sh
           bash scripts/tests/zsh-special-vars.test.sh
           bash scripts/tests/startup-cache.test.sh
+          bash scripts/tests/dotfiles-brew.test.sh
+          bash scripts/tests/dotfiles-stow.test.sh
+          bash scripts/tests/theme-dir.test.sh
+          bash scripts/tests/install-profile.test.sh
           # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de
           # work_config_repo et n a jamais ete appelee ici, donc aucune de ses gardes ne
           # protegeait la branche. Elle ne demande ni reseau ni identite git — ses `git

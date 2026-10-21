@@ -38,9 +38,16 @@ fn current_theme_file() -> PathBuf {
     zanvil_dir().join(".current_theme")
 }
 
+/// Generated file, exported as STARSHIP_CONFIG by core/hooks.zsh. Never the user's
+/// ~/.config/starship.toml, which may be a Stow link into the dotfiles repo.
 fn starship_config() -> PathBuf {
-    dirs_fallback()
-        .join(".config")
+    std::env::var("XDG_CONFIG_HOME")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| dirs_fallback().join(".config"))
+        .join("zanvil")
+        .join("theme")
         .join("starship.toml")
 }
 
@@ -191,5 +198,19 @@ pub fn run(action: ThemeAction) {
         ThemeAction::List => list_themes(),
         ThemeAction::Apply { name } => apply_theme(&name),
         ThemeAction::Current => show_current(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starship_config_follows_xdg_config_home() {
+        std::env::set_var("XDG_CONFIG_HOME", "/tmp/xdg-test");
+        assert_eq!(
+            starship_config(),
+            PathBuf::from("/tmp/xdg-test/zanvil/theme/starship.toml")
+        );
     }
 }

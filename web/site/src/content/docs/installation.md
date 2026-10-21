@@ -42,6 +42,33 @@ L'installation vous guide et permet de choisir :
 
 Installe tout avec les paramètres par défaut.
 
+### Profil et dépôt dotfiles
+
+```bash
+./install.sh --profile pro --dotfiles git@github.com:<toi>/dotfiles.git
+```
+
+- `--profile pro|perso` : profil de la machine. Sans option, le script le demande ; avec `--default`, il reprend le profil déjà écrit dans `config.zsh`, sinon `perso`. Une relance reprend le profil, le dépôt et le dossier déjà écrits dans `config.zsh`. Le profil `perso` désactive par défaut les modules GitLab, Docker et Kube. `pro` écrit `ZANVIL_WORK_DETECTED=true` dans `config.zsh`, `perso` écrit `false`.
+- `--dotfiles <url>` : dépôt dotfiles à cloner dans `~/.dotfiles` (ou mis à jour s'il existe déjà). Option absente : le script reprend le dépôt déjà écrit dans `config.zsh` (en mode interactif, il le propose par défaut) ; sans dépôt enregistré, pas de dépôt.
+
+Le clone se fait en SSH : une clé SSH autorisée sur le dépôt est un prérequis. L'accès est vérifié dès que l'URL est connue. S'il échoue, l'installation le signale et continue sans les dotfiles. L'URL reste enregistrée : une fois l'accès réglé, `zanvil-dotfiles apply` clone le dépôt.
+
+Une fois cloné, le script lance `zanvil-dotfiles install` (Brewfiles) puis `zanvil-dotfiles link` (liens Stow). Le dépôt est attendu ainsi :
+
+```
+dotfiles/
+├── brew/
+│   ├── common.Brewfile
+│   ├── pro.Brewfile
+│   └── perso.Brewfile
+└── stow/
+    ├── common/    # fichiers reproduits sous $HOME
+    ├── pro/
+    └── perso/
+```
+
+Les paquets de zanvil lui-même sont dans `brew/base.Brewfile` (dans zanvil). Les trois couches (base, `common`, profil) sont fusionnées à l'installation.
+
 ## Ce que fait le script
 
 1. **Détecte le système** (macOS/Debian/Fedora)
@@ -70,6 +97,8 @@ cp target/release/zanvil ~/.local/bin/
 ```
 
 Le CLI fournit les commandes : `theme`, `doctor`, `audit`, `context`, `modules`.
+
+Les thèmes générés vivent désormais dans `~/.config/zanvil/theme/` : un binaire compilé avant ce changement est obsolète. `zanvil-theme` le détecte et demande de le reconstruire (`cargo build --release`).
 
 ```bash
 # Vérifier l'installation du CLI
