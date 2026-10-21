@@ -109,7 +109,7 @@ cat > "$BIN2/brew" <<'FAKE'
 echo "$*" >> "$FAKE_LOG"
 case "$1 $2" in
     "list --cask") echo deja ;;
-    "info --cask") echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]},{"zap":[]}]},{"token":"absente","artifacts":[{"app":["Absente.app"]}]},{"token":"deja","artifacts":[{"app":["Deja.app"]}]},{"token":"police","artifacts":[{"font":["x.ttf"]}]}]}' ;;
+    "info --cask") [ -n "$FAKE_INFO_FAIL" ] && { echo "Error: boom" >&2; exit 1; }; echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]},{"zap":[]}]},{"token":"absente","artifacts":[{"app":["Absente.app"]}]},{"token":"deja","artifacts":[{"app":["Deja.app"]}]},{"token":"police","artifacts":[{"font":["x.ttf"]}]}]}' ;;
     "install --cask") [ -n "$FAKE_ADOPT_FAIL" ] && exit 1; exit 0 ;;
 esac
 FAKE
@@ -125,6 +125,9 @@ ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1" zd "_zanv
 { grep -c -- '--adopt' "$LOG"; } | assert_equals "adopt non : aucun --adopt" 0
 out=$(ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1 FAKE_ADOPT_FAIL=1" zd "_zanvil_dotfiles_migrate_casks '$BF'; echo \"rc=\$? n=\$REPLY failed=\${_ZANVIL_MIGRATE_FAILED_CASKS[*]}\"" oui)
 { [[ "$out" == *"rc=0 n=0 failed=gh-desk"* && "$out" == *"brew install --cask --adopt gh-desk"* ]] && echo ok || echo "$out"; } | assert_equals "adopt echec : code 0, liste des echecs, commande manuelle" ok
+: > "$LOG"
+out=$(ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1 FAKE_INFO_FAIL=1" zd "_zanvil_dotfiles_migrate_casks '$BF'; echo \"rc=\$?\"" oui)
+{ [[ "$out" == *"brew info a echoue"* && "$out" == *"boom"* && "$out" != *"Aucune appli"* && "$out" == *"rc=0"* && "$(grep -c -- '--adopt' "$LOG")" == 0 ]] && echo ok || echo "$out"; } | assert_equals "info en echec : avertissement, pas de faux 'aucune appli', rien adopte, code 0" ok
 
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"

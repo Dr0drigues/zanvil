@@ -118,8 +118,14 @@ _zanvil_dotfiles_adopt_candidates() {
         (( ${have[(Ie)$name]} )) || want+=("$name")
     done
     (( ${#want} )) || return 0
-    local json=$(brew info --cask --json=v2 "${want[@]}" 2>/dev/null) tok= app=
-    [[ -n "$json" ]] || return 0
+    local errf=$(mktemp) tok= app= json= rc=0
+    json=$(brew info --cask --json=v2 "${want[@]}" 2>"$errf") || rc=$?
+    if (( rc != 0 )) || ! jq -e '.casks' >/dev/null 2>&1 <<<"$json"; then
+        _ui_msg_warn "brew info a echoue : impossible de verifier les applis a passer sous brew $(head -n1 "$errf")" >&2
+        rm -f "$errf"
+        return 2
+    fi
+    rm -f "$errf"
     # tab : un nom d'appli peut contenir des espaces, jamais de tabulation
     while IFS=$'\t' read -r tok app; do
         (( ${have[(Ie)$tok]} )) && continue
@@ -132,7 +138,10 @@ _zanvil_dotfiles_adopt_candidates() {
 _zanvil_dotfiles_migrate_casks() {
     typeset -ga _ZANVIL_MIGRATE_FAILED_CASKS=()
     REPLY=0
-    local -a cands=("${(@f)$(_zanvil_dotfiles_adopt_candidates "$1")}")
+    local out= rc=0
+    out=$(_zanvil_dotfiles_adopt_candidates "$1") || rc=$?
+    (( rc == 2 )) && return 0 # avertissement deja affiche, rien n'est adopte
+    local -a cands=("${(@f)out}")
     cands=("${(@)cands:#}")
     if (( ! ${#cands} )); then
         _ui_msg_info "Aucune appli installee a la main a passer sous brew"
