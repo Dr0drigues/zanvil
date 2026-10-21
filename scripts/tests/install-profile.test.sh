@@ -144,6 +144,21 @@ HOME="$DZ/home" ZANVIL_DIR="$ROOT" ZANVIL_MODULE_KUBE=true PATH="$DZ/bin:/usr/bi
     kube_k9s_setup" >/dev/null 2>&1
 echo "$(cat "$DZ/repo/hotkeys.yaml") $(cat "$DZ/repo/zanvil.yaml")" | assert_equals "k9s : hotkeys et plugins lies intacts" "mine mine"
 
+echo "_install_brew_shellenv (Mac neuf : brew installe mais absent du PATH)"
+load_fn _install_brew_shellenv
+HB="$TEST_TMPDIR/homebrew/bin"
+mkdir -p "$HB"
+printf '#!/bin/sh\necho "export PATH=\\"%s:\\$PATH\\""\n' "$HB" > "$HB/brew"
+chmod +x "$HB/brew"
+ZP="$TEST_TMPDIR/zphome"
+mkdir -p "$ZP"
+( HOME="$ZP"; PATH=/usr/bin:/bin; _install_brew_shellenv "$HB/brew" >/dev/null 2>&1; command -v brew ) \
+    | assert_equals "brew present dans le PATH du script" "$HB/brew"
+( HOME="$ZP"; _install_brew_shellenv "$HB/brew" >/dev/null 2>&1 )
+grep -c "$HB/brew shellenv" "$ZP/.zprofile" 2>/dev/null | assert_equals "shellenv inscrit une seule fois dans .zprofile" "1"
+( HOME="$TEST_TMPDIR/zpnone"; mkdir -p "$HOME"; _install_brew_shellenv "$TEST_TMPDIR/absent/brew" >/dev/null 2>&1; echo "rc=$? $(ls -A "$HOME" | wc -l | tr -d ' ')" ) \
+    | assert_equals "brew absent : code 1, rien ecrit" "rc=1 0"
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]

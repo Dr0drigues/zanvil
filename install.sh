@@ -157,8 +157,13 @@ detect_platform() {
             
             # Vérification présence Homebrew
             if ! command -v brew &> /dev/null; then
-                log_warn "Homebrew n'est pas installé. Installation en cours..."
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                if [[ ! -x /opt/homebrew/bin/brew && ! -x /usr/local/bin/brew ]]; then
+                    log_warn "Homebrew n'est pas installé. Installation en cours..."
+                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                fi
+                # Apple Silicon : /opt/homebrew ; Intel : /usr/local
+                _install_brew_shellenv /opt/homebrew/bin/brew || _install_brew_shellenv /usr/local/bin/brew \
+                    || { log_error "Homebrew introuvable apres installation"; exit 1; }
             fi
             ;;
         *)
@@ -270,6 +275,18 @@ _install_check_dotfiles_access() {
     git ls-remote "$1" >/dev/null 2>&1 && return 0
     log_warn "Depot dotfiles inaccessible ($1) : cle SSH absente ou sans acces au depot ? L'installation continue, relancer 'zanvil-dotfiles apply' une fois l'acces regle."
     return 1
+}
+
+# Homebrew vient d'etre installe mais n'est pas dans le PATH (Mac neuf) :
+# le charger pour la suite du script et l'inscrire dans ~/.zprofile pour les shells suivants
+_install_brew_shellenv() {
+    local brew_bin="$1"
+    [[ -x "$brew_bin" ]] || return 1
+    eval "$("$brew_bin" shellenv)"
+    if ! grep -qF "$brew_bin shellenv" "$HOME/.zprofile" 2>/dev/null; then
+        printf '\neval "$(%s shellenv)"\n' "$brew_bin" >> "$HOME/.zprofile"
+        log_info "Homebrew ajoute au PATH dans ~/.zprofile"
+    fi
 }
 
 # Le profil decide du contexte Work
