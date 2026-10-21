@@ -17,6 +17,7 @@ export default defineConfig({
           { label: 'Installation', slug: 'installation' },
           { label: 'Configuration', slug: 'configuration' },
           { label: 'Kubernetes et k9s', slug: 'kubernetes-k9s' },
+          { label: 'Bureau macOS', slug: 'bureau-macos' },
         ]},
         { label: 'Référence', items: [
           { label: 'Commandes', slug: 'commandes' },
