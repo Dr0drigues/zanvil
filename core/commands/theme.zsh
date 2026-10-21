@@ -52,6 +52,43 @@ _zanvil_theme_legacy_notice() {
     _ui_msg_info "$legacy (ancien theme zanvil) n est plus utilise : supprimez-le avec ${_ui_bold}rm $legacy${_ui_nc}"
 }
 
+# Affiche RRGGBB pour une sequence ANSI \033[38;2;R;G;Bm, rien si elle n est pas reconnue.
+_zanvil_theme_hex() {
+    [[ "$1" =~ '38;2;([0-9]+);([0-9]+);([0-9]+)' ]] || return 0
+    printf '%02x%02x%02x' "${match[1]}" "${match[2]}" "${match[3]}"
+}
+
+# Ecrit <theme_dir>/colors.sh (SketchyBar, JankyBorders : 0xAARRGGBB) depuis la palette du
+# theme, puis recharge la barre et les bordures si elles tournent. Ne les demarre jamais.
+_zanvil_theme_colors() {
+    local palette="$ZANVIL_DIR/config/themes/$1/palette.zsh" dir="$(_zanvil_theme_dir)"
+    # Sous-shell : les _ui_* de la session restent ceux du code appelant ; les unset evitent
+    # qu une variable absente de cette palette reprenne celle du theme precedent.
+    local -a c
+    c=( ${=$(
+        unset _ui_blue _ui_white _ui_dim _theme_bg
+        [[ -f "$palette" ]] && source "$palette"
+        local v
+        for v in "${_theme_bg#\#}" "$(_zanvil_theme_hex "$_ui_white")" "$(_zanvil_theme_hex "$_ui_dim")" "$(_zanvil_theme_hex "$_ui_blue")"; do
+            print -rn -- "${v:--} "
+        done
+    )} )
+    [[ "${c[1]}" == - ]] && c[1]=e1e2e7
+    [[ "${c[2]}" == - ]] && c[2]=383e5d
+    [[ "${c[3]}" == - ]] && c[3]=969cb4
+    [[ "${c[4]}" == - ]] && c[4]=2e7de9
+
+    mkdir -p "$dir"
+    printf 'export ZANVIL_BAR_BG=0xe6%s\nexport ZANVIL_BAR_TEXT=0xff%s\nexport ZANVIL_BAR_DIM=0xff%s\nexport ZANVIL_ACCENT=0xff%s\n' \
+        "${c[@]}" > "$dir/colors.sh"
+
+    if pgrep -x sketchybar &>/dev/null; then sketchybar --reload &>/dev/null; fi
+    if pgrep -x borders &>/dev/null && [[ -x "$HOME/.config/borders/bordersrc" ]]; then
+        "$HOME/.config/borders/bordersrc" &>/dev/null
+    fi
+    return 0
+}
+
 zanvil-theme() {
     # Intercepter preview et auto avant delegation CLI
     if [[ "$1" == "preview" ]]; then
@@ -93,6 +130,7 @@ zanvil-theme() {
             local _p="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
             _zanvil_k9s_apply_skin "$_theme_name"
+            _zanvil_theme_colors "$_theme_name"
             return 0
         fi
         # CLI d avant ~/.config/zanvil/theme : le repli zsh ecrit le bon fichier
@@ -196,6 +234,7 @@ zanvil-theme() {
         _ui_tag_ok "Theme '$theme' applique"
     fi
     _zanvil_k9s_apply_skin "$theme"
+    _zanvil_theme_colors "$theme"
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
 

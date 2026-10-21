@@ -136,7 +136,8 @@ Les fichiers générés vont dans `~/.config/zanvil/theme/` (hors du dépôt dot
 
 - `starship.toml` : zanvil exporte `STARSHIP_CONFIG` vers ce fichier au démarrage, si la variable n'est pas déjà définie ;
 - `ghostty` : la config Ghostty l'inclut avec `config-file = ?~/.config/zanvil/theme/ghostty` (le `?` le rend facultatif) ;
-- k9s : le skin est choisi par la variable `K9S_SKIN`, sans toucher à `config.yaml`.
+- k9s : le skin est choisi par la variable `K9S_SKIN`, sans toucher à `config.yaml` ;
+- `colors.sh` : couleurs du thème au format `0xAARRGGBB` (`ZANVIL_BAR_BG`, `ZANVIL_BAR_TEXT`, `ZANVIL_BAR_DIM`, `ZANVIL_ACCENT`), à sourcer depuis SketchyBar ou JankyBorders (sh ou zsh). Accent, texte et texte atténué viennent de `_ui_blue`, `_ui_white` et `_ui_dim` ; le fond, de `_theme_bg` (valeurs de repli si la palette ne les définit pas). Après `zanvil-theme`, zanvil lance `sketchybar --reload` et `~/.config/borders/bordersrc` si ces programmes tournent ; il ne les démarre jamais.
 
 Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le (`cd ~/.zanvil/cli && cargo build --release`).
 
