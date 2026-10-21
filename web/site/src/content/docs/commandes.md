@@ -45,7 +45,9 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `link` | Relie `stow/common` et `stow/<profil>` dans `$HOME` (un dossier absent est ignoré) |
 | `adopt <chemin> [couche]` | Déplace un fichier réel de `$HOME` dans le dépôt (`common` par défaut) et le relie |
 | `apply` | Commande quotidienne : `pull`, `install`, `link`, puis `cleanup` (arrêt à la première erreur) |
+| `migrate` | Applique le dépôt sur une machine déjà configurée, sans réinstaller ni perdre de config (voir ci-dessous) |
 
+- `install` approuve (`brew trust`) les paquets de taps tiers nommés dans les Brewfile (`brew "tap/depot/nom"`, `cask "tap/depot/nom"`) avant `brew bundle install`, faute de quoi Homebrew 7 les refuse. Seules les entrées nommées sont approuvées, jamais le tap entier.
 - `cleanup` affiche la liste, puis ne supprime qu'après une réponse explicite `o`, `oui`, `y` ou `yes`. Toute autre réponse, ou une entrée qui n'est pas un terminal, n'efface rien. Le nettoyage se limite à brew : extensions VSCode, paquets npm, outils uv ou cargo ne sont jamais touchés.
 - `link` utilise Stow avec `--no-folding` : les dossiers restent réels, seuls les fichiers sont des liens. En cas de conflit (un fichier réel à la place d'un lien), il affiche les conflits et s'arrête sans rien écraser. Lancer alors `adopt` sur ce fichier, puis `link`.
 - `adopt` refuse si le dépôt contient déjà une autre version du fichier (comparer avec `diff`), et refuse les secrets et ce que gère `install.sh` : `gh/hosts.yml`, `glab-cli`, `sops`, `gcloud`, `~/.ssh/*` et `~/.zshrc`.
@@ -54,6 +56,24 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 zanvil-dotfiles adopt .config/lazygit/config.yml
 zanvil-dotfiles link
 ```
+
+### Migrer une machine déjà configurée
+
+`zanvil-dotfiles migrate` amène une machine installée à la main dans l'état décrit par le dépôt. Elle est interactive et refuse de tourner hors d'un terminal. Étapes :
+
+1. **Profil et dépôt** : demande le profil (`pro` ou `perso`) et l'URL du dépôt s'ils ne sont pas déjà définis, clone ou met à jour le dépôt (le pull est sauté si le dépôt a des modifications non commitées). Dans `config.zsh`, seules les clés absentes parmi `ZANVIL_PROFILE`, `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` et `ZANVIL_WORK_DETECTED` sont ajoutées (une clé présente mais vide, comme `ZANVIL_DOTFILES_REPO=""`, compte comme absente et sa ligne est remplacée sur place) ; le reste du fichier n'est pas touché. Si le pull échoue (par exemple un commit local non poussé alors que le dépôt distant a bougé), pousser ou rebaser dans le dépôt, puis relancer.
+2. **Paquets de taps tiers** : approuvés comme pour `install`.
+3. **Applis installées à la main** : les casks des Brewfile dont l'application est déjà dans `/Applications` sont proposés pour `brew install --cask --adopt`, après confirmation. Un échec est signalé avec la commande à lancer à la main.
+4. **Installation** de ce qui manque (`install`). Homebrew adopte de lui-même une appli déjà présente : un cask refusé à l'étape 3, ou dont l'adoption a échoué, est donc retiré de la liste donnée à `brew bundle` et rappelé dans le récapitulatif avec la commande manuelle.
+5. **Configs en conflit** : un fichier de `$HOME` identique à celui du dépôt est simplement mis de côté. Sinon, le `diff` est affiché et l'outil demande :
+   - `d` : garder la version du dépôt (la version locale est sauvegardée) ;
+   - `l` : garder la version locale, qui est commitée dans le dépôt **en local seulement** (jamais de push), puis sauvegardée ;
+   - `p` (défaut) : passer ; le fichier reste en place et la question revient à la prochaine relance.
+6. **Liens** (`link`, simulation puis application). Les fichiers passés sont laissés de côté, le reste est lié ; les fichiers en attente sont nommés et une relance de `migrate` les traite. Avec un `.stow-local-ignore` ou un `~/.stow-global-ignore`, migrate ne sait pas interpréter les règles : le paquet n'est pas lié, à faire à la main avec `link`. Si les liens échouent, le chemin de la sauvegarde est affiché.
+7. **Simulation du nettoyage** : affiche ce que `cleanup` retirerait. **`migrate` ne désinstalle jamais rien** ; s'il y a quelque chose à retirer, lancer ensuite `zanvil-dotfiles cleanup`.
+8. **Récapitulatif** : profil, dépôt, paquets approuvés, applis passées sous brew (échecs et casks laissés hors de `brew bundle`), configs liées, sauvegardées et passées, chemin de la sauvegarde, rappel `git -C <dépôt> push` s'il y a des commits locaux.
+
+Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMMJJ-HHMMSS>/`, avec son chemin relatif, jamais supprimé. Une relance ne repose de question que pour ce qui n'est pas encore en ordre. Après une mise à jour de zanvil, si aucun profil n'est défini, une ligne propose `migrate` (une seule fois).
 
 ## CLI Rust (zanvil)
 

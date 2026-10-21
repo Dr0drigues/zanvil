@@ -40,12 +40,50 @@ _zanvil_dotfiles_confirm() {
     esac
 }
 
+# Approuve (brew trust) les entrees brew/cask "tap/depot/nom" du Brewfile $1 pas encore approuvees.
+# Jamais --tap : seules les entrees nommees sont approuvees. Sans jq, rien n'est considere approuve.
+_zanvil_dotfiles_trust() {
+    local json=$(brew trust --json v1 2>/dev/null)
+    local -a have_f=() have_c=() new_f=() new_c=()
+    if command -v jq &>/dev/null && [[ -n "$json" ]]; then
+        have_f=("${(@f)$(jq -r '.formulae[]? | ascii_downcase' <<<"$json" 2>/dev/null)}")
+        have_c=("${(@f)$(jq -r '.casks[]? | ascii_downcase' <<<"$json" 2>/dev/null)}")
+    fi
+    local line= kind= name=
+    for line in "${(@f)$(<"$1")}"; do
+        [[ "$line" =~ '^[[:space:]]*(brew|cask)[[:space:]]+"([^"]+)"' ]] || continue
+        kind=${match[1]} name=${match[2]}
+        [[ "$name" == */*/* ]] || continue
+        if [[ $kind == brew ]]; then
+            (( ${have_f[(Ie)${(L)name}]} )) || { new_f+=("$name"); have_f+=("${(L)name}"); }
+        else
+            (( ${have_c[(Ie)${(L)name}]} )) || { new_c+=("$name"); have_c+=("${(L)name}"); }
+        fi
+    done
+    if (( ${#new_f} )); then
+        brew trust --formula "${new_f[@]}" || { _ui_msg_fail "brew trust --formula a echoue" >&2; return 1; }
+        for name in "${new_f[@]}"; do _ui_msg_info "Approuve : $name"; done
+    fi
+    if (( ${#new_c} )); then
+        brew trust --cask "${new_c[@]}" || { _ui_msg_fail "brew trust --cask a echoue" >&2; return 1; }
+        for name in "${new_c[@]}"; do _ui_msg_info "Approuve : $name"; done
+    fi
+    typeset -g _ZANVIL_DOTFILES_TRUSTED=$(( ${#new_f} + ${#new_c} ))
+    return 0
+}
+
+# $1 (interne, migrate) : Brewfile a utiliser tel quel, laisse en place. Sinon les trois Brewfiles fusionnes.
 _zanvil_dotfiles_install() {
-    _zanvil_dotfiles_merged || return 1
+    local file="${1:-}"
+    if [[ -z "$file" ]]; then
+        _zanvil_dotfiles_merged || return 1
+        file="$REPLY"
+    fi
+    local rc=0
+    _zanvil_dotfiles_trust "$file" || rc=1
     # installe ce qui manque, sans tout mettre a jour
-    brew bundle install --no-upgrade --file="$REPLY"
-    local rc=$?
-    rm -f "$REPLY"
+    (( rc )) || brew bundle install --no-upgrade --file="$file" || rc=$?
+    [[ -n "${1:-}" ]] || rm -f "$file"
     return $rc
 }
 
@@ -71,6 +109,8 @@ _zanvil_dotfiles_pull() {
 
 # Stow --no-folding : les dossiers restent reels, seuls les fichiers sont des liens.
 # Un conflit (fichier reel a la place d'un lien) est affiche et bloque, rien n'est ecrase.
+# Arguments internes (migrate) : --skip=<paquet> l'ecarte, --ignore=<regex> est passe a Stow.
+# _ZANVIL_DOTFILES_LINKED = nombre de liens crees.
 _zanvil_dotfiles_link() {
     setopt localoptions extendedglob
     case "${ZANVIL_PROFILE:-}" in
@@ -81,19 +121,28 @@ _zanvil_dotfiles_link() {
     local dir=$(_zanvil_dotfiles_dir)
     local out= rc=0 line= p=
     # git ne garde pas de dossier vide : stow/perso manque souvent, ne passer que les paquets presents
-    local -a pkgs=()
+    local -a pkgs=() skip=() opts=()
+    typeset -g _ZANVIL_DOTFILES_LINKED=0
+    for p in "$@"; do
+        case "$p" in
+            --skip=*) skip+=("${p#--skip=}") ;;
+            *) opts+=("$p") ;;
+        esac
+    done
     for p in common "$ZANVIL_PROFILE"; do
-        [[ -d "$dir/stow/$p" ]] && pkgs+=("$p")
+        [[ -d "$dir/stow/$p" ]] && (( ! ${skip[(Ie)$p]} )) && pkgs+=("$p")
     done
     if (( ! ${#pkgs} )); then
-        _ui_msg_info "Aucun paquet dans $dir/stow (common, $ZANVIL_PROFILE) : rien a lier"
+        (( ${#skip} )) || _ui_msg_info "Aucun paquet dans $dir/stow (common, $ZANVIL_PROFILE) : rien a lier"
         return 0
     fi
-    out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" "${pkgs[@]}" 2>&1) || rc=$?
+    out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" "${opts[@]}" "${pkgs[@]}" 2>&1) || rc=$?
     if (( rc != 0 )); then
         # stow 2.4 : "  * cannot stow <src> over existing target <cible> since ..."
         # stow 2.3 : "  * existing target is neither a link nor a directory: <cible>"
         local -a conflicts=("${(@M)${(@f)out}:#[[:space:]]#\** *}")
+        # sans correspondance, l'expansion entre guillemets laisse un element vide
+        conflicts=("${(@)conflicts:#}")
         if (( ${#conflicts} )); then
             for line in "${conflicts[@]}"; do
                 _ui_fail "${line##[[:space:]]#\* }" >&2; echo >&2
@@ -103,7 +152,9 @@ _zanvil_dotfiles_link() {
         fi
         return 1
     fi
-    stow --no-folding -v -d "$dir/stow" -t "$HOME" "${pkgs[@]}"
+    stow --no-folding -v -d "$dir/stow" -t "$HOME" "${opts[@]}" "${pkgs[@]}" || return 1
+    local -a made=("${(@M)${(@f)out}:#LINK: *}")
+    _ZANVIL_DOTFILES_LINKED=${#${(@)made:#}}
 }
 
 # Deplace un fichier reel de $HOME dans la couche du depot, puis le relie
@@ -143,27 +194,39 @@ _zanvil_dotfiles_adopt() {
     _ui_msg_ok "Adopte : $rel -> $layer"
 }
 
-# Liste ce que brew retirerait, puis ne retire qu'apres confirmation.
+# Affiche ce que brew retirerait pour le Brewfile fusionne $1, sans rien retirer.
+# Code 0 : quelque chose a retirer ; 2 : rien ; 1 : erreur.
 # Types limites a brew : sans filtre, brew 7 nettoie aussi vscode, npm, uv, cargo...
-_zanvil_dotfiles_cleanup() {
-    _zanvil_dotfiles_merged || return 1
-    local merged="$REPLY" out= rc=0
-    local -a types=(--formula --cask --tap)
+_zanvil_dotfiles_cleanup_preview() {
+    local out= rc=0
     # brew sort 1 en simulation quand il y a quoi retirer ; </dev/null : jamais sa propre question
-    out=$(brew bundle cleanup "${types[@]}" --file="$merged" 2>&1 </dev/null) || rc=$?
+    out=$(brew bundle cleanup --formula --cask --tap --file="$1" 2>&1 </dev/null) || rc=$?
     if [[ "$out" == *"Would uninstall"* || "$out" == *"Would untap"* ]]; then
         # brew liste aussi des dizaines de dossiers vides qui noient la vraie liste
         print -r -- "${(F)${(@)${(@f)out}:#Would remove \(empty directory\)*}}"
-        rc=0
+        return 0
+    fi
+    if (( rc != 0 )); then
+        _ui_msg_fail "brew bundle cleanup a echoue (code $rc) : $out" >&2
+        return 1
+    fi
+    _ui_msg_info "Rien a desinstaller"
+    return 2
+}
+
+# Liste ce que brew retirerait, puis ne retire qu'apres confirmation.
+_zanvil_dotfiles_cleanup() {
+    _zanvil_dotfiles_merged || return 1
+    local merged="$REPLY" rc=0
+    _zanvil_dotfiles_cleanup_preview "$merged" || rc=$?
+    if (( rc == 0 )); then
         if _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
-            brew bundle cleanup "${types[@]}" --force --file="$merged" || rc=$?
+            brew bundle cleanup --formula --cask --tap --force --file="$merged" || rc=$?
         else
             _ui_msg_info "Rien n a ete desinstalle"
         fi
-    elif (( rc != 0 )); then
-        _ui_msg_fail "brew bundle cleanup a echoue (code $rc) : $out" >&2
-    else
-        _ui_msg_info "Rien a desinstaller"
+    elif (( rc == 2 )); then
+        rc=0
     fi
     rm -f "$merged"
     return $rc
@@ -177,6 +240,7 @@ zanvil-dotfiles() {
         link) _zanvil_dotfiles_link ;;
         pull) _zanvil_dotfiles_pull ;;
         adopt) shift; _zanvil_dotfiles_adopt "$@" ;;
+        migrate) shift; _zanvil_dotfiles_migrate "$@" ;;
         apply) _zanvil_dotfiles_pull && _zanvil_dotfiles_install && _zanvil_dotfiles_link && _zanvil_dotfiles_cleanup ;;
         status)
             local dir=$(_zanvil_dotfiles_dir)
@@ -192,7 +256,7 @@ zanvil-dotfiles() {
             ;;
         cleanup) _zanvil_dotfiles_cleanup ;;
         *)
-            _ui_msg_info "Usage : zanvil-dotfiles status|install|cleanup|link|adopt|pull|apply"
+            _ui_msg_info "Usage : zanvil-dotfiles status|install|cleanup|link|adopt|pull|apply|migrate"
             return 1
             ;;
     esac

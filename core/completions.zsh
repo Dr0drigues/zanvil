@@ -70,7 +70,7 @@ compdef _zanvil_modules zanvil-modules
 
 _zanvil_dotfiles() {
     _arguments \
-        '1:action:(status pull install cleanup link adopt apply)' \
+        '1:action:(status pull install cleanup link adopt apply migrate)' \
         '2:fichier:_files' \
         '3:couche:(common pro perso)'
 }

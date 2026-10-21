@@ -82,3 +82,6 @@ modules/work/logs/
 
 # Espace de travail SDD (scratch, jamais versionne)
 .superpowers/
+
+# Etat de la suggestion zanvil-dotfiles migrate (apres mise a jour)
+.dotfiles_migrate_suggested

@@ -140,7 +140,7 @@ chmod +x "$BIN/brew"
 rm -rf "$H"; mkdir -p "$H"; : > "$LOG"
 PATH="$BIN:$PATH" ZD_DOT="$CL" zd 'zanvil-dotfiles apply </dev/null >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply : code 0" "rc=0"
 sed 's/ --file=.*//' "$LOG" | tr '\n' ';' | assert_equals "apply : install puis cleanup (simulation seule hors terminal)" \
-    "bundle install --no-upgrade;bundle cleanup --formula --cask --tap;"
+    "trust --json v1;bundle install --no-upgrade;bundle cleanup --formula --cask --tap;"
 kind "$H/.config/demo/a.conf" | assert_equals "apply : lien cree" "lien"
 rm -rf "$H"; mkdir -p "$H"; : > "$LOG"
 FAKE_INSTALL_FAIL=1 PATH="$BIN:$PATH" ZD_DOT="$CL" zd 'zanvil-dotfiles apply </dev/null >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply install en echec : code 1" "rc=1"
