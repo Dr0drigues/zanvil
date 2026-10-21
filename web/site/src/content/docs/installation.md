@@ -48,8 +48,8 @@ Installe tout avec les paramètres par défaut.
 ./install.sh --profile pro --dotfiles git@github.com:<toi>/dotfiles.git
 ```
 
-- `--profile pro|perso` : profil de la machine. Sans option, le script le demande (ou prend `perso` avec `--default`). Une relance reprend le profil, le dépôt et le dossier déjà écrits dans `config.zsh`. Le profil `perso` désactive par défaut les modules Docker et Kube. `pro` écrit `ZANVIL_WORK_DETECTED=true` dans `config.zsh`, `perso` écrit `false`.
-- `--dotfiles <url>` : dépôt dotfiles à cloner dans `~/.dotfiles` (ou mis à jour s'il existe déjà). Vide, ou option absente en mode `--default` : pas de dépôt.
+- `--profile pro|perso` : profil de la machine. Sans option, le script le demande ; avec `--default`, il reprend le profil déjà écrit dans `config.zsh`, sinon `perso`. Une relance reprend le profil, le dépôt et le dossier déjà écrits dans `config.zsh`. Le profil `perso` désactive par défaut les modules GitLab, Docker et Kube. `pro` écrit `ZANVIL_WORK_DETECTED=true` dans `config.zsh`, `perso` écrit `false`.
+- `--dotfiles <url>` : dépôt dotfiles à cloner dans `~/.dotfiles` (ou mis à jour s'il existe déjà). Option absente : le script reprend le dépôt déjà écrit dans `config.zsh` (en mode interactif, il le propose par défaut) ; sans dépôt enregistré, pas de dépôt.
 
 Le clone se fait en SSH : une clé SSH autorisée sur le dépôt est un prérequis. L'accès est vérifié dès que l'URL est connue. S'il échoue, l'installation le signale et continue sans les dotfiles. L'URL reste enregistrée : une fois l'accès réglé, `zanvil-dotfiles apply` clone le dépôt.
 

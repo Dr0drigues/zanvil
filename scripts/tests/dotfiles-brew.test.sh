@@ -38,7 +38,7 @@ case "\$*" in
     *"bundle cleanup"*)
         [ -n "\$FAKE_DRY_FAIL" ] && { echo "Error: boom" >&2; exit 1; }
         [ -n "\$FAKE_NOTHING" ] && { printf 'Would \`brew cleanup\`\nWould remove: /cache/x\n'; exit 0; }
-        printf 'Would uninstall formulae:\nredis\n'; exit 1 ;;
+        printf 'Would uninstall formulae:\nredis\nWould remove (empty directory): /opt/homebrew/lib/x/__pycache__\n'; exit 1 ;;
 esac
 EOF2
 chmod +x "$BIN/brew"
@@ -101,6 +101,10 @@ forced | assert_equals "rien a desinstaller : pas de --force" "0"
     | assert_equals "rien a desinstaller : info, pas de question" "info"
 zd pro 'zanvil-dotfiles cleanup' "non
 " 1 | grep -c "Rien n a ete desinstalle" | tr -d ' ' | assert_equals "refus : info rien desinstalle" "1"
+out=$(zd pro 'zanvil-dotfiles cleanup' "non
+" 1)
+{ [[ "$out" == *redis* && "$out" != *"empty directory"* ]] && echo filtre || echo "$out"; } \
+    | assert_equals "liste affichee sans les dossiers vides de brew" "filtre"
 
 mv "$DOT/brew/pro.Brewfile" "$DOT/brew/pro.Brewfile.off"
 zd pro 'zanvil-dotfiles cleanup' "oui

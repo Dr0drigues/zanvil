@@ -152,7 +152,8 @@ _zanvil_dotfiles_cleanup() {
     # brew sort 1 en simulation quand il y a quoi retirer ; </dev/null : jamais sa propre question
     out=$(brew bundle cleanup "${types[@]}" --file="$merged" 2>&1 </dev/null) || rc=$?
     if [[ "$out" == *"Would uninstall"* || "$out" == *"Would untap"* ]]; then
-        echo "$out"
+        # brew liste aussi des dizaines de dossiers vides qui noient la vraie liste
+        print -r -- "${(F)${(@)${(@f)out}:#Would remove \(empty directory\)*}}"
         rc=0
         if _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
             brew bundle cleanup "${types[@]}" --force --file="$merged" || rc=$?

@@ -630,7 +630,7 @@ if [[ "$INTERACTIVE" = true ]]; then
     }
 
     # Poser les questions pour les modules
-    MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "true")
+    MODULE_GITLAB=$(ask_module "GitLab" "Scripts et fonctions GitLab (trigger-jobs, clone-projects)" "$(_install_module_default "$PROFILE")")
     MODULE_DOCKER=$(ask_module "Docker" "Utilitaires Docker (dex, etc.)" "$(_install_module_default "$PROFILE")")
     MODULE_MISE=$(ask_module "Mise" "Gestionnaire de versions (Node, Java, Maven, etc.)" "true")
 
@@ -726,8 +726,8 @@ if [[ "$INTERACTIVE" = true ]]; then
         UPDATE_MODE="prompt"
     fi
 else
-    log_info "Mode --default : modules actives (Docker et Kube selon le profil)"
-    MODULE_GITLAB="true"
+    log_info "Mode --default : modules actives (GitLab, Docker et Kube selon le profil)"
+    MODULE_GITLAB=$(_install_module_default "$PROFILE")
     MODULE_DOCKER=$(_install_module_default "$PROFILE")
     MODULE_MISE="true"
     MODULE_NUSHELL="true"
@@ -967,9 +967,14 @@ if [[ -n "$DOTFILES_REPO" ]]; then
     echo ""
     log_info "Depot dotfiles..."
     if _install_clone_dotfiles "$DOTFILES_REPO" "$DOTFILES_DIR"; then
-        if ! ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$DOTFILES_DIR" \
-            zsh -c 'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/core/commands/dotfiles.zsh"; zanvil-dotfiles install && zanvil-dotfiles link'; then
-            log_warn "Dotfiles incomplets (conflits ou echec brew) : lancer 'zanvil-dotfiles adopt' puis 'zanvil-dotfiles link'"
+        _dotfiles_step() {
+            ZANVIL_DIR="$TARGET_DIR" ZANVIL_PROFILE="$PROFILE" ZANVIL_DOTFILES_DIR="$DOTFILES_DIR" \
+                zsh -c 'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/core/commands/dotfiles.zsh"; zanvil-dotfiles "$1"' _ "$1"
+        }
+        if ! _dotfiles_step install; then
+            log_warn "brew bundle a echoue (voir ci-dessus) : corriger puis lancer 'zanvil-dotfiles apply'"
+        elif ! _dotfiles_step link; then
+            log_warn "Conflits de liens : lancer 'zanvil-dotfiles adopt <fichier>' puis 'zanvil-dotfiles link'"
         fi
     fi
 fi
