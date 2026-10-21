@@ -161,3 +161,92 @@ _zanvil_dotfiles_migrate_casks() {
     REPLY=$n
     return 0
 }
+
+# Deplace $1 vers $2 (dossiers crees a la volee) sans jamais ecraser. Code 1 si $1 reste en place.
+_zanvil_dotfiles_migrate_stash() {
+    if mkdir -p "${2:h}" && [[ ! -e "$2" && ! -L "$2" ]] && mv -n "$1" "$2" && [[ ! -e "$1" && ! -L "$1" ]]; then
+        return 0
+    fi
+    _ui_msg_fail "Deplacement impossible vers la sauvegarde : $1 reste en place" >&2
+    return 1
+}
+
+# Resout les fichiers de $HOME qui bloqueraient Stow (stow/common et stow/$ZANVIL_PROFILE).
+# REPLY = nombre de fichiers passes ; _ZANVIL_MIGRATE_BACKUP = dossier de sauvegarde, ou vide.
+# Code 0, sauf deplacement impossible (code 1, fichier laisse en place). Lit les reponses sur stdin.
+_zanvil_dotfiles_migrate_configs() {
+    typeset -g _ZANVIL_MIGRATE_BACKUP=
+    REPLY=0
+    local dir=$(_zanvil_dotfiles_dir)
+    local backup="$HOME/.zanvil-backup/$(date +%Y%m%d-%H%M%S)"
+    local -a layers=("$dir/stow/common") warned=()
+    [[ -n "${ZANVIL_PROFILE:-}" ]] && layers+=("$dir/stow/$ZANVIL_PROFILE")
+    local layer= src= rel= target= parent= linked= answer= skipped=0
+    for layer in "${layers[@]}"; do
+        [[ -d "$layer" ]] || continue
+        for src in "$layer"/**/*(.DN); do
+            rel=${src#$layer/}
+            target="$HOME/$rel"
+            # le plus haut dossier lie sous $HOME : on n'ecrit jamais a travers lui
+            linked= parent=${target:h}
+            while [[ "$parent" == "$HOME"/* ]]; do
+                [[ -L "$parent" ]] && linked=$parent
+                parent=${parent:h}
+            done
+            if [[ -n "$linked" ]]; then
+                if (( ! ${warned[(Ie)$linked]} )); then
+                    warned+=("$linked")
+                    _ui_msg_warn "$linked est un lien : ses fichiers sont passes"
+                fi
+                (( skipped++ ))
+                continue
+            fi
+            if [[ -L "$target" ]]; then
+                [[ "${target:A}" == "${src:A}" ]] && continue
+                _ui_msg_warn "$target est un lien vers ailleurs : passe"
+                (( skipped++ ))
+                continue
+            fi
+            [[ -e "$target" ]] || continue
+            if [[ ! -f "$target" ]]; then
+                _ui_msg_warn "$target n'est pas un fichier : passe"
+                (( skipped++ ))
+                continue
+            fi
+            if cmp -s "$src" "$target"; then
+                _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                _ZANVIL_MIGRATE_BACKUP=$backup
+                _ui_msg_ok "$rel identique au depot : sauvegarde"
+                continue
+            fi
+            diff -u "$src" "$target"
+            printf '%s : [d]epot / [l]ocal / [p]asser [p] ' "$rel"
+            answer=
+            read -r answer
+            case "${answer:l}" in
+                d)
+                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                    _ZANVIL_MIGRATE_BACKUP=$backup
+                    _ui_msg_ok "$rel : version du depot retenue, locale sauvegardee"
+                    ;;
+                l)
+                    # commit limite a ce fichier : rien d'autre de deja indexe n'est embarque. Jamais de push.
+                    if ! cp "$target" "$src" || ! command git -C "$layer" add -- "$rel" \
+                        || ! command git -C "$layer" commit -q -m "migrate: version locale de $rel" -- "$rel"; then
+                        _ui_msg_fail "Copie ou commit de $rel impossible : $target reste en place" >&2
+                        return 1
+                    fi
+                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                    _ZANVIL_MIGRATE_BACKUP=$backup
+                    _ui_msg_ok "$rel : version locale commitee dans le depot (pensez a git push), originale sauvegardee"
+                    ;;
+                *)
+                    _ui_msg_info "$rel passe"
+                    (( skipped++ ))
+                    ;;
+            esac
+        done
+    done
+    REPLY=$skipped
+    return 0
+}

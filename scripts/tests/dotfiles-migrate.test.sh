@@ -129,6 +129,57 @@ out=$(ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1 FAKE
 out=$(ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1 FAKE_INFO_FAIL=1" zd "_zanvil_dotfiles_migrate_casks '$BF'; echo \"rc=\$?\"" oui)
 { [[ "$out" == *"brew info a echoue"* && "$out" == *"boom"* && "$out" != *"Aucune appli"* && "$out" == *"rc=0"* && "$(grep -c -- '--adopt' "$LOG")" == 0 ]] && echo ok || echo "$out"; } | assert_equals "info en echec : avertissement, pas de faux 'aucune appli', rien adopte, code 0" ok
 
+# --- configs en conflit ---
+# Fixture fraiche dans $TEST_TMPDIR/c$1 : CH = HOME, CD = depot, CO = dossiers pointes par les liens.
+mkconf() {
+    local d="$TEST_TMPDIR/c$1"
+    CH="$d/home"; CD="$d/dot"; CO="$d/other"
+    mkdir -p "$CD/stow/common/.config/a" "$CD/stow/common/.config/b" "$CD/stow/pro/.config" "$CH/.config/a" "$CO/b"
+    echo same > "$CD/stow/common/.config/a/same.conf"; echo same > "$CH/.config/a/same.conf"
+    echo depot > "$CD/stow/common/.config/a/diff.conf"; echo local > "$CH/.config/a/diff.conf"
+    echo new > "$CD/stow/common/.config/a/new.conf"
+    echo x > "$CD/stow/common/.config/b/x.conf"; ln -s "$CO/b" "$CH/.config/b"
+    echo p > "$CD/stow/pro/.config/p.conf"; echo autre > "$CO/p.conf"; ln -s "$CO/p.conf" "$CH/.config/p.conf"
+    command git init -q "$CD"; command git -C "$CD" add -A; command git -C "$CD" commit -qm init
+}
+# $1 = reponses ; sortie de la fonction puis "rc=.. n=.. bk=.."
+zconf() {
+    H="$CH" ZD_DOT="$CD" ZD_ENV="ZANVIL_PROFILE=pro" zd '_zanvil_dotfiles_migrate_configs; echo "rc=$? n=$REPLY bk=$_ZANVIL_MIGRATE_BACKUP"' "$1"
+}
+bkdir() { ls -d "$CH"/.zanvil-backup/* 2>/dev/null; }
+
+mkconf d; out=$(zconf d); BK=$(bkdir)
+{ [[ "$out" == *"rc=0 n=2 bk=$BK" && -n "$BK" ]] && echo ok || echo "$out"; } | assert_equals "conflit d : code 0, 2 passes, REPLY et chemin de sauvegarde" ok
+{ cat "$BK/.config/a/same.conf" "$BK/.config/a/diff.conf"; } | assert_equals "conflit d : identique et local sauvegardes avec leur contenu" "same
+local"
+{ ls -A "$CH/.config/a"; } | assert_equals "conflit d : sortis de HOME, new.conf pas cree" ""
+{ [[ "$out" == *"-depot"* && "$out" == *"+local"* ]] && echo ok || echo "$out"; } | assert_equals "conflit d : diff -u affiche" ok
+{ [[ "$out" == *".config/b"* && "$out" == *"p.conf"* ]] && echo ok || echo "$out"; } | assert_equals "liens : parent lie et lien ailleurs signales" ok
+{ ls -A "$CO/b"; } | assert_equals "parent lie : rien ajoute sous le dossier pointe" ""
+{ readlink "$CH/.config/p.conf"; } | assert_equals "lien ailleurs : intact" "$CO/p.conf"
+{ cat "$CD/stow/common/.config/a/diff.conf"; } | assert_equals "conflit d : depot inchange" depot
+
+mkconf l; out=$(zconf L); BK=$(bkdir)
+{ cat "$CD/stow/common/.config/a/diff.conf"; } | assert_equals "conflit l : le depot prend la version locale" local
+{ command git -C "$CD" log -1 --format=%s; } | assert_equals "conflit l : commit local" "migrate: version locale de .config/a/diff.conf"
+{ command git -C "$CD" status --porcelain; } | assert_equals "conflit l : rien d'autre en attente" ""
+{ cat "$BK/.config/a/diff.conf"; [[ -e "$CH/.config/a/diff.conf" ]] && echo encore-la; } | assert_equals "conflit l : original sauvegarde et sorti de HOME" local
+
+i=0
+for ans in p "" x; do
+    i=$((i + 1)); mkconf "p$i"; out=$(zconf "$ans")
+    { [[ "$(cat "$CH/.config/a/diff.conf")" == local && "$out" == *"rc=0 n=3 "* ]] && echo ok || echo "$out"; } | assert_equals "conflit '$ans' : passe, laisse en place, compte" ok
+done
+
+CH="$TEST_TMPDIR/cnone/home"; CD="$TEST_TMPDIR/cnone/dot"
+mkdir -p "$CH/.config" "$CD/stow/common/.config"; echo v > "$CD/stow/common/.config/v.conf"
+ln -s "$CD/stow/common/.config/v.conf" "$CH/.config/v.conf"
+out=$(zconf "")
+{ [[ "$out" == *"rc=0 n=0 bk=" && ! -e "$CH/.zanvil-backup" ]] && echo ok || echo "$out"; } | assert_equals "sans conflit : sauvegarde vide, aucun dossier cree, lien deja en place ignore" ok
+
+mkconf ro; chmod 555 "$CH/.config/a"; out=$(zconf d); chmod 755 "$CH/.config/a"
+{ [[ "$out" == *"rc=1"* && "$(cat "$CH/.config/a/same.conf")" == same ]] && echo ok || echo "$out"; } | assert_equals "deplacement impossible : code 1, fichier en place" ok; echo "$out" | grep -c "Deplacement impossible" | assert_equals "deplacement impossible : message" 1
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]
