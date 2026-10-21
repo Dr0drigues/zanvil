@@ -46,6 +46,7 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `adopt <chemin> [couche]` | Déplace un fichier réel de `$HOME` dans le dépôt (`common` par défaut) et le relie |
 | `apply` | Commande quotidienne : `pull`, `install`, `link`, puis `cleanup` (arrêt à la première erreur) |
 
+- `install` approuve (`brew trust`) les paquets de taps tiers nommés dans les Brewfile (`brew "tap/depot/nom"`, `cask "tap/depot/nom"`) avant `brew bundle install`, faute de quoi Homebrew 7 les refuse. Seules les entrées nommées sont approuvées, jamais le tap entier.
 - `cleanup` affiche la liste, puis ne supprime qu'après une réponse explicite `o`, `oui`, `y` ou `yes`. Toute autre réponse, ou une entrée qui n'est pas un terminal, n'efface rien. Le nettoyage se limite à brew : extensions VSCode, paquets npm, outils uv ou cargo ne sont jamais touchés.
 - `link` utilise Stow avec `--no-folding` : les dossiers restent réels, seuls les fichiers sont des liens. En cas de conflit (un fichier réel à la place d'un lien), il affiche les conflits et s'arrête sans rien écraser. Lancer alors `adopt` sur ce fichier, puis `link`.
 - `adopt` refuse si le dépôt contient déjà une autre version du fichier (comparer avec `diff`), et refuse les secrets et ce que gère `install.sh` : `gh/hosts.yml`, `glab-cli`, `sops`, `gcloud`, `~/.ssh/*` et `~/.zshrc`.

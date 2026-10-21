@@ -40,8 +40,40 @@ _zanvil_dotfiles_confirm() {
     esac
 }
 
+# Approuve (brew trust) les entrees brew/cask "tap/depot/nom" du Brewfile $1 pas encore approuvees.
+# Jamais --tap : seules les entrees nommees sont approuvees. Sans jq, rien n'est considere approuve.
+_zanvil_dotfiles_trust() {
+    local json=$(brew trust --json v1 2>/dev/null)
+    local -a have_f=() have_c=() new_f=() new_c=()
+    if command -v jq &>/dev/null && [[ -n "$json" ]]; then
+        have_f=("${(@f)$(jq -r '.formulae[]?' <<<"$json" 2>/dev/null)}")
+        have_c=("${(@f)$(jq -r '.casks[]?' <<<"$json" 2>/dev/null)}")
+    fi
+    local line= kind= name=
+    for line in "${(@f)$(<"$1")}"; do
+        [[ "$line" =~ '^[[:space:]]*(brew|cask)[[:space:]]+"([^"]+)"' ]] || continue
+        kind=${match[1]} name=${match[2]}
+        [[ "$name" == */*/* ]] || continue
+        if [[ $kind == brew ]]; then
+            (( ${have_f[(Ie)$name]} || ${new_f[(Ie)$name]} )) || new_f+=("$name")
+        else
+            (( ${have_c[(Ie)$name]} || ${new_c[(Ie)$name]} )) || new_c+=("$name")
+        fi
+    done
+    if (( ${#new_f} )); then
+        brew trust --formula "${new_f[@]}" || { _ui_msg_fail "brew trust --formula a echoue" >&2; return 1; }
+        for name in "${new_f[@]}"; do _ui_msg_info "Approuve : $name"; done
+    fi
+    if (( ${#new_c} )); then
+        brew trust --cask "${new_c[@]}" || { _ui_msg_fail "brew trust --cask a echoue" >&2; return 1; }
+        for name in "${new_c[@]}"; do _ui_msg_info "Approuve : $name"; done
+    fi
+    return 0
+}
+
 _zanvil_dotfiles_install() {
     _zanvil_dotfiles_merged || return 1
+    _zanvil_dotfiles_trust "$REPLY" || { rm -f "$REPLY"; return 1; }
     # installe ce qui manque, sans tout mettre a jour
     brew bundle install --no-upgrade --file="$REPLY"
     local rc=$?

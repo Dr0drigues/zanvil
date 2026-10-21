@@ -34,6 +34,8 @@ cat > "$BIN/brew" <<EOF2
 #!/bin/sh
 echo "\$*" >> "$LOG"
 case "\$*" in
+    "trust --json v1") echo '{"taps":[],"formulae":["a/b/deja"],"casks":[]}'; exit 0 ;;
+    "trust "*) [ -n "\$FAKE_TRUST_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*--force*) [ -n "\$FAKE_FORCE_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*)
         [ -n "\$FAKE_DRY_FAIL" ] && { echo "Error: boom" >&2; exit 1; }
@@ -42,7 +44,7 @@ case "\$*" in
 esac
 EOF2
 chmod +x "$BIN/brew"
-echo 'brew "common-tool"' > "$DOT/brew/common.Brewfile"
+printf '%s\n' 'tap "a/b"' 'brew "a/b/deja"' 'brew "a/b/neuve"' 'cask "c/d/app"' 'brew "jq"' > "$DOT/brew/common.Brewfile"
 echo 'brew "pro-only-tool"' > "$DOT/brew/pro.Brewfile"
 
 # Lance une commande dans un zsh vierge qui ne depend que de core/ui.zsh
@@ -93,6 +95,20 @@ zd pro 'zanvil-dotfiles cleanup' "oui
 grep -c -- '^bundle cleanup --formula --cask --tap ' "$LOG" | tr -d ' ' | assert_equals "cleanup : simulation et --force limites a brew" "2"
 zd pro 'zanvil-dotfiles install' >/dev/null
 grep -c -- '^bundle install --no-upgrade --file=' "$LOG" | tr -d ' ' | assert_equals "install : --no-upgrade" "1"
+
+# approbation : seulement les entrees a/b/c absentes de la liste de brew, jamais --tap
+grep -e '^trust --formula' -e '^trust --cask' -e '^bundle install' "$LOG" | sed 's/ --file=.*//' \
+    | assert_equals "install : trust formula, trust cask, puis bundle install" "trust --formula a/b/neuve
+trust --cask c/d/app
+bundle install --no-upgrade"
+grep '^trust' "$LOG" | grep -c -e '--tap' | tr -d ' ' | assert_equals "install : jamais trust --tap" "0"
+grep '^trust' "$LOG" | grep -v -e '--json' | grep -c -e 'a/b/deja' -e 'jq' | tr -d ' ' | assert_equals "install : ni deja approuve ni jq" "0"
+FAKE_TRUST_FAIL=1 zd pro 'zanvil-dotfiles install >/dev/null 2>&1; echo "rc=$?"' | tail -1 | assert_equals "trust en echec : code 1" "rc=1"
+grep -c '^bundle install' "$LOG" | tr -d ' ' | assert_equals "trust en echec : pas de bundle install" "0"
+printf '%s\n' 'brew "a/b/deja"' 'brew "jq"' > "$DOT/brew/common.Brewfile"
+zd pro 'zanvil-dotfiles install' >/dev/null
+grep '^trust' "$LOG" | grep -vc -e '--json' | tr -d ' ' | assert_equals "tout approuve : aucun trust hors --json" "0"
+echo 'brew "common-tool"' > "$DOT/brew/common.Brewfile"
 
 out=$(FAKE_NOTHING=1 zd pro 'zanvil-dotfiles cleanup' "oui
 " 1)
