@@ -29,7 +29,8 @@ setup:
 # les dependances reelles du demarrage d un shell.
 fake:
   rules:
-    - match: { bin: posting, args_contain: "--completion-script-zsh" }
+    # posting (click) genere ses completions via _POSTING_COMPLETE=zsh_source, sans argument
+    - match: { bin: posting }
       stdout: ""
     - match: { bin: delta, args_contain: "--generate-completion" }
       stdout: ""
