@@ -209,6 +209,7 @@ zanvil-dotfiles() {
         link) _zanvil_dotfiles_link ;;
         pull) _zanvil_dotfiles_pull ;;
         adopt) shift; _zanvil_dotfiles_adopt "$@" ;;
+        migrate) shift; _zanvil_dotfiles_migrate "$@" ;;
         apply) _zanvil_dotfiles_pull && _zanvil_dotfiles_install && _zanvil_dotfiles_link && _zanvil_dotfiles_cleanup ;;
         status)
             local dir=$(_zanvil_dotfiles_dir)
@@ -224,7 +225,7 @@ zanvil-dotfiles() {
             ;;
         cleanup) _zanvil_dotfiles_cleanup ;;
         *)
-            _ui_msg_info "Usage : zanvil-dotfiles status|install|cleanup|link|adopt|pull|apply"
+            _ui_msg_info "Usage : zanvil-dotfiles status|install|cleanup|link|adopt|pull|apply|migrate"
             return 1
             ;;
     esac
