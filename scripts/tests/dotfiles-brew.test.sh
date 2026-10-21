@@ -129,6 +129,28 @@ zd pro 'zanvil-dotfiles cleanup' "oui
 zd pro '_zanvil_dotfiles_brewfiles >/dev/null 2>&1; echo "rc=$?"' | assert_equals "Brewfile manquant : code 1" "rc=1"
 mv "$DOT/brew/pro.Brewfile.off" "$DOT/brew/pro.Brewfile"
 
+echo "cleanup et approbations (brew bundle cleanup --force ne garde que les trusted: du Brewfile)"
+cp "$DOT/brew/common.Brewfile" "$TEST_TMPDIR/common.save"
+printf '%s\n' 'tap "a/b"' 'brew "a/b/sans"' 'brew "a/b/avec", trusted: true' 'cask "c/d/app"' 'brew "jq"' > "$DOT/brew/common.Brewfile"
+out=$(zd pro 'zanvil-dotfiles cleanup' "non
+" 1)
+warn=$(printf '%s\n' "$out" | grep "retirera l'approbation")
+{ [[ "$warn" == *a/b/sans* && "$warn" == *c/d/app* ]] && echo ok || echo "$out"; } \
+    | assert_equals "cleanup : avertit pour les entrees de taps tiers sans trusted:" ok
+warn_line=$(printf '%s\n' "$out" | grep -n "retirera l'approbation" | head -1 | cut -d: -f1)
+ask_line=$(printf '%s\n' "$out" | grep -n '\[o/N\]' | head -1 | cut -d: -f1)
+{ [[ -n "$warn_line" && -n "$ask_line" && "$warn_line" -lt "$ask_line" ]] && echo ok || echo "$out"; } \
+    | assert_equals "cleanup : avertissement avant la question" ok
+{ printf '%s\n' "$warn" | grep -c 'a/b/avec'; } | assert_equals "cleanup : entree avec trusted: true non signalee" 0
+t=$(grep -n '^trust --formula' "$LOG" | head -1 | cut -d: -f1); c=$(grep -n 'bundle cleanup' "$LOG" | head -1 | cut -d: -f1)
+{ [[ -n "$t" && -n "$c" && "$t" -lt "$c" ]] && echo ok || cat "$LOG"; } \
+    | assert_equals "cleanup : approuve les entrees avant d'appeler brew bundle cleanup" ok
+printf '%s\n' 'brew "a/b/avec", trusted: true' 'brew "jq"' > "$DOT/brew/common.Brewfile"
+out=$(zd pro 'zanvil-dotfiles cleanup' "non
+" 1)
+{ printf '%s\n' "$out" | grep -c "retirera l'approbation"; } | assert_equals "cleanup : tout est declare, aucun avertissement" 0
+cp "$TEST_TMPDIR/common.save" "$DOT/brew/common.Brewfile"
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]
