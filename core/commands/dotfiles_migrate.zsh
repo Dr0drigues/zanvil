@@ -119,42 +119,64 @@ _zanvil_dotfiles_migrate() {
     done
 
     _zanvil_dotfiles_merged || return 1
-    local merged="$REPLY"
+    local merged="$REPLY" inst="$REPLY"
     {
         # approuver avant d'adopter : un cask de tap tiers non approuve serait refuse
         _zanvil_dotfiles_trust "$merged" || return 1
+        local trusted=${_ZANVIL_DOTFILES_TRUSTED:-0}
         _zanvil_dotfiles_migrate_casks "$merged"
         local adopted=$REPLY
         local -a failed=("${_ZANVIL_MIGRATE_FAILED_CASKS[@]}")
-        _zanvil_dotfiles_install || { _ui_msg_fail "brew bundle install a echoue : migrate s'arrete" >&2; return 1; }
-        _zanvil_dotfiles_migrate_configs || return 1
-        local passed=$REPLY backup=$_ZANVIL_MIGRATE_BACKUP
-        local -a ignores=("${_ZANVIL_MIGRATE_IGNORES[@]}")
-        if (( passed == 0 )); then
-            _zanvil_dotfiles_link || return 1
-        elif (( ${#ignores} )); then
-            _ui_msg_warn "$passed fichier(s) bloquent les liens : fichier d'ignores Stow (${ignores[*]}), les traiter a la main puis zanvil-dotfiles link"
-        else
-            _ui_msg_warn "$passed fichier(s) bloquent les liens : relancer zanvil-dotfiles migrate"
+        local -a excluded=("${_ZANVIL_MIGRATE_DECLINED_CASKS[@]}" "${failed[@]}")
+        if (( ${#excluded} )); then
+            # brew bundle adopte de lui-meme les applis deja presentes : un refus ou un echec ne lui est pas redonne
+            inst=$(mktemp "${TMPDIR:-/tmp}/zanvil-brewfile.XXXXXX") || return 1
+            local line=
+            for line in "${(@f)$(<"$merged")}"; do
+                [[ "$line" =~ '^[[:space:]]*cask[[:space:]]+"([^"]+)"' ]] && (( ${excluded[(Ie)${match[1]}]} )) && continue
+                print -r -- "$line"
+            done > "$inst"
         fi
+        _zanvil_dotfiles_install "$inst" || { _ui_msg_fail "brew bundle install a echoue : migrate s'arrete" >&2; return 1; }
+        _zanvil_dotfiles_migrate_configs || {
+            [[ -n "$_ZANVIL_MIGRATE_BACKUP" ]] && _ui_msg_info "Fichiers deja deplaces dans : $_ZANVIL_MIGRATE_BACKUP" >&2
+            return 1
+        }
+        local passed=$REPLY backup=$_ZANVIL_MIGRATE_BACKUP saved=$_ZANVIL_MIGRATE_SAVED
+        local -a ignores=("${_ZANVIL_MIGRATE_IGNORES[@]}")
+        _zanvil_dotfiles_migrate_link || {
+            [[ -n "$backup" ]] && _ui_msg_info "Fichiers deja deplaces dans : $backup" >&2
+            return 1
+        }
+        local linked=$_ZANVIL_DOTFILES_LINKED
         # simulation seulement : migrate ne desinstalle jamais rien
-        _zanvil_dotfiles_cleanup_preview "$merged" && _ui_msg_info "Rien n a ete desinstalle. Pour le faire : zanvil-dotfiles cleanup"
+        local clean=0
+        _zanvil_dotfiles_cleanup_preview "$merged" || clean=$?
+        (( clean == 0 )) && _ui_msg_info "Rien n a ete desinstalle. Pour le faire : zanvil-dotfiles cleanup"
 
-        local casks="$adopted passee(s) sous brew" files="$passed fichier(s)"
+        local casks="$adopted passee(s) sous brew" files="$linked liee(s), $saved sauvegardee(s), $passed passee(s)"
         (( ${#failed} )) && casks+=", echec(s) : ${failed[*]}"
+        (( ${#excluded} )) && casks+=", laissee(s) hors de brew bundle : ${excluded[*]}"
         (( ${#ignores} )) && files+=" (fichier d'ignores Stow : ${ignores[*]})"
         echo
         _ui_section "Profil" "$profile"
         _ui_section "Depot" "$dir"
+        _ui_section "Paquets" "$trusted approuve(s)"
         _ui_section "Applis" "$casks"
-        _ui_section "Passes" "$files"
+        _ui_section "Configs" "$files"
         _ui_section "Sauvegarde" "${backup:-aucune}"
+        local c=
+        for c in "${excluded[@]}"; do
+            _ui_msg_info "Pour passer $c sous brew : brew install --cask --adopt $c"
+        done
         if [[ "$(command git -C "$dir" status -sb 2>/dev/null | head -n1)" == *"[ahead "* ]]; then
             _ui_msg_warn "Commits locaux non pousses : git -C $dir push"
         fi
-        _ui_msg_info "Prochaine commande : zanvil-dotfiles cleanup"
+        (( clean == 0 )) && _ui_msg_info "Prochaine commande : zanvil-dotfiles cleanup"
+        return 0
     } always {
         rm -f "$merged"
+        [[ "$inst" != "$merged" ]] && rm -f "$inst"
     }
 }
 
@@ -194,9 +216,10 @@ _zanvil_dotfiles_adopt_candidates() {
     return 0
 }
 
-# Propose d'adopter les candidats. REPLY = nombre de reussites ; echecs dans _ZANVIL_MIGRATE_FAILED_CASKS. Code 0.
+# Propose d'adopter les candidats. REPLY = nombre de reussites ; echecs dans _ZANVIL_MIGRATE_FAILED_CASKS,
+# candidats refuses dans _ZANVIL_MIGRATE_DECLINED_CASKS. Code 0.
 _zanvil_dotfiles_migrate_casks() {
-    typeset -ga _ZANVIL_MIGRATE_FAILED_CASKS=()
+    typeset -ga _ZANVIL_MIGRATE_FAILED_CASKS=() _ZANVIL_MIGRATE_DECLINED_CASKS=()
     REPLY=0
     local out= rc=0
     out=$(_zanvil_dotfiles_adopt_candidates "$1") || rc=$?
@@ -208,7 +231,11 @@ _zanvil_dotfiles_migrate_casks() {
         return 0
     fi
     _ui_msg_info "Applis deja installees, adoptables par brew : ${cands[*]}"
-    _zanvil_dotfiles_confirm "Les passer sous brew (--adopt) ?" || { _ui_msg_info "Rien n a ete adopte"; return 0; }
+    if ! _zanvil_dotfiles_confirm "Les passer sous brew (--adopt) ?"; then
+        _ZANVIL_MIGRATE_DECLINED_CASKS=("${cands[@]}")
+        _ui_msg_info "Rien n a ete adopte"
+        return 0
+    fi
     local c= n=0
     for c in "${cands[@]}"; do
         if brew install --cask --adopt "$c"; then
@@ -243,11 +270,13 @@ _zanvil_dotfiles_stow_ignored() {
 }
 
 # Resout les fichiers de $HOME qui bloqueraient Stow (stow/common et stow/$ZANVIL_PROFILE).
-# REPLY = nombre de fichiers passes ; _ZANVIL_MIGRATE_BACKUP = dossier de sauvegarde, ou vide.
+# REPLY = nombre de fichiers passes ; _ZANVIL_MIGRATE_BACKUP = dossier de sauvegarde, ou vide ;
+# _ZANVIL_MIGRATE_SAVED = fichiers sauvegardes ; _ZANVIL_MIGRATE_SKIP = chemins que Stow doit ignorer ;
+# _ZANVIL_MIGRATE_SKIP_PKGS = paquets a ne pas lier (fichier d'ignores Stow).
 # Code 0, sauf deplacement ou commit impossible (code 1, fichier laisse en place). Lit les reponses sur stdin.
 _zanvil_dotfiles_migrate_configs() {
-    typeset -g _ZANVIL_MIGRATE_BACKUP=
-    typeset -ga _ZANVIL_MIGRATE_IGNORES=()
+    typeset -g _ZANVIL_MIGRATE_BACKUP= _ZANVIL_MIGRATE_SAVED=0
+    typeset -ga _ZANVIL_MIGRATE_IGNORES=() _ZANVIL_MIGRATE_SKIP=() _ZANVIL_MIGRATE_SKIP_PKGS=()
     REPLY=0
     local dir=$(_zanvil_dotfiles_dir)
     local backup="$HOME/.zanvil-backup/$(date +%Y%m%d-%H%M%S)"
@@ -268,6 +297,7 @@ _zanvil_dotfiles_migrate_configs() {
         if [[ -n "$custom" ]]; then
             _ui_msg_warn "$custom : migrate ne sait pas l'interpreter, fichiers du paquet ${layer:t} passes"
             (( ${_ZANVIL_MIGRATE_IGNORES[(Ie)$custom]} )) || _ZANVIL_MIGRATE_IGNORES+=("$custom")
+            _ZANVIL_MIGRATE_SKIP_PKGS+=("${layer:t}")
         fi
         for src in "$layer"/**/*(.DN); do
             rel=${src#"$layer"/}
@@ -279,7 +309,7 @@ _zanvil_dotfiles_migrate_configs() {
             _zanvil_dotfiles_stow_ignored "$rel" && continue
             if [[ -n "${seen[$rel]:-}" ]]; then
                 _ui_msg_warn "$rel existe dans deux couches : passe"
-                passed[$rel]=1
+                passed[$rel]=1; _ZANVIL_MIGRATE_SKIP+=("$rel")
                 continue
             fi
             seen[$rel]=1
@@ -293,6 +323,8 @@ _zanvil_dotfiles_migrate_configs() {
             if [[ -n "$linked" ]]; then
                 if (( ! ${warned[(Ie)$linked]} )); then
                     warned+=("$linked")
+                    # Stow ne doit pas descendre dans le dossier lie : il y verrait un conflit
+                    _ZANVIL_MIGRATE_SKIP+=("${linked#"$HOME"/}")
                     _ui_msg_warn "$linked est un lien : ses fichiers sont passes"
                 fi
                 passed[$rel]=1
@@ -301,18 +333,18 @@ _zanvil_dotfiles_migrate_configs() {
             if [[ -L "$target" ]]; then
                 [[ "${target:A}" == "${src:A}" ]] && continue
                 _ui_msg_warn "$target est un lien vers ailleurs : passe"
-                passed[$rel]=1
+                passed[$rel]=1; _ZANVIL_MIGRATE_SKIP+=("$rel")
                 continue
             fi
             [[ -e "$target" ]] || continue
             if [[ ! -f "$target" ]]; then
                 _ui_msg_warn "$target n'est pas un fichier : passe"
-                passed[$rel]=1
+                passed[$rel]=1; _ZANVIL_MIGRATE_SKIP+=("$rel")
                 continue
             fi
             if cmp -s "$src" "$target"; then
                 _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
-                _ZANVIL_MIGRATE_BACKUP=$backup
+                _ZANVIL_MIGRATE_BACKUP=$backup; (( ++_ZANVIL_MIGRATE_SAVED ))
                 _ui_msg_ok "$rel identique au depot : sauvegarde"
                 continue
             fi
@@ -323,7 +355,7 @@ _zanvil_dotfiles_migrate_configs() {
             case "${answer:l}" in
                 d)
                     _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
-                    _ZANVIL_MIGRATE_BACKUP=$backup
+                    _ZANVIL_MIGRATE_BACKUP=$backup; (( ++_ZANVIL_MIGRATE_SAVED ))
                     _ui_msg_ok "$rel : version du depot retenue, locale sauvegardee"
                     ;;
                 l)
@@ -347,16 +379,40 @@ _zanvil_dotfiles_migrate_configs() {
                     fi
                     rm -f "$tmp"
                     _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
-                    _ZANVIL_MIGRATE_BACKUP=$backup
+                    _ZANVIL_MIGRATE_BACKUP=$backup; (( ++_ZANVIL_MIGRATE_SAVED ))
                     _ui_msg_ok "$rel : version locale commitee dans le depot (pensez a git push), originale sauvegardee"
                     ;;
                 *)
                     _ui_msg_info "$rel passe"
-                    passed[$rel]=1
+                    passed[$rel]=1; _ZANVIL_MIGRATE_SKIP+=("$rel")
                     ;;
             esac
         done
     done
     REPLY=${#passed}
+    return 0
+}
+
+# Lie tout ce que _zanvil_dotfiles_migrate_configs n'a pas laisse en place : chaque chemin passe est ignore
+# par Stow, les paquets a fichier d'ignores sont ecartes. Simulation puis application, comme link.
+_zanvil_dotfiles_migrate_link() {
+    setopt localoptions extendedglob
+    local -a opts=() skip=("${(@u)_ZANVIL_MIGRATE_SKIP}")
+    skip=("${(@)skip:#}")
+    local p=
+    for p in "${(@u)_ZANVIL_MIGRATE_SKIP_PKGS}"; do
+        [[ -n "$p" ]] && opts+=("--skip=$p")
+    done
+    # Stow cherche --ignore en fin de chemin (relatif a la cible) : ^ et l'echappement le limitent a ce chemin exact
+    for p in "${skip[@]}"; do
+        opts+=("--ignore=^${p//(#m)[^a-zA-Z0-9_]/\\$MATCH}")
+    done
+    _zanvil_dotfiles_link "${opts[@]}" || return 1
+    if (( ${#skip} )); then
+        _ui_msg_warn "${#skip} chemin(s) en attente, non lie(s) : ${skip[*]} ; relancer zanvil-dotfiles migrate pour les resoudre"
+    fi
+    if (( ${#_ZANVIL_MIGRATE_IGNORES} )); then
+        _ui_msg_warn "Paquet(s) ${(u)_ZANVIL_MIGRATE_SKIP_PKGS[*]} non lie(s) : fichier d'ignores Stow (${_ZANVIL_MIGRATE_IGNORES[*]}), les traiter a la main puis zanvil-dotfiles link"
+    fi
     return 0
 }

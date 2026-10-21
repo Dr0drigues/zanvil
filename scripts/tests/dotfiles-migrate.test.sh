@@ -74,6 +74,12 @@ rm -f "$C"
 zd "_zanvil_dotfiles_config_key '$C' ZANVIL_DOTFILES_REPO 'a \"b\" \$HOME \`x\` \\\\y'" >/dev/null
 zsh -f -c "source '$C'; print -r -- \"\$ZANVIL_DOTFILES_REPO\"" | assert_equals "config_key : valeur avec espace, guillemet, \$, backtick relue a l'identique" 'a "b" $HOME `x` \y'
 
+# cle presente mais vide (install.sh ecrit ZANVIL_DOTFILES_REPO="") : remplacee sur place, le reste a l'octet pres
+printf '%s\n' 'A=1' '# ZANVIL_DOTFILES_REPO=""' 'ZANVIL_DOTFILES_REPO=""' '  export ZANVIL_PROFILE=' "ZANVIL_DOTFILES_DIR=''" 'B=2 ' > "$C"; printf 'C=3' >> "$C"
+zd "_zanvil_dotfiles_config_key '$C' ZANVIL_DOTFILES_REPO 'git@x:y/z.git'; _zanvil_dotfiles_config_key '$C' ZANVIL_PROFILE pro; _zanvil_dotfiles_config_key '$C' ZANVIL_DOTFILES_DIR /d" >/dev/null
+printf '%s\n' 'A=1' '# ZANVIL_DOTFILES_REPO=""' 'ZANVIL_DOTFILES_REPO="git@x:y/z.git"' '  export ZANVIL_PROFILE=pro' 'ZANVIL_DOTFILES_DIR="/d"' 'B=2 ' > "$C.want"; printf 'C=3' >> "$C.want"
+{ cmp -s "$C" "$C.want" && echo ok || cat "$C"; } | assert_equals "config_key : valeur vide remplacee sur place, autres lignes intactes" ok
+
 # --- profil ---
 printf 'A=1\n' > "$CFGDIR/config.zsh"; before=$(cksum < "$CFGDIR/config.zsh")
 out=$(ZD_ENV="ZANVIL_ASSUME_TTY=1 ZANVIL_PROFILE=work" zd '_zanvil_dotfiles_migrate; echo rc=$?')
@@ -94,6 +100,10 @@ out=$(zd '_zanvil_dotfiles_migrate_repo; echo "rc=$?"')
 { [[ "$out" == *rc=0 && "$out" != *echoue* ]] && echo ok || echo "$out"; } | assert_equals "depot sale : pull saute, code 0" ok
 { cat "$DOT/f"; } | assert_equals "depot sale : modification intacte" modif
 zd '_zanvil_dotfiles_migrate_repo >/dev/null; echo "$REPLY"' | assert_equals "depot : REPLY = origin quand REPO vide" "/nonexistent/invalid.git"
+echo v1 > "$DOT/f"
+out=$(zd '_zanvil_dotfiles_migrate_repo; echo "rc=$?"')
+{ [[ "$out" == *rc=1 && "$out" == *"pousser ou rebaser dans $DOT"* ]] && echo ok || echo "$out"; } | assert_equals "depot propre, pull en echec : code 1, conseil pousser ou rebaser" ok
+echo modif > "$DOT/f"
 
 # --- Brewfile manquant ---
 out=$(ZD_ENV="ZANVIL_ASSUME_TTY=1 ZANVIL_PROFILE=pro" zd '_zanvil_dotfiles_migrate; echo rc=$?')
@@ -215,6 +225,18 @@ out=$(zconf "p
 p")
 { [[ "$(grep -o '\[d\]epot' <<<"$out" | wc -l | tr -d ' ')" == 1 && "$out" == *"deux couches"* && "$out" == *"rc=0 n=1 "* ]] && echo ok || echo "$out"; } | assert_equals "deux couches : une question, signale, compte une fois" ok
 
+# un d et un p : le reste est lie quand meme (vrai Stow), les fichiers passes restent intacts
+if command -v stow >/dev/null 2>&1; then
+    RS="$TEST_TMPDIR/realstow"; mkdir -p "$RS"; ln -s "$(command -v stow)" "$RS/stow"
+    mkconf lk; echo depot2 > "$CD/stow/common/.config/a/d2.conf"; echo local2 > "$CH/.config/a/d2.conf"
+    command git -C "$CD" add -A; command git -C "$CD" commit -qm d2
+    out=$(H="$CH" ZD_DOT="$CD" ZD_PATH="$RS:$GITDIR:/usr/bin:/bin" ZD_ENV="ZANVIL_PROFILE=pro" zd '_zanvil_dotfiles_migrate_configs && _zanvil_dotfiles_migrate_link; echo "rc=$?"' "d
+p")
+    { [[ "$out" == *rc=0 && "$(readlink "$CH/.config/a/d2.conf")" == *d2.conf && -L "$CH/.config/a/same.conf" && -L "$CH/.config/a/new.conf" ]] && echo ok || { echo "$out"; ls -la "$CH/.config/a"; }; } | assert_equals "un d, un p : code 0, d, identique et nouveau lies" ok
+    { [[ ! -L "$CH/.config/a/diff.conf" && "$(cat "$CH/.config/a/diff.conf")" == local && "$(readlink "$CH/.config/p.conf")" == "$CO/p.conf" && "$(readlink "$CH/.config/b")" == "$CO/b" && -z "$(ls -A "$CO/b")" ]] && echo ok || echo "$out"; } | assert_equals "un d, un p : passe, lien ailleurs et dossier lie intacts" ok
+    { [[ "$out" == *".config/a/diff.conf"* && "$out" == *"relancer zanvil-dotfiles migrate"* ]] && echo ok || echo "$out"; } | assert_equals "un d, un p : fichiers en attente nommes, relance proposee" ok
+fi
+
 # --- suggestion apres mise a jour ---
 SZ="$TEST_TMPDIR/sugg"; mkdir -p "$SZ"
 sug() { env -u ZANVIL_PROFILE HOME="$H" ZANVIL_DIR="$SZ" ${1:-} PATH="/usr/bin:/bin" zsh -f -c "
@@ -230,7 +252,9 @@ sug | assert_equals "suggestion : plus jamais ensuite" ""
 
 # --- bout en bout ---
 if command -v stow >/dev/null 2>&1; then
-E="$TEST_TMPDIR/e2e"; EH="$E/home"; EZ="$E/zdir"; EB="$E/bin"; EA="$E/apps"; ELOG="$E/brew.log"; EST="$E/casks"
+# $1 = nom de la fixture : machine "deja configuree" fraiche dans $TEST_TMPDIR/e2e$1
+e2e_setup() {
+E="$TEST_TMPDIR/e2e$1"; EH="$E/home"; EZ="$E/zdir"; EB="$E/bin"; EA="$E/apps"; ELOG="$E/brew.log"; EST="$E/casks"
 mkdir -p "$EH/.config/app" "$EZ/brew" "$EB" "$EA/GitHub Desktop.app"; : > "$EZ/brew/base.Brewfile"; : > "$EST"
 printf '%s\n' '# ma config' 'MON_ALIAS=1' > "$EZ/config.zsh"
 command git init -q --bare "$E/remote.git"
@@ -249,18 +273,23 @@ case "$*" in
     "trust --json v1") echo '{"formulae":[],"casks":[]}' ;;
     "list --cask -1") cat "$FAKE_STATE" ;;
     "info --cask"*) echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]}]}]}' ;;
-    "install --cask --adopt "*) echo "$4" >> "$FAKE_STATE" ;;
+    "install --cask --adopt "*) [ -n "$FAKE_ADOPT_FAIL" ] && exit 1; echo "$4" >> "$FAKE_STATE" ;;
+    # brew 7 adopte de lui-meme : un cask exclu (refuse ou en echec) ne doit plus lui etre donne
+    "bundle install"*) [ -n "$FAKE_EXCLUDED" ] && grep -q "^cask \"$FAKE_EXCLUDED\"" "${4#--file=}" && { echo "Error: $FAKE_EXCLUDED adopte malgre tout" >&2; exit 1; } ;;
     *"bundle cleanup"*--force*) exit 0 ;;
-    *"bundle cleanup"*) echo "Would uninstall formula: vieux"; exit 1 ;;
+    *"bundle cleanup"*) [ -n "$FAKE_CLEAN_EMPTY" ] && exit 0; echo "Would uninstall formula: vieux"; exit 1 ;;
 esac
 exit 0
 FAKE
 chmod +x "$EB/brew"
-# $1 = commande zsh, stdin = reponses
+}
+e2e_setup ""
+# $1 = commande zsh, stdin = reponses ; EENV = assignations en plus ; EPATH = dossier place en tete du PATH
 emig() {
+    # shellcheck disable=SC2086
     env -u ZANVIL_PROFILE -u ZANVIL_DOTFILES_REPO -u ZANVIL_DOTFILES_DIR -u ZANVIL_WORK_DETECTED \
-        HOME="$EH" ZANVIL_DIR="$EZ" ZANVIL_ASSUME_TTY=1 ZANVIL_APPLICATIONS_DIR="$EA" FAKE_LOG="$ELOG" FAKE_STATE="$EST" \
-        PATH="$EB:$(dirname "$(command -v stow)"):$GITDIR:/usr/bin:/bin" zsh -f -c "
+        HOME="$EH" ZANVIL_DIR="$EZ" ZANVIL_ASSUME_TTY=1 ZANVIL_APPLICATIONS_DIR="$EA" FAKE_LOG="$ELOG" FAKE_STATE="$EST" ${EENV:-} \
+        PATH="${EPATH:+$EPATH:}$EB:$RS:$GITDIR:/usr/bin:/bin" zsh -f -c "
         source '$ROOT/core/ui.zsh'; source '$ROOT/core/commands/dotfiles.zsh'; source '$ROOT/core/commands/dotfiles_migrate.zsh'
         $1; echo rc=\$?" 2>&1
 }
@@ -278,6 +307,7 @@ BK=$(ls -d "$EH"/.zanvil-backup/* 2>/dev/null)
 { grep -c '^trust --formula acme/outils/truc$' "$ELOG"; grep -c '^install --cask --adopt gh-desk$' "$ELOG"; grep -c '^bundle install --no-upgrade' "$ELOG"; } | tr '\n' ' ' | assert_equals "e2e : trust, adopt, bundle install journalises" "2 1 1 "
 { grep -c '^bundle cleanup' "$ELOG"; grep -c -- '--force' "$ELOG"; grep -c 'uninstall' "$ELOG"; } | tr '\n' ' ' | assert_equals "e2e : simulation de cleanup, ni --force ni uninstall" "1 0 0 "
 { [[ "$out" == *"vieux"* && "$out" == *"zanvil-dotfiles cleanup"* && "$out" == *"git -C $D push"* && "$out" == *"$BK"* && "$out" == *gh-desk* ]] && echo ok || echo "$out"; } | assert_equals "e2e : recapitulatif (cleanup, push, sauvegarde, applis)" ok
+{ [[ "$out" == *"1 approuve(s)"* && "$out" == *"2 liee(s), 1 sauvegardee(s), 0 passee(s)"* ]] && echo ok || echo "$out"; } | assert_equals "e2e : recapitulatif chiffre (paquets approuves, configs liees, sauvegardees, passees)" ok
 
 head_before=$(command git -C "$D" rev-parse HEAD); nbk=$(ls "$EH/.zanvil-backup" | wc -l | tr -d ' ')
 out=$(emig "source '$EZ/config.zsh'; _zanvil_dotfiles_migrate" </dev/null)
@@ -287,7 +317,25 @@ out=$(emig "source '$EZ/config.zsh'; _zanvil_dotfiles_migrate" </dev/null)
 
 echo '\.x' > "$EH/.stow-global-ignore"
 out=$(emig "source '$EZ/config.zsh'; _zanvil_dotfiles_migrate" </dev/null)
-{ [[ "$out" == *rc=0 && "$out" == *"bloquent les liens"* && "$out" == *"$EH/.stow-global-ignore"* && "$out" != *"relancer zanvil-dotfiles migrate"* ]] && echo ok || echo "$out"; } | assert_equals "fichier d'ignores Stow : liens sautes, cause nommee" ok
+{ [[ "$out" == *rc=0 && "$out" == *"$EH/.stow-global-ignore"* && "$out" != *"relancer zanvil-dotfiles migrate"* ]] && echo ok || echo "$out"; } | assert_equals "fichier d'ignores Stow : liens sautes, cause nommee" ok
+
+# "non" a l'adoption : le cask refuse est retire du Brewfile donne a brew bundle (qui l'adopterait sinon)
+for v in non echec; do
+    e2e_setup "$v"
+    [[ $v == non ]] && ans=non && EENV="FAKE_EXCLUDED=gh-desk FAKE_CLEAN_EMPTY=1" || { ans=oui; EENV="FAKE_EXCLUDED=gh-desk FAKE_ADOPT_FAIL=1"; }
+    out=$(printf 'pro\n%s\n' "$ans" | emig _zanvil_dotfiles_migrate); EENV=
+    { [[ "$out" == *rc=0 && -L "$EH/.config/app/conf" && -L "$EH/.config/app/autre" && "$(grep -c '^bundle install' "$ELOG")" == 1 ]] && echo ok || echo "$out"; } | assert_equals "cask $v : bundle install sans lui, migrate continue jusqu'aux liens" ok
+    { [[ "$out" == *"brew install --cask --adopt gh-desk"* ]] && echo ok || echo "$out"; } | assert_equals "cask $v : recapitulatif avec la commande manuelle" ok
+done
+{ [[ "$out" == *"Prochaine commande : zanvil-dotfiles cleanup"* ]] && echo ok || echo "$out"; } | assert_equals "cleanup : avec quelque chose a retirer, prochaine commande proposee" ok
+e2e_setup clean
+out=$(printf 'pro\nnon\n' | EENV=FAKE_CLEAN_EMPTY=1 emig _zanvil_dotfiles_migrate)
+{ [[ "$out" == *rc=0 && "$out" == *"Rien a desinstaller"* && "$out" != *"zanvil-dotfiles cleanup"* ]] && echo ok || echo "$out"; } | assert_equals "cleanup : rien a retirer, aucune prochaine commande cleanup" ok
+
+# liens en echec apres deplacement : le chemin de la sauvegarde est affiche
+e2e_setup linkfail; FS="$E/failstow"; mkdir -p "$FS"; printf '#!/bin/sh\necho boom >&2\nexit 1\n' > "$FS/stow"; chmod +x "$FS/stow"
+out=$(printf 'pro\nnon\n' | EPATH="$FS" emig _zanvil_dotfiles_migrate); BK=$(ls -d "$EH"/.zanvil-backup/* 2>/dev/null)
+{ [[ "$out" == *rc=1 && -n "$BK" && "$out" == *"$BK"* ]] && echo ok || echo "$out"; } | assert_equals "liens en echec : code 1, chemin de la sauvegarde affiche" ok
 else
     echo "  skip : bout en bout (stow absent)"
 fi

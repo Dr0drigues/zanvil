@@ -68,16 +68,22 @@ _zanvil_dotfiles_trust() {
         brew trust --cask "${new_c[@]}" || { _ui_msg_fail "brew trust --cask a echoue" >&2; return 1; }
         for name in "${new_c[@]}"; do _ui_msg_info "Approuve : $name"; done
     fi
+    typeset -g _ZANVIL_DOTFILES_TRUSTED=$(( ${#new_f} + ${#new_c} ))
     return 0
 }
 
+# $1 (interne, migrate) : Brewfile a utiliser tel quel, laisse en place. Sinon les trois Brewfiles fusionnes.
 _zanvil_dotfiles_install() {
-    _zanvil_dotfiles_merged || return 1
-    _zanvil_dotfiles_trust "$REPLY" || { rm -f "$REPLY"; return 1; }
+    local file="${1:-}"
+    if [[ -z "$file" ]]; then
+        _zanvil_dotfiles_merged || return 1
+        file="$REPLY"
+    fi
+    local rc=0
+    _zanvil_dotfiles_trust "$file" || rc=1
     # installe ce qui manque, sans tout mettre a jour
-    brew bundle install --no-upgrade --file="$REPLY"
-    local rc=$?
-    rm -f "$REPLY"
+    (( rc )) || brew bundle install --no-upgrade --file="$file" || rc=$?
+    [[ -n "${1:-}" ]] || rm -f "$file"
     return $rc
 }
 
@@ -103,6 +109,8 @@ _zanvil_dotfiles_pull() {
 
 # Stow --no-folding : les dossiers restent reels, seuls les fichiers sont des liens.
 # Un conflit (fichier reel a la place d'un lien) est affiche et bloque, rien n'est ecrase.
+# Arguments internes (migrate) : --skip=<paquet> l'ecarte, --ignore=<regex> est passe a Stow.
+# _ZANVIL_DOTFILES_LINKED = nombre de liens crees.
 _zanvil_dotfiles_link() {
     setopt localoptions extendedglob
     case "${ZANVIL_PROFILE:-}" in
@@ -113,19 +121,28 @@ _zanvil_dotfiles_link() {
     local dir=$(_zanvil_dotfiles_dir)
     local out= rc=0 line= p=
     # git ne garde pas de dossier vide : stow/perso manque souvent, ne passer que les paquets presents
-    local -a pkgs=()
+    local -a pkgs=() skip=() opts=()
+    typeset -g _ZANVIL_DOTFILES_LINKED=0
+    for p in "$@"; do
+        case "$p" in
+            --skip=*) skip+=("${p#--skip=}") ;;
+            *) opts+=("$p") ;;
+        esac
+    done
     for p in common "$ZANVIL_PROFILE"; do
-        [[ -d "$dir/stow/$p" ]] && pkgs+=("$p")
+        [[ -d "$dir/stow/$p" ]] && (( ! ${skip[(Ie)$p]} )) && pkgs+=("$p")
     done
     if (( ! ${#pkgs} )); then
-        _ui_msg_info "Aucun paquet dans $dir/stow (common, $ZANVIL_PROFILE) : rien a lier"
+        (( ${#skip} )) || _ui_msg_info "Aucun paquet dans $dir/stow (common, $ZANVIL_PROFILE) : rien a lier"
         return 0
     fi
-    out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" "${pkgs[@]}" 2>&1) || rc=$?
+    out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" "${opts[@]}" "${pkgs[@]}" 2>&1) || rc=$?
     if (( rc != 0 )); then
         # stow 2.4 : "  * cannot stow <src> over existing target <cible> since ..."
         # stow 2.3 : "  * existing target is neither a link nor a directory: <cible>"
         local -a conflicts=("${(@M)${(@f)out}:#[[:space:]]#\** *}")
+        # sans correspondance, l'expansion entre guillemets laisse un element vide
+        conflicts=("${(@)conflicts:#}")
         if (( ${#conflicts} )); then
             for line in "${conflicts[@]}"; do
                 _ui_fail "${line##[[:space:]]#\* }" >&2; echo >&2
@@ -135,7 +152,9 @@ _zanvil_dotfiles_link() {
         fi
         return 1
     fi
-    stow --no-folding -v -d "$dir/stow" -t "$HOME" "${pkgs[@]}"
+    stow --no-folding -v -d "$dir/stow" -t "$HOME" "${opts[@]}" "${pkgs[@]}" || return 1
+    local -a made=("${(@M)${(@f)out}:#LINK: *}")
+    _ZANVIL_DOTFILES_LINKED=${#${(@)made:#}}
 }
 
 # Deplace un fichier reel de $HOME dans la couche du depot, puis le relie
