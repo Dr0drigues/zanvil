@@ -214,12 +214,30 @@ _zanvil_dotfiles_cleanup_preview() {
     return 2
 }
 
+# Entrees brew/cask "tap/depot/nom" du Brewfile $1 sans option trusted: (une par ligne).
+_zanvil_dotfiles_undeclared_trust() {
+    local line=
+    for line in "${(@f)$(<"$1")}"; do
+        [[ "$line" =~ '^[[:space:]]*(brew|cask)[[:space:]]+"([^"]+/[^"]+/[^"]+)"' ]] || continue
+        [[ "$line" == *trusted:* ]] || print -r -- "${match[2]}"
+    done
+}
+
 # Liste ce que brew retirerait, puis ne retire qu'apres confirmation.
 _zanvil_dotfiles_cleanup() {
     _zanvil_dotfiles_merged || return 1
     local merged="$REPLY" rc=0
+    # sans approbation, brew refuse de charger les paquets de taps tiers et la simulation echoue
+    _zanvil_dotfiles_trust "$merged" || { rm -f "$merged"; return 1; }
     _zanvil_dotfiles_cleanup_preview "$merged" || rc=$?
     if (( rc == 0 )); then
+        # brew bundle cleanup --force remet les approbations de Homebrew a celles declarees dans le Brewfile
+        local -a undeclared=("${(@f)$(_zanvil_dotfiles_undeclared_trust "$merged")}")
+        undeclared=("${(@)undeclared:#}")
+        if (( ${#undeclared} )); then
+            _ui_msg_warn "brew retirera l'approbation de ces paquets, absente du Brewfile : ${undeclared[*]}"
+            _ui_msg_info "Ajouter ', trusted: true' a leur ligne dans le Brewfile pour la garder"
+        fi
         if _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
             brew bundle cleanup --formula --cask --tap --force --file="$merged" || rc=$?
         else
