@@ -105,3 +105,50 @@ _zanvil_dotfiles_migrate() {
         fi
     done
 }
+
+# Affiche (un par ligne) les casks du Brewfile $1 non geres par brew dont l'.app est deja dans /Applications.
+_zanvil_dotfiles_adopt_candidates() {
+    command -v jq &>/dev/null || return 0
+    local apps="${ZANVIL_APPLICATIONS_DIR:-/Applications}"
+    local -a have=("${(@f)$(brew list --cask -1 2>/dev/null)}") want=()
+    local line= name=
+    for line in "${(@f)$(<"$1")}"; do
+        [[ "$line" =~ '^[[:space:]]*cask[[:space:]]+"([^"]+)"' ]] || continue
+        name="${match[1]}"
+        (( ${have[(Ie)$name]} )) || want+=("$name")
+    done
+    (( ${#want} )) || return 0
+    local json=$(brew info --cask --json=v2 "${want[@]}" 2>/dev/null) tok= app=
+    [[ -n "$json" ]] || return 0
+    # tab : un nom d'appli peut contenir des espaces, jamais de tabulation
+    while IFS=$'\t' read -r tok app; do
+        (( ${have[(Ie)$tok]} )) && continue
+        [[ -n "$tok" && -n "$app" && -e "$apps/$app" ]] && print -r -- "$tok"
+    done < <(jq -r '.casks[]? | .token as $t | (.artifacts[]? | select(type == "object" and has("app")) | .app[0] | select(type == "string")) | "\($t)\t\(.)"' <<<"$json" 2>/dev/null)
+    return 0
+}
+
+# Propose d'adopter les candidats. REPLY = nombre de reussites ; echecs dans _ZANVIL_MIGRATE_FAILED_CASKS. Code 0.
+_zanvil_dotfiles_migrate_casks() {
+    typeset -ga _ZANVIL_MIGRATE_FAILED_CASKS=()
+    REPLY=0
+    local -a cands=("${(@f)$(_zanvil_dotfiles_adopt_candidates "$1")}")
+    cands=("${(@)cands:#}")
+    if (( ! ${#cands} )); then
+        _ui_msg_info "Aucune appli installee a la main a passer sous brew"
+        return 0
+    fi
+    _ui_msg_info "Applis deja installees, adoptables par brew : ${cands[*]}"
+    _zanvil_dotfiles_confirm "Les passer sous brew (--adopt) ?" || { _ui_msg_info "Rien n a ete adopte"; return 0; }
+    local c= n=0
+    for c in "${cands[@]}"; do
+        if brew install --cask --adopt "$c"; then
+            (( n++ ))
+        else
+            _ZANVIL_MIGRATE_FAILED_CASKS+=("$c")
+            _ui_msg_warn "Echec pour $c, a faire a la main : brew install --cask --adopt $c"
+        fi
+    done
+    REPLY=$n
+    return 0
+}

@@ -100,6 +100,32 @@ out=$(ZD_ENV="ZANVIL_ASSUME_TTY=1 ZANVIL_PROFILE=pro" zd '_zanvil_dotfiles_migra
 { [[ "$out" == *"brew bundle dump"* && "$out" == *rc=1 ]] && echo ok || echo "$out"; } | assert_equals "Brewfile manquant : code 1 et brew bundle dump" ok
 { [[ "$(cat "$CFGDIR/config.zsh" 2>/dev/null)" == *ZANVIL_PROFILE=pro* ]] && echo ecrit || echo non; } | assert_equals "migrate : config.zsh ecrit dans ZANVIL_DIR" ecrit
 
+# --- casks a adopter ---
+APPS="$TEST_TMPDIR/apps"; BIN2="$TEST_TMPDIR/bin2"; BF="$TEST_TMPDIR/cask.Brewfile"; LOG="$TEST_TMPDIR/brew.log"
+mkdir -p "$APPS/GitHub Desktop.app" "$APPS/Deja.app" "$BIN2"
+printf '%s\n' 'cask "gh-desk"' 'cask "absente"' 'cask "deja"' 'cask "police"' 'brew "jq"' > "$BF"
+cat > "$BIN2/brew" <<'FAKE'
+#!/bin/sh
+echo "$*" >> "$FAKE_LOG"
+case "$1 $2" in
+    "list --cask") echo deja ;;
+    "info --cask") echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]},{"zap":[]}]},{"token":"absente","artifacts":[{"app":["Absente.app"]}]},{"token":"deja","artifacts":[{"app":["Deja.app"]}]},{"token":"police","artifacts":[{"font":["x.ttf"]}]}]}' ;;
+    "install --cask") [ -n "$FAKE_ADOPT_FAIL" ] && exit 1; exit 0 ;;
+esac
+FAKE
+chmod +x "$BIN2/brew"
+ZB="ZANVIL_APPLICATIONS_DIR=$APPS FAKE_LOG=$LOG"
+ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB" zd "_zanvil_dotfiles_adopt_candidates '$BF'" | assert_equals "adopt : candidat = gh-desk seul (espaces, deja gere, absente, sans app)" gh-desk
+{ grep -c '^info --cask --json=v2' "$LOG"; } | assert_equals "adopt : un seul brew info" 1
+: > "$LOG"
+ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1" zd "_zanvil_dotfiles_migrate_casks '$BF'; echo \"rc=\$? n=\$REPLY\"" oui | grep -o 'rc=.*' | assert_equals "adopt oui : code 0, 1 reussite" "rc=0 n=1"
+{ grep -c '^install --cask --adopt gh-desk$' "$LOG"; } | assert_equals "adopt oui : install --adopt gh-desk" 1
+: > "$LOG"
+ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1" zd "_zanvil_dotfiles_migrate_casks '$BF'" non >/dev/null
+{ grep -c -- '--adopt' "$LOG"; } | assert_equals "adopt non : aucun --adopt" 0
+out=$(ZD_PATH="$BIN2:$GITDIR:/usr/bin:/bin" ZD_ENV="$ZB ZANVIL_ASSUME_TTY=1 FAKE_ADOPT_FAIL=1" zd "_zanvil_dotfiles_migrate_casks '$BF'; echo \"rc=\$? n=\$REPLY failed=\${_ZANVIL_MIGRATE_FAILED_CASKS[*]}\"" oui)
+{ [[ "$out" == *"rc=0 n=0 failed=gh-desk"* && "$out" == *"brew install --cask --adopt gh-desk"* ]] && echo ok || echo "$out"; } | assert_equals "adopt echec : code 0, liste des echecs, commande manuelle" ok
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]
