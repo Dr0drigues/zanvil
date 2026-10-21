@@ -48,8 +48,12 @@ out=$(env HOME="$H" ZANVIL_DIR="$CFGDIR" PATH="$BIN:$GITDIR:/usr/bin:/bin" zsh -
     _zanvil_dotfiles_migrate; echo rc=\$?" 2>&1 </dev/null)
 { [[ "$out" == *terminal* && "$out" == *rc=1 ]] && echo ok || echo "$out"; } | assert_equals "sans terminal : refus, code 1" ok
 
-mkdir -p "$TEST_TMPDIR/nostow"; printf '#!/bin/sh\nexit 0\n' > "$TEST_TMPDIR/nostow/brew"; chmod +x "$TEST_TMPDIR/nostow/brew"
-out=$(ZD_PATH="$TEST_TMPDIR/nostow:$GITDIR:/usr/bin:/bin" ZD_ENV="ZANVIL_ASSUME_TTY=1" zd '_zanvil_dotfiles_migrate; echo rc=$?')
+mkdir -p "$TEST_TMPDIR/nostow" "$TEST_TMPDIR/sysnostow"; printf '#!/bin/sh\nexit 0\n' > "$TEST_TMPDIR/nostow/brew"; chmod +x "$TEST_TMPDIR/nostow/brew"
+# Ubuntu (CI) installe stow dans /usr/bin : copie de /usr/bin et /bin en liens, sans stow
+for f in /usr/bin/* /bin/*; do
+    [[ "${f##*/}" == stow ]] || ln -sf "$f" "$TEST_TMPDIR/sysnostow/${f##*/}" 2>/dev/null
+done
+out=$(ZD_PATH="$TEST_TMPDIR/nostow:$GITDIR:$TEST_TMPDIR/sysnostow" ZD_ENV="ZANVIL_ASSUME_TTY=1" zd '_zanvil_dotfiles_migrate; echo rc=$?')
 { [[ "$out" == *stow* && "$out" == *rc=1 ]] && echo ok || echo "$out"; } | assert_equals "stow absent : nomme, code 1" ok
 
 # --- config_key ---
