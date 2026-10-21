@@ -34,7 +34,7 @@ cat > "$BIN/brew" <<EOF2
 #!/bin/sh
 echo "\$*" >> "$LOG"
 case "\$*" in
-    "trust --json v1") echo '{"taps":[],"formulae":["a/b/deja"],"casks":[]}'; exit 0 ;;
+    "trust --json v1") echo '{"taps":[],"formulae":["a/b/deja","felixkratz/formulae/borders"],"casks":[]}'; exit 0 ;;
     "trust "*) [ -n "\$FAKE_TRUST_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*--force*) [ -n "\$FAKE_FORCE_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*)
@@ -105,7 +105,7 @@ grep '^trust' "$LOG" | grep -c -e '--tap' | tr -d ' ' | assert_equals "install :
 grep '^trust' "$LOG" | grep -v -e '--json' | grep -c -e 'a/b/deja' -e 'jq' | tr -d ' ' | assert_equals "install : ni deja approuve ni jq" "0"
 FAKE_TRUST_FAIL=1 zd pro 'zanvil-dotfiles install >/dev/null 2>&1; echo "rc=$?"' | tail -1 | assert_equals "trust en echec : code 1" "rc=1"
 grep -c '^bundle install' "$LOG" | tr -d ' ' | assert_equals "trust en echec : pas de bundle install" "0"
-printf '%s\n' 'brew "a/b/deja"' 'brew "jq"' > "$DOT/brew/common.Brewfile"
+printf '%s\n' 'brew "a/b/deja"' 'brew "FelixKratz/formulae/borders"' 'brew "jq"' > "$DOT/brew/common.Brewfile"
 zd pro 'zanvil-dotfiles install' >/dev/null
 grep '^trust' "$LOG" | grep -vc -e '--json' | tr -d ' ' | assert_equals "tout approuve : aucun trust hors --json" "0"
 echo 'brew "common-tool"' > "$DOT/brew/common.Brewfile"

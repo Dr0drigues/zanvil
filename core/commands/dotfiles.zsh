@@ -46,8 +46,8 @@ _zanvil_dotfiles_trust() {
     local json=$(brew trust --json v1 2>/dev/null)
     local -a have_f=() have_c=() new_f=() new_c=()
     if command -v jq &>/dev/null && [[ -n "$json" ]]; then
-        have_f=("${(@f)$(jq -r '.formulae[]?' <<<"$json" 2>/dev/null)}")
-        have_c=("${(@f)$(jq -r '.casks[]?' <<<"$json" 2>/dev/null)}")
+        have_f=("${(@f)$(jq -r '.formulae[]? | ascii_downcase' <<<"$json" 2>/dev/null)}")
+        have_c=("${(@f)$(jq -r '.casks[]? | ascii_downcase' <<<"$json" 2>/dev/null)}")
     fi
     local line= kind= name=
     for line in "${(@f)$(<"$1")}"; do
@@ -55,9 +55,9 @@ _zanvil_dotfiles_trust() {
         kind=${match[1]} name=${match[2]}
         [[ "$name" == */*/* ]] || continue
         if [[ $kind == brew ]]; then
-            (( ${have_f[(Ie)$name]} || ${new_f[(Ie)$name]} )) || new_f+=("$name")
+            (( ${have_f[(Ie)${(L)name}]} )) || { new_f+=("$name"); have_f+=("${(L)name}"); }
         else
-            (( ${have_c[(Ie)$name]} || ${new_c[(Ie)$name]} )) || new_c+=("$name")
+            (( ${have_c[(Ie)${(L)name}]} )) || { new_c+=("$name"); have_c+=("${(L)name}"); }
         fi
     done
     if (( ${#new_f} )); then
