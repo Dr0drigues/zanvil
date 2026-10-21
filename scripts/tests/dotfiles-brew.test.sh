@@ -36,6 +36,7 @@ echo "\$*" >> "$LOG"
 case "\$*" in
     "trust --json v1") echo '{"taps":[],"formulae":["a/b/deja","felixkratz/formulae/borders"],"casks":[]}'; exit 0 ;;
     "trust "*) [ -n "\$FAKE_TRUST_FAIL" ] && exit 1; exit 0 ;;
+    *"bundle install"*) [ -n "\$FAKE_BUNDLE_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*--force*) [ -n "\$FAKE_FORCE_FAIL" ] && exit 1; exit 0 ;;
     *"bundle cleanup"*)
         [ -n "\$FAKE_DRY_FAIL" ] && { echo "Error: boom" >&2; exit 1; }
@@ -150,6 +151,22 @@ out=$(zd pro 'zanvil-dotfiles cleanup' "non
 " 1)
 { printf '%s\n' "$out" | grep -c "retirera l'approbation"; } | assert_equals "cleanup : tout est declare, aucun avertissement" 0
 cp "$TEST_TMPDIR/common.save" "$DOT/brew/common.Brewfile"
+
+echo "reglages macOS (macos.sh du depot, lance par install sur macOS seulement)"
+[[ "$(uname)" == Darwin ]] && on_mac=1 || on_mac=0
+echo "echo ran >> '$TEST_TMPDIR/macos.log'" > "$DOT/macos.sh"
+: > "$TEST_TMPDIR/macos.log"
+zd pro 'zanvil-dotfiles install' >/dev/null
+grep -c ran "$TEST_TMPDIR/macos.log" | tr -d ' ' | assert_equals "macos.sh lance apres install (macOS seulement)" "$on_mac"
+: > "$TEST_TMPDIR/macos.log"
+FAKE_BUNDLE_FAIL=1 zd pro 'zanvil-dotfiles install' >/dev/null
+grep -c ran "$TEST_TMPDIR/macos.log" | tr -d ' ' | assert_equals "install en echec : macos.sh non lance" "0"
+echo 'exit 3' > "$DOT/macos.sh"
+zd pro 'zanvil-dotfiles install >/dev/null 2>&1; echo "rc=$?"' | tail -1 | assert_equals "macos.sh en echec : install reste a 0" "rc=0"
+if (( on_mac )); then
+    zd pro 'zanvil-dotfiles install' | grep -c 'Reglages macOS incomplets' | tr -d ' ' | assert_equals "macos.sh en echec : avertissement" "1"
+fi
+rm -f "$DOT/macos.sh"
 
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"

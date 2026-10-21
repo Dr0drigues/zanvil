@@ -61,6 +61,7 @@ dotfiles/
 │   ├── common.Brewfile
 │   ├── pro.Brewfile
 │   └── perso.Brewfile
+├── macos.sh       # facultatif : réglages macOS (defaults write…)
 └── stow/
     ├── common/    # fichiers reproduits sous $HOME
     ├── pro/
@@ -68,6 +69,8 @@ dotfiles/
 ```
 
 Les paquets de zanvil lui-même sont dans `brew/base.Brewfile` (dans zanvil). Les trois couches (base, `common`, profil) sont fusionnées à l'installation.
+
+Sur macOS, si le dépôt contient un `macos.sh`, `zanvil-dotfiles install` le lance avec `sh` une fois les paquets installés. Le script doit pouvoir être relancé sans effet de bord. S'il échoue, un avertissement s'affiche, mais l'installation reste réussie.
 
 ## Ce que fait le script
 
