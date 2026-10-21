@@ -84,7 +84,15 @@ _zanvil_dotfiles_install() {
     # installe ce qui manque, sans tout mettre a jour
     (( rc )) || brew bundle install --no-upgrade --file="$file" || rc=$?
     [[ -n "${1:-}" ]] || rm -f "$file"
+    (( rc )) || _zanvil_dotfiles_macos
     return $rc
+}
+
+# Reglages macOS du depot (macos.sh a sa racine, idempotent), s'il existe. Un echec n'annule pas l'install.
+_zanvil_dotfiles_macos() {
+    local script="$(_zanvil_dotfiles_dir)/macos.sh"
+    [[ "$OSTYPE" == darwin* && -f "$script" ]] || return 0
+    sh "$script" || _ui_msg_warn "Reglages macOS incomplets : $script"
 }
 
 _zanvil_dotfiles_pull() {
