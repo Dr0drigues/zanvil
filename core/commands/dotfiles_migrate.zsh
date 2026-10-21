@@ -81,6 +81,29 @@ _zanvil_dotfiles_migrate_repo() {
     REPLY="$url"
 }
 
+# brew demande sudo pour adopter certaines applis et pour les installeurs .pkg ; le jeton
+# sudo expire au bout de 5 min, moins que certains telechargements : un seul mot de passe,
+# puis le jeton est entretenu en arriere-plan. _ZANVIL_DOTFILES_SUDO_PID = boucle a arreter.
+_zanvil_dotfiles_sudo_start() {
+    typeset -g _ZANVIL_DOTFILES_SUDO_PID=
+    command -v sudo &>/dev/null || return 0
+    if ! sudo -n true 2>/dev/null; then
+        _ui_msg_info "brew aura besoin des droits administrateur : mot de passe demande une seule fois"
+        if ! sudo -v; then
+            _ui_msg_warn "sudo refuse : brew redemandera le mot de passe au besoin" >&2
+            return 0
+        fi
+    fi
+    # fds fermes : la boucle ne doit retenir ni le terminal ni une substitution $(...)
+    { while sudo -n -v; do sleep 50; done } </dev/null >/dev/null 2>&1 &!
+    _ZANVIL_DOTFILES_SUDO_PID=$!
+}
+
+_zanvil_dotfiles_sudo_stop() {
+    [[ -n "${_ZANVIL_DOTFILES_SUDO_PID:-}" ]] && kill "$_ZANVIL_DOTFILES_SUDO_PID" 2>/dev/null
+    return 0
+}
+
 _zanvil_dotfiles_migrate() {
     _ui_header "Migration dotfiles"
     if [[ ! -t 0 && "${ZANVIL_ASSUME_TTY:-}" != 1 ]]; then
@@ -120,6 +143,7 @@ _zanvil_dotfiles_migrate() {
 
     _zanvil_dotfiles_merged || return 1
     local merged="$REPLY" inst="$REPLY"
+    _zanvil_dotfiles_sudo_start
     {
         # approuver avant d'adopter : un cask de tap tiers non approuve serait refuse
         _zanvil_dotfiles_trust "$merged" || return 1
@@ -137,7 +161,11 @@ _zanvil_dotfiles_migrate() {
                 print -r -- "$line"
             done > "$inst"
         fi
-        _zanvil_dotfiles_install "$inst" || { _ui_msg_fail "brew bundle install a echoue : migrate s'arrete" >&2; return 1; }
+        _zanvil_dotfiles_install "$inst" || {
+            _ui_msg_fail "brew bundle install a echoue : migrate s'arrete" >&2
+            _ui_msg_info "Corrigez les erreurs de brew ci-dessus, puis relancer zanvil-dotfiles migrate : ce qui est deja fait ne sera pas redemande" >&2
+            return 1
+        }
         _zanvil_dotfiles_migrate_configs || {
             [[ -n "$_ZANVIL_MIGRATE_BACKUP" ]] && _ui_msg_info "Fichiers deja deplaces dans : $_ZANVIL_MIGRATE_BACKUP" >&2
             return 1
@@ -175,6 +203,7 @@ _zanvil_dotfiles_migrate() {
         (( clean == 0 )) && _ui_msg_info "Prochaine commande : zanvil-dotfiles cleanup"
         return 0
     } always {
+        _zanvil_dotfiles_sudo_stop
         rm -f "$merged"
         [[ "$inst" != "$merged" ]] && rm -f "$inst"
     }

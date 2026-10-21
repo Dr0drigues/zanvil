@@ -27,7 +27,7 @@ export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=t GIT
 H="$TEST_TMPDIR/home"; DOT="$TEST_TMPDIR/dotfiles"; BIN="$TEST_TMPDIR/bin"; CFGDIR="$TEST_TMPDIR/zdir"
 mkdir -p "$H" "$BIN" "$CFGDIR/brew"
 echo "" > "$CFGDIR/brew/base.Brewfile"
-for t in brew stow; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$t"; chmod +x "$BIN/$t"; done
+for t in brew stow sudo; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$t"; chmod +x "$BIN/$t"; done
 GITDIR=$(dirname "$(command -v git)")
 
 # $1 = commande, $2 = stdin ; ZD_ENV = assignations VAR=val ; ZD_PATH = PATH de remplacement
@@ -281,13 +281,24 @@ case "$*" in
     "info --cask"*) echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]}]}]}' ;;
     "install --cask --adopt "*) [ -n "$FAKE_ADOPT_FAIL" ] && exit 1; echo "$4" >> "$FAKE_STATE" ;;
     # brew 7 adopte de lui-meme : un cask exclu (refuse ou en echec) ne doit plus lui etre donne
-    "bundle install"*) [ -n "$FAKE_EXCLUDED" ] && grep -q "^cask \"$FAKE_EXCLUDED\"" "${4#--file=}" && { echo "Error: $FAKE_EXCLUDED adopte malgre tout" >&2; exit 1; } ;;
+    "bundle install"*) [ -n "$FAKE_BUNDLE_FAIL" ] && exit 1; [ -n "$FAKE_EXCLUDED" ] && grep -q "^cask \"$FAKE_EXCLUDED\"" "${4#--file=}" && { echo "Error: $FAKE_EXCLUDED adopte malgre tout" >&2; exit 1; } ;;
     *"bundle cleanup"*--force*) exit 0 ;;
     *"bundle cleanup"*) [ -n "$FAKE_CLEAN_EMPTY" ] && exit 0; echo "Would uninstall formula: vieux"; exit 1 ;;
 esac
 exit 0
 FAKE
 chmod +x "$EB/brew"
+# faux sudo : jamais le vrai dans les tests ; -n true = jeton deja valide ?
+cat > "$EB/sudo" <<'FAKE'
+#!/bin/sh
+echo "sudo $*" >> "$FAKE_LOG"
+case "$*" in
+    "-n true") [ -n "$FAKE_SUDO_TOKEN" ] && exit 0; exit 1 ;;
+    "-v") [ -n "$FAKE_SUDO_FAIL" ] && exit 1; exit 0 ;;
+esac
+exit 0
+FAKE
+chmod +x "$EB/sudo"
 }
 e2e_setup ""
 # $1 = commande zsh, stdin = reponses ; EENV = assignations en plus ; EPATH = dossier place en tete du PATH
@@ -337,6 +348,24 @@ done
 e2e_setup clean
 out=$(printf 'pro\nnon\n' | EENV=FAKE_CLEAN_EMPTY=1 emig _zanvil_dotfiles_migrate)
 { [[ "$out" == *rc=0 && "$out" == *"Rien a desinstaller"* && "$out" != *"zanvil-dotfiles cleanup"* ]] && echo ok || echo "$out"; } | assert_equals "cleanup : rien a retirer, aucune prochaine commande cleanup" ok
+
+# sudo : mot de passe demande une seule fois au debut, jeton entretenu puis arrete
+e2e_setup sudo
+out=$(printf 'pro\nnon\n' | emig '_zanvil_dotfiles_migrate; r=$?; [[ -n "$_ZANVIL_DOTFILES_SUDO_PID" ]] && kill -0 $_ZANVIL_DOTFILES_SUDO_PID 2>/dev/null && echo keepalive-vivant; (exit $r)')
+{ grep -c '^sudo -v$' "$ELOG"; } | assert_equals "sudo : un seul sudo -v quand aucun jeton" 1
+{ [[ "$out" == *rc=0 && "$out" != *keepalive-vivant* ]] && echo ok || echo "$out"; } | assert_equals "sudo : entretien du jeton arrete a la fin" ok
+{ [[ $(grep -n '^sudo -v$' "$ELOG" | cut -d: -f1) -lt $(grep -n '^bundle install' "$ELOG" | cut -d: -f1) ]] && echo ok || cat "$ELOG"; } | assert_equals "sudo : demande avant brew bundle install" ok
+e2e_setup sudotoken
+out=$(printf 'pro\nnon\n' | EENV=FAKE_SUDO_TOKEN=1 emig _zanvil_dotfiles_migrate)
+{ grep -c '^sudo -v$' "$ELOG"; } | assert_equals "sudo : jeton deja valide, aucune question" 0
+e2e_setup sudofail
+out=$(printf 'pro\nnon\n' | EENV=FAKE_SUDO_FAIL=1 emig _zanvil_dotfiles_migrate)
+{ [[ "$out" == *rc=0 && "$out" == *"brew redemandera"* ]] && echo ok || echo "$out"; } | assert_equals "sudo refuse : avertissement, migrate continue" ok
+
+# echec de brew bundle : la relance est expliquee
+e2e_setup bundlefail
+out=$(printf 'pro\nnon\n' | EENV=FAKE_BUNDLE_FAIL=1 emig _zanvil_dotfiles_migrate)
+{ [[ "$out" == *rc=1 && "$out" == *"relancer zanvil-dotfiles migrate"* ]] && echo ok || echo "$out"; } | assert_equals "bundle en echec : relance expliquee" ok
 
 # liens en echec apres deplacement : le chemin de la sauvegarde est affiche
 e2e_setup linkfail; FS="$E/failstow"; mkdir -p "$FS"; printf '#!/bin/sh\necho boom >&2\nexit 1\n' > "$FS/stow"; chmod +x "$FS/stow"
