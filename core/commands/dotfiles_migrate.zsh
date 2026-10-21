@@ -177,7 +177,7 @@ _zanvil_dotfiles_stow_ignored() {
     [[ "${1%%/*}" == (README.*|LICENSE.*|COPYING) ]] && return 0
     local part=
     for part in "${(@s:/:)1}"; do
-        [[ "$part" == (.gitignore|.gitmodules|.cvsignore|.git|*\~|\#*\#|RCS|CVS|.\#*|_darcs|.stow-local-ignore) ]] && return 0
+        [[ "$part" == (.gitignore|.gitmodules|.cvsignore|.git|.svn|.hg|?*\~|?*,v|\#*\#|RCS|CVS|.\#?*|_darcs|.stow-local-ignore) ]] && return 0
     done
     return 1
 }
@@ -197,13 +197,21 @@ _zanvil_dotfiles_migrate_configs() {
     local layer= src= rel= target= parent= linked= answer= tmp= custom=
     for layer in "${layers[@]}"; do
         [[ -d "$layer" ]] || continue
+        # un fichier d'ignores remplace la liste par defaut de Stow (local, sinon global) : on ne sait pas l'interpreter
         custom=
         if [[ -e "$layer/.stow-local-ignore" ]]; then
-            custom=1
-            _ui_msg_warn "$layer/.stow-local-ignore : migrate ne sait pas l'interpreter, fichiers du paquet passes"
+            custom="$layer/.stow-local-ignore"
+        elif [[ -e "$HOME/.stow-global-ignore" ]]; then
+            custom="$HOME/.stow-global-ignore"
         fi
+        [[ -n "$custom" ]] && _ui_msg_warn "$custom : migrate ne sait pas l'interpreter, fichiers du paquet ${layer:t} passes"
         for src in "$layer"/**/*(.DN); do
             rel=${src#"$layer"/}
+            if [[ -n "$custom" ]]; then
+                seen[$rel]=1
+                passed[$rel]=1
+                continue
+            fi
             _zanvil_dotfiles_stow_ignored "$rel" && continue
             if [[ -n "${seen[$rel]:-}" ]]; then
                 _ui_msg_warn "$rel existe dans deux couches : passe"
@@ -211,10 +219,6 @@ _zanvil_dotfiles_migrate_configs() {
                 continue
             fi
             seen[$rel]=1
-            if [[ -n "$custom" ]]; then
-                passed[$rel]=1
-                continue
-            fi
             target="$HOME/$rel"
             # le plus haut dossier lie sous $HOME : on n'ecrit jamais a travers lui
             linked= parent=${target:h}

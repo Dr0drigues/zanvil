@@ -187,11 +187,18 @@ for f in .gitignore README.md sub/.git/config; do echo i > "$CD/stow/common/$f";
 echo i > "$CD/stow/pro/.x"; echo i > "$CH/.x"; echo '\.x' > "$CD/stow/pro/.stow-local-ignore"
 out=$(zconf "")
 { [[ -f "$CH/.gitignore" && -f "$CH/README.md" && -f "$CH/sub/.git/config" && -f "$CH/.x" && ! -e "$CH/.zanvil-backup" ]] && echo ok || echo "$out"; } | assert_equals "ignores par Stow et .stow-local-ignore : rien deplace, aucune sauvegarde" ok
-{ [[ "$out" == *".stow-local-ignore"* && "$out" == *"rc=0 n=1 "* ]] && echo ok || echo "$out"; } | assert_equals ".stow-local-ignore : signale, fichiers du paquet passes" ok
+{ [[ "$out" == *".stow-local-ignore"* && "$out" == *"rc=0 n=2 "* ]] && echo ok || echo "$out"; } | assert_equals ".stow-local-ignore : signale, tous les fichiers du paquet comptes passes" ok
 for o in noextendedglob extendedglob; do
-    zd "setopt $o; for r in README.md a/README.md LICENSE.txt COPYING 'f~' '#a#' '.#x' a/CVS/b .zshrc a/RCSx; do _zanvil_dotfiles_stow_ignored \"\$r\" && printf 'I ' || printf 'L '; done" \
-        | assert_equals "ignores Stow ($o) : README racine, LICENSE, COPYING, ~, #..#, .#, CVS ; pas a/README ni .zshrc" "I L I I I I I I L L "
+    zd "setopt $o; for r in README.md a/README.md LICENSE.txt COPYING 'f~' '#a#' '.#x' a/CVS/b f,v a/.svn/x .hg .zshrc a/RCSx ',v' '~'; do _zanvil_dotfiles_stow_ignored \"\$r\" && printf 'I ' || printf 'L '; done" \
+        | assert_equals "ignores Stow ($o) : README racine, LICENSE, COPYING, ~, #..#, .#, CVS, ,v, .svn, .hg ; pas a/README, .zshrc, ,v ni ~ seuls" "I L I I I I I I I I I L L L L "
 done
+
+# ~/.stow-global-ignore remplace la liste par defaut : paquet entier passe, rien deplace
+CH="$TEST_TMPDIR/cglob/home"; CD="$TEST_TMPDIR/cglob/dot"
+mkdir -p "$CH" "$CD/stow/common"; echo '\.y' > "$CH/.stow-global-ignore"
+for f in .y .gitignore; do echo i > "$CD/stow/common/$f"; echo i > "$CH/$f"; done
+out=$(zconf "")
+{ [[ -f "$CH/.y" && -f "$CH/.gitignore" && ! -e "$CH/.zanvil-backup" && "$out" == *".stow-global-ignore"* && "$out" == *"rc=0 n=2 "* ]] && echo ok || echo "$out"; } | assert_equals ".stow-global-ignore : signale, rien deplace, tous les fichiers comptes passes" ok
 
 # commit en echec apres l : depot restaure, local en place
 mkconf lfail; echo aa > "$CD/stow/common/.config/.aa"; ln -s "$CO/p.conf" "$CH/.config/.aa" # passe avant diff.conf
