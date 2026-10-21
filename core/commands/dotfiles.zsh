@@ -92,6 +92,7 @@ _zanvil_dotfiles_link() {
     out=$(stow --no-folding -n -v -d "$dir/stow" -t "$HOME" "${pkgs[@]}" 2>&1) || rc=$?
     if (( rc != 0 )); then
         # stow 2.4 : "  * cannot stow <src> over existing target <cible> since ..."
+        # stow 2.3 : "  * existing target is neither a link nor a directory: <cible>"
         local -a conflicts=("${(@M)${(@f)out}:#[[:space:]]#\** *}")
         if (( ${#conflicts} )); then
             for line in "${conflicts[@]}"; do

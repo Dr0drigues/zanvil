@@ -60,7 +60,8 @@ rm "$H/.config/demo/a.conf" "$H/.config/demo/b.conf"
 echo local > "$H/.config/demo/a.conf"
 out=$(zd 'zanvil-dotfiles link; echo "rc=$?"')
 echo "$out" | tail -1 | assert_equals "conflit : code 1" "rc=1"
-echo "$out" | grep -c '^cannot stow .*a\.conf' | tr -d ' ' | assert_equals "conflit : une ligne par conflit, qui nomme a.conf" "1"
+# stow 2.4 (macOS) : "cannot stow ... over existing target" ; stow 2.3 (Ubuntu) : "existing target is neither a link nor a directory"
+echo "$out" | grep -c -E '^(cannot stow|existing target).*a\.conf' | tr -d ' ' | assert_equals "conflit : une ligne par conflit, qui nomme a.conf" "1"
 { cat "$H/.config/demo/a.conf"; } | assert_equals "conflit : le fichier local est intact" "local"
 { kind "$H/.config/demo/b.conf"; } | assert_equals "conflit : rien n'est lie" "absent"
 
