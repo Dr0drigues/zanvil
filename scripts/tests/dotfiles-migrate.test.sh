@@ -215,6 +215,83 @@ out=$(zconf "p
 p")
 { [[ "$(grep -o '\[d\]epot' <<<"$out" | wc -l | tr -d ' ')" == 1 && "$out" == *"deux couches"* && "$out" == *"rc=0 n=1 "* ]] && echo ok || echo "$out"; } | assert_equals "deux couches : une question, signale, compte une fois" ok
 
+# --- suggestion apres mise a jour ---
+SZ="$TEST_TMPDIR/sugg"; mkdir -p "$SZ"
+sug() { env -u ZANVIL_PROFILE HOME="$H" ZANVIL_DIR="$SZ" ${1:-} PATH="/usr/bin:/bin" zsh -f -c "
+    source '$ROOT/core/ui.zsh'; source '$ROOT/core/commands/dotfiles.zsh'; source '$ROOT/core/commands/dotfiles_migrate.zsh'
+    _zanvil_dotfiles_suggest_migrate" 2>&1; }
+out=$(sug ZANVIL_PROFILE=pro)
+{ [[ -z "$out" && ! -e "$SZ/.dotfiles_migrate_suggested" ]] && echo ok || echo "$out"; } | assert_equals "suggestion : rien si ZANVIL_PROFILE defini" ok
+out=$(sug)
+{ [[ "$out" == *"zanvil-dotfiles migrate"* && -e "$SZ/.dotfiles_migrate_suggested" ]] && echo ok || echo "$out"; } | assert_equals "suggestion : affichee, fichier d'etat cree" ok
+sug | assert_equals "suggestion : plus jamais ensuite" ""
+{ grep -c '_zanvil_dotfiles_suggest_migrate' "$ROOT/core/lifecycle/auto_update.zsh"; } | assert_equals "suggestion : appelee dans _zanvil_do_update" 1
+{ git -C "$ROOT" check-ignore -q .dotfiles_migrate_suggested && echo ignore; } | assert_equals "suggestion : fichier d'etat gitignore" ignore
+
+# --- bout en bout ---
+if command -v stow >/dev/null 2>&1; then
+E="$TEST_TMPDIR/e2e"; EH="$E/home"; EZ="$E/zdir"; EB="$E/bin"; EA="$E/apps"; ELOG="$E/brew.log"; EST="$E/casks"
+mkdir -p "$EH/.config/app" "$EZ/brew" "$EB" "$EA/GitHub Desktop.app"; : > "$EZ/brew/base.Brewfile"; : > "$EST"
+printf '%s\n' '# ma config' 'MON_ALIAS=1' > "$EZ/config.zsh"
+command git init -q --bare "$E/remote.git"
+command git clone -q "$E/remote.git" "$EH/.dotfiles" 2>/dev/null
+D="$EH/.dotfiles"; mkdir -p "$D/brew" "$D/stow/common/.config/app"
+printf '%s\n' 'brew "acme/outils/truc"' 'cask "gh-desk"' > "$D/brew/common.Brewfile"
+printf '%s\n' 'brew "jq"' > "$D/brew/pro.Brewfile"
+echo same > "$D/stow/common/.config/app/conf"; echo same > "$EH/.config/app/conf"
+command git -C "$D" add -A; command git -C "$D" commit -qm init; command git -C "$D" push -q -u origin HEAD 2>/dev/null
+# un commit local non pousse : le recapitulatif doit rappeler git push
+echo autre > "$D/stow/common/.config/app/autre"; command git -C "$D" add -A; command git -C "$D" commit -qm local
+cat > "$EB/brew" <<'FAKE'
+#!/bin/sh
+echo "$*" >> "$FAKE_LOG"
+case "$*" in
+    "trust --json v1") echo '{"formulae":[],"casks":[]}' ;;
+    "list --cask -1") cat "$FAKE_STATE" ;;
+    "info --cask"*) echo '{"formulae":[],"casks":[{"token":"gh-desk","artifacts":[{"app":["GitHub Desktop.app"]}]}]}' ;;
+    "install --cask --adopt "*) echo "$4" >> "$FAKE_STATE" ;;
+    *"bundle cleanup"*--force*) exit 0 ;;
+    *"bundle cleanup"*) echo "Would uninstall formula: vieux"; exit 1 ;;
+esac
+exit 0
+FAKE
+chmod +x "$EB/brew"
+# $1 = commande zsh, stdin = reponses
+emig() {
+    env -u ZANVIL_PROFILE -u ZANVIL_DOTFILES_REPO -u ZANVIL_DOTFILES_DIR -u ZANVIL_WORK_DETECTED \
+        HOME="$EH" ZANVIL_DIR="$EZ" ZANVIL_ASSUME_TTY=1 ZANVIL_APPLICATIONS_DIR="$EA" FAKE_LOG="$ELOG" FAKE_STATE="$EST" \
+        PATH="$EB:$(dirname "$(command -v stow)"):$GITDIR:/usr/bin:/bin" zsh -f -c "
+        source '$ROOT/core/ui.zsh'; source '$ROOT/core/commands/dotfiles.zsh'; source '$ROOT/core/commands/dotfiles_migrate.zsh'
+        $1; echo rc=\$?" 2>&1
+}
+out=$(printf 'pro\noui\n' | emig _zanvil_dotfiles_migrate)
+{ [[ "$out" == *rc=0 ]] && echo ok || echo "$out"; } | assert_equals "e2e : code 0" ok
+{ cat "$EZ/config.zsh"; } | assert_equals "e2e : config.zsh garde ses lignes, gagne les 4 cles" "# ma config
+MON_ALIAS=1
+ZANVIL_PROFILE=pro
+ZANVIL_DOTFILES_REPO=\"$E/remote.git\"
+ZANVIL_DOTFILES_DIR=\"$D\"
+ZANVIL_WORK_DETECTED=true"
+{ [[ -L "$EH/.config/app/conf" && -L "$EH/.config/app/autre" && ! -L "$EH/.config/app" ]] && echo ok || ls -la "$EH/.config/app"; } | assert_equals "e2e : liens crees (--no-folding)" ok
+BK=$(ls -d "$EH"/.zanvil-backup/* 2>/dev/null)
+{ cat "$BK/.config/app/conf" 2>/dev/null; } | assert_equals "e2e : config identique sauvegardee" same
+{ grep -c '^trust --formula acme/outils/truc$' "$ELOG"; grep -c '^install --cask --adopt gh-desk$' "$ELOG"; grep -c '^bundle install --no-upgrade' "$ELOG"; } | tr '\n' ' ' | assert_equals "e2e : trust, adopt, bundle install journalises" "2 1 1 "
+{ grep -c '^bundle cleanup' "$ELOG"; grep -c -- '--force' "$ELOG"; grep -c 'uninstall' "$ELOG"; } | tr '\n' ' ' | assert_equals "e2e : simulation de cleanup, ni --force ni uninstall" "1 0 0 "
+{ [[ "$out" == *"vieux"* && "$out" == *"zanvil-dotfiles cleanup"* && "$out" == *"git -C $D push"* && "$out" == *"$BK"* && "$out" == *gh-desk* ]] && echo ok || echo "$out"; } | assert_equals "e2e : recapitulatif (cleanup, push, sauvegarde, applis)" ok
+
+head_before=$(command git -C "$D" rev-parse HEAD); nbk=$(ls "$EH/.zanvil-backup" | wc -l | tr -d ' ')
+out=$(emig "source '$EZ/config.zsh'; _zanvil_dotfiles_migrate" </dev/null)
+{ [[ "$out" == *rc=0 && "$out" != *"Profil de cette machine"* && "$out" != *"[o/N]"* && "$out" != *"[d]epot"* && "$out" != *"URL du depot"* ]] && echo ok || echo "$out"; } | assert_equals "relance : aucune question, code 0" ok
+{ ls "$EH/.zanvil-backup" | wc -l | tr -d ' '; command git -C "$D" rev-parse HEAD; } | tr '\n' ' ' | assert_equals "relance : aucune sauvegarde ni commit en plus" "$nbk $head_before "
+{ grep -c -- '--force' "$ELOG"; grep -c 'uninstall' "$ELOG"; } | tr '\n' ' ' | assert_equals "relance : ni --force ni uninstall" "0 0 "
+
+echo '\.x' > "$EH/.stow-global-ignore"
+out=$(emig "source '$EZ/config.zsh'; _zanvil_dotfiles_migrate" </dev/null)
+{ [[ "$out" == *rc=0 && "$out" == *"bloquent les liens"* && "$out" == *"$EH/.stow-global-ignore"* && "$out" != *"relancer zanvil-dotfiles migrate"* ]] && echo ok || echo "$out"; } | assert_equals "fichier d'ignores Stow : liens sautes, cause nommee" ok
+else
+    echo "  skip : bout en bout (stow absent)"
+fi
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]

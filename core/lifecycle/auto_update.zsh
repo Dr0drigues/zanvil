@@ -113,6 +113,9 @@ _zanvil_do_update() {
             fi
         fi
 
+        # Proposer migrate une seule fois (rien au demarrage du shell : seulement ici)
+        (( $+functions[_zanvil_dotfiles_suggest_migrate] )) && _zanvil_dotfiles_suggest_migrate
+
         # Splash zanvil apres une mise a jour reussie
         _zanvil_logo
 

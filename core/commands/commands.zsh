@@ -319,6 +319,7 @@ zanvil-help() {
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-theme [nom]" "Gestion themes Starship"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-ghostty [nom|sync]" "Gestion themes Ghostty"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-dotfiles [action]" "Depot dotfiles : Brewfiles et liens Stow"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-dotfiles migrate" "Applique le depot sur une machine deja configuree"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "mise-configure <tool>" "Hooks Work (java, maven)"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-git-bulk [action]" "Operations Git en masse"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "zanvil-ssl-setup" "Configure les certificats SSL"

@@ -175,27 +175,39 @@ _zanvil_dotfiles_adopt() {
     _ui_msg_ok "Adopte : $rel -> $layer"
 }
 
-# Liste ce que brew retirerait, puis ne retire qu'apres confirmation.
+# Affiche ce que brew retirerait pour le Brewfile fusionne $1, sans rien retirer.
+# Code 0 : quelque chose a retirer ; 2 : rien ; 1 : erreur.
 # Types limites a brew : sans filtre, brew 7 nettoie aussi vscode, npm, uv, cargo...
-_zanvil_dotfiles_cleanup() {
-    _zanvil_dotfiles_merged || return 1
-    local merged="$REPLY" out= rc=0
-    local -a types=(--formula --cask --tap)
+_zanvil_dotfiles_cleanup_preview() {
+    local out= rc=0
     # brew sort 1 en simulation quand il y a quoi retirer ; </dev/null : jamais sa propre question
-    out=$(brew bundle cleanup "${types[@]}" --file="$merged" 2>&1 </dev/null) || rc=$?
+    out=$(brew bundle cleanup --formula --cask --tap --file="$1" 2>&1 </dev/null) || rc=$?
     if [[ "$out" == *"Would uninstall"* || "$out" == *"Would untap"* ]]; then
         # brew liste aussi des dizaines de dossiers vides qui noient la vraie liste
         print -r -- "${(F)${(@)${(@f)out}:#Would remove \(empty directory\)*}}"
-        rc=0
+        return 0
+    fi
+    if (( rc != 0 )); then
+        _ui_msg_fail "brew bundle cleanup a echoue (code $rc) : $out" >&2
+        return 1
+    fi
+    _ui_msg_info "Rien a desinstaller"
+    return 2
+}
+
+# Liste ce que brew retirerait, puis ne retire qu'apres confirmation.
+_zanvil_dotfiles_cleanup() {
+    _zanvil_dotfiles_merged || return 1
+    local merged="$REPLY" rc=0
+    _zanvil_dotfiles_cleanup_preview "$merged" || rc=$?
+    if (( rc == 0 )); then
         if _zanvil_dotfiles_confirm "Retirer ces elements ?"; then
-            brew bundle cleanup "${types[@]}" --force --file="$merged" || rc=$?
+            brew bundle cleanup --formula --cask --tap --force --file="$merged" || rc=$?
         else
             _ui_msg_info "Rien n a ete desinstalle"
         fi
-    elif (( rc != 0 )); then
-        _ui_msg_fail "brew bundle cleanup a echoue (code $rc) : $out" >&2
-    else
-        _ui_msg_info "Rien a desinstaller"
+    elif (( rc == 2 )); then
+        rc=0
     fi
     rm -f "$merged"
     return $rc
