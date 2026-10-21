@@ -70,7 +70,15 @@ zd "_zanvil_dotfiles_config_key '$C' ZANVIL_WORK_DETECTED true" >/dev/null
 { cat "$C"; } | assert_equals "config_key : derniere ligne sans retour chariot" "A=1
 ZANVIL_WORK_DETECTED=true"
 
+rm -f "$C"
+zd "_zanvil_dotfiles_config_key '$C' ZANVIL_DOTFILES_REPO 'a \"b\" \$HOME \`x\` \\\\y'" >/dev/null
+zsh -f -c "source '$C'; print -r -- \"\$ZANVIL_DOTFILES_REPO\"" | assert_equals "config_key : valeur avec espace, guillemet, \$, backtick relue a l'identique" 'a "b" $HOME `x` \y'
+
 # --- profil ---
+printf 'A=1\n' > "$CFGDIR/config.zsh"; before=$(cksum < "$CFGDIR/config.zsh")
+out=$(ZD_ENV="ZANVIL_ASSUME_TTY=1 ZANVIL_PROFILE=work" zd '_zanvil_dotfiles_migrate; echo rc=$?')
+{ [[ "$out" == *"'work'"* && "$out" == *rc=1 && "$(cksum < "$CFGDIR/config.zsh")" == "$before" ]] && echo ok || echo "$out"; } | assert_equals "profil invalide pre-defini : refus, config.zsh intact" ok
+rm -f "$CFGDIR/config.zsh"
 ZD_ENV="ZANVIL_PROFILE=perso" zd '_zanvil_dotfiles_migrate_profile; echo "REPLY=$REPLY"' | assert_equals "profil defini : aucune question" "REPLY=perso"
 ZD_ENV="ZANVIL_BOULANGER_DETECTED=true" zd '_zanvil_dotfiles_migrate_profile >/dev/null; echo "REPLY=$REPLY"' "" | assert_equals "profil : defaut pro si Boulanger detecte" "REPLY=pro"
 zd '_zanvil_dotfiles_migrate_profile >/dev/null; echo "REPLY=$REPLY"' "" | assert_equals "profil : defaut perso" "REPLY=perso"

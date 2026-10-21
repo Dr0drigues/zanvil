@@ -9,7 +9,7 @@ _zanvil_dotfiles_config_key() {
         return 0
     fi
     case "$key" in
-        ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR) value="\"$value\"" ;;
+        ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR) value=${(qqq)value} ;;
     esac
     # fichier existant sans retour chariot final : ne pas coller la cle a la derniere ligne
     [[ -s "$file" && -n "$(tail -c1 "$file")" ]] && { echo >> "$file" || return 1; }
@@ -19,6 +19,10 @@ _zanvil_dotfiles_config_key() {
 # REPLY = pro ou perso. ZANVIL_PROFILE defini : repris sans question. Sinon 3 essais, puis code 1.
 _zanvil_dotfiles_migrate_profile() {
     if [[ -n "${ZANVIL_PROFILE:-}" ]]; then
+        case "$ZANVIL_PROFILE" in
+            pro|perso) ;;
+            *) _ui_msg_fail "ZANVIL_PROFILE doit valoir pro ou perso (actuel : '$ZANVIL_PROFILE')" >&2; return 1 ;;
+        esac
         REPLY="$ZANVIL_PROFILE"
         return 0
     fi
