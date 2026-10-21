@@ -403,7 +403,7 @@ install_tool "duf"   "duf"     "duf"     "duf"       # df colore
 install_tool "procs" "procs"   ""        "procs"     # ps moderne
 install_tool "btop"  "btop"    "btop"    "btop"      # top / moniteur TUI
 install_tool "gping" "gping"   ""        ""          # ping graphique (brew only)
-install_tool "tldr"  "tldr"    "tldr"    "tldr"      # exemples concrets (complement man)
+install_tool "tldr"  "tlrc"    "tldr"    "tldr"      # exemples concrets (complement man ; tlrc fournit la commande tldr)
 
 # 5. Gestionnaire de versions (mise - remplace NVM + SDKMAN)
 install_tool "mise"     "mise"      ""          ""
