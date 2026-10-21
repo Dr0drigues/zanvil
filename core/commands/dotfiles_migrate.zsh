@@ -2,15 +2,27 @@
 # Depend de core/ui.zsh et core/commands/dotfiles.zsh. Uniquement des definitions : rien ne s'execute au chargement.
 
 # Ajoute KEY=valeur en fin de fichier, seulement si aucune ligne non commentee ne definit deja KEY.
-# Une valeur existante est respectee. Cree le fichier s'il est absent.
+# Une valeur existante est respectee. Une valeur vide (KEY=, KEY="", KEY='') compte comme absente :
+# la derniere ligne de ce genre est remplacee sur place, les autres octets ne bougent pas. Cree le fichier s'il est absent.
 _zanvil_dotfiles_config_key() {
     local file="$1" key="$2" value="$3"
-    if [[ -f "$file" ]] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}=" "$file"; then
+    local empty="^([[:space:]]*(export[[:space:]]+)?${key}=)(\"\"|'')?[[:space:]]*\$"
+    if [[ -f "$file" ]] && grep -E "^[[:space:]]*(export[[:space:]]+)?${key}=" "$file" | grep -Evq "$empty"; then
         return 0
     fi
     case "$key" in
         ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR) value=${(qqq)value} ;;
     esac
+    if [[ -f "$file" ]] && grep -Eq "$empty" "$file"; then
+        # le point final garde les retours chariot de fin de fichier ; split puis join a l'identique
+        local content="$(cat "$file"; echo .)" i=
+        local -a lines=("${(@f)${content%.}}")
+        for (( i = ${#lines}; i > 0; i-- )); do
+            [[ "${lines[i]}" =~ "$empty" ]] && { lines[i]="${match[1]}$value"; break; }
+        done
+        print -rn -- "${(F)lines}" > "$file"
+        return
+    fi
     # fichier existant sans retour chariot final : ne pas coller la cle a la derniere ligne
     [[ -s "$file" && -n "$(tail -c1 "$file")" ]] && { echo >> "$file" || return 1; }
     echo "$key=$value" >> "$file"
