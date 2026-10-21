@@ -171,9 +171,20 @@ _zanvil_dotfiles_migrate_stash() {
     return 1
 }
 
+# Vrai si Stow ne lie jamais $1 (chemin relatif au paquet) : sa liste d'ignores par defaut.
+# Motifs echappes : # et ~ sont speciaux sous extendedglob.
+_zanvil_dotfiles_stow_ignored() {
+    [[ "${1%%/*}" == (README.*|LICENSE.*|COPYING) ]] && return 0
+    local part=
+    for part in "${(@s:/:)1}"; do
+        [[ "$part" == (.gitignore|.gitmodules|.cvsignore|.git|*\~|\#*\#|RCS|CVS|.\#*|_darcs|.stow-local-ignore) ]] && return 0
+    done
+    return 1
+}
+
 # Resout les fichiers de $HOME qui bloqueraient Stow (stow/common et stow/$ZANVIL_PROFILE).
 # REPLY = nombre de fichiers passes ; _ZANVIL_MIGRATE_BACKUP = dossier de sauvegarde, ou vide.
-# Code 0, sauf deplacement impossible (code 1, fichier laisse en place). Lit les reponses sur stdin.
+# Code 0, sauf deplacement ou commit impossible (code 1, fichier laisse en place). Lit les reponses sur stdin.
 _zanvil_dotfiles_migrate_configs() {
     typeset -g _ZANVIL_MIGRATE_BACKUP=
     REPLY=0
@@ -181,11 +192,29 @@ _zanvil_dotfiles_migrate_configs() {
     local backup="$HOME/.zanvil-backup/$(date +%Y%m%d-%H%M%S)"
     local -a layers=("$dir/stow/common") warned=()
     [[ -n "${ZANVIL_PROFILE:-}" ]] && layers+=("$dir/stow/$ZANVIL_PROFILE")
-    local layer= src= rel= target= parent= linked= answer= skipped=0
+    # chemins passes et chemins vus : un chemin n'est compte qu'une fois, meme present dans deux couches
+    local -A passed=() seen=()
+    local layer= src= rel= target= parent= linked= answer= tmp= custom=
     for layer in "${layers[@]}"; do
         [[ -d "$layer" ]] || continue
+        custom=
+        if [[ -e "$layer/.stow-local-ignore" ]]; then
+            custom=1
+            _ui_msg_warn "$layer/.stow-local-ignore : migrate ne sait pas l'interpreter, fichiers du paquet passes"
+        fi
         for src in "$layer"/**/*(.DN); do
-            rel=${src#$layer/}
+            rel=${src#"$layer"/}
+            _zanvil_dotfiles_stow_ignored "$rel" && continue
+            if [[ -n "${seen[$rel]:-}" ]]; then
+                _ui_msg_warn "$rel existe dans deux couches : passe"
+                passed[$rel]=1
+                continue
+            fi
+            seen[$rel]=1
+            if [[ -n "$custom" ]]; then
+                passed[$rel]=1
+                continue
+            fi
             target="$HOME/$rel"
             # le plus haut dossier lie sous $HOME : on n'ecrit jamais a travers lui
             linked= parent=${target:h}
@@ -198,23 +227,23 @@ _zanvil_dotfiles_migrate_configs() {
                     warned+=("$linked")
                     _ui_msg_warn "$linked est un lien : ses fichiers sont passes"
                 fi
-                (( skipped++ ))
+                passed[$rel]=1
                 continue
             fi
             if [[ -L "$target" ]]; then
                 [[ "${target:A}" == "${src:A}" ]] && continue
                 _ui_msg_warn "$target est un lien vers ailleurs : passe"
-                (( skipped++ ))
+                passed[$rel]=1
                 continue
             fi
             [[ -e "$target" ]] || continue
             if [[ ! -f "$target" ]]; then
                 _ui_msg_warn "$target n'est pas un fichier : passe"
-                (( skipped++ ))
+                passed[$rel]=1
                 continue
             fi
             if cmp -s "$src" "$target"; then
-                _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
                 _ZANVIL_MIGRATE_BACKUP=$backup
                 _ui_msg_ok "$rel identique au depot : sauvegarde"
                 continue
@@ -225,28 +254,41 @@ _zanvil_dotfiles_migrate_configs() {
             read -r answer
             case "${answer:l}" in
                 d)
-                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
                     _ZANVIL_MIGRATE_BACKUP=$backup
                     _ui_msg_ok "$rel : version du depot retenue, locale sauvegardee"
                     ;;
                 l)
+                    # copie du fichier du depot (modifie ou non suivi compris) pour le restaurer si le commit echoue
+                    tmp=$(mktemp) && cp "$src" "$tmp" || {
+                        _ui_msg_fail "Copie de secours de $src impossible : rien n'est touche" >&2
+                        [[ -n "$tmp" ]] && rm -f "$tmp"
+                        REPLY=${#passed}; return 1
+                    }
                     # commit limite a ce fichier : rien d'autre de deja indexe n'est embarque. Jamais de push.
-                    if ! cp "$target" "$src" || ! command git -C "$layer" add -- "$rel" \
-                        || ! command git -C "$layer" commit -q -m "migrate: version locale de $rel" -- "$rel"; then
-                        _ui_msg_fail "Copie ou commit de $rel impossible : $target reste en place" >&2
-                        return 1
+                    if ! cp "$target" "$src" || ! command git -C "$layer" --literal-pathspecs add -- "$rel" \
+                        || ! command git -C "$layer" --literal-pathspecs commit -q -m "migrate: version locale de $rel" -- "$rel"; then
+                        if cp "$tmp" "$src"; then
+                            command git -C "$layer" --literal-pathspecs reset -q -- "$rel"
+                            rm -f "$tmp"
+                            _ui_msg_fail "Commit de $rel impossible : fichier du depot restaure, $target reste en place" >&2
+                        else
+                            _ui_msg_fail "Commit de $rel impossible et restauration echouee : version du depot dans $tmp, $target reste en place" >&2
+                        fi
+                        REPLY=${#passed}; return 1
                     fi
-                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || return 1
+                    rm -f "$tmp"
+                    _zanvil_dotfiles_migrate_stash "$target" "$backup/$rel" || { REPLY=${#passed}; return 1; }
                     _ZANVIL_MIGRATE_BACKUP=$backup
                     _ui_msg_ok "$rel : version locale commitee dans le depot (pensez a git push), originale sauvegardee"
                     ;;
                 *)
                     _ui_msg_info "$rel passe"
-                    (( skipped++ ))
+                    passed[$rel]=1
                     ;;
             esac
         done
     done
-    REPLY=$skipped
+    REPLY=${#passed}
     return 0
 }

@@ -180,6 +180,34 @@ out=$(zconf "")
 mkconf ro; chmod 555 "$CH/.config/a"; out=$(zconf d); chmod 755 "$CH/.config/a"
 { [[ "$out" == *"rc=1"* && "$(cat "$CH/.config/a/same.conf")" == same ]] && echo ok || echo "$out"; } | assert_equals "deplacement impossible : code 1, fichier en place" ok; echo "$out" | grep -c "Deplacement impossible" | assert_equals "deplacement impossible : message" 1
 
+# fichiers ignores par Stow : jamais deplaces
+CH="$TEST_TMPDIR/cign/home"; CD="$TEST_TMPDIR/cign/dot"
+mkdir -p "$CH" "$CD/stow/common/sub/.git" "$CD/stow/pro"
+for f in .gitignore README.md sub/.git/config; do echo i > "$CD/stow/common/$f"; mkdir -p "$(dirname "$CH/$f")"; echo i > "$CH/$f"; done
+echo i > "$CD/stow/pro/.x"; echo i > "$CH/.x"; echo '\.x' > "$CD/stow/pro/.stow-local-ignore"
+out=$(zconf "")
+{ [[ -f "$CH/.gitignore" && -f "$CH/README.md" && -f "$CH/sub/.git/config" && -f "$CH/.x" && ! -e "$CH/.zanvil-backup" ]] && echo ok || echo "$out"; } | assert_equals "ignores par Stow et .stow-local-ignore : rien deplace, aucune sauvegarde" ok
+{ [[ "$out" == *".stow-local-ignore"* && "$out" == *"rc=0 n=1 "* ]] && echo ok || echo "$out"; } | assert_equals ".stow-local-ignore : signale, fichiers du paquet passes" ok
+for o in noextendedglob extendedglob; do
+    zd "setopt $o; for r in README.md a/README.md LICENSE.txt COPYING 'f~' '#a#' '.#x' a/CVS/b .zshrc a/RCSx; do _zanvil_dotfiles_stow_ignored \"\$r\" && printf 'I ' || printf 'L '; done" \
+        | assert_equals "ignores Stow ($o) : README racine, LICENSE, COPYING, ~, #..#, .#, CVS ; pas a/README ni .zshrc" "I L I I I I I I L L "
+done
+
+# commit en echec apres l : depot restaure, local en place
+mkconf lfail; echo aa > "$CD/stow/common/.config/.aa"; ln -s "$CO/p.conf" "$CH/.config/.aa" # passe avant diff.conf
+command git -C "$CD" add -A; command git -C "$CD" commit -qm aa
+printf '#!/bin/sh\nexit 1\n' > "$CD/.git/hooks/pre-commit"; chmod +x "$CD/.git/hooks/pre-commit"
+out=$(zconf l)
+{ [[ "$out" == *"rc=1 n=1 "* && "$out" == *restaure* && "$(cat "$CH/.config/a/diff.conf")" == local && "$(cat "$CD/stow/common/.config/a/diff.conf")" == depot && -z "$(command git -C "$CD" status --porcelain)" ]] && echo ok || echo "$out"; } | assert_equals "l, commit en echec : code 1, REPLY a jour, depot et index restaures, local en place" ok
+
+# meme chemin dans deux couches : une seule question, compte une fois
+CH="$TEST_TMPDIR/cdup/home"; CD="$TEST_TMPDIR/cdup/dot"
+mkdir -p "$CH" "$CD/stow/common" "$CD/stow/pro"
+echo c > "$CD/stow/common/.dup"; echo p > "$CD/stow/pro/.dup"; echo l > "$CH/.dup"
+out=$(zconf "p
+p")
+{ [[ "$(grep -o '\[d\]epot' <<<"$out" | wc -l | tr -d ' ')" == 1 && "$out" == *"deux couches"* && "$out" == *"rc=0 n=1 "* ]] && echo ok || echo "$out"; } | assert_equals "deux couches : une question, signale, compte une fois" ok
+
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]
