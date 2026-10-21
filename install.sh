@@ -219,6 +219,19 @@ install_tool() {
 }
 
 _install_write_config() {
+# Les lignes de l'ancien config.zsh que ce script ne genere pas (modules en plus,
+# exports, variables perso) sont recopiees a la fin au lieu d'etre perdues
+local kept=
+if [[ -f "$CONFIG_FILE" ]]; then
+    kept=$(awk '
+        skip { if ($0 ~ /^[[:space:]]*\)/) skip = 0; next }
+        /^[[:space:]]*(#|$)/ { next }
+        /^[[:space:]]*(ZANVIL_MODULE_(GITLAB|DOCKER|MISE|NUSHELL|KUBE)|ZANVIL_PLUGINS_ORG|ZANVIL_PLUGINS|ZANVIL_AUTO_UPDATE|ZANVIL_UPDATE_FREQUENCY|ZANVIL_UPDATE_MODE|ZANVIL_PROFILE|ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR|ZANVIL_WORK_DETECTED)=/ {
+            if ($0 ~ /\([[:space:]]*$/) skip = 1
+            next
+        }
+        { print }' "$CONFIG_FILE")
+fi
 cat > "$CONFIG_FILE" << EOF
 # ==============================================================================
 # Configuration ZANVIL - Generee par install.sh
@@ -257,6 +270,9 @@ ZANVIL_DOTFILES_DIR="$DOTFILES_DIR"
 # Contexte Work (deduit du profil pro)
 ZANVIL_WORK_DETECTED=$WORK_DETECTED
 EOF
+if [[ -n "$kept" ]]; then
+    printf '\n# Reglages personnels (conserves par install.sh)\n%s\n' "$kept" >> "$CONFIG_FILE"
+fi
 }
 
 # Valeur d'une variable dans un config.zsh existant (vide si absent), sans le sourcer

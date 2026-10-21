@@ -81,6 +81,31 @@ DOTFILES_DIR="/d/.dotfiles"
 _install_write_config
 grep "^ZANVIL_DOTFILES_DIR=" "$CONFIG_FILE" | assert_equals "ZANVIL_DOTFILES_DIR ecrit" 'ZANVIL_DOTFILES_DIR="/d/.dotfiles"'
 
+echo "_install_write_config : reglages personnels conserves"
+CONFIG_FILE="$TEST_TMPDIR/perso-config.zsh"
+cat > "$CONFIG_FILE" <<'EOF'
+# Configuration ZANVIL - ancienne
+ZANVIL_MODULE_GITLAB=true
+ZANVIL_MODULE_KUBE=true
+ZANVIL_MODULE_LAZYGIT=true
+ZANVIL_PLUGINS=(
+    zsh-syntax-highlighting
+)
+ZANVIL_UPDATE_MODE="auto"
+export GITLAB_BASE_DOMAIN="${GITLAB_BASE_DOMAIN:-gitlab.example.invalid}"
+MA_VARIABLE=42
+EOF
+PROFILE=perso MODULE_GITLAB=false MODULE_KUBE=false UPDATE_MODE=prompt WORK_DETECTED=false
+_install_write_config
+_install_write_config
+grep -c -E '^(ZANVIL_MODULE_LAZYGIT=true|export GITLAB_BASE_DOMAIN=|MA_VARIABLE=42)' "$CONFIG_FILE" \
+    | assert_equals "lignes personnelles conservees, une seule fois apres deux passes" "3"
+grep -c -E '^(ZANVIL_MODULE_GITLAB|ZANVIL_MODULE_KUBE|ZANVIL_UPDATE_MODE|ZANVIL_PLUGINS)=' "$CONFIG_FILE" \
+    | assert_equals "cles generees presentes une seule fois" "4"
+grep -E '^(ZANVIL_MODULE_KUBE|ZANVIL_UPDATE_MODE)=' "$CONFIG_FILE" | tr '\n' ' ' \
+    | assert_equals "les reponses de l'installation l'emportent" 'ZANVIL_MODULE_KUBE=false ZANVIL_UPDATE_MODE="prompt" '
+grep -c 'zsh-syntax-highlighting' "$CONFIG_FILE" | assert_equals "tableau ZANVIL_PLUGINS non duplique" "1"
+
 echo "_install_existing_value"
 load_fn _install_existing_value
 _install_existing_value "$TEST_TMPDIR/absent.zsh" ZANVIL_PROFILE | assert_equals "fichier absent : vide" ""
