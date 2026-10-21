@@ -114,6 +114,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 - **Flat .toml** : theme Starship uniquement (couleurs UI par defaut)
 - **Directory** : `prompt.toml` + `palette.zsh` (override des `_ui_*` variables en true color)
 - Etat stocke dans `.current_theme`, lu par `core/ui.zsh` au startup
+- `colors.sh` (0xAARRGGBB, sh/zsh) genere par `_zanvil_theme_colors` depuis `_ui_blue/_ui_white/_ui_dim` + `_theme_bg` de la palette (sous-shell, valeurs de repli) ; recharge sketchybar/borders s'ils tournent, ne les demarre jamais
 - Fichiers generes dans `~/.config/zanvil/theme/` (jamais dans les configs versionnees ni le depot dotfiles) : `starship.toml` (`STARSHIP_CONFIG` exporte par `core/hooks.zsh`), `ghostty` (inclus par `config-file = ?~/.config/zanvil/theme/ghostty`), k9s via `K9S_SKIN`. Un CLI Rust compile avant ce changement doit etre reconstruit
 
 ### Dotfiles (core/commands/dotfiles.zsh)
