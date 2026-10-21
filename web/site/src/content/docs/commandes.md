@@ -61,17 +61,17 @@ zanvil-dotfiles link
 
 `zanvil-dotfiles migrate` amène une machine installée à la main dans l'état décrit par le dépôt. Elle est interactive et refuse de tourner hors d'un terminal. Étapes :
 
-1. **Profil et dépôt** : demande le profil (`pro` ou `perso`) et l'URL du dépôt s'ils ne sont pas déjà définis, clone ou met à jour le dépôt (le pull est sauté si le dépôt a des modifications non commitées). Dans `config.zsh`, seules les clés absentes parmi `ZANVIL_PROFILE`, `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` et `ZANVIL_WORK_DETECTED` sont ajoutées ; le reste du fichier n'est pas touché.
+1. **Profil et dépôt** : demande le profil (`pro` ou `perso`) et l'URL du dépôt s'ils ne sont pas déjà définis, clone ou met à jour le dépôt (le pull est sauté si le dépôt a des modifications non commitées). Dans `config.zsh`, seules les clés absentes parmi `ZANVIL_PROFILE`, `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` et `ZANVIL_WORK_DETECTED` sont ajoutées (une clé présente mais vide, comme `ZANVIL_DOTFILES_REPO=""`, compte comme absente et sa ligne est remplacée sur place) ; le reste du fichier n'est pas touché. Si le pull échoue (par exemple un commit local non poussé alors que le dépôt distant a bougé), pousser ou rebaser dans le dépôt, puis relancer.
 2. **Paquets de taps tiers** : approuvés comme pour `install`.
 3. **Applis installées à la main** : les casks des Brewfile dont l'application est déjà dans `/Applications` sont proposés pour `brew install --cask --adopt`, après confirmation. Un échec est signalé avec la commande à lancer à la main.
-4. **Installation** de ce qui manque (`install`).
+4. **Installation** de ce qui manque (`install`). Homebrew adopte de lui-même une appli déjà présente : un cask refusé à l'étape 3, ou dont l'adoption a échoué, est donc retiré de la liste donnée à `brew bundle` et rappelé dans le récapitulatif avec la commande manuelle.
 5. **Configs en conflit** : un fichier de `$HOME` identique à celui du dépôt est simplement mis de côté. Sinon, le `diff` est affiché et l'outil demande :
    - `d` : garder la version du dépôt (la version locale est sauvegardée) ;
    - `l` : garder la version locale, qui est commitée dans le dépôt **en local seulement** (jamais de push), puis sauvegardée ;
    - `p` (défaut) : passer ; le fichier reste en place et la question revient à la prochaine relance.
-6. **Liens** (`link`), seulement si aucun fichier n'a été passé. Avec un `.stow-local-ignore` ou un `~/.stow-global-ignore`, migrate ne sait pas interpréter les règles : les fichiers du paquet sont passés et les liens sont à faire à la main avec `link`.
-7. **Simulation du nettoyage** : affiche ce que `cleanup` retirerait. **`migrate` ne désinstalle jamais rien** ; lancer ensuite `zanvil-dotfiles cleanup` pour le faire.
-8. **Récapitulatif** : profil, dépôt, applis passées sous brew et échecs, fichiers passés, chemin de la sauvegarde, rappel `git -C <dépôt> push` s'il y a des commits locaux.
+6. **Liens** (`link`, simulation puis application). Les fichiers passés sont laissés de côté, le reste est lié ; les fichiers en attente sont nommés et une relance de `migrate` les traite. Avec un `.stow-local-ignore` ou un `~/.stow-global-ignore`, migrate ne sait pas interpréter les règles : le paquet n'est pas lié, à faire à la main avec `link`. Si les liens échouent, le chemin de la sauvegarde est affiché.
+7. **Simulation du nettoyage** : affiche ce que `cleanup` retirerait. **`migrate` ne désinstalle jamais rien** ; s'il y a quelque chose à retirer, lancer ensuite `zanvil-dotfiles cleanup`.
+8. **Récapitulatif** : profil, dépôt, paquets approuvés, applis passées sous brew (échecs et casks laissés hors de `brew bundle`), configs liées, sauvegardées et passées, chemin de la sauvegarde, rappel `git -C <dépôt> push` s'il y a des commits locaux.
 
 Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMMJJ-HHMMSS>/`, avec son chemin relatif, jamais supprimé. Une relance ne repose de question que pour ce qui n'est pas encore en ordre. Après une mise à jour de zanvil, si aucun profil n'est défini, une ligne propose `migrate` (une seule fois).
 
