@@ -116,7 +116,7 @@ compdef _klog klog
 
 # Stern — completions natives + _ks
 if command -v stern &>/dev/null; then
-    source <(stern --completion zsh 2>/dev/null)
+    _zanvil_cached stern-completions stern --completion zsh && source "$REPLY"
 fi
 
 _ks() {

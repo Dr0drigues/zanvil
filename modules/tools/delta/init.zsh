@@ -27,10 +27,11 @@ if command -v delta &>/dev/null; then
 
         local lg_config="${ZANVIL_DIR}/config/lazygit/config.yml"
         if [[ -f "${lg_config}" ]]; then
-            if ! grep -q "pager: delta" "${lg_config}"; then
-                awk '/colorArg: always/{print; print "    pager: delta --dark --paging=never"; next}1' \
+            # lazygit 0.65 renomme pagers/pager en diffRenderers/command
+            if ! grep -q -E "(pager|command): delta" "${lg_config}"; then
+                awk '/colorArg: always/{print; print "      command: delta --dark --paging=never"; next}1' \
                     "${lg_config}" > "${lg_config}.tmp"
-                if grep -q "pager: delta" "${lg_config}.tmp" 2>/dev/null; then
+                if grep -q "command: delta" "${lg_config}.tmp" 2>/dev/null; then
                     mv "${lg_config}.tmp" "${lg_config}"
                     _ui_msg_ok "pager delta ajouté dans lazygit/config.yml"
                 else

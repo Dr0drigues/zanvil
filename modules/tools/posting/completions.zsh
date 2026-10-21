@@ -1,5 +1,6 @@
 (( $+functions[compdef] )) || return 0
 
 if command -v posting &>/dev/null; then
-    eval "$(posting --completion-script-zsh 2>/dev/null)" 2>/dev/null || true
+    # posting s appuie sur click : les completions passent par une variable, pas une option
+    _POSTING_COMPLETE=zsh_source _zanvil_cached posting-completions posting && source "$REPLY"
 fi

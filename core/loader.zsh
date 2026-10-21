@@ -14,7 +14,7 @@ source "$ZANVIL_DIR/core/ui.zsh"
 local _skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
 for _core_file in "$ZANVIL_DIR/core"/*.zsh(N) "$ZANVIL_DIR/core"/*/*.zsh(N); do
     [[ ! -f "$_core_file" ]] && continue
-    local _core_name="$(basename "$_core_file")"
+    local _core_name="${_core_file:t}"
     (( ${_skip_core[(Ie)$_core_name]} )) && continue
     source "$_core_file"
 done
@@ -35,7 +35,7 @@ _zanvil_lazy_load_module() {
 # --- 4. Charger les modules ---
 for _module_dir in "$ZANVIL_DIR/modules"/*/(N) "$ZANVIL_DIR/modules"/*/*/(N); do
     [[ ! -f "$_module_dir/init.zsh" ]] && continue
-    local _module_name="$(basename "$_module_dir")"
+    local _module_name="${${_module_dir%/}:t}"
     # Chemin relatif depuis modules/ (ex: "tools/lazygit") pour les modules depth-2
     local _module_rel="${_module_dir#$ZANVIL_DIR/modules/}"
 

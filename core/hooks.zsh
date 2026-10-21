@@ -32,7 +32,7 @@ fi
 # STARSHIP (Prompt)
 # =======================================================
 if command -v starship &> /dev/null; then
-    eval "$(starship init zsh)"
+    _zanvil_cached starship starship init zsh && source "$REPLY"
 else
     # Fallback minimaliste si starship absent
     PROMPT='%n@%m %1~ %# '
@@ -53,7 +53,7 @@ fi
 # Zoxide utilise un hook chpwd pour enregistrer les repertoires.
 if command -v zoxide &> /dev/null; then
     export _ZO_DOCTOR=0  # Desactive l'avertissement (direnv charge apres)
-    eval "$(zoxide init zsh)"
+    _zanvil_cached zoxide zoxide init zsh && source "$REPLY"
     alias cd="z"
 fi
 
@@ -61,7 +61,7 @@ fi
 # DIRENV (Charge/decharge les .envrc automatiquement)
 # =======================================================
 if command -v direnv &> /dev/null; then
-    eval "$(direnv hook zsh)"
+    _zanvil_cached direnv direnv hook zsh && source "$REPLY"
 fi
 
 # =======================================================
@@ -189,7 +189,7 @@ bindkey '^[OB' history-beginning-search-forward-end   # Fleche bas (mode applica
 # Chargé en dernier pour que Ctrl+R override celui de fzf.
 # --disable-up-arrow : les flèches ↑↓ restent en recherche par préfixe.
 if [[ "${ZANVIL_MODULE_ATUIN:-}" == "true" ]] && command -v atuin &>/dev/null; then
-    eval "$(atuin init zsh --disable-up-arrow)"
+    _zanvil_cached atuin-init atuin init zsh --disable-up-arrow && source "$REPLY"
 fi
 
 # =======================================================
