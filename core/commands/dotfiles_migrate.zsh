@@ -66,7 +66,8 @@ _zanvil_dotfiles_migrate_repo() {
         if [[ -n "$(command git -C "$dir" status --porcelain)" ]]; then
             _ui_msg_warn "Modifications non commitees dans $dir : pull saute, suite sur l'etat local"
         else
-            _zanvil_dotfiles_pull || return 1
+            # cas typique : un commit local (choix l) non pousse alors que le depot distant a bouge
+            _zanvil_dotfiles_pull || { _ui_msg_info "Commits locaux ? pousser ou rebaser dans $dir, puis relancer migrate" >&2; return 1; }
         fi
         [[ -n "$url" ]] || url=$(command git -C "$dir" remote get-url origin 2>/dev/null)
     else
