@@ -84,6 +84,13 @@ FAKE_RUNNING="sketchybar" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' \
     | assert_equals "sketchybar tourne : --reload" "sketchybar --reload"
 FAKE_RUNNING="" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' \
     | assert_equals "rien ne tourne : aucun appel" ""
+RECOLOR='mkdir -p "$X/sketchybar"; printf "#!/bin/sh\necho recolor >> \"$LOG\"\n" > "$X/sketchybar/recolor"; chmod +x "$X/sketchybar/recolor"'
+FAKE_RUNNING="sketchybar" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$RECOLOR" \
+    | assert_equals "recolor executable : recolor a la place de --reload" "recolor"
+FAKE_RUNNING="" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$RECOLOR" \
+    | assert_equals "recolor, barre arretee : rien" ""
+FAKE_RUNNING="sketchybar" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$RECOLOR; chmod -x \"\$X/sketchybar/recolor\"" \
+    | assert_equals "recolor non executable : --reload" "sketchybar --reload"
 FAKE_RUNNING="borders" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$BORDERS" \
     | assert_equals "borders tourne : bordersrc execute" "borders"
 FAKE_RUNNING="" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$BORDERS" \

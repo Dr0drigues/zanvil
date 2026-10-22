@@ -82,7 +82,12 @@ _zanvil_theme_colors() {
     printf 'export ZANVIL_BAR_BG=0xe6%s\nexport ZANVIL_BAR_TEXT=0xff%s\nexport ZANVIL_BAR_DIM=0xff%s\nexport ZANVIL_ACCENT=0xff%s\n' \
         "${c[@]}" > "$dir/colors.sh"
 
-    if pgrep -x sketchybar &>/dev/null; then sketchybar --reload &>/dev/null; fi
+    # Un <config sketchybar>/recolor executable recolore la barre en place ; sinon --reload, qui la
+    # reconstruit et attend chaque script.
+    if pgrep -x sketchybar &>/dev/null; then
+        local recolor="${XDG_CONFIG_HOME:-$HOME/.config}/sketchybar/recolor"
+        if [[ -x "$recolor" ]]; then "$recolor" &>/dev/null; else sketchybar --reload &>/dev/null; fi
+    fi
     if pgrep -x borders &>/dev/null && [[ -x "$HOME/.config/borders/bordersrc" ]]; then
         "$HOME/.config/borders/bordersrc" &>/dev/null
     fi

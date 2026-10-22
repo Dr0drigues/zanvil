@@ -30,8 +30,26 @@ COLORS="$HOME/.config/zanvil/theme/colors.sh"
 borders active_color="$ZANVIL_ACCENT" inactive_color=0x00000000 width=5.0 style=round
 ```
 
-Après `zanvil-theme`, zanvil lance `sketchybar --reload` et `~/.config/borders/bordersrc` si ces
+Après `zanvil-theme`, zanvil relance `~/.config/borders/bordersrc` et met la barre à jour si ces
 programmes tournent. Il ne les démarre jamais. `bordersrc` doit être exécutable.
+
+Pour la barre, `sketchybar --reload` la détruit puis la reconstruit, en attendant chaque script : le
+changement de thème se voit pendant plusieurs secondes. Si `~/.config/sketchybar/recolor` existe et
+est exécutable, zanvil le lance à la place. Ce script réapplique les couleurs de `colors.sh` aux
+éléments existants, puis `--update` :
+
+```sh
+#!/bin/sh
+. "$HOME/.config/zanvil/theme/colors.sh"
+sketchybar --set '/_island$/' background.color="$ZANVIL_BAR_BG" \
+           --set '/^space\.[DBNS]$/' label.color="$ZANVIL_BAR_DIM" background.color="$ZANVIL_ACCENT" \
+           --set '/^right\.clock$/' label.color="$ZANVIL_BAR_TEXT" \
+           --update
+```
+
+Un motif sans élément n'est qu'un avertissement : la suite s'applique. Les motifs ne gèrent pas
+l'alternance `(a|b)`. Appelé aussi en fin de `sketchybarrc`, ce script reste le seul endroit où les
+couleurs sont posées.
 
 Tant que `colors.sh` n'existe pas (première installation, ou thème appliqué avant cette
 fonctionnalité), la barre garde ses couleurs de repli : relancer `zanvil-theme <nom>` une fois.
