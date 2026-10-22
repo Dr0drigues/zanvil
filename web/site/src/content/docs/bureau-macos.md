@@ -36,6 +36,30 @@ programmes tournent. Il ne les démarre jamais. `bordersrc` doit être exécutab
 Tant que `colors.sh` n'existe pas (première installation, ou thème appliqué avant cette
 fonctionnalité), la barre garde ses couleurs de repli : relancer `zanvil-theme <nom>` une fois.
 
+### Clair et sombre en direct
+
+Avec `ZANVIL_THEME_LIGHT` et `ZANVIL_THEME_DARK` dans `config.zsh`, un élément SketchyBar invisible
+peut suivre le passage clair/sombre de macOS, sans outil supplémentaire : SketchyBar écoute la
+notification distribuée et lance `zanvil-theme auto`.
+
+```sh
+# sketchybarrc
+sketchybar --add event appearance_change AppleInterfaceThemeChangedNotification \
+           --add item appearance left \
+           --set appearance drawing=off updates=on script="$PLUGIN_DIR/appearance.sh" \
+           --subscribe appearance appearance_change
+```
+
+```sh
+# plugins/appearance.sh : zsh minimal, en arrière-plan (zanvil-theme recharge la barre)
+ZANVIL_DIR="$HOME/.zanvil" zsh -fc '
+  source "$ZANVIL_DIR/config.zsh"; source "$ZANVIL_DIR/core/ui.zsh"
+  source "$ZANVIL_DIR/core/commands/theme.zsh"; zanvil-theme auto' >/dev/null 2>&1 &
+```
+
+Le rechargement de la barre relance le script, mais le thème est alors déjà le bon : il ne se passe
+plus rien. Pour Ghostty, `zanvil-ghostty auto` lui fait suivre l'apparence lui-même.
+
 ## Démarrage
 
 Une seule source de démarrage, pour éviter les doublons : AeroSpace démarre à l'ouverture de session
@@ -54,6 +78,22 @@ Confidentialité et sécurité > Accessibilité). Vérifier la config sans l'app
 
 ```bash
 aerospace reload-config --dry-run --warnings-as-errors
+```
+
+### Terminal déroulant
+
+Ghostty a un terminal qui descend du haut de l'écran sur un raccourci global (accès Accessibilité
+requis pour Ghostty). Pour qu'il réponde dès l'ouverture de session, AeroSpace lance Ghostty en
+arrière-plan (`'exec-and-forget open -g -a Ghostty'` dans `after-startup-command`) et Ghostty
+n'ouvre pas de fenêtre au démarrage :
+
+```
+# ~/.config/ghostty/config
+keybind = global:cmd+alt+ctrl+shift+space=toggle_quick_terminal
+quick-terminal-position = top
+quick-terminal-screen = mouse
+quick-terminal-autohide = true
+initial-window = false
 ```
 
 ## Touche Hyper
