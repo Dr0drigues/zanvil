@@ -141,6 +141,22 @@ Les fichiers générés vont dans `~/.config/zanvil/theme/` (hors du dépôt dot
 
 Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le (`cd ~/.zanvil/cli && cargo build --release`).
 
+### Fond d'écran
+
+Sur macOS, si `~/.config/zanvil/wallpapers/<thème>.jpg` existe (ou `.jpeg`, `.png`, `.heic`, dans cet ordre), `zanvil-theme <thème>` le pose sur tous les écrans. Les images vous appartiennent : placez-les dans votre dépôt dotfiles. Sans image pour le thème, le fond ne change pas. Un fond imposé par une gestion de parc (MDM) peut reprendre le dessus.
+
+### Clair et sombre
+
+```zsh
+# config.zsh
+ZANVIL_THEME_LIGHT=tokyo-light-pro
+ZANVIL_THEME_DARK=tokyo-night-pro
+```
+
+`zanvil-theme auto` applique celui qui correspond à l'apparence du système ; zanvil le fait aussi à l'ouverture de chaque shell. Pour suivre un changement d'apparence en direct, faites lancer `zanvil-theme auto` à la notification `AppleInterfaceThemeChangedNotification`, par exemple par un élément SketchyBar (voir [Bureau macOS](/zanvil/bureau-macos/)).
+
+Ghostty sait suivre l'apparence lui-même, sans rechargement : `zanvil-ghostty auto` écrit dans le fichier généré une paire `theme = light:…,dark:…` (par défaut `tokyo-light-storm` et `tokyo-night-storm`, réglables par `ZANVIL_GHOSTTY_LIGHT` et `ZANVIL_GHOSTTY_DARK`). Rechargez la config Ghostty une fois.
+
 ## Profil machine et dotfiles
 
 ```zsh

@@ -89,6 +89,21 @@ _zanvil_theme_colors() {
     return 0
 }
 
+# Pose ~/.config/zanvil/wallpapers/<theme>.{jpg,jpeg,png,heic} sur tous les ecrans, s il existe (macOS).
+# NSWorkspace ne demande aucune autorisation, contrairement a System Events.
+_zanvil_theme_wallpaper() {
+    [[ "$OSTYPE" == darwin* ]] || return 0
+    local f
+    for f in "${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/wallpapers/$1".{jpg,jpeg,png,heic}(N); do
+        osascript -l JavaScript -e 'function run(argv) {
+            ObjC.import("AppKit");
+            var url = $.NSURL.fileURLWithPath(argv[0]), ws = $.NSWorkspace.sharedWorkspace, s = $.NSScreen.screens;
+            for (var i = 0; i < s.count; i++) ws.setDesktopImageURLForScreenOptionsError(url, s.objectAtIndex(i), $({}), null);
+        }' "$f" &>/dev/null || _ui_msg_warn "Fond d ecran non applique : $f"
+        return 0
+    done
+}
+
 zanvil-theme() {
     # Intercepter preview et auto avant delegation CLI
     if [[ "$1" == "preview" ]]; then
@@ -131,6 +146,7 @@ zanvil-theme() {
             [[ -f "$_p" ]] && source "$_p"
             _zanvil_k9s_apply_skin "$_theme_name"
             _zanvil_theme_colors "$_theme_name"
+            _zanvil_theme_wallpaper "$_theme_name"
             return 0
         fi
         # CLI d avant ~/.config/zanvil/theme : le repli zsh ecrit le bon fichier
@@ -235,6 +251,7 @@ zanvil-theme() {
     fi
     _zanvil_k9s_apply_skin "$theme"
     _zanvil_theme_colors "$theme"
+    _zanvil_theme_wallpaper "$theme"
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
 }
 
@@ -430,8 +447,10 @@ zanvil-ghostty() {
             fi
         done
 
+        grep -q '^theme = light:' "$generated" 2>/dev/null && \
+            echo -e "  ${_ui_green}*${_ui_nc} ${_ui_bold}auto${_ui_nc} - suit l'apparence de macOS ${_ui_cyan}(actif)${_ui_nc}"
         echo ""
-        echo -e "${_ui_dim}Usage: zanvil-ghostty <nom>${_ui_nc}"
+        echo -e "${_ui_dim}Usage: zanvil-ghostty <nom>|auto${_ui_nc}"
         echo -e "${_ui_dim}Sync:  zanvil-ghostty sync${_ui_nc}"
         return 0
     fi
@@ -471,6 +490,19 @@ zanvil-ghostty() {
 
         echo -e "${_ui_green}[OK]${_ui_nc} Config Ghostty synchronisee vers $dest_dir"
         echo -e "${_ui_cyan}[INFO]${_ui_nc} Redemarrez Ghostty pour appliquer les changements."
+        return 0
+    fi
+
+    # "auto" : Ghostty suit lui-meme l'apparence de macOS (theme = light:...,dark:...), sans rechargement
+    if [[ "$theme" = "auto" ]]; then
+        local light="${ZANVIL_GHOSTTY_LIGHT:-tokyo-light-storm}" dark="${ZANVIL_GHOSTTY_DARK:-tokyo-night-storm}" t
+        for t in "$light" "$dark"; do
+            [[ -f "$themes_dir/$t" ]] || { _ui_msg_fail "Theme Ghostty '$t' non trouve dans $themes_dir"; return 1; }
+        done
+        mkdir -p "${generated:h}"
+        print -r -- "theme = light:$themes_dir/$light,dark:$themes_dir/$dark" > "$generated"
+        _ui_msg_ok "Ghostty suit l'apparence de macOS : $light (clair), $dark (sombre)"
+        _ui_msg_info "Rechargez la config Ghostty (cmd+shift+,) une fois pour l'activer"
         return 0
     fi
 

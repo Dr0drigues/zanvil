@@ -41,6 +41,8 @@ exit 1
 EOS
 printf '#!/bin/sh\necho "sketchybar $*" >> "$LOG"\n' > "$BIN/sketchybar"
 printf '#!/bin/sh\nexit 0\n' > "$BIN/starship"
+# osascript : journalise le dernier argument (le chemin du fond d'ecran)
+printf '#!/bin/sh\nfor a; do :; done; echo "osascript $a" >> "$LOG"\n' > "$BIN/osascript"
 chmod +x "$BIN"/*
 
 # zc <commande> [setup] : theme_dir et HOME neufs, FAKE_RUNNING via l'environnement
@@ -88,6 +90,28 @@ FAKE_RUNNING="" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' "$BORDERS" \
     | assert_equals "borders arrete : bordersrc non execute" ""
 FAKE_RUNNING="borders" zc 'zanvil-theme minimal >/dev/null; echo rc=$?; cat "$LOG"' \
     | assert_equals "bordersrc absent : aucun appel, aucune erreur" "rc=0"
+
+echo "_zanvil_theme_wallpaper (macOS seulement)"
+W='mkdir -p "$X/zanvil/wallpapers"'
+zc '_zanvil_theme_wallpaper tokyo-night-pro; cat "$LOG"' "$W" \
+    | assert_equals "pas d'image pour ce theme : rien" ""
+if [[ "$(uname)" == Darwin ]]; then
+    zc '_zanvil_theme_wallpaper tokyo-night-pro; cat "$LOG"' "$W; touch \"\$X/zanvil/wallpapers/tokyo-night-pro.png\"" \
+        | assert_equals "image du theme posee" "osascript $X/zanvil/wallpapers/tokyo-night-pro.png"
+    zc '_zanvil_theme_wallpaper forge; cat "$LOG"' "$W; touch \"\$X/zanvil/wallpapers/forge.png\" \"\$X/zanvil/wallpapers/forge.jpg\"" \
+        | assert_equals "jpg avant png, un seul appel" "osascript $X/zanvil/wallpapers/forge.jpg"
+else
+    zc '_zanvil_theme_wallpaper forge; cat "$LOG"' "$W; touch \"\$X/zanvil/wallpapers/forge.jpg\"" \
+        | assert_equals "hors macOS : rien" ""
+fi
+
+echo "zanvil-ghostty auto"
+zc 'zanvil-ghostty auto >/dev/null; cat "$XDG_CONFIG_HOME/zanvil/theme/ghostty"' \
+    | assert_equals "paire clair/sombre par defaut" "theme = light:$Z/config/ghostty/themes/tokyo-light-storm,dark:$Z/config/ghostty/themes/tokyo-night-storm"
+zc 'ZANVIL_GHOSTTY_DARK=tokyo-night zanvil-ghostty auto >/dev/null; cat "$XDG_CONFIG_HOME/zanvil/theme/ghostty"' \
+    | assert_equals "theme sombre choisi" "theme = light:$Z/config/ghostty/themes/tokyo-light-storm,dark:$Z/config/ghostty/themes/tokyo-night"
+zc 'ZANVIL_GHOSTTY_DARK=nope zanvil-ghostty auto >/dev/null 2>&1; echo "rc=$? $([[ -f $XDG_CONFIG_HOME/zanvil/theme/ghostty ]] && echo ecrit || echo absent)"' \
+    | assert_equals "theme inconnu : code 1, rien d'ecrit" "rc=1 absent"
 
 echo
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
