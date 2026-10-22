@@ -111,6 +111,51 @@ Le script est relancé à chaque `install` : il doit pouvoir l'être sans effet 
 - Un libellé SketchyBar qui commence par des espaces est tronqué à droite : aligner avec l'icône
   plutôt qu'avec des espaces.
 
+## Plusieurs écrans
+
+Les espaces s'affectent aux écrans par une liste de motifs, essayés dans l'ordre : le premier qui
+correspond à un écran branché l'emporte. Ainsi, la même config sert au Mac seul, à la maison et au
+bureau, sans dépendre de l'ordre dans lequel les écrans sont branchés.
+
+```toml
+[workspace-to-monitor-force-assignment]
+    N = 'built-in'                                    # toujours l'écran du Mac
+    D = ['^(?!.*(built-in|samsung)).*$', 'built-in']  # 1er externe hors TV, sinon le Mac
+    B = [3, 'secondary', 'built-in']                  # 3e en partant de la gauche, sinon l'autre écran
+    V = ['SAMSUNG', 'secondary', 'built-in']          # la TV, par son nom
+```
+
+- `built-in` reconnaît l'écran intégré par son nom. Un autre nom (`SAMSUNG`) ou une expression
+  régulière vise un écran précis ; la casse est ignorée.
+- Un nombre désigne la position en partant de la gauche ; il change de sens selon les écrans
+  branchés, donc à réserver aux configurations à trois écrans ou plus.
+- `secondary` n'existe qu'avec exactement deux écrans : celui qui n'est pas l'écran principal de
+  macOS (Réglages Système > Moniteurs).
+- Quand plusieurs écrans correspondent à une expression, AeroSpace prend celui de gauche.
+- Toujours finir par `'built-in'` : sans écran externe, l'espace retombe sur le Mac.
+
+Pour exclure un écran (la TV pour l'espace de travail, par exemple), une expression avec un
+lookahead négatif fait l'affaire : `'^(?!.*(built-in|samsung)).*$'`. Les noms exacts des écrans
+s'obtiennent avec `aerospace list-monitors`.
+
+### Une barre par écran
+
+SketchyBar dessine la barre sur chaque écran. Pour qu'un élément d'espace n'apparaisse que sur
+l'écran où AeroSpace place cet espace, le script de l'élément lui donne `display=` à chaque événement.
+Les deux outils ne numérotent pas les écrans de la même façon : `%{monitor-id}` d'AeroSpace va de
+gauche à droite, alors que `display=` suit l'ordre de macOS. Le format
+`%{monitor-appkit-nsscreen-screens-id}` donne directement le numéro attendu par SketchyBar :
+
+```sh
+display=$(aerospace list-workspaces --all --format '%{workspace} %{monitor-appkit-nsscreen-screens-id}' \
+  | awk -v s="$sid" '$1 == s { print $2 }')
+[ -n "$display" ] && sketchybar --set "$NAME" display="$display"
+```
+
+L'élément s'abonne à `aerospace_workspace_change`, à `display_change` (branchement et débranchement)
+et à `system_woke`, avec `updates=on`. Sur `display_change`, attendre une seconde avant d'interroger
+AeroSpace : l'événement peut arriver avant qu'AeroSpace ait réaffecté les espaces.
+
 ## Limites connues
 
 - **Capot fermé** : sans écran intégré actif, les espaces affectés à `built-in` n'ont plus d'écran
