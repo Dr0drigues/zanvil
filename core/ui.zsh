@@ -323,6 +323,23 @@ _ui_truncate() {
         && export BAT_THEME_LIGHT=tokyonight_day BAT_THEME_DARK=tokyonight_night
 }
 
+# fzf, eza, lazygit : fichiers generes par zanvil-theme. Exporte seulement si le fichier existe
+# (sinon l'outil avertit ou perd sa config) ; rappelee par chaque generateur pour le shell courant.
+_zanvil_theme_exports() {
+    local d=${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme u
+    (( $+commands[fzf] )) && [[ -f $d/fzf ]] && export FZF_DEFAULT_OPTS_FILE=$d/fzf
+    (( $+commands[eza] )) && [[ -f $d/eza/theme.yml ]] && export EZA_CONFIG_DIR=$d/eza
+    if (( $+commands[lazygit] )) && [[ -f $d/lazygit.yml ]]; then
+        # Config utilisateur comme lazygit : XDG_CONFIG_HOME si defini, sinon le defaut de l'OS
+        if [[ -n $XDG_CONFIG_HOME ]]; then u=$XDG_CONFIG_HOME/lazygit/config.yml
+        elif [[ $OSTYPE == darwin* ]]; then u="$HOME/Library/Application Support/lazygit/config.yml"
+        else u=$HOME/.config/lazygit/config.yml; fi
+        [[ -f $u ]] && export LG_CONFIG_FILE="$u,$d/lazygit.yml" || export LG_CONFIG_FILE=$d/lazygit.yml
+    fi
+    return 0
+}
+_zanvil_theme_exports
+
 if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")

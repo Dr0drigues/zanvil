@@ -44,7 +44,8 @@ chmod +x "$BIN/k9s" "$BIN/delta" "$BIN/bat"
 export BATLOG="$TEST_TMPDIR/bat.log"
 
 # Garde : les vrais k9s, bat et delta ne doivent pas etre atteignables depuis le PATH minimal du test
-for tool in k9s bat delta; do
+for tool in fzf eza lazygit; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$tool"; chmod +x "$BIN/$tool"; done
+for tool in k9s bat delta fzf eza lazygit; do
     if PATH="$NOBIN:/usr/bin:/bin" command -v $tool >/dev/null; then
         echo "$tool reel accessible depuis le PATH de test" >&2; exit 2
     fi
@@ -54,7 +55,7 @@ done
 zt() {
     rm -rf "$H" "$X"; mkdir -p "$H/.config" "$X"
     eval "${2:-}"
-    env -u K9S_SKIN HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="${3:-$BIN}:/usr/bin:/bin" zsh -f -c "
+    env -u K9S_SKIN -u FZF_DEFAULT_OPTS_FILE -u EZA_CONFIG_DIR -u LG_CONFIG_FILE HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="${3:-$BIN}:/usr/bin:/bin" zsh -f -c "
         source '$Z/core/ui.zsh'
         source '$Z/core/commands/theme.zsh'
         SK=\"\$(_k9s_config_dir)/skins/zanvil.yaml\"
@@ -129,6 +130,38 @@ zt '_zanvil_theme_tools tokyo-night-pro; ls "$XDG_CONFIG_HOME/zanvil/theme" 2>/d
 zt '_zanvil_theme_mode tokyo-light-pro; _zanvil_theme_mode forge; _zanvil_theme_mode minimal' \
     | assert_equals "_theme_mode et repli par luminance" "$(printf 'light\ndark\nlight')"
 
+echo "fzf, eza, lazygit"
+TD='$XDG_CONFIG_HOME/zanvil/theme'
+# YAML : parse si PyYAML est utilisable, sinon controle de structure (cles de tete + pas de ligne vide de valeur)
+YOK="$TEST_TMPDIR/yamlok"
+cat > "$YOK" <<'SH'
+#!/bin/bash
+if python3 -c 'import yaml' 2>/dev/null; then python3 -c 'import sys,yaml; yaml.safe_load(open(sys.argv[1]))' "$1" && echo ok
+else grep -q '^[a-z]*:' "$1" && ! grep -q '^ *[a-z_A-Z]*: *$' "$1" | grep . >/dev/null && echo ok; fi
+SH
+chmod +x "$YOK"
+FZFRE='^--color=fg:#[0-9a-f]{6},bg:-1(,[a-z+]+:#[0-9a-f]{6}){11}$'
+for t in tokyo-night-pro minimal; do
+    zt "_zanvil_theme_tools $t; [[ \"\$(<$TD/fzf)\" =~ '$FZFRE' ]] && echo ok" | assert_equals "fzf ($t) : --color bien forme" ok
+    zt "_zanvil_theme_tools $t; [[ \"\$(<$TD/eza/theme.yml)\" == *'directory: {foreground: \"#'* ]] && $YOK $TD/eza/theme.yml" | assert_equals "eza ($t) : theme.yml valide" ok
+    zt "_zanvil_theme_tools $t; $YOK $TD/lazygit.yml; grep -c \"^    [a-zA-Z]*Color: \['#[0-9a-f]\{6\}'\" $TD/lazygit.yml | sed 's/^[1-9][0-9]*\$/couleurs/'" \
+        | assert_equals "lazygit ($t) : yaml valide, couleurs hex" "$(printf 'ok\ncouleurs')"
+done
+zt "_zanvil_theme_tools tokyo-night-pro; grep -o 'fg:#[0-9a-f]*,bg:-1,hl:#[0-9a-f]*' $TD/fzf; grep 'directory:' $TD/eza/theme.yml; grep activeBorderColor $TD/lazygit.yml | head -1" \
+    | assert_equals "tokyo-night-pro : couleurs de la palette" "$(printf 'fg:#a9b1d6,bg:-1,hl:#7aa2f7\n  directory: {foreground: "#7aa2f7"}\n    activeBorderColor: ['"'#7aa2f7'"', bold]')"
+zt "_zanvil_theme_tools minimal; grep -o 'hl:#[0-9a-f]*' $TD/fzf" | assert_equals "repli fzf : bleu de repli" "hl:#2e7de9"
+zt "_zanvil_theme_tools tokyo-night-pro; ls $TD 2>/dev/null" "" "$NOBIN" | assert_equals "outils absents : aucun fichier" ""
+zt '_zanvil_theme_tools tokyo-night-pro; echo "${FZF_DEFAULT_OPTS_FILE##*/}|${EZA_CONFIG_DIR##*/}|${LG_CONFIG_FILE##*/}|${FZF_DEFAULT_OPTS:-vide}"' \
+    | assert_equals "exports : fzf, eza, lazygit ; FZF_DEFAULT_OPTS intact" "fzf|eza|lazygit.yml|vide"
+zt 'echo "${FZF_DEFAULT_OPTS_FILE:-vide}|${EZA_CONFIG_DIR:-vide}|${LG_CONFIG_FILE:-vide}"' \
+    | assert_equals "fichiers absents : aucun export au demarrage" "vide|vide|vide"
+zt '_zanvil_theme_tools tokyo-night-pro; unset FZF_DEFAULT_OPTS_FILE EZA_CONFIG_DIR LG_CONFIG_FILE; source "$ZANVIL_DIR/core/ui.zsh"; echo "${FZF_DEFAULT_OPTS_FILE##*/}|${EZA_CONFIG_DIR##*/}|${LG_CONFIG_FILE##*/}"' \
+    | assert_equals "fichiers presents : exports constants au demarrage" "fzf|eza|lazygit.yml"
+zt '_zanvil_theme_tools tokyo-night-pro; unset FZF_DEFAULT_OPTS_FILE EZA_CONFIG_DIR LG_CONFIG_FILE; source "$ZANVIL_DIR/core/ui.zsh"; echo "${FZF_DEFAULT_OPTS_FILE:-vide}|${EZA_CONFIG_DIR:-vide}|${LG_CONFIG_FILE:-vide}"' "" "$NOBIN" \
+    | assert_equals "outils absents : pas d'export meme avec fichiers" "vide|vide|vide"
+zt '_zanvil_theme_tools tokyo-night-pro; echo "${LG_CONFIG_FILE//$XDG_CONFIG_HOME/X}"' 'mkdir -p "$X/lazygit"; touch "$X/lazygit/config.yml"' \
+    | assert_equals "lazygit : config utilisateur XDG d'abord" "X/lazygit/config.yml,X/zanvil/theme/lazygit.yml"
 echo
+
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
 [[ $(cat "$TEST_TMPDIR/fail") -eq 0 ]]

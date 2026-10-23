@@ -141,3 +141,117 @@ _zanvil_theme_tool_delta() {
     hunk-header-style = "#$p[cyan]"
 CFG
 }
+
+# Melange 20 % de $1 sur $2 (RRGGBB) : fond de ligne selectionnee.
+_zanvil_theme_blend() {
+    local o="" i
+    for i in 1 3 5; do o+=$(printf '%02x' $(( ($((16#${1[i,i+1]}))*2 + $((16#${2[i,i+1]}))*8) / 10 ))); done
+    print -r -- "$o"
+}
+
+# Charge la palette dans le tableau associatif $p de l'appelant.
+_zanvil_theme_load_p() {
+    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
+}
+
+# fzf : FZF_DEFAULT_OPTS_FILE (constant) ; fzf le combine avec FZF_DEFAULT_OPTS, qui reste prioritaire.
+_zanvil_theme_tool_fzf() {
+    local dir="$(_zanvil_theme_dir)"
+    local -A p; _zanvil_theme_load_p "$1"
+    mkdir -p "$dir" || return 0
+    print -r -- "--color=fg:#$p[fg],bg:-1,hl:#$p[blue],fg+:#$p[fg],bg+:#$(_zanvil_theme_blend $p[blue] $p[bg]),hl+:#$p[cyan],info:#$p[yellow],prompt:#$p[blue],pointer:#$p[magenta],marker:#$p[green],spinner:#$p[magenta],header:#$p[dim],border:#$p[dim]" > "$dir/fzf"
+    _zanvil_theme_exports
+}
+
+# eza : theme.yml dans EZA_CONFIG_DIR (constant ; eza >= 0.20).
+_zanvil_theme_tool_eza() {
+    local dir="$(_zanvil_theme_dir)/eza"
+    local -A p; _zanvil_theme_load_p "$1"
+    local k; for k in ${(k)p}; do p[$k]="{foreground: \"#${p[$k]}\"}"; done
+    mkdir -p "$dir" || return 0
+    cat > "$dir/theme.yml" <<YAML
+# Genere par zanvil-theme depuis la palette de '$1'
+colourful: true
+filekinds:
+  normal: $p[fg]
+  directory: $p[blue]
+  symlink: $p[cyan]
+  pipe: $p[yellow]
+  block_device: $p[yellow]
+  char_device: $p[yellow]
+  socket: $p[red]
+  special: $p[magenta]
+  executable: $p[green]
+  mount_point: $p[blue]
+perms:
+  user_read: $p[yellow]
+  user_write: $p[red]
+  user_execute_file: $p[green]
+  user_execute_other: $p[green]
+  group_read: $p[yellow]
+  group_write: $p[red]
+  group_execute: $p[green]
+  other_read: $p[yellow]
+  other_write: $p[red]
+  other_execute: $p[green]
+size:
+  major: $p[green]
+  minor: $p[cyan]
+  number_byte: $p[green]
+  number_kilo: $p[green]
+  number_mega: $p[green]
+  number_giga: $p[green]
+  number_huge: $p[green]
+  unit_byte: $p[dim]
+  unit_kilo: $p[dim]
+  unit_mega: $p[dim]
+  unit_giga: $p[dim]
+  unit_huge: $p[dim]
+users:
+  user_you: $p[yellow]
+  user_root: $p[red]
+  user_other: $p[magenta]
+  group_yours: $p[yellow]
+  group_other: $p[dim]
+  group_root: $p[red]
+links:
+  normal: $p[cyan]
+  multi_link_file: $p[red]
+git:
+  new: $p[green]
+  modified: $p[yellow]
+  deleted: $p[red]
+  renamed: $p[cyan]
+  typechange: $p[magenta]
+  ignored: $p[dim]
+  conflicted: $p[red]
+date: $p[blue]
+punctuation: $p[dim]
+YAML
+    _zanvil_theme_exports
+}
+
+# lazygit : gui.theme ; LG_CONFIG_FILE (constant) liste la config de l'utilisateur puis ce fichier.
+_zanvil_theme_tool_lazygit() {
+    local dir="$(_zanvil_theme_dir)"
+    local -A p; _zanvil_theme_load_p "$1"
+    local sel="$(_zanvil_theme_blend $p[blue] $p[bg])"
+    mkdir -p "$dir" || return 0
+    cat > "$dir/lazygit.yml" <<YAML
+# Genere par zanvil-theme depuis la palette de '$1'
+gui:
+  theme:
+    activeBorderColor: ['#$p[blue]', bold]
+    inactiveBorderColor: ['#$p[dim]']
+    searchingActiveBorderColor: ['#$p[yellow]', bold]
+    optionsTextColor: ['#$p[blue]']
+    selectedLineBgColor: ['#$sel']
+    inactiveViewSelectedLineBgColor: ['#$sel']
+    cherryPickedCommitFgColor: ['#$p[blue]']
+    cherryPickedCommitBgColor: ['#$sel']
+    markedBaseCommitFgColor: ['#$p[yellow]']
+    unstagedChangesColor: ['#$p[red]']
+    defaultFgColor: ['#$p[fg]']
+YAML
+    _zanvil_theme_exports
+}
