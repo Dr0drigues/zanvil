@@ -1,4 +1,4 @@
-export WORK_DIR="$HOME/work"
+export WORK_DIR="${WORK_DIR:-$HOME/work}"
 export SCRIPTS_DIR="$ZANVIL_DIR/scripts"
 
 # Ajouter ~/.local/bin au PATH pour les outils installes localement

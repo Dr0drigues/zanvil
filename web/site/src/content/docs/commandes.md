@@ -103,10 +103,14 @@ project clean
 ```
 
 `project open` s'arrête sur une notification si `glab`, `jq` ou `$WORK_DIR` manque, si la MR vient d'un fork, si la branche est déjà extraite dans le dépôt principal, si elle porte des commits non poussés ou si le dossier visé n'est pas un worktree du dépôt.
+Orca est facultatif : sa CLI est cherchée dans le `PATH`, puis dans l'application
+(`/Applications/Orca.app/Contents/Resources/bin/orca`) ; absente ou en échec, une notification le
+signale et IntelliJ IDEA s'ouvre quand même.
 
 Le ménage tourne aussi tout seul, en arrière-plan, au plus une fois par 24 h au démarrage du shell : il
 retire les worktrees dont la MR est fermée ou fusionnée, sans travail local non poussé. Il garde un worktree qui a des modifications, des fichiers non suivis, un stash ou des commits hors de la MR. Le résultat
-arrive en notification. Pour ouvrir la MR copiée d'un raccourci clavier, voir
+arrive en notification. La suppression emporte aussi les fichiers ignorés du worktree (`.env`, `.idea`,
+builds) ; la référence ajoutée dans Orca, elle, reste. Pour ouvrir la MR copiée d'un raccourci clavier, voir
 [Ouvrir une MR](/zanvil/bureau-macos/#ouvrir-une-mr).
 
 ## GitLab

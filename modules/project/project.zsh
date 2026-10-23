@@ -99,6 +99,8 @@ _project_open() {
                 || { _project_abort "Branche locale $branch divergente de origin : rien n'est touche" $created; return; }
         fi
         created+=("$(_project_first_missing "$wt")")
+        # un worktree efface a la main reste enregistre et bloquerait `worktree add`
+        git -C "$repo" worktree prune &>/dev/null
         git -C "$repo" worktree add --quiet --track -B "$branch" "$wt" "$remote" &>/dev/null \
             || { _project_abort "Worktree $wt impossible" $created; return; }
     else
@@ -127,13 +129,22 @@ _project_open() {
         fi
     fi
 
-    command -v orca &>/dev/null || { _project_notify "orca introuvable ; worktree pret : $wt"; return 1; }
-    orca repo add --path "$repo" &>/dev/null  # deja present : erreur sans consequence
-    orca repo set --repo "path:$repo" --external-worktree-visibility show &>/dev/null
-    orca terminal create --worktree "path:$wt" --title "!$iid" --focus &>/dev/null \
-        || { _project_notify "Onglet Orca impossible ; worktree pret : $wt"; return 1; }
-    orca reference add "$url" --worktree "path:$wt" &>/dev/null \
-        || _project_notify "Lien de la MR non attache dans Orca"
+    # Orca est un confort : sans lui (CLI absente ou en echec), on notifie et on ouvre IDEA quand meme
+    # la CLI d'Orca n'est sur aucun PATH par defaut : repli sur celle de l'appli
+    local orca=$(command -v orca) orca_app="${ZANVIL_ORCA_BIN:-/Applications/Orca.app/Contents/Resources/bin/orca}"
+    [[ -z "$orca" && -x "$orca_app" ]] && orca="$orca_app"
+    if [[ -z "$orca" ]]; then
+        _project_notify "orca introuvable ; worktree pret : $wt"
+    else
+        "$orca" repo add --path "$repo" &>/dev/null  # deja present : erreur sans consequence
+        "$orca" repo set --repo "path:$repo" --external-worktree-visibility show &>/dev/null
+        if "$orca" terminal create --worktree "path:$wt" --title "!$iid" --focus &>/dev/null; then
+            "$orca" reference add "$url" --worktree "path:$wt" &>/dev/null \
+                || _project_notify "Lien de la MR non attache dans Orca"
+        else
+            _project_notify "Onglet Orca impossible ; worktree pret : $wt"
+        fi
+    fi
 
     if command -v idea &>/dev/null; then
         idea "$wt" &>/dev/null
@@ -201,6 +212,10 @@ _project_clean() {
         branch="${ref#refs/heads/}"
         head=$(git -C "$wt" rev-parse -q --verify HEAD) || continue
         host=$(_project_remote_host "$(git -C "$repo" remote get-url origin 2>/dev/null)") || continue
+        # alias ~/.ssh/config (git@gitlab:...) : le vrai nom d'hote vient de ssh -G
+        # shortcut: non teste (pas de faux ssh), a couvrir si un alias pose probleme
+        [[ "$host" == *.* ]] || host=$(ssh -G -- "$host" 2>/dev/null | awk '/^hostname /{print $2}')
+        [[ -n "$host" ]] || continue
         json=$(GLAB_NO_PROMPT=1 GITLAB_HOST="$host" glab mr view "$branch" -R "$mr_path" -F json 2>/dev/null) || continue
         f=("${(@f)$(print -r -- "$json" | jq -r '.state, .sha' 2>/dev/null)}")
         state="${f[1]}" sha="${f[2]}"
@@ -257,13 +272,7 @@ project() {
     local sub="${1:-help}"
     (( $# )) && shift
     case "$sub" in
-        open|clean)
-            if (( $+functions[_project_$sub] )); then
-                "_project_$sub" "$@"
-            else
-                _ui_msg_fail "project $sub : pas encore disponible"
-                return 1
-            fi ;;
+        open|clean) "_project_$sub" "$@" ;;
         help|-h|--help) _project_help ;;
         *) _ui_msg_fail "sous-commande inconnue : $sub"; _project_help; return 1 ;;
     esac

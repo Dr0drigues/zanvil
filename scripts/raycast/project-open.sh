@@ -10,13 +10,15 @@ ZANVIL_DIR="${ZANVIL_DIR:-$HOME/.zanvil}"; export ZANVIL_DIR
 
 # le presse-papiers passe en argument ($1), jamais dans le code zsh ; un lien invalide
 # finit dans la notification de `project open`. Les secrets sont lus par zsh (syntaxe zsh
-# possible), sans rien sortir sur stdout : Raycast l'afficherait.
+# possible). stdout part a la poubelle (Raycast en afficherait la derniere ligne) : les
+# erreurs arrivent en notification.
 url=$(pbpaste)
 exec zsh -f -c '
     setopt extendedglob
     [[ -r "$HOME/.gitlab_secrets" ]] && source "$HOME/.gitlab_secrets" >/dev/null 2>&1
     [[ -f "$ZANVIL_DIR/config.zsh" ]] && source "$ZANVIL_DIR/config.zsh"
+    export WORK_DIR="${WORK_DIR:-$HOME/work}"  # meme defaut que core/variables.zsh
     source "$ZANVIL_DIR/core/ui.zsh"
     source "$ZANVIL_DIR/modules/project/project.zsh"
     project open "${${1##[[:space:]]#}%%[[:space:]]#}"
-' zanvil-raycast "$url"
+' zanvil-raycast "$url" >/dev/null

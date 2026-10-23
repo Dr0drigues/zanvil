@@ -131,7 +131,9 @@ IntelliJ IDEA. Dans Raycast, Extensions > **Script Commands** > Add Script Direc
 `~/.zanvil/scripts/raycast`. Assigner ensuite **Hyper+O** à la commande « Ouvrir la MR copiée ».
 
 Raycast lance le script sans le `PATH` Homebrew ni le jeton GitLab : il ajoute `/opt/homebrew/bin` au
-`PATH` et lit `~/.gitlab_secrets` avant d'appeler zanvil. Un presse-papiers qui n'est pas un lien de MR
+`PATH`, lit `~/.gitlab_secrets` et `config.zsh` (`$WORK_DIR` vaut `~/work` par défaut) avant d'appeler
+zanvil. La CLI d'Orca, absente de tout `PATH`, est prise dans `/Applications/Orca.app` ; sans elle,
+IntelliJ IDEA s'ouvre quand même. Un presse-papiers qui n'est pas un lien de MR
 donne une notification d'erreur.
 
 ## Réglages macOS

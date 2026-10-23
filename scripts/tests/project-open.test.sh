@@ -42,6 +42,7 @@ export HOME="$H" GIT_CONFIG_NOSYSTEM=1
 for b in orca idea open osascript; do
     printf '#!/bin/sh\necho "%s $*" >> "%s"\n' "$b" "$LOG" > "$BIN/$b"
 done
+printf '[ -z "${ORCA_FAIL:-}" ]\n' >> "$BIN/orca"
 cat > "$BIN/glab" <<EOS
 #!/bin/sh
 echo "glab GITLAB_HOST=\${GITLAB_HOST:-} \$*" >> "$LOG"
@@ -56,6 +57,11 @@ TPATH="$BIN:/usr/bin:/bin"  # PATH minimal : seuls les faux et les outils system
 for b in osascript orca idea open glab; do
     [[ "$(PATH="$TPATH" command -v $b)" == "$BIN/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
 done
+# meme PATH sans orca : pour les cas "orca absent" et "CLI de l'appli"
+NOORCA="$TEST_TMPDIR/bin-sans-orca"
+mkdir -p "$NOORCA"
+for b in "$BIN"/*; do [[ "${b##*/}" == orca ]] || ln -s "$b" "$NOORCA/"; done
+PATH="$NOORCA:/usr/bin:/bin" command -v orca >/dev/null && { echo "orca reel atteignable : abandon" >&2; exit 2; }
 
 mr_json() {  # <source_project_id>
     printf '{"state":"opened","source_branch":"feat/panier","sha":"x","source_project_id":%s,"target_project_id":7}\n' "$1" > "$JSON"
@@ -79,7 +85,7 @@ REPO="$W/group/sub/repo"
 WT="$W/group/sub/.worktrees/repo/feat-panier"
 
 po() {
-    PATH="$TPATH" WORK_DIR="$W" ZANVIL_DIR="$ROOT" zsh -f -c \
+    PATH="${P:-$TPATH}" ZANVIL_ORCA_BIN="${ORCA_APP:-/nonexistent}" WORK_DIR="$W" ZANVIL_DIR="$ROOT" zsh -f -c \
         'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/modules/project/project.zsh"; project open "$1"' _ "$URL" \
         >/dev/null 2>&1
 }
@@ -180,6 +186,30 @@ po; echo "rc=$?" | assert_equals "code 0" "rc=0"
 git -C "$WT" status --porcelain | assert_equals "ignore dans le worktree" ""
 { [[ -e "$REPO/.gitignore" || -e "$WT/.gitignore" ]] && echo touche || echo intact; } \
     | assert_equals ".gitignore versionne non touche" "intact"
+
+echo "worktree efface a la main"
+fresh
+po
+rm -rf "$WT"
+po; echo "rc=$?" | assert_equals "code 0" "rc=0"
+git -C "$WT" symbolic-ref --short HEAD 2>&1 | assert_equals "worktree recree" "feat/panier"
+
+echo "orca absent"
+fresh
+P="$NOORCA:/usr/bin:/bin" po; echo "rc=$?" | assert_equals "code 0" "rc=0"
+grep -c "^osascript.*orca introuvable" "$LOG" | assert_equals "notification" "1"
+grep -c "^idea $WT\$" "$LOG" | assert_equals "IDEA lance quand meme" "1"
+
+echo "orca hors PATH, CLI de l'appli"
+fresh
+P="$NOORCA:/usr/bin:/bin" ORCA_APP="$BIN/orca" po; echo "rc=$?" | assert_equals "code 0" "rc=0"
+grep -c "^orca terminal create --worktree path:$WT" "$LOG" | assert_equals "onglet Orca" "1"
+
+echo "orca en echec"
+fresh
+ORCA_FAIL=1 po; echo "rc=$?" | assert_equals "code 0" "rc=0"
+grep -c "^osascript.*Onglet Orca impossible" "$LOG" | assert_equals "notification" "1"
+grep -c "^idea $WT\$" "$LOG" | assert_equals "IDEA lance quand meme" "1"
 
 echo "MR d'un fork"
 fresh
