@@ -1,0 +1,63 @@
+# ==============================================================================
+# Exemple .zanvil.local hierarchique — cas OverTheWire (bandit, natas, ...)
+# ==============================================================================
+# Arborescence cible :
+#
+#   ~/ctf/otw/.zanvil.local        <- CE fichier (racine : serveur + port + helper)
+#   ~/ctf/otw/bandit0/.zanvil.local  <- genere par otw-next (USER + PASSWORD)
+#   ~/ctf/otw/bandit1/.zanvil.local
+#   ...
+#
+# En entrant dans n'importe quel sous-dossier, la chaine complete est chargee :
+# racine d'abord, puis l'enfant qui override les variables heritees.
+# Premier cd : zanvil demande d'approuver chaque fichier (trust hash-based).
+# ==============================================================================
+
+export OTW_HOST="bandit.labs.overthewire.org"
+export OTW_PORT="2220"
+
+# Connexion directe au niveau courant (le .local de l'enfant definit USER)
+otw-ssh() {
+    command -v ssh >/dev/null || { echo "ssh introuvable"; return 1; }
+    ssh "${OTW_USER}@${OTW_HOST}" -p "${OTW_PORT}"
+}
+
+# Cree le dossier du niveau suivant, demande le password, ecrit son .zanvil.local
+# Usage : otw-next bandit12
+otw-next() {
+    if [[ -z "$1" ]]; then
+        echo "usage: otw-next <user>"
+        return 1
+    fi
+    local level="$1"
+    mkdir -p "$level" || return 1
+
+    local password=""
+    read -rs "password?Password pour ${level} : "
+    print ""
+
+    cat > "$level/.zanvil.local" <<EOF
+export OTW_USER="${level}"
+export OTW_PASSWORD="${password}"
+EOF
+
+    # Approuver immediatement (sinon le prompt trust apparaitra au prochain cd)
+    zanvil-trust "$PWD/$level/.zanvil.local"
+    cd "$level"
+}
+
+# ==============================================================================
+# Contenu genere dans chaque enfant (ex: bandit12/.zanvil.local) :
+#
+#   export OTW_USER="bandit12"
+#   export OTW_PASSWORD="..."
+#
+# Note : on evite d'ecraser $USER (utilise par tout l'ecosysteme shell) ;
+# si vous preferez USER= quand meme, remplacez OTW_USER par USER ci-dessus.
+# Le unload restaure alors la valeur precedente automatiquement.
+#
+# Utilisation :
+#   cd ~/ctf/otw && source .zanvil.local   # ou laisser le hook faire au cd
+#   otw-next bandit0
+#   otw-ssh
+# ==============================================================================

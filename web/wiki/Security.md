@@ -76,10 +76,12 @@ Le fichier `.zanvil.local` permet de definir des variables d'environnement speci
 
 ### Fonctionnement
 
-1. Lorsque vous entrez dans un repertoire contenant `.zanvil.local`, zanvil calcule le hash SHA-256 du fichier
-2. Si le hash n'est pas dans la liste des fichiers approuves, zanvil affiche un avertissement et demande confirmation
+1. Lorsque vous entrez dans un repertoire couvert, zanvil collecte tous les `.zanvil.local` de l'arborescence (du dossier courant jusqu'a `$HOME`, exclu) et les charge de la racine vers le dossier courant — l'enfant override le parent
+2. Pour chaque fichier, le hash SHA-256 est verifie : s'il n'est pas approuve, zanvil affiche un avertissement et demande confirmation
 3. Une fois approuve, le hash est enregistre et le fichier sera charge automatiquement
 4. Si le fichier est modifie (hash different), une nouvelle approbation est requise
+5. Un fichier refuse n'est plus re-propose durant la session ; refuser un parent coupe le chargement de ses descendants (`zanvil-trust [chemin]` pour revalider)
+6. Au dechargement, les variables ajoutees sont supprimees, celles modifiees restauront leur valeur precedente, et les fonctions definies par les fichiers sont retirees
 
 ### Utilisation
 

@@ -75,15 +75,25 @@ sops ~/.zanvil/env.d/secrets.env
 
 ## Chargement local (.zanvil.local)
 
-Le fichier `.zanvil.local` dans un repertoire est auto-charge lorsque vous y entrez (similaire a direnv). Un mecanisme de confiance base sur un hash empeche l'execution de fichiers non approuves.
+Le fichier `.zanvil.local` est auto-charge lorsque vous entrez dans un repertoire (similaire a direnv). Un mecanisme de confiance base sur un hash empeche l'execution de fichiers non approuves.
 
-```bash
-# Creer un fichier local
-echo 'export NODE_ENV=development' > /path/to/project/.zanvil.local
+### Heritage hierarchique
 
-# La premiere fois, zanvil demandera d'approuver le fichier
-# Apres approbation, il sera charge automatiquement
+Le systeme gere les arborescences : en entrant dans un dossier, zanvil charge toute la chaine des `.zanvil.local`, de la racine projet vers le dossier courant. L'enfant override les variables du parent.
+
 ```
+~/ctf/otw/.zanvil.local          # racine : serveur, port, fonctions helper
+~/ctf/otw/bandit0/.zanvil.local  # enfant : USER, PASSWORD
+```
+
+Regles :
+
+- La remontee s'arrete a `$HOME` (exclu) — pour du global, utilisez `config.zsh` ou `env.d/`
+- Le trust est evalue par fichier ; refuser un parent coupe l'heritage pour ses enfants
+- Au dechargement : variables ajoutees supprimees, variables modifiees restaurees, fonctions definies retirees
+- Utilisez uniquement `export VAR=...`
+
+Un exemple complet (OverTheWire) est disponible dans `examples/zanvil.local.overthewire.example`.
 
 Voir [[Security]] pour les details du mecanisme de confiance.
 
