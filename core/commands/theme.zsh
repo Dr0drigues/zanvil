@@ -19,7 +19,6 @@ _k9s_config_dir() {
 }
 [[ -f "$ZANVIL_DIR/core/commands/theme_tools.zsh" ]] && source "$ZANVIL_DIR/core/commands/theme_tools.zsh"
 
-
 # Dossier des fichiers generes pour le theme courant. Les configs (souvent des liens
 # Stow vers le depot dotfiles) incluent ces fichiers ; zanvil n ecrit jamais dans les configs.
 _zanvil_theme_dir() {

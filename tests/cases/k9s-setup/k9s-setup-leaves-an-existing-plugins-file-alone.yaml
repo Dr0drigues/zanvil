@@ -28,7 +28,7 @@ setup:
   source: ["core/ui.zsh", "core/commands/theme.zsh", "modules/kube/kube_config.zsh"]
   # La fonction depose QUATRE fichiers ; chacun est verifie, et le plugins.yaml de
   # l utilisateur est verifie intact.
-  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/tokyo-night-pro.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$K9S_SKIN\"; printf 'ANCIEN_SKIN:%s\\n' \"$(grep -c 'un-skin-que-l-utilisateur-avait' \"$d/config.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
+  call: ["eval", "kube_k9s_setup >/dev/null 2>&1; d=$(_k9s_config_dir); printf 'DEPOSE:%s\\n' \"$(grep -m1 '^log-json-pod:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'CLE_RACINE:%s\\n' \"$(grep -c '^plugins:' \"$d/plugins/zanvil.yaml\" 2>/dev/null)\"; printf 'INTACT:%s\\n' \"$(grep -c 'mon-plugin-a-moi' \"$d/plugins.yaml\" 2>/dev/null)\"; printf 'HOTKEYS:%s\\n' \"$(grep -c 'hotKey' \"$d/hotkeys.yaml\" 2>/dev/null)\"; printf 'SKIN_FICHIER:%s\\n' \"$(test -s \"$d/skins/zanvil.yaml\" && echo oui || echo non)\"; printf 'SKIN_CHOISI:%s\\n' \"$K9S_SKIN\"; printf 'ANCIEN_SKIN:%s\\n' \"$(grep -c 'un-skin-que-l-utilisateur-avait' \"$d/config.yaml\" 2>/dev/null)\"; kube_k9s_setup 2>&1 | grep -i 'plugins.yaml existe'"]
   env:
     ZANVIL_DIR: "$HOME/zanvil"
     ZANVIL_MODULE_KUBE: "true"
@@ -54,13 +54,13 @@ expect:
       # Les trois autres fichiers que la fonction depose, et qui n etaient assertes par
       # rien — ils apparaissaient en « ecritures non assertees » du rapport.
       #
-      # hotkeys.yaml est une copie simple ; le skin passe par _zanvil_k9s_apply_skin, qui
-      # ecrit le fichier de skin et selectionne son NOM par K9S_SKIN, que k9s lit avant
+      # hotkeys.yaml est une copie simple ; le skin passe par _zanvil_theme_tool_k9s, qui
+      # ecrit skins/zanvil.yaml (nom fixe) ; K9S_SKIN=zanvil est constant, que k9s lit avant
       # config.yaml. config.yaml n est plus edite : il peut etre un lien Stow vers les
       # dotfiles (voir not_written).
       - "HOTKEYS:1"
       - "SKIN_FICHIER:oui"
-      - "SKIN_CHOISI:tokyo-night-pro"
+      - "SKIN_CHOISI:zanvil"
       # La ligne `skin:` de l utilisateur reste telle quelle : K9S_SKIN l emporte sur
       # elle sans que zanvil reecrive config.yaml.
       - "ANCIEN_SKIN:1"
