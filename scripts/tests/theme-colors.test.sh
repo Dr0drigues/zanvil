@@ -76,8 +76,15 @@ zc "zanvil-theme tokyo-light-pro >/dev/null; zsh -f -c '. \"\$XDG_CONFIG_HOME/za
     | assert_equals "sourcable par zsh" "0xff2e7de9"
 zc 'zanvil-theme tokyo-light-pro >/dev/null; print -r -- ${_ui_blue//$'"'\\033'"'/E}' \
     | assert_equals "_ui_* de la session geres par le code existant" "E[38;2;46;125;233m"
+# Les generateurs d'outils (theme_tools.zsh) ecrivent aussi, si l'outil est present sur la machine
+# de test (tmux sur ubuntu-latest), dans <theme_dir> ou le dossier de themes de l'outil : seuls ces
+# emplacements sont admis.
 zc 'zanvil-theme tokyo-light-pro >/dev/null; find "$HOME" "$XDG_CONFIG_HOME" -type f | sed "s#^$HOME/##; s#^$XDG_CONFIG_HOME/##" | sort' \
-    | assert_equals "ecrit seulement dans <theme_dir>" "$(printf 'zanvil/theme/colors.sh\nzanvil/theme/starship.toml')"
+    | grep -c -x -e 'zanvil/theme/colors.sh' -e 'zanvil/theme/starship.toml' \
+    | assert_equals "colors.sh et starship.toml ecrits dans <theme_dir>" "2"
+zc 'zanvil-theme tokyo-light-pro >/dev/null; find "$HOME" "$XDG_CONFIG_HOME" -type f | sed "s#^$HOME/##; s#^$XDG_CONFIG_HOME/##" | sort' \
+    | grep -v -E '^(zanvil/theme/|(btop|atuin|bat)/themes/|k9s/skins/|\.local/share/posting/themes/|Library/Application Support/(k9s/skins|lazydocker)/)' \
+    | assert_equals "rien hors de <theme_dir> et des dossiers de themes d'outils" ""
 
 echo "rechargement"
 FAKE_RUNNING="sketchybar" zc 'zanvil-theme minimal >/dev/null; cat "$LOG"' \
