@@ -61,6 +61,7 @@ jobs:
           bash scripts/tests/dotfiles-migrate.test.sh
           bash scripts/tests/theme-dir.test.sh
           bash scripts/tests/theme-colors.test.sh
+          bash scripts/tests/project-paths.test.sh
           bash scripts/tests/themes-toml.test.sh
           bash scripts/tests/install-profile.test.sh
           # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de
