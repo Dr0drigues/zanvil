@@ -53,7 +53,6 @@ ZANVIL_MODULE_KUBE=true       # Gestion kubeconfig (kube_select, Azure/AWS/GCP)
 ZANVIL_MODULE_DOCKER=true     # Utilitaires Docker (dex, dstop)
 ZANVIL_MODULE_SECURITY=false  # Audit de securite et scan de secrets
 ZANVIL_MODULE_AI=false        # Estimation de tokens LLM et contexte repo
-ZANVIL_MODULE_ZPROJECT=false  # Contexte projet par shell, via le CLI Rust
 ZANVIL_MODULE_TOOLS=false     # mise hooks, test runner, profiler zsh
 
 # Outils tiers — chacun deploie sa configuration avec <outil>_setup
@@ -204,7 +203,7 @@ ZANVIL_PLUGINS=(
 ## Variables d'environnement
 
 ```zsh
-# Dossier de travail (utilisé par proj --scan)
+# Dossier de travail
 WORK_DIR="$HOME/work"
 
 # Dossier des scripts

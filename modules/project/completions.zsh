@@ -1,31 +1,7 @@
-# ==============================================================================
-# Project Completions - Completions pour les commandes proj*
-# ==============================================================================
-
+# Completions du module project
 (( $+functions[compdef] )) || return 0
 
-_proj() {
-    local projects=()
-    local registry="$HOME/.config/zanvil/projects.yml"
-
-    if [[ -f "$registry" ]]; then
-        projects=(${(f)"$(grep -E '^[a-zA-Z0-9_-]+:' "$registry" | sed 's/:.*//')"})
-    fi
-
-    _arguments \
-        '1:project or option:(--add --list --remove --init --scan --auto scaffold --help ${projects[@]})'
+_project() {
+    _arguments '1:sous-commande:(open clean help)'
 }
-compdef _proj proj
-
-_proj_remove() {
-    local projects=()
-    local registry="$HOME/.config/zanvil/projects.yml"
-
-    if [[ -f "$registry" ]]; then
-        projects=(${(f)"$(grep -E '^[a-zA-Z0-9_-]+:' "$registry" | sed 's/:.*//')"})
-    fi
-
-    _arguments \
-        '1:project:(${projects[@]})'
-}
-compdef _proj_remove proj_remove
+compdef _project project

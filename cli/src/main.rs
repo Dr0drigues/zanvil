@@ -6,7 +6,6 @@ use clap_complete::{generate, Shell};
 use cmd::theme::ThemeAction;
 use cmd::modules::ModulesAction;
 use cmd::mr_fanout::MrFanoutArgs;
-use cmd::project::ProjectAction;
 use cmd::sync::SyncAction;
 
 #[derive(Parser)]
@@ -63,11 +62,6 @@ enum Commands {
         #[arg(long)]
         exclude: Vec<String>,
     },
-    /// Manage projects (zproject)
-    Project {
-        #[command(subcommand)]
-        action: ProjectAction,
-    },
     /// Fan-out a change as a MR/PR across multiple env branches
     /// Report duplicate declarations across the project's zsh files
     Conflicts,
@@ -99,7 +93,6 @@ fn main() {
         Commands::Modules { action } => cmd::modules::run(action),
         Commands::Bench { runs } => cmd::bench::run(runs),
         Commands::Update { check } => cmd::update::run(check),
-        Commands::Project { action } => cmd::project::run(action),
         Commands::Conflicts => cmd::conflicts::run(),
         Commands::Convert(args) => {
             let code = cmd::convert::run(args);

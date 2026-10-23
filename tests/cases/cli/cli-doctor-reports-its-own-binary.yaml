@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
 #
 # Ce cas existe parce qu un repli silencieux a masque une panne pendant quatre mois :
-# ~/.local/bin portait zsh-env-cli v3.0.0 au lieu de zanvil, donc zproject etait casse
+# ~/.local/bin portait zsh-env-cli v3.0.0 au lieu de zanvil, donc les commandes du CLI etaient cassees
 # et trois commandes tournaient degradees sans le dire.
 #
 # Il n asserte PAS que le binaire est installe — ce serait vrai sur un poste et faux sur

@@ -211,4 +211,3 @@ fi
 ## Voir aussi
 
 - [AI Context](AI-Context) - Generation de fichiers de contexte IA
-- [Project Switcher](Project-Switcher) - Gestion des contextes projet

@@ -199,4 +199,3 @@ EOF
 ## Voir aussi
 
 - [AI Tokens](AI-Tokens) - Optimisation des tokens envoyes aux LLMs
-- [Project Switcher](Project-Switcher) - Gestion des contextes projet

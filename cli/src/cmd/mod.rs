@@ -7,7 +7,6 @@ pub mod doctor;
 pub mod es;
 pub mod modules;
 pub mod mr_fanout;
-pub mod project;
 pub mod secrets;
 pub mod sync;
 pub mod theme;

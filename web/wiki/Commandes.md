@@ -57,20 +57,6 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `gr` | Va a la racine du repo git |
 | `mkcd <dir>` | Cree un dossier et y entre |
 
-## Project Switcher
-
-| Commande | Description |
-|----------|-------------|
-| `proj [name]` | Charge un projet |
-| `proj --add [name]` | Enregistre le projet courant |
-| `proj --list` | Liste les projets |
-| `proj --scan [dir]` | Scanne et propose des projets |
-| `proj --auto [dir]` | Auto-enregistre les projets avec .proj |
-| `proj --init` | Cree un fichier .proj |
-| `proj --remove <name>` | Supprime un projet |
-
-Voir [[Project-Switcher]] pour plus de details.
-
 ## Kubernetes
 
 | Commande | Description |
@@ -107,7 +93,6 @@ Voir [[SSH-Manager]] pour plus de details.
 | `tm [session]` | Attach ou cree une session |
 | `tm-list` | Liste les sessions |
 | `tm-kill [session]` | Tue une session |
-| `tm-project [dir]` | Cree une session projet |
 | `tm-rename [name]` | Renomme la session courante |
 
 Voir [[Tmux-Manager]] pour plus de details.

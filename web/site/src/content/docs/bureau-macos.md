@@ -124,6 +124,18 @@ accents). AeroSpace lie des **positions** de touches, nommées en QWERTY : pour 
 les deux dispositions, ne lier aux actions que des touches à la même place dans les deux (pas `a`,
 `q`, `z`, `w`, `m`, ni les chiffres).
 
+## Ouvrir une MR
+
+Un script Raycast ouvre la MR GitLab copiée dans le presse-papiers (`project open`) : worktree, Orca et
+IntelliJ IDEA. Dans Raycast, Extensions > **Script Commands** > Add Script Directory, ajouter
+`~/.zanvil/scripts/raycast`. Assigner ensuite **Hyper+O** à la commande « Ouvrir la MR copiée ».
+
+Raycast lance le script sans le `PATH` Homebrew ni le jeton GitLab : il ajoute `/opt/homebrew/bin` au
+`PATH`, lit `~/.gitlab_secrets` et `config.zsh` (`$WORK_DIR` vaut `~/work` par défaut) avant d'appeler
+zanvil. La CLI d'Orca, absente de tout `PATH`, est prise dans `/Applications/Orca.app` ; sans elle,
+IntelliJ IDEA s'ouvre quand même. Un presse-papiers qui n'est pas un lien de MR
+donne une notification d'erreur.
+
 ## Réglages macOS
 
 S'il existe, `macos.sh` à la racine du dépôt dotfiles est lancé par `zanvil-dotfiles install`, sur

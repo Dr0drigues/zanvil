@@ -54,12 +54,17 @@ jobs:
           bash scripts/tests/k9s-log-fmt.test.sh
           bash scripts/tests/k9s-log-grep.test.sh
           bash scripts/tests/zsh-special-vars.test.sh
+          bash scripts/tests/no-legacy-project.test.sh
           bash scripts/tests/startup-cache.test.sh
           bash scripts/tests/dotfiles-brew.test.sh
           bash scripts/tests/dotfiles-stow.test.sh
           bash scripts/tests/dotfiles-migrate.test.sh
           bash scripts/tests/theme-dir.test.sh
           bash scripts/tests/theme-colors.test.sh
+          bash scripts/tests/project-paths.test.sh
+          bash scripts/tests/project-open.test.sh
+          bash scripts/tests/project-clean.test.sh
+          bash scripts/tests/project-raycast.test.sh
           bash scripts/tests/themes-toml.test.sh
           bash scripts/tests/install-profile.test.sh
           # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de

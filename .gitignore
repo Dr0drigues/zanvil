@@ -16,6 +16,8 @@ aliases.local.zsh
 
 # Fichier de tracking auto-update
 .last_update_check
+.last_project_clean
+.project_clean.lock/
 
 # Plugins (clonés localement)
 plugins/
