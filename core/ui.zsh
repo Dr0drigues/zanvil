@@ -312,14 +312,13 @@ _ui_truncate() {
 # ==============================================================================
 # Source la palette du theme actif pour harmoniser les couleurs
 # entre le prompt Starship et les commandes zanvil-*
+# Skin k9s a nom fixe : zanvil-theme reecrit skins/zanvil.yaml, la valeur ne depend pas du theme
+(( $+commands[k9s] )) && [[ "${ZANVIL_K9S_AUTO_THEME:-true}" != "false" ]] && export K9S_SKIN=zanvil
+
 if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$_theme_name" ]]; then
-        # Skin k9s du theme, lu par k9s avant config.yaml (voir _zanvil_k9s_apply_skin)
-        [[ "${ZANVIL_K9S_AUTO_THEME:-true}" != "false" \
-            && -f "$ZANVIL_DIR/config/themes/$_theme_name/k9s-skin.yaml" ]] \
-            && export K9S_SKIN="$_theme_name"
         local _palette="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
         if [[ -f "$_palette" ]]; then
             source "$_palette"

@@ -17,24 +17,8 @@ _k9s_config_dir() {
         echo "${XDG_CONFIG_HOME:-$HOME/.config}/k9s"
     fi
 }
+[[ -f "$ZANVIL_DIR/core/commands/theme_tools.zsh" ]] && source "$ZANVIL_DIR/core/commands/theme_tools.zsh"
 
-# Applique le skin k9s correspondant au theme active.
-# Silent si k9s absent, ZANVIL_K9S_AUTO_THEME=false, ou pas de skin pour ce theme.
-_zanvil_k9s_apply_skin() {
-    local theme="$1"
-    [[ "${ZANVIL_K9S_AUTO_THEME:-true}" == "false" ]] && return 0
-    command -v k9s &>/dev/null || return 0
-    local skin_src="$ZANVIL_DIR/config/themes/$theme/k9s-skin.yaml"
-    [[ -f "$skin_src" ]] || return 0
-
-    local k9s_skins_dir="$(_k9s_config_dir)/skins"
-    mkdir -p "$k9s_skins_dir"
-    cp "$skin_src" "$k9s_skins_dir/${theme}.yaml"
-    # k9s lit K9S_SKIN avant config.yaml (verifie sur k9s 0.51 : « Loading env skin »).
-    # config.yaml n est donc plus edite : il peut etre un lien Stow vers le depot dotfiles.
-    # core/ui.zsh exporte la meme variable au demarrage pour les shells suivants.
-    export K9S_SKIN="$theme"
-}
 
 # Dossier des fichiers generes pour le theme courant. Les configs (souvent des liens
 # Stow vers le depot dotfiles) incluent ces fichiers ; zanvil n ecrit jamais dans les configs.
@@ -149,7 +133,7 @@ zanvil-theme() {
             # Sourcer la palette pour la session courante apres apply
             local _p="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
             [[ -f "$_p" ]] && source "$_p"
-            _zanvil_k9s_apply_skin "$_theme_name"
+            _zanvil_theme_tools "$_theme_name"
             _zanvil_theme_colors "$_theme_name"
             _zanvil_theme_wallpaper "$_theme_name"
             return 0
@@ -254,7 +238,7 @@ zanvil-theme() {
     else
         _ui_tag_ok "Theme '$theme' applique"
     fi
-    _zanvil_k9s_apply_skin "$theme"
+    _zanvil_theme_tools "$theme"
     _zanvil_theme_colors "$theme"
     _zanvil_theme_wallpaper "$theme"
     _ui_msg_info "Rechargez avec ${_ui_bold}ss${_ui_nc} pour voir les changements."
