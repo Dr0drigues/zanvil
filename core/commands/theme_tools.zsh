@@ -43,7 +43,7 @@ _zanvil_theme_tool_k9s() {
     local src="$ZANVIL_DIR/config/themes/$1/k9s-skin.yaml" dir="$(_k9s_config_dir)/skins"
     mkdir -p "$dir" || return 0
     if [[ -f "$src" ]]; then
-        cp "$src" "$dir/zanvil.yaml"
+        cp "$src" "$dir/zanvil.yaml" && export K9S_SKIN=zanvil
         return 0
     fi
     # Theme sans skin : repli genere depuis la palette
@@ -71,4 +71,5 @@ k9s:
       cursorBgColor: $p[blue]
       header: {fgColor: $p[yellow], bgColor: $p[bg], sorterColor: $p[cyan]}
 YAML
+    export K9S_SKIN=zanvil
 }

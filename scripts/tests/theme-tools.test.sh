@@ -65,6 +65,10 @@ zt '_zanvil_theme_tools tokyo-night-pro; ls "$(dirname "$SK")" 2>/dev/null | wc 
     | assert_equals "k9s absent : aucun fichier" "0"
 zt 'ZANVIL_K9S_AUTO_THEME=false _zanvil_theme_tools tokyo-night-pro; ls "$(dirname "$SK")" 2>/dev/null | wc -l | tr -d " "' \
     | assert_equals "ZANVIL_K9S_AUTO_THEME=false : aucun fichier" "0"
+zt 'unset K9S_SKIN; _zanvil_theme_tool_k9s tokyo-night-pro; echo "${K9S_SKIN:-vide}"' \
+    | assert_equals "le generateur exporte K9S_SKIN=zanvil (skin du theme)" "zanvil"
+zt 'unset K9S_SKIN; _zanvil_theme_tool_k9s minimal; echo "${K9S_SKIN:-vide}"' \
+    | assert_equals "le generateur exporte K9S_SKIN=zanvil (skin de repli)" "zanvil"
 zt 'echo "${K9S_SKIN:-vide}"' "" "$NOBIN" | assert_equals "K9S_SKIN non exporte sans k9s" "vide"
 zt 'ZANVIL_K9S_AUTO_THEME=false; unset K9S_SKIN; source "$ZANVIL_DIR/core/ui.zsh"; echo "${K9S_SKIN:-vide}"' \
     | assert_equals "K9S_SKIN non exporte avec l'opt-out" "vide"
