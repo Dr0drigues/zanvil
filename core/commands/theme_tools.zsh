@@ -8,11 +8,18 @@
 
 # Appelle chaque generateur dont l'outil est dans le PATH ; un outil absent est ignore.
 _zanvil_theme_tools() {
-    local f tool
+    local f tool d
+    # Environnement minimal (SketchyBar) : copie locale du PATH, celui de l'utilisateur n'est pas modifie
+    local PATH="$PATH"
+    for d in "$HOME/.local/bin" "$HOME/.cargo/bin"; do [[ -d $d && ":$PATH:" != *":$d:"* ]] && PATH="$PATH:$d"; done
+    # Palette calculee une seule fois pour tous les generateurs
+    typeset -gA _zanvil_theme_P; _zanvil_theme_P=()
+    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do _zanvil_theme_P[${l%%=*}]=${l#*=}; done
     for f in ${(ok)functions[(I)_zanvil_theme_tool_*]}; do
         tool="${f#_zanvil_theme_tool_}"
         (( $+commands[$tool] )) && "$f" "$1"
     done
+    unset _zanvil_theme_P
     return 0
 }
 
@@ -48,7 +55,7 @@ _zanvil_theme_tool_k9s() {
     fi
     # Theme sans skin : repli genere depuis la palette
     local -A p
-    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
+    _zanvil_theme_load_p "$1"
     local k; for k in ${(k)p}; do p[$k]="'#${p[$k]}'"; done
     cat > "$dir/zanvil.yaml" <<YAML
 # Genere par zanvil-theme depuis la palette de '$1'
@@ -106,7 +113,7 @@ _zanvil_theme_tool_bat() {
         _ui_msg_warn "bat cache --build a echoue : themes bat non actives (nouvel essai au prochain zanvil-theme)"
         return 0
     fi
-    export BAT_THEME_LIGHT=tokyonight_day BAT_THEME_DARK=tokyonight_night
+    export BAT_THEME_LIGHT=${BAT_THEME_LIGHT:-tokyonight_day} BAT_THEME_DARK=${BAT_THEME_DARK:-tokyonight_night}
     return 0
 }
 
@@ -114,8 +121,7 @@ _zanvil_theme_tool_bat() {
 _zanvil_theme_tool_delta() {
     local dir="$(_zanvil_theme_dir)" st=tokyonight_night k c o i ch bc
     [[ "$(_zanvil_theme_mode "$1")" == light ]] && st=tokyonight_day
-    local -A p
-    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
+    local -A p; _zanvil_theme_load_p "$1"
     # 20 % de la couleur sur le fond pour les lignes ajoutees/supprimees
     for k in red green; do
         o=""
@@ -149,9 +155,15 @@ _zanvil_theme_blend() {
     print -r -- "$o"
 }
 
+# Un avertissement n'est « consomme » (marqueur) que s'il peut etre vu : _ui_msg_warn ecrit sur stdout.
+# ZANVIL_THEME_TTY=1 : point d'injection des tests (pas de tty disponible).
+_zanvil_theme_visible() { [[ -t 1 || -n "$ZANVIL_THEME_TTY" ]]; }
+
 # Charge la palette dans le tableau associatif $p de l'appelant.
 _zanvil_theme_load_p() {
-    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
+    local l
+    (( ${#_zanvil_theme_P} )) && { p=( "${(@kv)_zanvil_theme_P}" ); return 0; }
+    for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
 }
 
 # fzf : FZF_DEFAULT_OPTS_FILE (constant) ; fzf le combine avec FZF_DEFAULT_OPTS, qui reste prioritaire.
@@ -169,6 +181,7 @@ _zanvil_theme_tool_eza() {
     if [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml" ]]; then
         # Theme eza de l'utilisateur : on ne le masque pas (avertissement une seule fois)
         if [[ ! -f "$dir/.user-theme-notice" ]]; then
+            _zanvil_theme_visible || return 0
             mkdir -p "$dir" && : > "$dir/.user-theme-notice"
             _ui_msg_warn "theme eza utilisateur conserve (${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml) : zanvil n'ecrit pas de theme eza"
         fi
@@ -272,6 +285,7 @@ _zanvil_theme_adopt() {
     [[ "$3" == zanvil ]] && return 0
     if [[ -n "$3" || -L "$2" ]]; then
         [[ -f "$mark" ]] && return 0
+        _zanvil_theme_visible || return 0
         mkdir -p "${mark:h}" && : > "$mark"
         if [[ -n "$3" ]]; then _ui_msg_warn "theme $1 utilisateur conserve ($3) : zanvil n'y touche pas"
         else _ui_msg_warn "$2 est un lien (dotfiles ?) : zanvil n'y ecrit pas ; ajouter a la main : ${4//$'\n'/ }"; fi
@@ -305,6 +319,11 @@ _zanvil_theme_tool_btop() {
     [[ -f "$conf" ]] && for l in ${(f)"$(<$conf)"}; do
         [[ "$l" =~ '^[[:space:]]*color_theme[[:space:]]*=[[:space:]]*"?([^"]*)"?' ]] && cur="${match[1]}"
     done
+    # btop ecrit color_theme = "Default" a sa premiere sortie : ce n'est pas un choix
+    if [[ "$cur" == (Default|) && -f "$conf" && ! -L "$conf" ]] && grep -qE '^[[:space:]]*color_theme[[:space:]]*=' "$conf"; then
+        sed -E 's/^[[:space:]]*color_theme[[:space:]]*=.*/color_theme = "zanvil"/' "$conf" > "$conf.zanvil-tmp" && cat "$conf.zanvil-tmp" > "$conf"; rm -f "$conf.zanvil-tmp"
+        return 0
+    fi
     _zanvil_theme_adopt btop "$conf" "$cur" 'color_theme = "zanvil"'
 }
 
@@ -378,6 +397,7 @@ _zanvil_theme_tool_lazydocker() {
     for c in $cands; do
         [[ -e "$c/config.yml" || -L "$c/config.yml" ]] || continue
         if [[ -L "$c/config.yml" || "$(head -1 "$c/config.yml")" != "# Genere par zanvil-theme"* ]]; then
+            [[ -f "$mark" ]] || _zanvil_theme_visible || return 0
             [[ -f "$mark" ]] || { mkdir -p "${mark:h}" && : > "$mark"
                 _ui_msg_warn "config lazydocker utilisateur conservee ($c/config.yml) : zanvil n'y touche pas (gui.theme a la main)"; }
             return 0

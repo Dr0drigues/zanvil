@@ -320,7 +320,7 @@ _ui_truncate() {
 () {
     local b=${BAT_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/bat}/themes
     (( $+commands[bat] )) && [[ -f $b/tokyonight_day.tmTheme && -f $b/tokyonight_night.tmTheme ]] \
-        && export BAT_THEME_LIGHT=tokyonight_day BAT_THEME_DARK=tokyonight_night
+        && export BAT_THEME_LIGHT=${BAT_THEME_LIGHT:-tokyonight_day} BAT_THEME_DARK=${BAT_THEME_DARK:-tokyonight_night}
 }
 
 # fzf, eza, lazygit : fichiers generes par zanvil-theme. Exporte seulement si le fichier existe

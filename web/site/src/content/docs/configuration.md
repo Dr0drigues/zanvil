@@ -167,7 +167,7 @@ Chaque outil installé reçoit ses couleurs à chaque `zanvil-theme`. Tout est �
 | fzf | `FZF_DEFAULT_OPTS_FILE` | `fzf` | rien |
 | eza | `EZA_CONFIG_DIR` | `eza/theme.yml` (eza 0.20 ou plus) | rien |
 | lazygit | `LG_CONFIG_FILE` (votre config d'abord, puis la nôtre) | `lazygit.yml` | rien |
-| k9s | `K9S_SKIN=zanvil` | `skins/zanvil.yaml` | rien |
+| k9s | `K9S_SKIN=zanvil` (constant, voir note) | `skins/zanvil.yaml` | rien |
 | btop | `color_theme` | `btop/themes/zanvil.theme` | rien (sélecteur ajouté si absent) |
 | atuin | `[theme] name` | `atuin/themes/zanvil.toml` | rien (sélecteur ajouté si absent) |
 | posting | `theme:` | `zanvil.yaml` dans `$XDG_DATA_HOME/posting/themes` | rien (sélecteur ajouté si absent) |
@@ -175,6 +175,8 @@ Chaque outil installé reçoit ses couleurs à chaque `zanvil-theme`. Tout est �
 | tmux | fichier à sourcer ; rechargé si tmux tourne et le source | `tmux.conf` | dans votre config tmux : `source-file -q ~/.config/zanvil/theme/tmux.conf` |
 | Neovim (LazyVim) | rien : Neovim 0.11 et plus suit la notification de thème du terminal (DEC 2031, annoncée par Ghostty), relit la couleur de fond et met `background` à jour ; tokyonight bascule | rien | rien |
 | Zed | suit le système | rien | `"theme": {"mode": "system", "light": "...", "dark": "..."}` |
+
+Notes : `K9S_SKIN` vaut toujours `zanvil` (seul le contenu du skin change) ; `ZANVIL_K9S_AUTO_THEME=false` désactive l'export et l'écriture du skin. `BAT_THEME_LIGHT` / `BAT_THEME_DARK` déjà définis par vos soins ne sont jamais écrasés. Un `color_theme = "Default"` dans `btop.conf` (écrit par btop à sa première sortie) est remplacé par `zanvil`. Les avertissements « conservé » ne sont émis (et marqués comme vus) que dans un terminal.
 
 Règles communes :
 

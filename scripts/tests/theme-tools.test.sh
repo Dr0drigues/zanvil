@@ -58,6 +58,9 @@ for tool in k9s bat delta fzf eza lazygit btop atuin posting lazydocker tmux; do
     fi
 done
 
+# Les sorties de zt sont des pipes : on simule un terminal (voir _zanvil_theme_visible)
+export ZANVIL_THEME_TTY=1
+
 # zt <commande> [setup] [PATH] : HOME et XDG neufs ; PATH = faux bin (defaut) ou NOBIN
 zt() {
     rm -rf "$H" "$X"; mkdir -p "$H/.config" "$X"
@@ -239,6 +242,22 @@ zt 'grep -c "^theme:" "$ZANVIL_DIR/config/posting/config.yaml"; grep -c "^\[them
     | assert_equals "modeles posting et atuin : aucun selecteur de theme" "$(printf '0\n0')"
 zt 'cp "$ZANVIL_DIR/config/posting/config.yaml" "$HOME/p.yaml"; cp "$ZANVIL_DIR/config/atuin/config.toml" "$HOME/a.toml"; export POSTING_CONFIG_FILE="$HOME/p.yaml" ATUIN_CONFIG_DIR="$HOME/at"; mkdir -p "$HOME/at"; cp "$HOME/a.toml" "$HOME/at/config.toml"; _zanvil_theme_tools tokyo-night-pro; grep -c "^theme: zanvil$" "$HOME/p.yaml"; grep -c "^name = \"zanvil\"" "$HOME/at/config.toml"' \
     | assert_equals "modeles + un passage du generateur : selecteurs presents" "$(printf '1\n1')"
+# btop : color_theme = "Default" (ecrit par btop a sa premiere sortie) n'est pas un choix
+zt '_zanvil_theme_tools tokyo-night-pro; cat $XDG_CONFIG_HOME/btop/btop.conf' 'mkdir -p "$X/btop"; printf "update_ms = 2000\ncolor_theme = \"Default\"\ntheme_background = True\n" > "$X/btop/btop.conf"' \
+    | assert_equals "btop Default : remplace par zanvil" "$(printf 'update_ms = 2000\ncolor_theme = "zanvil"\ntheme_background = True')"
+# bat : une valeur utilisateur survit (demarrage et generateur)
+zt 'echo "$BAT_THEME_LIGHT $BAT_THEME_DARK"' "$MK; export BAT_THEME_LIGHT=mien" \
+    | assert_equals "bat : BAT_THEME_LIGHT utilisateur survit au demarrage" "mien tokyonight_night"
+zt '_zanvil_theme_tools tokyo-night-pro; echo "$BAT_THEME_LIGHT $BAT_THEME_DARK"' 'export BAT_THEME_DARK=mien' \
+    | assert_equals "bat : BAT_THEME_DARK utilisateur survit au generateur" "tokyonight_day mien"
+# Avertissements : marqueur seulement si visibles (sans terminal : pas de marqueur, avertissement repete plus tard)
+ZANVIL_THEME_TTY= zt '_zanvil_theme_tools tokyo-night-pro >/dev/null; find $XDG_CONFIG_HOME/zanvil -name "*notice" | wc -l | tr -d " "; ZANVIL_THEME_TTY=1 _zanvil_theme_tools tokyo-night-pro | grep -c "conserv"' "$OTH; mkdir -p \"\$X/eza\" \"\$X/lazydocker\"; : > \"\$X/eza/theme.yml\"; echo 'gui: {}' > \"\$X/lazydocker/config.yml\"" \
+    | assert_equals "sans terminal : aucun marqueur, avertissement au passage suivant" "$(printf '0\n5')"
+zt '_zanvil_theme_tools tokyo-night-pro >/dev/null; find $XDG_CONFIG_HOME/zanvil -name "*notice" | wc -l | tr -d " "' "$OTH; mkdir -p \"\$X/eza\" \"\$X/lazydocker\"; : > \"\$X/eza/theme.yml\"; echo 'gui: {}' > \"\$X/lazydocker/config.yml\"" \
+    | assert_equals "avec terminal : marqueurs crees (btop, posting, atuin, eza, lazydocker)" "5"
+# PATH : ~/.local/bin trouve par le generateur, PATH de l'appelant intact
+zt 'P0=$PATH; _zanvil_theme_tools tokyo-night-pro; [[ $PATH == $P0 ]] && echo intact; ls $XDG_CONFIG_HOME/btop/themes' 'mkdir -p "$H/.local/bin"; cp "$TEST_TMPDIR/bin/btop" "$H/.local/bin/btop"' "$NOBIN" \
+    | assert_equals "~/.local/bin : outil trouve, PATH inchange" "$(printf 'intact\nzanvil.theme')"
 echo
 
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
