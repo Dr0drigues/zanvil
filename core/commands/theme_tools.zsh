@@ -166,6 +166,14 @@ _zanvil_theme_tool_fzf() {
 # eza : theme.yml dans EZA_CONFIG_DIR (constant ; eza >= 0.20).
 _zanvil_theme_tool_eza() {
     local dir="$(_zanvil_theme_dir)/eza"
+    if [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml" ]]; then
+        # Theme eza de l'utilisateur : on ne le masque pas (avertissement une seule fois)
+        if [[ ! -f "$dir/.user-theme-notice" ]]; then
+            mkdir -p "$dir" && : > "$dir/.user-theme-notice"
+            _ui_msg_warn "theme eza utilisateur conserve (${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml) : zanvil n'ecrit pas de theme eza"
+        fi
+        return 0
+    fi
     local -A p; _zanvil_theme_load_p "$1"
     local k; for k in ${(k)p}; do p[$k]="{foreground: \"#${p[$k]}\"}"; done
     mkdir -p "$dir" || return 0

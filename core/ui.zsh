@@ -327,9 +327,12 @@ _ui_truncate() {
 # (sinon l'outil avertit ou perd sa config) ; rappelee par chaque generateur pour le shell courant.
 _zanvil_theme_exports() {
     local d=${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme u
-    (( $+commands[fzf] )) && [[ -f $d/fzf ]] && export FZF_DEFAULT_OPTS_FILE=$d/fzf
-    (( $+commands[eza] )) && [[ -f $d/eza/theme.yml ]] && export EZA_CONFIG_DIR=$d/eza
-    if (( $+commands[lazygit] )) && [[ -f $d/lazygit.yml ]]; then
+    # Jamais par-dessus un reglage de l'utilisateur : variable vide ou deja a nous, pas de theme eza utilisateur
+    (( $+commands[fzf] )) && [[ -f $d/fzf && ( -z $FZF_DEFAULT_OPTS_FILE || $FZF_DEFAULT_OPTS_FILE == "$d"/* ) ]] \
+        && export FZF_DEFAULT_OPTS_FILE=$d/fzf
+    (( $+commands[eza] )) && [[ -f $d/eza/theme.yml && ! -f ${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml ]] \
+        && export EZA_CONFIG_DIR=$d/eza
+    if (( $+commands[lazygit] )) && [[ -f $d/lazygit.yml && ( -z $LG_CONFIG_FILE || $LG_CONFIG_FILE == *"$d/lazygit.yml" ) ]]; then
         # Config utilisateur comme lazygit : XDG_CONFIG_HOME si defini, sinon le defaut de l'OS
         if [[ -n $XDG_CONFIG_HOME ]]; then u=$XDG_CONFIG_HOME/lazygit/config.yml
         elif [[ $OSTYPE == darwin* ]]; then u="$HOME/Library/Application Support/lazygit/config.yml"

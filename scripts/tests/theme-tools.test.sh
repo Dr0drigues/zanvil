@@ -137,7 +137,7 @@ YOK="$TEST_TMPDIR/yamlok"
 cat > "$YOK" <<'SH'
 #!/bin/bash
 if python3 -c 'import yaml' 2>/dev/null; then python3 -c 'import sys,yaml; yaml.safe_load(open(sys.argv[1]))' "$1" && echo ok
-else grep -q '^[a-z]*:' "$1" && ! grep -q '^ *[a-z_A-Z]*: *$' "$1" | grep . >/dev/null && echo ok; fi
+else grep -q '^[a-z]*:' "$1" && ! grep -qvE '^#|^ *[A-Za-z_]+:( .+)?$' "$1" && echo ok; fi
 SH
 chmod +x "$YOK"
 FZFRE='^--color=fg:#[0-9a-f]{6},bg:-1(,[a-z+]+:#[0-9a-f]{6}){11}$'
@@ -161,6 +161,16 @@ zt '_zanvil_theme_tools tokyo-night-pro; unset FZF_DEFAULT_OPTS_FILE EZA_CONFIG_
     | assert_equals "outils absents : pas d'export meme avec fichiers" "vide|vide|vide"
 zt '_zanvil_theme_tools tokyo-night-pro; echo "${LG_CONFIG_FILE//$XDG_CONFIG_HOME/X}"' 'mkdir -p "$X/lazygit"; touch "$X/lazygit/config.yml"' \
     | assert_equals "lazygit : config utilisateur XDG d'abord" "X/lazygit/config.yml,X/zanvil/theme/lazygit.yml"
+UE='mkdir -p "$X/eza"; echo "x: 1" > "$X/eza/theme.yml"'
+zt '_zanvil_theme_tools tokyo-night-pro; echo "${EZA_CONFIG_DIR:-vide}"; ls "$XDG_CONFIG_HOME/zanvil/theme/eza" | grep -c theme.yml' "$UE" \
+    | grep -v 'theme eza utilisateur' | assert_equals "theme eza utilisateur : pas d'export, pas de fichier eza zanvil" "$(printf 'vide\n0')"
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro' "$UE" \
+    | grep -c 'theme eza utilisateur' | assert_equals "theme eza utilisateur : avertissement une seule fois" 1
+zt '_zanvil_theme_tools tokyo-night-pro; echo "${EZA_CONFIG_DIR:-vide}"' "$UE" | tail -1 | assert_equals "demarrage avec theme eza utilisateur : pas d'export" vide
+zt 'export FZF_DEFAULT_OPTS_FILE=/mon/fzf LG_CONFIG_FILE=/mon/lg.yml; _zanvil_theme_tools tokyo-night-pro; echo "$FZF_DEFAULT_OPTS_FILE|$LG_CONFIG_FILE"' \
+    | assert_equals "FZF_DEFAULT_OPTS_FILE et LG_CONFIG_FILE de l'utilisateur conserves" "/mon/fzf|/mon/lg.yml"
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools minimal; echo "${FZF_DEFAULT_OPTS_FILE##*/}|${LG_CONFIG_FILE##*/}"' \
+    | assert_equals "valeurs deja a zanvil : reexportees" "fzf|lazygit.yml"
 echo
 
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
