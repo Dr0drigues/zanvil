@@ -21,3 +21,6 @@ filter_mode = "global"
 filter_mode_shell_up_arrow = "session"
 show_preview = true
 exit_mode = "return-query"
+
+[theme]
+name = "zanvil"

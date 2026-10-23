@@ -40,12 +40,19 @@ echo "$*" >> "$BATLOG"
 [ -n "$BATFAIL" ] && [ "$1 $2" = "cache --build" ] && exit 1
 exit 0
 FAKE
-chmod +x "$BIN/k9s" "$BIN/delta" "$BIN/bat"
+# Faux tmux : has-session reussit si TMUXRUN ; les autres commandes sont journalisees
+cat > "$BIN/tmux" <<'FAKE'
+#!/bin/sh
+[ "$1" = has-session ] && { [ -n "$TMUXRUN" ]; exit $?; }
+echo "$*" >> "$TMUXLOG"
+FAKE
+chmod +x "$BIN/k9s" "$BIN/delta" "$BIN/bat" "$BIN/tmux"
+export TMUXLOG="$TEST_TMPDIR/tmux.log"
 export BATLOG="$TEST_TMPDIR/bat.log"
 
 # Garde : les vrais k9s, bat et delta ne doivent pas etre atteignables depuis le PATH minimal du test
-for tool in fzf eza lazygit; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$tool"; chmod +x "$BIN/$tool"; done
-for tool in k9s bat delta fzf eza lazygit; do
+for tool in fzf eza lazygit btop atuin posting lazydocker; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$tool"; chmod +x "$BIN/$tool"; done
+for tool in k9s bat delta fzf eza lazygit btop atuin posting lazydocker tmux; do
     if PATH="$NOBIN:/usr/bin:/bin" command -v $tool >/dev/null; then
         echo "$tool reel accessible depuis le PATH de test" >&2; exit 2
     fi
@@ -171,6 +178,62 @@ zt 'export FZF_DEFAULT_OPTS_FILE=/mon/fzf LG_CONFIG_FILE=/mon/lg.yml; _zanvil_th
     | assert_equals "FZF_DEFAULT_OPTS_FILE et LG_CONFIG_FILE de l'utilisateur conserves" "/mon/fzf|/mon/lg.yml"
 zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools minimal; echo "${FZF_DEFAULT_OPTS_FILE##*/}|${LG_CONFIG_FILE##*/}"' \
     | assert_equals "valeurs deja a zanvil : reexportees" "fzf|lazygit.yml"
+echo "btop, atuin, posting, lazydocker, tmux"
+D="$H/.local/share"
+for t in tokyo-night-pro minimal; do
+    zt "_zanvil_theme_tools $t; grep -c '^theme\[[a-z_]*\]=\"#[0-9a-f]\{6\}\"\$' \$XDG_CONFIG_HOME/btop/themes/zanvil.theme" \
+        | assert_equals "btop ($t) : 37 cles hex" "37"
+    zt "_zanvil_theme_tools $t; grep -c '^[A-Za-z]* = \"#[0-9a-f]\{6\}\"\$' \$XDG_CONFIG_HOME/atuin/themes/zanvil.toml" \
+        | assert_equals "atuin ($t) : 8 couleurs hex" "8"
+    PY="\$HOME/.local/share/posting/themes/zanvil.yaml"; LDC="\$XDG_CONFIG_HOME/lazydocker/config.yml"
+    zt "_zanvil_theme_tools $t; $YOK $PY; grep -c \"^[a-z]*: '#\" $PY" \
+        | assert_equals "posting ($t) : yaml valide, 9 couleurs" "$(printf 'ok\n9')"
+    zt "_zanvil_theme_tools $t; grep -c \"^gui:\" $LDC; grep -cE \"^      - '#[0-9a-f]{6}'\\$\" $LDC" \
+        | assert_equals "lazydocker ($t) : config creee, 4 couleurs" "$(printf '1\n4')"
+    zt "_zanvil_theme_tools $t; grep -c '^set -g [a-z-]*style \"[a-z]*=#[0-9a-f]\{6\}' $TD/tmux.conf" \
+        | assert_equals "tmux ($t) : 10 styles" "10"
+done
+zt '_zanvil_theme_tools tokyo-night-pro; grep -E "main_bg|hi_fg" $XDG_CONFIG_HOME/btop/themes/zanvil.theme' \
+    | assert_equals "btop : couleurs de la palette" "$(printf 'theme[hi_fg]="#7dcfff"\ntheme[main_bg]="#1a1b26"')"
+# Selecteur : ajoute si absent (config absente ou sans selection)
+zt '_zanvil_theme_tools tokyo-night-pro; cat $XDG_CONFIG_HOME/btop/btop.conf; cat $XDG_CONFIG_HOME/posting/config.yaml; cat $XDG_CONFIG_HOME/atuin/config.toml' \
+    | assert_equals "configs absentes : selecteurs poses" "$(printf 'color_theme = "zanvil"\ntheme: zanvil\n[theme]\nname = "zanvil"')"
+SEL='mkdir -p "$X/btop" "$X/posting" "$X/atuin"; printf "update_ms = 2000" > "$X/btop/btop.conf"; printf "layout: vertical" > "$X/posting/config.yaml"; printf "[search]\nx = 1\n" > "$X/atuin/config.toml"'
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro; cat $XDG_CONFIG_HOME/btop/btop.conf; cat $XDG_CONFIG_HOME/posting/config.yaml; cat $XDG_CONFIG_HOME/atuin/config.toml' "$SEL" \
+    | assert_equals "configs sans selection : ajout une fois, reste conserve" "$(printf 'update_ms = 2000\ncolor_theme = "zanvil"\nlayout: vertical\ntheme: zanvil\n[search]\nx = 1\n[theme]\nname = "zanvil"')"
+zt 'export ATUIN_CONFIG_DIR="$HOME/at"; _zanvil_theme_tools minimal; ls $HOME/at/themes; grep -c zanvil $HOME/at/config.toml' \
+    | assert_equals "ATUIN_CONFIG_DIR respecte" "$(printf 'zanvil.toml\n1')"
+# Autre selection : conservee, un seul avertissement sur deux passages
+OTH='mkdir -p "$X/btop" "$X/posting" "$X/atuin"; printf "color_theme = \"nord\"\n" > "$X/btop/btop.conf"; printf "theme: galaxy\n" > "$X/posting/config.yaml"; printf "[theme]\nname = \"other\"\n" > "$X/atuin/config.toml"'
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro; cat $XDG_CONFIG_HOME/btop/btop.conf $XDG_CONFIG_HOME/posting/config.yaml $XDG_CONFIG_HOME/atuin/config.toml' "$OTH" \
+    | grep -v 'conserve' | assert_equals "autre theme : configs inchangees" "$(printf 'color_theme = "nord"\ntheme: galaxy\n[theme]\nname = "other"')"
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro' "$OTH" \
+    | grep -c 'theme .* utilisateur conserve' | assert_equals "autre theme : un avertissement par outil (3) sur deux passages" 3
+# Config en lien symbolique : jamais ecrite
+LNK='mkdir -p "$H/.dotfiles" "$X/btop" "$X/posting" "$X/atuin"; echo "update_ms = 1" > "$H/.dotfiles/b"; echo "layout: x" > "$H/.dotfiles/p"; echo "[search]" > "$H/.dotfiles/a"; ln -s "$H/.dotfiles/b" "$X/btop/btop.conf"; ln -s "$H/.dotfiles/p" "$X/posting/config.yaml"; ln -s "$H/.dotfiles/a" "$X/atuin/config.toml"'
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro; cat $HOME/.dotfiles/b $HOME/.dotfiles/p $HOME/.dotfiles/a' "$LNK" \
+    | grep -v 'est un lien' | assert_equals "config liee aux dotfiles : intacte" "$(printf 'update_ms = 1\nlayout: x\n[search]')"
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro' "$LNK" \
+    | grep -c 'est un lien' | assert_equals "config liee : un avertissement par outil sur deux passages" 3
+# lazydocker : config existante intacte, avertissement une fois ; config zanvil regeneree
+LD='mkdir -p "$X/lazydocker"; echo "gui: {}" > "$X/lazydocker/config.yml"'
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro; cat $XDG_CONFIG_HOME/lazydocker/config.yml' "$LD" \
+    | grep -v 'lazydocker utilisateur' | assert_equals "lazydocker : config existante inchangee" "gui: {}"
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-night-pro' "$LD" \
+    | grep -c 'lazydocker utilisateur' | assert_equals "lazydocker : avertissement une seule fois" 1
+zt '_zanvil_theme_tools tokyo-night-pro; _zanvil_theme_tools tokyo-light-pro; grep -c "#2e7de9" $XDG_CONFIG_HOME/lazydocker/config.yml' \
+    | assert_equals "lazydocker : config zanvil suit le theme" "2"
+# Outils absents : rien
+zt '_zanvil_theme_tools tokyo-night-pro; find "$HOME" "$XDG_CONFIG_HOME" -type f | wc -l | tr -d " "' "" "$NOBIN" \
+    | assert_equals "outils absents : aucun fichier" "0"
+# tmux : source-file seulement si tmux tourne ET que sa config inclut le fichier
+INC='echo "source-file ~/.config/zanvil/theme/tmux.conf" > "$H/.tmux.conf"'
+TMUXRUN=1 zt '_zanvil_theme_tools tokyo-night-pro; cat "$TMUXLOG" | sed "s#$XDG_CONFIG_HOME#X#"' "$INC; rm -f \"\$TMUXLOG\"" \
+    | assert_equals "tmux actif + config incluse : source-file" "source-file X/zanvil/theme/tmux.conf"
+TMUXRUN=1 zt '_zanvil_theme_tools tokyo-night-pro; cat "$TMUXLOG" 2>/dev/null; echo fin' 'rm -f "$TMUXLOG"; echo "set -g mouse on" > "$H/.tmux.conf"' \
+    | assert_equals "tmux actif, config sans inclusion : pas de source-file" "fin"
+zt '_zanvil_theme_tools tokyo-night-pro; cat "$TMUXLOG" 2>/dev/null; echo fin' "$INC; rm -f \"\$TMUXLOG\"" \
+    | assert_equals "tmux arrete : pas de source-file" "fin"
 echo
 
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"

@@ -263,3 +263,167 @@ gui:
 YAML
     _zanvil_theme_exports
 }
+
+# Pose le selecteur de theme d'un outil seulement s'il n'en a aucun : $1 outil, $2 config, $3 selection
+# actuelle (vide = aucune ; "zanvil" = deja a nous), $4 texte a ajouter. Un autre theme est conserve, une
+# config en lien symbolique (depot de dotfiles) n'est jamais ecrite : avertissement une seule fois.
+_zanvil_theme_adopt() {
+    local mark="$(_zanvil_theme_dir)/.$1-theme-notice"
+    [[ "$3" == zanvil ]] && return 0
+    if [[ -n "$3" || -L "$2" ]]; then
+        [[ -f "$mark" ]] && return 0
+        mkdir -p "${mark:h}" && : > "$mark"
+        if [[ -n "$3" ]]; then _ui_msg_warn "theme $1 utilisateur conserve ($3) : zanvil n'y touche pas"
+        else _ui_msg_warn "$2 est un lien (dotfiles ?) : zanvil n'y ecrit pas ; ajouter a la main : ${4//$'\n'/ }"; fi
+        return 0
+    fi
+    mkdir -p "${2:h}" || return 0
+    [[ -s "$2" && -n "$(tail -c1 "$2")" ]] && print >> "$2"
+    print -r -- "$4" >> "$2"
+}
+
+# btop : themes/zanvil.theme ; color_theme = "zanvil" pose dans btop.conf si aucun theme n'y est choisi.
+_zanvil_theme_tool_btop() {
+    local dir="${XDG_CONFIG_HOME:-$HOME/.config}/btop" conf l cur=""
+    conf="$dir/btop.conf"
+    local -A p; _zanvil_theme_load_p "$1"
+    mkdir -p "$dir/themes" || return 0
+    local -A t=( main_bg $p[bg] main_fg $p[fg] title $p[fg] hi_fg $p[cyan] selected_bg "$(_zanvil_theme_blend $p[blue] $p[bg])"
+        selected_fg $p[fg] inactive_fg $p[dim] proc_misc $p[cyan] cpu_box $p[dim] mem_box $p[dim] net_box $p[dim]
+        proc_box $p[dim] div_line $p[dim] )
+    local k g
+    {
+        print "# Genere par zanvil-theme depuis la palette de '$1'"
+        for k in ${(ko)t}; do print "theme[$k]=\"#$t[$k]\""; done
+        for g in temp cpu free cached available used; do
+            print "theme[${g}_start]=\"#$p[green]\"\ntheme[${g}_mid]=\"#$p[yellow]\"\ntheme[${g}_end]=\"#$p[red]\""
+        done
+        for g in download upload; do
+            print "theme[${g}_start]=\"#$p[cyan]\"\ntheme[${g}_mid]=\"#$p[blue]\"\ntheme[${g}_end]=\"#$p[magenta]\""
+        done
+    } > "$dir/themes/zanvil.theme"
+    [[ -f "$conf" ]] && for l in ${(f)"$(<$conf)"}; do
+        [[ "$l" =~ '^[[:space:]]*color_theme[[:space:]]*=[[:space:]]*"?([^"]*)"?' ]] && cur="${match[1]}"
+    done
+    _zanvil_theme_adopt btop "$conf" "$cur" 'color_theme = "zanvil"'
+}
+
+# atuin : themes/zanvil.toml ; [theme] name = "zanvil" pose dans la config si aucun theme n'y est choisi.
+_zanvil_theme_tool_atuin() {
+    local dir="${ATUIN_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/atuin}" conf l cur="" in=0
+    conf="$dir/config.toml"
+    local -A p; _zanvil_theme_load_p "$1"
+    mkdir -p "$dir/themes" || return 0
+    cat > "$dir/themes/zanvil.toml" <<TOML
+# Genere par zanvil-theme depuis la palette de '$1'
+[theme]
+name = "zanvil"
+
+[colors]
+AlertInfo = "#$p[green]"
+AlertWarn = "#$p[yellow]"
+AlertError = "#$p[red]"
+Annotation = "#$p[dim]"
+Base = "#$p[fg]"
+Guidance = "#$p[dim]"
+Important = "#$p[magenta]"
+Title = "#$p[blue]"
+TOML
+    if [[ -f "$conf" ]]; then
+        for l in ${(f)"$(<$conf)"}; do
+            if [[ "$l" =~ '^[[:space:]]*\[' ]]; then
+                in=0; [[ "$l" =~ '^[[:space:]]*\[theme\]' ]] && { in=1; cur="?"; }
+            fi
+            (( in )) && [[ "$l" =~ '^[[:space:]]*name[[:space:]]*=[[:space:]]*"([^"]*)"' ]] && cur="${match[1]}"
+        done
+    fi
+    # [theme] sans name ("?") : non editable proprement, traite comme un choix de l'utilisateur
+    _zanvil_theme_adopt atuin "$conf" "$cur" $'[theme]\nname = "zanvil"'
+}
+
+# posting : themes/zanvil.yaml (repertoire de donnees XDG de posting) ; theme: zanvil dans config.yaml.
+_zanvil_theme_tool_posting() {
+    local dir="${XDG_DATA_HOME:-$HOME/.local/share}/posting/themes" l cur=""
+    local conf="${POSTING_CONFIG_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/posting/config.yaml}" dark=true
+    local -A p; _zanvil_theme_load_p "$1"
+    [[ "$(_zanvil_theme_mode "$1")" == light ]] && dark=false
+    mkdir -p "$dir" || return 0
+    cat > "$dir/zanvil.yaml" <<YAML
+# Genere par zanvil-theme depuis la palette de '$1'
+name: zanvil
+primary: '#$p[blue]'
+secondary: '#$p[cyan]'
+accent: '#$p[magenta]'
+background: '#$p[bg]'
+surface: '#$(_zanvil_theme_blend $p[dim] $p[bg])'
+panel: '#$(_zanvil_theme_blend $p[blue] $p[bg])'
+warning: '#$p[yellow]'
+error: '#$p[red]'
+success: '#$p[green]'
+dark: $dark
+YAML
+    [[ -f "$conf" ]] && for l in ${(f)"$(<$conf)"}; do
+        [[ "$l" =~ "^theme:[[:space:]]*[\"']?([^\"' #]*)" ]] && cur="${match[1]}"
+    done
+    _zanvil_theme_adopt posting "$conf" "$cur" 'theme: zanvil'
+}
+
+# lazydocker : config creee avec gui.theme seulement si absente (une config generee par zanvil est
+# regeneree) ; toute autre config est laissee telle quelle (avertissement une seule fois).
+_zanvil_theme_tool_lazydocker() {
+    local -a cands=( ${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/lazydocker} )
+    [[ $OSTYPE == darwin* ]] && cands+=( "$HOME/Library/Application Support/jesseduffield/lazydocker" )
+    cands+=( "$HOME/.config/lazydocker" )
+    local c conf="${cands[1]}/config.yml" mark="$(_zanvil_theme_dir)/.lazydocker-theme-notice"
+    for c in $cands; do
+        [[ -e "$c/config.yml" || -L "$c/config.yml" ]] || continue
+        if [[ -L "$c/config.yml" || "$(head -1 "$c/config.yml")" != "# Genere par zanvil-theme"* ]]; then
+            [[ -f "$mark" ]] || { mkdir -p "${mark:h}" && : > "$mark"
+                _ui_msg_warn "config lazydocker utilisateur conservee ($c/config.yml) : zanvil n'y touche pas (gui.theme a la main)"; }
+            return 0
+        fi
+        conf="$c/config.yml"
+    done
+    local -A p; _zanvil_theme_load_p "$1"
+    mkdir -p "${conf:h}" || return 0
+    cat > "$conf" <<YAML
+# Genere par zanvil-theme depuis la palette de '$1'
+gui:
+  theme:
+    activeBorderColor:
+      - '#$p[blue]'
+      - bold
+    inactiveBorderColor:
+      - '#$p[dim]'
+    optionsTextColor:
+      - '#$p[blue]'
+    selectedLineBgColor:
+      - '#$(_zanvil_theme_blend $p[blue] $p[bg])'
+YAML
+}
+
+# tmux : tmux.conf a inclure (source-file) ; recharge dans tmux seulement s'il tourne et que sa config l'inclut.
+_zanvil_theme_tool_tmux() {
+    local dir="$(_zanvil_theme_dir)" c
+    local -A p; _zanvil_theme_load_p "$1"
+    mkdir -p "$dir" || return 0
+    cat > "$dir/tmux.conf" <<CONF
+# Genere par zanvil-theme depuis la palette de '$1'
+set -g status-style "bg=#$p[bg],fg=#$p[fg]"
+set -g status-left-style "fg=#$p[blue],bold"
+set -g status-right-style "fg=#$p[dim]"
+set -g window-status-style "fg=#$p[dim]"
+set -g window-status-current-style "fg=#$p[blue],bold"
+set -g window-status-activity-style "fg=#$p[yellow]"
+set -g pane-border-style "fg=#$p[dim]"
+set -g pane-active-border-style "fg=#$p[blue]"
+set -g message-style "bg=#$p[bg],fg=#$p[yellow]"
+set -g mode-style "bg=#$p[blue],fg=#$p[bg]"
+CONF
+    for c in "$HOME/.tmux.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux.conf" "$HOME/.config/tmux/tmux.conf"; do
+        [[ -f "$c" ]] && grep -qF "zanvil/theme/tmux.conf" "$c" || continue
+        tmux has-session >/dev/null 2>&1 && tmux source-file "$dir/tmux.conf" >/dev/null 2>&1
+        break
+    done
+    return 0
+}
