@@ -234,6 +234,11 @@ TMUXRUN=1 zt '_zanvil_theme_tools tokyo-night-pro; cat "$TMUXLOG" 2>/dev/null; e
     | assert_equals "tmux actif, config sans inclusion : pas de source-file" "fin"
 zt '_zanvil_theme_tools tokyo-night-pro; cat "$TMUXLOG" 2>/dev/null; echo fin' "$INC; rm -f \"\$TMUXLOG\"" \
     | assert_equals "tmux arrete : pas de source-file" "fin"
+# Modeles neutres : aucun selecteur avant le premier passage du generateur
+zt 'grep -c "^theme:" "$ZANVIL_DIR/config/posting/config.yaml"; grep -c "^\[theme\]" "$ZANVIL_DIR/config/atuin/config.toml"' \
+    | assert_equals "modeles posting et atuin : aucun selecteur de theme" "$(printf '0\n0')"
+zt 'cp "$ZANVIL_DIR/config/posting/config.yaml" "$HOME/p.yaml"; cp "$ZANVIL_DIR/config/atuin/config.toml" "$HOME/a.toml"; export POSTING_CONFIG_FILE="$HOME/p.yaml" ATUIN_CONFIG_DIR="$HOME/at"; mkdir -p "$HOME/at"; cp "$HOME/a.toml" "$HOME/at/config.toml"; _zanvil_theme_tools tokyo-night-pro; grep -c "^theme: zanvil$" "$HOME/p.yaml"; grep -c "^name = \"zanvil\"" "$HOME/at/config.toml"' \
+    | assert_equals "modeles + un passage du generateur : selecteurs presents" "$(printf '1\n1')"
 echo
 
 echo "  $(cat "$TEST_TMPDIR/pass") ok, $(cat "$TEST_TMPDIR/fail") echec(s)"
