@@ -30,6 +30,11 @@ X="$TEST_TMPDIR/xdg"
 BIN="$TEST_TMPDIR/bin"
 NOBIN="$TEST_TMPDIR/nobin"
 mkdir -p "$BIN" "$NOBIN"
+# PATH isole : symlinks vers les seuls utilitaires systeme requis (la CI a de vrais tmux, bat... dans /usr/bin)
+SYSBIN="$TEST_TMPDIR/sysbin"; mkdir -p "$SYSBIN"
+for u in zsh sh bash env cat cp mv rm ln mkdir rmdir touch chmod ls find sort uniq tr sed awk grep head tail cut wc cmp diff date stat dirname basename readlink realpath mktemp printf tee uname sleep python3 id whoami hostname; do
+    p=$(command -v "$u" 2>/dev/null) && [[ "$p" == /* ]] && ln -sf "$p" "$SYSBIN/$u"
+done
 printf '#!/bin/sh\nexit 0\n' > "$BIN/k9s"
 printf '#!/bin/sh\nexit 0\n' > "$BIN/delta"
 # Faux bat : --config-dir -> $XDG_CONFIG_HOME/bat ; toute autre commande est journalisee
@@ -53,7 +58,7 @@ export BATLOG="$TEST_TMPDIR/bat.log"
 # Garde : les vrais k9s, bat et delta ne doivent pas etre atteignables depuis le PATH minimal du test
 for tool in fzf eza lazygit btop atuin posting lazydocker; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$tool"; chmod +x "$BIN/$tool"; done
 for tool in k9s bat delta fzf eza lazygit btop atuin posting lazydocker tmux; do
-    if PATH="$NOBIN:/usr/bin:/bin" command -v $tool >/dev/null; then
+    if PATH="$NOBIN:$SYSBIN" command -v $tool >/dev/null; then
         echo "$tool reel accessible depuis le PATH de test" >&2; exit 2
     fi
 done
@@ -65,7 +70,7 @@ export ZANVIL_THEME_TTY=1
 zt() {
     rm -rf "$H" "$X"; mkdir -p "$H/.config" "$X"
     eval "${2:-}"
-    env -u K9S_SKIN -u FZF_DEFAULT_OPTS_FILE -u EZA_CONFIG_DIR -u LG_CONFIG_FILE HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="${3:-$BIN}:/usr/bin:/bin" zsh -f -c "
+    env -u K9S_SKIN -u FZF_DEFAULT_OPTS_FILE -u EZA_CONFIG_DIR -u LG_CONFIG_FILE HOME="$H" XDG_CONFIG_HOME="$X" ZANVIL_DIR="$Z" PATH="${3:-$BIN}:$SYSBIN" zsh -f -c "
         source '$Z/core/ui.zsh'
         source '$Z/core/commands/theme.zsh'
         SK=\"\$(_k9s_config_dir)/skins/zanvil.yaml\"
