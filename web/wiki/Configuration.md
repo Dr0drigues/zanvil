@@ -150,7 +150,7 @@ Voir [[Plugins]] pour plus de details.
 ## Variables d'environnement
 
 ```zsh
-# Dossier de travail (utilise par proj --scan)
+# Dossier de travail
 WORK_DIR="$HOME/work"
 
 # Dossier des scripts

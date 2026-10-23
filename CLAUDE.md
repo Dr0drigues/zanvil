@@ -40,7 +40,6 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── ssh/            # ssh_manager
 │   ├── tmux/           # tmux_manager (lazy loaded)
 │   ├── ai/             # ai_context, ai_tokens (lazy loaded)
-│   ├── project/        # project_switcher
 │   ├── security/       # security_audit
 │   ├── utils/          # utils, extract, fkill, net_utils (lazy)
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile

@@ -34,7 +34,6 @@ Le script installe les dependances, configure `.zshrc`, et build le CLI Rust si 
 | Module | Description |
 |--------|-------------|
 | **Navigation** | Jump intelligent avec `zoxide`, auto-cd |
-| **Project Switcher** | Changement de contexte complet (kube, node, tmux) |
 | **Kubernetes** | Multi-config Azure/AWS/GCP, aliases, `kube_switch`, `k` (k9s) |
 | **GitLab** | Clone groupes, PAT status, browse, pipelines |
 | **SSH Manager** | Gestion simplifiee des connexions SSH |
@@ -66,7 +65,6 @@ zanvil-gitlab-status      # Statut du PAT GitLab
 zanvil-gitlab-browse -m   # Ouvrir les MRs dans le navigateur
 gpr                        # Raccourci creation MR
 
-proj mon-projet            # Charger un projet
 zanvil-switch env         # Switcher d'environnement
 ssh_select                 # Selectionner un host SSH
 tm                         # Gerer les sessions tmux

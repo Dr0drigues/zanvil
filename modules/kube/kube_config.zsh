@@ -1047,7 +1047,7 @@ kube_switch() {
     fi
 }
 
-# Switch de contexte avec pin automatique (zproject ne l'écrase plus)
+# Switch de contexte
 # Usage: kctx [context-ou-alias]  — interactif sans argument
 kctx() {
     if [[ -n "${1:-}" ]]; then
@@ -1055,12 +1055,6 @@ kctx() {
     else
         kube_switch || return $?
     fi
-    local ctx
-    ctx="$(kubectl config current-context 2>/dev/null)"
-    [[ -z "$ctx" ]] && return 0
-    export ZPROJECT_KUBE_OVERRIDE="$ctx"
-    [[ -n "${ZPROJECT_NAME:-}" ]] && \
-        printf "${_ui_dim}→ pinné pour %s${_ui_nc}\n" "${ZPROJECT_NAME}"
 }
 
 # Switch rapide de namespace
@@ -1115,7 +1109,7 @@ kube_ns() {
     fi
 }
 
-# Switch de namespace avec pin automatique (zproject ne l'écrase plus)
+# Switch de namespace
 # Usage: kns [namespace]  — interactif sans argument
 kns() {
     if [[ -n "${1:-}" ]]; then
@@ -1123,12 +1117,6 @@ kns() {
     else
         kube_ns || return $?
     fi
-    local ns
-    ns="$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)"
-    ns="${ns:-default}"
-    export ZPROJECT_KUBE_OVERRIDE_NS="$ns"
-    [[ -n "${ZPROJECT_NAME:-}" ]] && \
-        printf "${_ui_dim}→ namespace pinné pour %s: %s${_ui_nc}\n" "${ZPROJECT_NAME}" "$ns"
 }
 
 # Ouvre k9s sur un contexte (avec resolution d'alias)
@@ -1146,21 +1134,10 @@ k() {
     local k9s_args=()
 
     # Premier argument : contexte (optionnel).
-    # Si absent et qu'un zproject est actif, utilise son contexte/namespace.
     if [[ -n "$1" ]]; then
         local resolved=$(_kube_resolve_alias "$1")
         k9s_args+=(--context "$resolved")
         shift
-    elif [[ -n "${ZPROJECT_KUBE_CONTEXT:-}" ]]; then
-        local resolved=$(_kube_resolve_alias "$ZPROJECT_KUBE_CONTEXT")
-        k9s_args+=(--context "$resolved")
-        if [[ -n "${ZPROJECT_KUBE_NAMESPACE:-}" ]]; then
-            k9s_args+=(--namespace "$ZPROJECT_KUBE_NAMESPACE")
-        fi
-        # Force la vue pods (k9s garde la derniere vue comme "contexts" sinon)
-        k9s_args+=(-c pods)
-        k9s "${k9s_args[@]}"
-        return $?
     fi
 
     # Second argument : namespace (optionnel)

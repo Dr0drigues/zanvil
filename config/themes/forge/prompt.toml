@@ -22,7 +22,7 @@ $rust\
 $golang\
 $php\
 $kubernetes\
-${custom.zproject}${custom.zanvil_context}\
+${custom.zanvil_context}\
 [](fg:#241d18 bg:#1a1613)\
 $time\
 [ ](fg:#1a1613)\
@@ -91,14 +91,6 @@ description = "Indicateur contexte Work"
 command = "echo '󰋜'"
 when = "test -f ~/.zanvil/.work_context_cache && tail -1 ~/.zanvil/.work_context_cache | grep -q true"
 format = "[$output ](bg:#8896a3 fg:#ffd479)"
-shell = ["bash", "--noprofile", "--norc"]
-
-# === Module Custom: Projet actif (zproject) ===
-[custom.zproject]
-description = "Projet zproject actif"
-command = 'echo "${ZPROJECT_NAME}${ZPROJECT_ENV:+/${ZPROJECT_ENV}}"'
-when = 'test -n "$ZPROJECT_NAME"'
-format = "[ 󰏗 $output ](fg:#a87fa0 bg:#241d18)"
 shell = ["bash", "--noprofile", "--norc"]
 
 # === Module Custom: Contexte Dev (Kube) ===

@@ -280,117 +280,47 @@ _arguments "${_arguments_options[@]}" : \
 '::dir -- Directory to scan:_default' \
 && ret=0
 ;;
-(project)
+(conflicts)
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
-":: :_zanvil__project_commands" \
-"*::: :->project" \
+&& ret=0
+;;
+(convert)
+_arguments "${_arguments_options[@]}" : \
+'(--from-iso --from-paris)--from-epoch=[Epoch seconds to render as ISO 8601 UTC]:FROM_EPOCH:_default' \
+'(--from-epoch --from-paris)--from-iso=[ISO 8601 UTC timestamp, or a bare day, to read as epoch seconds]:FROM_ISO:_default' \
+'(--from-epoch --from-iso)--from-paris=[Europe/Paris local time to read as epoch seconds]:FROM_PARIS:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(es)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_zanvil__es_commands" \
+"*::: :->es" \
 && ret=0
 
     case $state in
-    (project)
+    (es)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zanvil-project-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-es-command-$line[1]:"
         case $line[1] in
-            (list)
+            (window)
 _arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-&& ret=0
-;;
-(config)
-_arguments "${_arguments_options[@]}" : \
-'-e+[Environment (defaults to project'\''s default_env)]:ENV:_default' \
-'--env=[Environment (defaults to project'\''s default_env)]:ENV:_default' \
-'--show-origin[Show source of each resolved value]' \
-'-h[Print help]' \
-'--help[Print help]' \
-'::name -- Project name (defaults to first known project):_default' \
-&& ret=0
-;;
-(doctor)
-_arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-'::name -- Project name (defaults to all projects):_default' \
-&& ret=0
-;;
-(diff)
-_arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-':a:_default' \
-':b:_default' \
-&& ret=0
-;;
-(find-path)
-_arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-'::dir:_default' \
-&& ret=0
-;;
-(stacks)
-_arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-&& ret=0
-;;
-(stack-resolve)
-_arguments "${_arguments_options[@]}" : \
-'-e+[Stack env (key of \[envs.<e>\])]:ENV:_default' \
-'--env=[Stack env (key of \[envs.<e>\])]:ENV:_default' \
-'-h[Print help]' \
-'--help[Print help]' \
-':name:_default' \
-&& ret=0
-;;
-(activate)
-_arguments "${_arguments_options[@]}" : \
-'-e+[]:ENV:_default' \
-'--env=[]:ENV:_default' \
-'-h[Print help]' \
-'--help[Print help]' \
-':name:_default' \
-&& ret=0
-;;
-(run)
-_arguments "${_arguments_options[@]}" : \
-'--name=[Project name (defaults to \$ZPROJECT_NAME)]:NAME:_default' \
-'-e+[Environment (defaults to \$ZPROJECT_ENV)]:ENV:_default' \
-'--env=[Environment (defaults to \$ZPROJECT_ENV)]:ENV:_default' \
-'-h[Print help]' \
-'--help[Print help]' \
-':cmd:_default' \
-&& ret=0
-;;
-(scan)
-_arguments "${_arguments_options[@]}" : \
-'--name=[Project name (default\: derived from path)]:NAME:_default' \
-'--yes[Write the manifest without confirmation]' \
-'-h[Print help]' \
-'--help[Print help]' \
-':path -- Path to scan:_default' \
-&& ret=0
-;;
-(envs)
-_arguments "${_arguments_options[@]}" : \
-'-h[Print help]' \
-'--help[Print help]' \
-'::name -- Project name (defaults to $ZPROJECT_NAME):_default' \
-&& ret=0
-;;
-(status)
-_arguments "${_arguments_options[@]}" : \
+'--since=[Relative duration back from now\: 30s, 5m, 2h, 3d]:SINCE:_default' \
+'--from=[Start of the window, in Europe/Paris local time\: 2026-03-26T15\:30\:00]:FROM:_default' \
+'--to=[End of the window, same format. Defaults to now]:TO:_default' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_zanvil__project__help_commands" \
+":: :_zanvil__es__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -398,53 +328,9 @@ _arguments "${_arguments_options[@]}" : \
     (help)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zanvil-project-help-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-es-help-command-$line[1]:"
         case $line[1] in
-            (list)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(config)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(doctor)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(diff)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(find-path)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(stacks)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(stack-resolve)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(activate)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(run)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(scan)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(envs)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(status)
+            (window)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -477,7 +363,8 @@ patch\:"Capture le diff du worktree (staged+unstaged) et l'\''applique sur chaqu
 '--description=[Description de la MR/PR (texte direct)]:DESCRIPTION:_default' \
 '--description-file=[Description depuis un fichier]:PATH:_default' \
 '--branch-prefix=[Prefix custom du nom de branche (default\: git config user.name slugifie)]:BRANCH_PREFIX:_default' \
-'--pattern=[Pattern regex custom pour la detection des branches d'\''env (defaut\: devaz2|devaz|dev|qlfaz(-\[^/\]+)?|qlf|ppaz|pprd|prodaz|prod)]:PATTERN:_default' \
+'--commit=[SHA d'\''un commit specifique a cherry-picker (defaut\: HEAD en mode cherry)]:SHA:_default' \
+'--pattern=[Pattern regex custom pour la detection des branches d'\''env (defaut\: devaz2|devaz|dev|qlfaz(-\[a-z\]+)?|qlf(-\[a-z\]+)?|ppaz|pprd|prodaz|prod)]:PATTERN:_default' \
 '--all[Selectionner toutes les branches matching sans prompt]' \
 '--no-push[Ne pas push, uniquement creer les branches localement]' \
 '--no-mr[Push sans creer de MR]' \
@@ -485,6 +372,8 @@ patch\:"Capture le diff du worktree (staged+unstaged) et l'\''applique sur chaqu
 '--dry-run[Afficher ce qui serait fait sans rien executer]' \
 '--draft[Creer la MR/PR en draft]' \
 '--strict[Arreter au premier echec (defaut\: continuer et resumer a la fin)]' \
+'--pull[Fetch origin avant de creer les branches (met a jour les refs distantes)]' \
+'--update[Mettre a jour les branches existantes (reset + reapply + force push, sans creer de MR)]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
@@ -621,63 +510,27 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(project)
+(conflicts)
 _arguments "${_arguments_options[@]}" : \
-":: :_zanvil__help__project_commands" \
-"*::: :->project" \
+&& ret=0
+;;
+(convert)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(es)
+_arguments "${_arguments_options[@]}" : \
+":: :_zanvil__help__es_commands" \
+"*::: :->es" \
 && ret=0
 
     case $state in
-    (project)
+    (es)
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
-        curcontext="${curcontext%:*:*}:zanvil-help-project-command-$line[1]:"
+        curcontext="${curcontext%:*:*}:zanvil-help-es-command-$line[1]:"
         case $line[1] in
-            (list)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(config)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(doctor)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(diff)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(find-path)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(stacks)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(stack-resolve)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(activate)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(run)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(scan)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(envs)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(status)
+            (window)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -722,8 +575,10 @@ _zanvil_commands() {
 'sync:Sync configuration between machines' \
 'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
-'project:Manage projects (zproject)' \
-'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
+'conflicts:Fan-out a change as a MR/PR across multiple env branches Report duplicate declarations across the project'\''s zsh files' \
+'convert:Date conversions the shell functions call. Cachee \: primitive, pas commande' \
+'es:Elasticsearch query helpers' \
+'mr-fanout:' \
 'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -750,15 +605,56 @@ _zanvil__config_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil config commands' commands "$@"
 }
+(( $+functions[_zanvil__conflicts_commands] )) ||
+_zanvil__conflicts_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil conflicts commands' commands "$@"
+}
 (( $+functions[_zanvil__context_commands] )) ||
 _zanvil__context_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil context commands' commands "$@"
 }
+(( $+functions[_zanvil__convert_commands] )) ||
+_zanvil__convert_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil convert commands' commands "$@"
+}
 (( $+functions[_zanvil__doctor_commands] )) ||
 _zanvil__doctor_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil doctor commands' commands "$@"
+}
+(( $+functions[_zanvil__es_commands] )) ||
+_zanvil__es_commands() {
+    local commands; commands=(
+'window:Compute the time window of a query from --since, or --from/--to' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zanvil es commands' commands "$@"
+}
+(( $+functions[_zanvil__es__help_commands] )) ||
+_zanvil__es__help_commands() {
+    local commands; commands=(
+'window:Compute the time window of a query from --since, or --from/--to' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'zanvil es help commands' commands "$@"
+}
+(( $+functions[_zanvil__es__help__help_commands] )) ||
+_zanvil__es__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil es help help commands' commands "$@"
+}
+(( $+functions[_zanvil__es__help__window_commands] )) ||
+_zanvil__es__help__window_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil es help window commands' commands "$@"
+}
+(( $+functions[_zanvil__es__window_commands] )) ||
+_zanvil__es__window_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil es window commands' commands "$@"
 }
 (( $+functions[_zanvil__help_commands] )) ||
 _zanvil__help_commands() {
@@ -772,8 +668,10 @@ _zanvil__help_commands() {
 'sync:Sync configuration between machines' \
 'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
-'project:Manage projects (zproject)' \
-'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
+'conflicts:Fan-out a change as a MR/PR across multiple env branches Report duplicate declarations across the project'\''s zsh files' \
+'convert:Date conversions the shell functions call. Cachee \: primitive, pas commande' \
+'es:Elasticsearch query helpers' \
+'mr-fanout:' \
 'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -800,15 +698,37 @@ _zanvil__help__config_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil help config commands' commands "$@"
 }
+(( $+functions[_zanvil__help__conflicts_commands] )) ||
+_zanvil__help__conflicts_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil help conflicts commands' commands "$@"
+}
 (( $+functions[_zanvil__help__context_commands] )) ||
 _zanvil__help__context_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil help context commands' commands "$@"
 }
+(( $+functions[_zanvil__help__convert_commands] )) ||
+_zanvil__help__convert_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil help convert commands' commands "$@"
+}
 (( $+functions[_zanvil__help__doctor_commands] )) ||
 _zanvil__help__doctor_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil help doctor commands' commands "$@"
+}
+(( $+functions[_zanvil__help__es_commands] )) ||
+_zanvil__help__es_commands() {
+    local commands; commands=(
+'window:Compute the time window of a query from --since, or --from/--to' \
+    )
+    _describe -t commands 'zanvil help es commands' commands "$@"
+}
+(( $+functions[_zanvil__help__es__window_commands] )) ||
+_zanvil__help__es__window_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil help es window commands' commands "$@"
 }
 (( $+functions[_zanvil__help__help_commands] )) ||
 _zanvil__help__help_commands() {
@@ -843,84 +763,6 @@ _zanvil__help__modules__list_commands() {
 _zanvil__help__mr-fanout_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil help mr-fanout commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project_commands] )) ||
-_zanvil__help__project_commands() {
-    local commands; commands=(
-'list:List all known projects' \
-'config:Show resolved configuration for a project' \
-'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
-'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
-'find-path:Print project name whose path contains the given directory (or current dir)' \
-'stacks:List defined stacks' \
-'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
-'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
-'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
-'scan:Auto-fill a project manifest from a path' \
-'envs:List available environments for a project' \
-'status:Show active project status (reads shell env vars)' \
-    )
-    _describe -t commands 'zanvil help project commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__activate_commands] )) ||
-_zanvil__help__project__activate_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project activate commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__config_commands] )) ||
-_zanvil__help__project__config_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project config commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__diff_commands] )) ||
-_zanvil__help__project__diff_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project diff commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__doctor_commands] )) ||
-_zanvil__help__project__doctor_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project doctor commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__envs_commands] )) ||
-_zanvil__help__project__envs_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project envs commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__find-path_commands] )) ||
-_zanvil__help__project__find-path_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project find-path commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__list_commands] )) ||
-_zanvil__help__project__list_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project list commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__run_commands] )) ||
-_zanvil__help__project__run_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project run commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__scan_commands] )) ||
-_zanvil__help__project__scan_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project scan commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__stack-resolve_commands] )) ||
-_zanvil__help__project__stack-resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project stack-resolve commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__stacks_commands] )) ||
-_zanvil__help__project__stacks_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project stacks commands' commands "$@"
-}
-(( $+functions[_zanvil__help__project__status_commands] )) ||
-_zanvil__help__project__status_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil help project status commands' commands "$@"
 }
 (( $+functions[_zanvil__help__secrets_commands] )) ||
 _zanvil__help__secrets_commands() {
@@ -1039,169 +881,6 @@ _zanvil__modules__list_commands() {
 _zanvil__mr-fanout_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil mr-fanout commands' commands "$@"
-}
-(( $+functions[_zanvil__project_commands] )) ||
-_zanvil__project_commands() {
-    local commands; commands=(
-'list:List all known projects' \
-'config:Show resolved configuration for a project' \
-'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
-'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
-'find-path:Print project name whose path contains the given directory (or current dir)' \
-'stacks:List defined stacks' \
-'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
-'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
-'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
-'scan:Auto-fill a project manifest from a path' \
-'envs:List available environments for a project' \
-'status:Show active project status (reads shell env vars)' \
-'help:Print this message or the help of the given subcommand(s)' \
-    )
-    _describe -t commands 'zanvil project commands' commands "$@"
-}
-(( $+functions[_zanvil__project__activate_commands] )) ||
-_zanvil__project__activate_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project activate commands' commands "$@"
-}
-(( $+functions[_zanvil__project__config_commands] )) ||
-_zanvil__project__config_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project config commands' commands "$@"
-}
-(( $+functions[_zanvil__project__diff_commands] )) ||
-_zanvil__project__diff_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project diff commands' commands "$@"
-}
-(( $+functions[_zanvil__project__doctor_commands] )) ||
-_zanvil__project__doctor_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project doctor commands' commands "$@"
-}
-(( $+functions[_zanvil__project__envs_commands] )) ||
-_zanvil__project__envs_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project envs commands' commands "$@"
-}
-(( $+functions[_zanvil__project__find-path_commands] )) ||
-_zanvil__project__find-path_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project find-path commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help_commands] )) ||
-_zanvil__project__help_commands() {
-    local commands; commands=(
-'list:List all known projects' \
-'config:Show resolved configuration for a project' \
-'doctor:Validate manifests\: paths, kube contexts, components, hooks' \
-'diff:Compare two resolved configurations. Syntax\: <name> or <name>\:<env>' \
-'find-path:Print project name whose path contains the given directory (or current dir)' \
-'stacks:List defined stacks' \
-'stack-resolve:Resolve a stack\: print one line per member (NAME\\tENV\\tPATH)' \
-'activate:Emit shell-eval lines to activate a project (used by zproject wrapper)' \
-'run:Print the resolved shell command for \`\[commands\].<cmd>\` of current project' \
-'scan:Auto-fill a project manifest from a path' \
-'envs:List available environments for a project' \
-'status:Show active project status (reads shell env vars)' \
-'help:Print this message or the help of the given subcommand(s)' \
-    )
-    _describe -t commands 'zanvil project help commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__activate_commands] )) ||
-_zanvil__project__help__activate_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help activate commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__config_commands] )) ||
-_zanvil__project__help__config_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help config commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__diff_commands] )) ||
-_zanvil__project__help__diff_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help diff commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__doctor_commands] )) ||
-_zanvil__project__help__doctor_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help doctor commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__envs_commands] )) ||
-_zanvil__project__help__envs_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help envs commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__find-path_commands] )) ||
-_zanvil__project__help__find-path_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help find-path commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__help_commands] )) ||
-_zanvil__project__help__help_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help help commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__list_commands] )) ||
-_zanvil__project__help__list_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help list commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__run_commands] )) ||
-_zanvil__project__help__run_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help run commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__scan_commands] )) ||
-_zanvil__project__help__scan_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help scan commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__stack-resolve_commands] )) ||
-_zanvil__project__help__stack-resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help stack-resolve commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__stacks_commands] )) ||
-_zanvil__project__help__stacks_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help stacks commands' commands "$@"
-}
-(( $+functions[_zanvil__project__help__status_commands] )) ||
-_zanvil__project__help__status_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project help status commands' commands "$@"
-}
-(( $+functions[_zanvil__project__list_commands] )) ||
-_zanvil__project__list_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project list commands' commands "$@"
-}
-(( $+functions[_zanvil__project__run_commands] )) ||
-_zanvil__project__run_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project run commands' commands "$@"
-}
-(( $+functions[_zanvil__project__scan_commands] )) ||
-_zanvil__project__scan_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project scan commands' commands "$@"
-}
-(( $+functions[_zanvil__project__stack-resolve_commands] )) ||
-_zanvil__project__stack-resolve_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project stack-resolve commands' commands "$@"
-}
-(( $+functions[_zanvil__project__stacks_commands] )) ||
-_zanvil__project__stacks_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project stacks commands' commands "$@"
-}
-(( $+functions[_zanvil__project__status_commands] )) ||
-_zanvil__project__status_commands() {
-    local commands; commands=()
-    _describe -t commands 'zanvil project status commands' commands "$@"
 }
 (( $+functions[_zanvil__secrets_commands] )) ||
 _zanvil__secrets_commands() {

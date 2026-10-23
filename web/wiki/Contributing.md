@@ -101,7 +101,7 @@ Types:
 
 Exemples :
 ```
-feat(proj): add project scanning
+feat(kube): add context scanning
 fix(kube): fix glob pattern error
 docs(wiki): add SSH manager documentation
 ```

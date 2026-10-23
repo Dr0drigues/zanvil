@@ -196,15 +196,15 @@ draw_scan_progress() {
 
 # Fonction pour scanner un projet (via endpoint /jobs - plus efficace)
 scan_project() {
-    local proj_id="$1"
-    local proj_name="$2"
+    local project_id="$1"
+    local project_name="$2"
     local page=1
 
-    log_debug "Scan projet: $proj_name (ID: $proj_id)"
+    log_debug "Scan projet: $project_name (ID: $project_id)"
 
     # Construire les scopes de jobs a rechercher
     local job_scopes="scope[]=manual&scope[]=pending&scope[]=created"
-    local url="$GITLAB_API_URL/projects/$proj_id/jobs?$job_scopes&per_page=100"
+    local url="$GITLAB_API_URL/projects/$project_id/jobs?$job_scopes&per_page=100"
 
     log_debug "URL: $url"
 
@@ -213,7 +213,7 @@ scan_project() {
             "${url}&page=$page")
 
         if ! echo "$response" | jq -e . >/dev/null 2>&1; then
-            log_warn "Erreur API pour le projet $proj_name"
+            log_warn "Erreur API pour le projet $project_name"
             log_debug "Reponse brute: $response"
             return
         fi
@@ -238,8 +238,8 @@ scan_project() {
 
             log_debug "  ${GREEN}MATCH${NC}: Pipeline #$pipeline_id ($pipeline_ref) -> Job #$job_id '$job_name' [$job_status]"
 
-            echo "${proj_id}:${job_id}" >> "$TMP_JOBS_FILE"
-            echo "[$proj_name] Pipeline #$pipeline_id ($pipeline_ref) -> Job \"$JOB_NAME\" [$job_status]" >> "$TMP_INFO_FILE"
+            echo "${project_id}:${job_id}" >> "$TMP_JOBS_FILE"
+            echo "[$project_name] Pipeline #$pipeline_id ($pipeline_ref) -> Job \"$JOB_NAME\" [$job_status]" >> "$TMP_INFO_FILE"
 
             # Incrementer compteurs (via fichier car subshell)
             echo "1" >> "$TMP_COUNTER_FILE"
@@ -284,11 +284,11 @@ if [ -n "$GROUP_ID" ]; then
         count=$(echo "$projects_response" | jq 'length')
         if [ "$count" -eq 0 ]; then break; fi
 
-        echo "$projects_response" | jq -c '.[]' | while IFS= read -r proj_json; do
-            proj_id=$(echo "$proj_json" | jq -r '.id')
-            proj_name=$(echo "$proj_json" | jq -r '.path_with_namespace')
-            log_debug "Scan: $proj_name"
-            scan_project "$proj_id" "$proj_name"
+        echo "$projects_response" | jq -c '.[]' | while IFS= read -r project_json; do
+            project_id=$(echo "$project_json" | jq -r '.id')
+            project_name=$(echo "$project_json" | jq -r '.path_with_namespace')
+            log_debug "Scan: $project_name"
+            scan_project "$project_id" "$project_name"
         done
 
         project_count=$((project_count + count))
@@ -370,14 +370,14 @@ draw_progress() {
 for i in "${!JOBS_TO_TRIGGER[@]}"; do
     # Format: project_id:job_id
     entry="${JOBS_TO_TRIGGER[$i]}"
-    proj_id="${entry%%:*}"
+    project_id="${entry%%:*}"
     job_id="${entry##*:}"
     current=$((i + 1))
 
     draw_progress "$current" "$total" "$job_id" "..."
 
     result=$(curl $CURL_OPTS -X POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-        "$GITLAB_API_URL/projects/$proj_id/jobs/$job_id/play")
+        "$GITLAB_API_URL/projects/$project_id/jobs/$job_id/play")
 
     if echo "$result" | jq -e '.id' >/dev/null 2>&1; then
         draw_progress "$current" "$total" "$job_id" "${GREEN}OK${NC}"

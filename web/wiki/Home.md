@@ -11,7 +11,6 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 
 ### Fonctionnalites principales
 - [[Commandes]] - Reference complete des commandes
-- [[Project-Switcher]] - Gestion de contexte projet
 - [[Kubernetes]] - Multi-config Kubernetes, kube_switch, kube_ns, k9s
 - [[SSH-Manager]] - Gestion des connexions SSH
 - [[Tmux-Manager]] - Gestion des sessions tmux

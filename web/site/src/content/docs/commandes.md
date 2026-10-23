@@ -105,18 +105,6 @@ Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMM
 | `gr` | Va à la racine du repo git |
 | `mkcd <dir>` | Crée un dossier et y entre |
 
-## Project Switcher
-
-| Commande | Description |
-|----------|-------------|
-| `proj [name]` | Charge un projet |
-| `proj --add [name]` | Enregistre le projet courant |
-| `proj --list` | Liste les projets |
-| `proj --scan [dir]` | Scanne et propose des projets |
-| `proj --auto [dir]` | Auto-enregistre les projets avec .proj |
-| `proj --init` | Crée un fichier .proj |
-| `proj --remove <name>` | Supprime un projet |
-
 ## Kubernetes
 
 | Commande | Description |
