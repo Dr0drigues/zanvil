@@ -46,8 +46,11 @@ printf '#!/bin/sh\necho "osascript $*" >> "%s"\n' "$LOG" > "$BIN/osascript"
 cat > "$BIN/glab" <<EOS
 #!/bin/sh
 echo "glab GITLAB_HOST=\${GITLAB_HOST:-} \$*" >> "$LOG"
-[ "\$3" = "\${GLAB_FAIL_BRANCH:-}" ] && exit 1
-cat "$JSON"
+case " \$* " in *" \${GLAB_FAIL_BRANCH:-aucune} "*) exit 1 ;; esac
+case "\$1 \$2" in
+    "mr view") cat "$JSON" ;;
+    "mr list") echo "\${GLAB_OPEN_MRS:-[]}" ;;
+esac
 EOS
 chmod +x "$BIN"/*
 
@@ -133,6 +136,34 @@ mr_json opened "$MR_SHA"
 pc
 present "$WT" | assert_equals "worktree garde" "present"
 grep -c "^osascript" "$LOG" | assert_equals "aucune notification" "0"
+
+echo "MR fermee, autre MR ouverte sur la meme branche"
+fresh
+mr_json closed "$MR_SHA"
+GLAB_OPEN_MRS='[{"iid":43}]' pc
+present "$WT" | assert_equals "worktree garde" "present"
+grep -c "^glab GITLAB_HOST=gitlab.example.com mr list --source-branch feat/panier -R group/sub/repo -F json\$" "$LOG" \
+    | assert_equals "MR ouvertes cherchees sur la branche" "1"
+grep -c "^osascript" "$LOG" | assert_equals "aucune notification" "0"
+
+echo "HEAD detache"
+fresh
+git -C "$WT" checkout -q --detach
+pc
+present "$WT" | assert_equals "worktree garde" "present"
+cat "$LOG" | assert_equals "ni glab ni notification" ""
+
+echo "verrou recent d'un autre menage"
+fresh
+mr_json merged "$MR_SHA"
+mkdir "$Z/.project_clean.lock"
+pc
+present "$WT" | assert_equals "rien supprime" "present"
+cat "$LOG" | assert_equals "ni glab ni notification" ""
+touch -t 202001010000 "$Z/.project_clean.lock"
+pc
+present "$WT" | assert_equals "verrou de plus d'1 h repris" "absent"
+present "$Z/.project_clean.lock" | assert_equals "verrou libere" "absent"
 
 echo "MR fermee, modifications non commitees"
 fresh

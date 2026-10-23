@@ -150,16 +150,15 @@ _project_remote_host() {
     return 1
 }
 
-# _project_clean_reason <depot> <worktree> <branche> <sha-de-la-MR> : rien si le worktree peut
-# etre supprime, sinon la raison de le garder
+# _project_clean_reason <depot> <worktree> <branche> <HEAD> <sha-de-la-MR> : rien si le worktree
+# peut etre supprime, sinon la raison de le garder
 _project_clean_reason() {
-    local repo="$1" wt="$2" branch="$3" sha="$4" head line
+    local repo="$1" wt="$2" branch="$3" head="$4" sha="$5" line
     [[ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ]] || { print modifications en cours; return; }
     # stash commun au depot : seules comptent les entrees faites sur cette branche
     for line in ${(f)"$(git -C "$repo" stash list --format=%gs 2>/dev/null)"}; do
         [[ "$line" == "WIP on $branch:"* || "$line" == "On $branch:"* ]] && { print stash en cours; return; }
     done
-    head=$(git -C "$wt" rev-parse -q --verify HEAD) || { print HEAD illisible; return; }
     # shortcut: pas de fetch ; un sha de MR absent en local se rabat sur les refs distantes connues
     [[ "$sha" =~ '^[0-9a-f]{40,64}$' ]] && git -C "$repo" merge-base --is-ancestor "$head" "$sha" 2>/dev/null && return
     [[ -n "$(git -C "$repo" for-each-ref --count=1 --contains "$head" refs/remotes 2>/dev/null)" ]] && return
@@ -175,43 +174,63 @@ _project_clean() {
     command -v glab &>/dev/null || { _project_notify "glab introuvable"; return 1; }
     command -v jq &>/dev/null || { _project_notify "jq introuvable"; return 1; }
 
-    local wt repo rel mr_path ref branch host json state sha reason
-    local -a f removed kept
+    # un seul menage a la fois (deux shells ouverts ensemble) ; verrou de plus d'1 h repris
+    local lock="$ZANVIL_DIR/.project_clean.lock"
+    local -a mtime
+    if ! mkdir "$lock" 2>/dev/null; then
+        zmodload -F zsh/stat b:zstat; zmodload -F zsh/datetime p:EPOCHSECONDS
+        zstat -A mtime +mtime "$lock" 2>/dev/null && (( EPOCHSECONDS - mtime[1] > 3600 )) \
+            && rmdir "$lock" 2>/dev/null && mkdir "$lock" 2>/dev/null \
+            || { (( quiet )) || _ui_msg_warn "Menage deja en cours"; return 0; }
+    fi
+    trap "rmdir ${(q)lock} 2>/dev/null" EXIT  # zsh : trap EXIT d'une fonction = a son retour
+
+    local wt repo rel mr_path ref branch host head json state sha reason
+    local -a f removed kept detached
     for wt in "$WORK_DIR"/**/.worktrees/*/*(/N); do
         repo="${wt:h:h:h}/${wt:h:t}"
-        rel="${wt#$WORK_DIR/}"
-        mr_path="${repo#$WORK_DIR/}"
+        rel="${wt#"$WORK_DIR"/}"
+        mr_path="${repo#"$WORK_DIR"/}"
         # seulement les worktrees de ce depot ; le reste sous .worktrees n'est pas a nous
         [[ -e "$wt/.git" && -d "$repo" ]] || continue
         [[ "$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" \
             == "$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" ]] || continue
         # vraie branche lue dans le worktree : feat/x -> feat-x ne se defait pas
-        ref=$(git -C "$wt" symbolic-ref -q HEAD) || { kept+=("$rel : HEAD detache"); continue; }
+        # HEAD detache : ignore sans notification (pas de rappel quotidien), signale a la main
+        ref=$(git -C "$wt" symbolic-ref -q HEAD) || { detached+=("$rel"); continue; }
         branch="${ref#refs/heads/}"
+        head=$(git -C "$wt" rev-parse -q --verify HEAD) || continue
         host=$(_project_remote_host "$(git -C "$repo" remote get-url origin 2>/dev/null)") || continue
-        json=$(GITLAB_HOST="$host" glab mr view "$branch" -R "$mr_path" -F json 2>/dev/null) || continue
+        json=$(GLAB_NO_PROMPT=1 GITLAB_HOST="$host" glab mr view "$branch" -R "$mr_path" -F json 2>/dev/null) || continue
         f=("${(@f)$(print -r -- "$json" | jq -r '.state, .sha' 2>/dev/null)}")
         state="${f[1]}" sha="${f[2]}"
         [[ "$state" == (merged|closed) ]] || continue
-        reason=$(_project_clean_reason "$repo" "$wt" "$branch" "$sha")
+        # nom de branche reutilise : une MR ouverte sur la meme branche source garde le worktree
+        json=$(GLAB_NO_PROMPT=1 GITLAB_HOST="$host" glab mr list --source-branch "$branch" -R "$mr_path" -F json 2>/dev/null) || continue
+        [[ "$(print -r -- "$json" | jq 'length' 2>/dev/null)" == 0 ]] || continue
+        reason=$(_project_clean_reason "$repo" "$wt" "$branch" "$head" "$sha")
         [[ -z "$reason" ]] || { kept+=("$rel : $reason"); continue; }
         # sans --force : git refuse encore si le worktree a change entre-temps
         git -C "$repo" worktree remove "$wt" &>/dev/null || { kept+=("$rel : suppression refusee par git"); continue; }
-        git -C "$repo" branch -D "$branch" &>/dev/null
         rmdir "${wt:h}" "${wt:h:h}" 2>/dev/null
+        # branche supprimee seulement si elle pointe encore sur le HEAD verifie
+        git -C "$repo" update-ref -d "$ref" "$head" &>/dev/null \
+            || { kept+=("$rel : branche $branch gardee, elle a bouge"); continue; }
         removed+=("$rel")
     done
 
-    (( ${#removed} + ${#kept} )) || { (( quiet )) || _ui_msg_info "Rien a faire"; return 0; }
-    local -a parts
-    (( ${#removed} )) && parts+=("${#removed} worktree$( (( ${#removed} > 1 )) && print s) supprime$( (( ${#removed} > 1 )) && print s)")
     local k
-    for k in $kept; do parts+=("garde $k"); done
     if (( ! quiet )); then
         _ui_header "project clean"
         for k in $removed; do _ui_msg_ok "supprime $k"; done
         for k in $kept; do _ui_msg_warn "garde $k"; done
+        for k in $detached; do _ui_msg_info "ignore $k : HEAD detache"; done
+        (( ${#removed} + ${#kept} + ${#detached} )) || _ui_msg_info "Rien a faire"
     fi
+    (( ${#removed} + ${#kept} )) || return 0
+    local -a parts
+    (( ${#removed} )) && parts+=("${#removed} worktree$( (( ${#removed} > 1 )) && print s) supprime$( (( ${#removed} > 1 )) && print s)")
+    for k in $kept; do parts+=("garde $k"); done
     # le resume est deja affiche : la notification ne le repete pas au terminal
     _project_notify "${(j: ; :)parts}" >/dev/null
 }
@@ -223,7 +242,8 @@ _project_clean_daily() {
     [[ -r "$stamp" ]] && last=$(<"$stamp")
     [[ "$last" == <-> ]] && (( EPOCHSECONDS - last < 86400 )) && return 0
     print -r -- "$EPOCHSECONDS" > "$stamp"
-    _project_clean --quiet &>/dev/null &!
+    # stdin hors du terminal : une invite glab arreterait le job (SIGTTIN), invisible
+    _project_clean --quiet </dev/null &>/dev/null &!
 }
 
 _project_help() {
