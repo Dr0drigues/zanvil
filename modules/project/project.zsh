@@ -19,7 +19,7 @@ _project_worktree_dir() {
 
 _project_notify() {
     command -v osascript &>/dev/null \
-        && osascript -e "display notification \"${1//\"/\\\"}\" with title \"zanvil project\"" &>/dev/null
+        && osascript -e 'on run a' -e 'display notification (item 1 of a) with title "zanvil project"' -e 'end run' -- "$1" &>/dev/null
     [[ -t 1 ]] && _ui_msg_warn "$1"
     return 0
 }

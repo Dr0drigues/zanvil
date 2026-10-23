@@ -27,7 +27,7 @@ H="$TEST_TMPDIR/home"
 BIN="$TEST_TMPDIR/bin"
 LOG="$TEST_TMPDIR/calls.log"
 mkdir -p "$H" "$BIN"
-printf '#!/bin/sh\necho "$@" >> "%s"\n' "$LOG" > "$BIN/osascript"
+printf '#!/bin/sh\nprintf "%%s\\n" "$@" >> "%s"\n' "$LOG" > "$BIN/osascript"
 chmod +x "$BIN/osascript"
 
 zc() {
@@ -55,8 +55,18 @@ zc '_project_worktree_dir group/repo main' \
 
 echo "_project_notify"
 : > "$LOG"
-zc '_project_notify "x" >/dev/null; cat "$LOG"' \
-    | assert_equals "osascript appele" '-e display notification "x" with title "zanvil project"'
+zc '_project_notify "x" >/dev/null; tail -n 1 "$LOG"' \
+    | assert_equals "message en dernier argument" 'x'
+: > "$LOG"
+zc '_project_notify "x" >/dev/null; grep -c "display notification (item 1 of a)" "$LOG"' \
+    | assert_equals "script sans le message" '1'
+MSG='a\" & (do shell script "id") & \"b'
+: > "$LOG"
+zc '_project_notify '"'$MSG'"' >/dev/null; tail -n 1 "$LOG"' \
+    | assert_equals "message hostile identique" "$MSG"
+: > "$LOG"
+zc '_project_notify '"'$MSG'"' >/dev/null; grep -c "do shell script" "$LOG"' \
+    | assert_equals "message hostile : une seule ligne, l'argument" '1'
 zc 'project open >/dev/null; echo rc=$?' | assert_equals "open indisponible : code 1" "rc=1"
 
 echo
