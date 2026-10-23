@@ -92,14 +92,21 @@ _zanvil_theme_mode() {
 # sont copies seulement s'ils different, et le cache n'est reconstruit que dans ce cas.
 _zanvil_theme_tool_bat() {
     local dir f changed=0
+    local -a copied
     dir="$(bat --config-dir 2>/dev/null)"
     [[ -n "$dir" ]] || return 0
     mkdir -p "$dir/themes" || return 0
     for f in "$ZANVIL_DIR"/config/bat/themes/*.tmTheme(N); do
         cmp -s "$f" "$dir/themes/${f:t}" && continue
-        cp "$f" "$dir/themes/${f:t}" && changed=1
+        cp "$f" "$dir/themes/${f:t}" && changed=1 && copied+=( "$dir/themes/${f:t}" )
     done
-    (( changed )) && bat cache --build >/dev/null 2>&1
+    if (( changed )) && ! bat cache --build >/dev/null 2>&1; then
+        # Echec : on retire les copies pour retenter au prochain passage, sans export
+        rm -f "${copied[@]}"
+        _ui_msg_warn "bat cache --build a echoue : themes bat non actives (nouvel essai au prochain zanvil-theme)"
+        return 0
+    fi
+    export BAT_THEME_LIGHT=tokyonight_day BAT_THEME_DARK=tokyonight_night
     return 0
 }
 

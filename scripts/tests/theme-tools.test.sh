@@ -37,6 +37,8 @@ cat > "$BIN/bat" <<'FAKE'
 #!/bin/sh
 [ "$1" = "--config-dir" ] && { echo "$XDG_CONFIG_HOME/bat"; exit 0; }
 echo "$*" >> "$BATLOG"
+[ -n "$BATFAIL" ] && [ "$1 $2" = "cache --build" ] && exit 1
+exit 0
 FAKE
 chmod +x "$BIN/k9s" "$BIN/delta" "$BIN/bat"
 export BATLOG="$TEST_TMPDIR/bat.log"
@@ -100,9 +102,19 @@ zt 'rm -f "$BATLOG"; _zanvil_theme_tools tokyo-night-pro; echo x >> "$XDG_CONFIG
     | assert_equals "fichier modifie : recopie et cache --build" "$(printf 'cache --build\negal')"
 zt '_zanvil_theme_tools tokyo-night-pro; ls "$XDG_CONFIG_HOME/bat" 2>/dev/null | wc -l | tr -d " "' "" "$NOBIN" \
     | assert_equals "bat absent : rien" "0"
-zt 'echo "$BAT_THEME_LIGHT $BAT_THEME_DARK ${BAT_THEME:-vide}"' \
-    | assert_equals "exports constants au demarrage, pas de BAT_THEME" "tokyonight_day tokyonight_night vide"
-zt 'echo "${BAT_THEME_LIGHT:-vide}"' "" "$NOBIN" | assert_equals "pas d'export sans bat" "vide"
+MK='mkdir -p "$X/bat/themes"; touch "$X/bat/themes/tokyonight_day.tmTheme" "$X/bat/themes/tokyonight_night.tmTheme"'
+zt 'echo "$BAT_THEME_LIGHT $BAT_THEME_DARK ${BAT_THEME:-vide}"' "$MK" \
+    | assert_equals "themes installes : exports constants au demarrage, pas de BAT_THEME" "tokyonight_day tokyonight_night vide"
+zt 'echo "${BAT_THEME_LIGHT:-vide}"' \
+    | assert_equals "themes absents : pas d'export au demarrage" "vide"
+zt 'echo "$BAT_THEME_LIGHT"' 'mkdir -p "$TEST_TMPDIR/bcd/themes"; touch "$TEST_TMPDIR/bcd/themes/tokyonight_day.tmTheme" "$TEST_TMPDIR/bcd/themes/tokyonight_night.tmTheme"; export BAT_CONFIG_DIR="$TEST_TMPDIR/bcd"' \
+    | assert_equals "BAT_CONFIG_DIR respecte" "tokyonight_day"
+unset BAT_CONFIG_DIR
+zt '_zanvil_theme_tools tokyo-night-pro; echo "$BAT_THEME_LIGHT $BAT_THEME_DARK"' \
+    | assert_equals "le generateur exporte dans le shell courant" "tokyonight_day tokyonight_night"
+BATFAIL=1 zt 'unset BAT_THEME_LIGHT; _zanvil_theme_tools tokyo-night-pro >"$XDG_CONFIG_HOME/o.txt" 2>&1; grep -c "cache --build a echoue" "$XDG_CONFIG_HOME/o.txt"; echo "${BAT_THEME_LIGHT:-vide}"; ls "$XDG_CONFIG_HOME/bat/themes" | wc -l | tr -d " "' \
+    | assert_equals "cache --build echoue : avertissement, pas d'export, copies retirees" "$(printf '1\nvide\n0')"
+zt 'echo "${BAT_THEME_LIGHT:-vide}"' "$MK" "$NOBIN" | assert_equals "pas d'export sans bat" "vide"
 
 echo "delta"
 for t in tokyo-night-pro:tokyonight_night tokyo-light-pro:tokyonight_day forge:tokyonight_night plain:tokyonight_day minimal:tokyonight_day; do
