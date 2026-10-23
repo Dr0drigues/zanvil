@@ -127,7 +127,7 @@ sont generes dans `~/.config/zanvil/theme/` :
 
 - `starship.toml` : exporte dans `STARSHIP_CONFIG` au demarrage du shell ;
 - `ghostty` : inclus par la config Ghostty avec `config-file = ?~/.config/zanvil/theme/ghostty` ;
-- k9s : le skin est copie dans `skins/` et selectionne par `K9S_SKIN`, sans toucher `config.yaml`.
+- k9s : le skin du theme est copie en `skins/zanvil.yaml` ; `K9S_SKIN=zanvil` est constant (seul le contenu change), sans toucher `config.yaml`.
 
 ```bash
 # Appliquer un theme Ghostty

@@ -6,3 +6,4 @@ _ui_blue=$'\033[38;2;59;130;246m'       # #3B82F6
 _ui_magenta=$'\033[38;2;139;92;246m'    # #8B5CF6
 _ui_cyan=$'\033[38;2;6;182;212m'        # #06B6D4
 _theme_bg='#e1e2e7'  # fond des ilots SketchyBar (clair)
+_theme_mode=light

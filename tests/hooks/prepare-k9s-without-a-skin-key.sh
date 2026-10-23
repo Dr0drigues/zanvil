@@ -1,6 +1,6 @@
 #!/bin/sh
 # Comme prepare-k9s-with-existing-plugins.sh, mais le config.yaml n a PAS de ligne
-# `skin:` — ce qui exerce la branche d insertion de _zanvil_k9s_apply_skin au lieu de
+# `skin:` — ce qui exerce la branche d insertion de _zanvil_theme_tool_k9s au lieu de
 # celle du remplacement. Les deux etaient cassees sur macOS, chacune pour une raison
 # differente, et il faut donc deux cas.
 #

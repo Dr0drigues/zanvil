@@ -1231,7 +1231,7 @@ kube_k9s_setup() {
     local current_theme=""
     [[ -f "$ZANVIL_DIR/.current_theme" ]] && current_theme=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$current_theme" ]]; then
-        _zanvil_k9s_apply_skin "$current_theme"
+        _zanvil_theme_tool_k9s "$current_theme"
         _ui_msg_ok "skin '$current_theme' applique"
     else
         _ui_msg_warn "Aucun theme actif — lancez 'zanvil-theme <nom>' pour appliquer un skin"

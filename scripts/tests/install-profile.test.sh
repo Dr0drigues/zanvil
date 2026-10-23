@@ -165,7 +165,7 @@ echo mine > "$DZ/repo/zanvil.yaml"; ln -s "$DZ/repo/zanvil.yaml" "$K9D/plugins/z
 HOME="$DZ/home" ZANVIL_DIR="$ROOT" ZANVIL_MODULE_KUBE=true PATH="$DZ/bin:/usr/bin:/bin" zsh -f -c "
     source '$ROOT/core/ui.zsh'; source '$ROOT/modules/kube/kube_config.zsh'
     _k9s_config_dir() { echo '$K9D'; }
-    _zanvil_k9s_apply_skin() { :; }
+    _zanvil_theme_tool_k9s() { :; }
     kube_k9s_setup" >/dev/null 2>&1
 echo "$(cat "$DZ/repo/hotkeys.yaml") $(cat "$DZ/repo/zanvil.yaml")" | assert_equals "k9s : hotkeys et plugins lies intacts" "mine mine"
 

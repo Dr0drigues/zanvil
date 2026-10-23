@@ -312,14 +312,41 @@ _ui_truncate() {
 # ==============================================================================
 # Source la palette du theme actif pour harmoniser les couleurs
 # entre le prompt Starship et les commandes zanvil-*
+# Skin k9s a nom fixe : zanvil-theme reecrit skins/zanvil.yaml, la valeur ne depend pas du theme
+(( $+commands[k9s] )) && [[ "${ZANVIL_K9S_AUTO_THEME:-true}" != "false" ]] && export K9S_SKIN=zanvil
+
+# bat choisit seul entre les deux themes vendus selon le fond du terminal (aucun BAT_THEME)
+# Exporte seulement si les themes sont installes (sinon bat avertit a chaque appel)
+() {
+    local b=${BAT_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/bat}/themes
+    (( $+commands[bat] )) && [[ -f $b/tokyonight_day.tmTheme && -f $b/tokyonight_night.tmTheme ]] \
+        && export BAT_THEME_LIGHT=${BAT_THEME_LIGHT:-tokyonight_day} BAT_THEME_DARK=${BAT_THEME_DARK:-tokyonight_night}
+}
+
+# fzf, eza, lazygit : fichiers generes par zanvil-theme. Exporte seulement si le fichier existe
+# (sinon l'outil avertit ou perd sa config) ; rappelee par chaque generateur pour le shell courant.
+_zanvil_theme_exports() {
+    local d=${XDG_CONFIG_HOME:-$HOME/.config}/zanvil/theme u
+    # Jamais par-dessus un reglage de l'utilisateur : variable vide ou deja a nous, pas de theme eza utilisateur
+    (( $+commands[fzf] )) && [[ -f $d/fzf && ( -z $FZF_DEFAULT_OPTS_FILE || $FZF_DEFAULT_OPTS_FILE == "$d"/* ) ]] \
+        && export FZF_DEFAULT_OPTS_FILE=$d/fzf
+    (( $+commands[eza] )) && [[ -f $d/eza/theme.yml && ! -f ${XDG_CONFIG_HOME:-$HOME/.config}/eza/theme.yml ]] \
+        && export EZA_CONFIG_DIR=$d/eza
+    if (( $+commands[lazygit] )) && [[ -f $d/lazygit.yml && ( -z $LG_CONFIG_FILE || $LG_CONFIG_FILE == *"$d/lazygit.yml" ) ]]; then
+        # Config utilisateur comme lazygit : XDG_CONFIG_HOME si defini, sinon le defaut de l'OS
+        if [[ -n $XDG_CONFIG_HOME ]]; then u=$XDG_CONFIG_HOME/lazygit/config.yml
+        elif [[ $OSTYPE == darwin* ]]; then u="$HOME/Library/Application Support/lazygit/config.yml"
+        else u=$HOME/.config/lazygit/config.yml; fi
+        [[ -f $u ]] && export LG_CONFIG_FILE="$u,$d/lazygit.yml" || export LG_CONFIG_FILE=$d/lazygit.yml
+    fi
+    return 0
+}
+_zanvil_theme_exports
+
 if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")
     if [[ -n "$_theme_name" ]]; then
-        # Skin k9s du theme, lu par k9s avant config.yaml (voir _zanvil_k9s_apply_skin)
-        [[ "${ZANVIL_K9S_AUTO_THEME:-true}" != "false" \
-            && -f "$ZANVIL_DIR/config/themes/$_theme_name/k9s-skin.yaml" ]] \
-            && export K9S_SKIN="$_theme_name"
         local _palette="$ZANVIL_DIR/config/themes/$_theme_name/palette.zsh"
         if [[ -f "$_palette" ]]; then
             source "$_palette"

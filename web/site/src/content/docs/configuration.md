@@ -135,7 +135,7 @@ Les fichiers générés vont dans `~/.config/zanvil/theme/` (hors du dépôt dot
 
 - `starship.toml` : zanvil exporte `STARSHIP_CONFIG` vers ce fichier au démarrage, si la variable n'est pas déjà définie ;
 - `ghostty` : la config Ghostty l'inclut avec `config-file = ?~/.config/zanvil/theme/ghostty` (le `?` le rend facultatif) ;
-- k9s : le skin est choisi par la variable `K9S_SKIN`, sans toucher à `config.yaml` ;
+- k9s : le skin du thème est copié en `skins/zanvil.yaml` ; `K9S_SKIN=zanvil` est constant (seul le contenu change), sans toucher à `config.yaml` ;
 - `colors.sh` : couleurs du thème au format `0xAARRGGBB` (`ZANVIL_BAR_BG`, `ZANVIL_BAR_TEXT`, `ZANVIL_BAR_DIM`, `ZANVIL_ACCENT`), à sourcer depuis SketchyBar ou JankyBorders (sh ou zsh). Accent, texte et texte atténué viennent de `_ui_blue`, `_ui_white` et `_ui_dim` ; le fond, de `_theme_bg` (valeurs de repli si la palette ne les définit pas). Après `zanvil-theme`, zanvil lance `~/.config/sketchybar/recolor` s'il est exécutable (sinon `sketchybar --reload`) et `~/.config/borders/bordersrc`, si ces programmes tournent ; il ne les démarre jamais.
 
 Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le (`cd ~/.zanvil/cli && cargo build --release`).
@@ -155,6 +155,38 @@ ZANVIL_THEME_DARK=tokyo-night-pro
 `zanvil-theme auto` applique celui qui correspond à l'apparence du système ; zanvil le fait aussi à l'ouverture de chaque shell. Pour suivre un changement d'apparence en direct, faites lancer `zanvil-theme auto` à la notification `AppleInterfaceThemeChangedNotification`, par exemple par un élément SketchyBar (voir [Bureau macOS](/zanvil/bureau-macos/)).
 
 Ghostty sait suivre l'apparence lui-même, sans rechargement : `zanvil-ghostty auto` écrit dans le fichier généré une paire `theme = light:…,dark:…` (par défaut `tokyo-light-storm` et `tokyo-night-storm`, réglables par `ZANVIL_GHOSTTY_LIGHT` et `ZANVIL_GHOSTTY_DARK`). Rechargez la config Ghostty une fois.
+
+### Outils synchronisés avec le thème
+
+Chaque outil installé reçoit ses couleurs à chaque `zanvil-theme`. Tout est écrit sous `~/.config/zanvil/theme/`, sauf quand l'outil impose son propre répertoire.
+
+| Outil | Mécanisme | Ce que zanvil écrit | Ce que vous ajoutez une fois |
+|-------|-----------|---------------------|------------------------------|
+| bat | `BAT_THEME_LIGHT` / `BAT_THEME_DARK` (`tokyonight_day` / `tokyonight_night`) | copie les thèmes fournis dans `$(bat --config-dir)/themes` puis `bat cache --build` | rien |
+| delta | fichier à inclure | `delta.gitconfig` (thème de syntaxe et couleurs des lignes) | dans votre config git : `[include] path = ~/.config/zanvil/theme/delta.gitconfig` |
+| fzf | `FZF_DEFAULT_OPTS_FILE` | `fzf` | rien |
+| eza | `EZA_CONFIG_DIR` | `eza/theme.yml` (eza 0.20 ou plus) | rien |
+| lazygit | `LG_CONFIG_FILE` (votre config d'abord, puis la nôtre) | `lazygit.yml` | rien |
+| k9s | `K9S_SKIN=zanvil` (constant, voir note) | `skins/zanvil.yaml` | rien |
+| btop | `color_theme` | `btop/themes/zanvil.theme` | rien (sélecteur ajouté si absent) |
+| atuin | `[theme] name` | `atuin/themes/zanvil.toml` | rien (sélecteur ajouté si absent) |
+| posting | `theme:` | `zanvil.yaml` dans `$XDG_DATA_HOME/posting/themes` | rien (sélecteur ajouté si absent) |
+| lazydocker | `gui.theme` | `config.yml`, seulement s'il n'existe pas ou s'il est déjà généré par zanvil | `gui.theme` à la main si vous avez votre config |
+| tmux | fichier à sourcer ; rechargé si tmux tourne et le source | `tmux.conf` | dans votre config tmux : `source-file -q ~/.config/zanvil/theme/tmux.conf` |
+| Neovim (LazyVim) | rien : Neovim 0.11 et plus suit la notification de thème du terminal (DEC 2031, annoncée par Ghostty), relit la couleur de fond et met `background` à jour ; tokyonight bascule | rien | rien |
+| Zed | suit le système | rien | `"theme": {"mode": "system", "light": "...", "dark": "..."}` |
+
+Notes : `K9S_SKIN` vaut toujours `zanvil` (seul le contenu du skin change) ; `ZANVIL_K9S_AUTO_THEME=false` désactive l'export et l'écriture du skin. `BAT_THEME_LIGHT` / `BAT_THEME_DARK` déjà définis par vos soins ne sont jamais écrasés. Un `color_theme = "Default"` dans `btop.conf` (écrit par btop à sa première sortie) est remplacé par `zanvil`. Les avertissements « conservé » ne sont émis (et marqués comme vus) que dans un terminal.
+
+Règles communes :
+
+- une variable n'est exportée que si le fichier généré existe ;
+- une valeur ou un thème que vous avez choisi n'est jamais écrasé (variable déjà définie, thème eza, thème btop, atuin ou posting déjà nommé) ;
+- un sélecteur n'est ajouté à votre config que si elle n'en contient aucun ; sinon zanvil avertit une seule fois ;
+- une config en lien symbolique (dépôt de dotfiles) n'est jamais écrite : zanvil avertit une seule fois et donne la ligne à ajouter ;
+- les thèmes bat (`tokyonight_day`, `tokyonight_night`) viennent de tokyonight.nvim et sont redistribués sans modification sous licence Apache-2.0 (voir `config/bat/themes/NOTICE`).
+
+Hors périmètre : IntelliJ IDEA, Orca et Raycast se règlent dans leurs propres préférences.
 
 ## Profil machine et dotfiles
 
