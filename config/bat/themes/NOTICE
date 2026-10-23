@@ -1,0 +1,4 @@
+tokyonight_day.tmTheme and tokyonight_night.tmTheme
+Origin: https://github.com/folke/tokyonight.nvim (branch main, commit cdc07ac78467a233fd62c493de29a17e0cf2b2b6, fetched 2026-10-23)
+Paths: extras/sublime/tokyonight_day.tmTheme, extras/sublime/tokyonight_night.tmTheme
+These files are redistributed unmodified under the Apache License 2.0 (see LICENSE, verbatim from the same repository).

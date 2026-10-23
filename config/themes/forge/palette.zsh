@@ -10,3 +10,4 @@ _ui_cyan=$'\033[38;2;95;174;159m'       # #5fae9f  trempe
 _ui_white=$'\033[38;2;216;205;191m'     # #d8cdbf  cendre claire
 _ui_dim=$'\033[38;2;107;96;85m'         # #6b6055  cendre froide
 _theme_bg='#1f1b17'  # fond des ilots SketchyBar (sombre)
+_theme_mode=dark

@@ -16,3 +16,4 @@ _ui_box_br="+"
 _ui_box_h="-"
 _ui_box_v="|"
 _theme_bg='#e1e2e7'  # fond des ilots SketchyBar (clair)
+_theme_mode=light

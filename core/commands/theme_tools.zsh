@@ -48,7 +48,7 @@ _zanvil_theme_tool_k9s() {
     fi
     # Theme sans skin : repli genere depuis la palette
     local -A p
-    p=( ${(s:=:)${(f)"$(_zanvil_theme_palette_hex "$1")"}} )
+    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
     local k; for k in ${(k)p}; do p[$k]="'#${p[$k]}'"; done
     cat > "$dir/zanvil.yaml" <<YAML
 # Genere par zanvil-theme depuis la palette de '$1'
@@ -72,4 +72,65 @@ k9s:
       header: {fgColor: $p[yellow], bgColor: $p[bg], sorterColor: $p[cyan]}
 YAML
     export K9S_SKIN=zanvil
+}
+
+# Affiche light|dark : _theme_mode de la palette, sinon deduit de la luminance de _theme_bg.
+_zanvil_theme_mode() {
+    local m bg r g b
+    m=$(
+        unset _theme_mode _theme_bg
+        [[ -f "$ZANVIL_DIR/config/themes/$1/palette.zsh" ]] && source "$ZANVIL_DIR/config/themes/$1/palette.zsh"
+        print -r -- "${_theme_mode:-}|${_theme_bg#\#}"
+    )
+    [[ "${m%%|*}" == (light|dark) ]] && { print -r -- "${m%%|*}"; return 0; }
+    bg="${m#*|}"; [[ "$bg" =~ '^[0-9a-fA-F]{6}$' ]] || bg=e1e2e7
+    r=$((16#${bg[1,2]})); g=$((16#${bg[3,4]})); b=$((16#${bg[5,6]}))
+    (( (299*r + 587*g + 114*b) / 1000 > 128 )) && print light || print dark
+}
+
+# bat : paire native clair/sombre (BAT_THEME_LIGHT/DARK exportes par ui.zsh). Les .tmTheme vendus
+# sont copies seulement s'ils different, et le cache n'est reconstruit que dans ce cas.
+_zanvil_theme_tool_bat() {
+    local dir f changed=0
+    dir="$(bat --config-dir 2>/dev/null)"
+    [[ -n "$dir" ]] || return 0
+    mkdir -p "$dir/themes" || return 0
+    for f in "$ZANVIL_DIR"/config/bat/themes/*.tmTheme(N); do
+        cmp -s "$f" "$dir/themes/${f:t}" && continue
+        cp "$f" "$dir/themes/${f:t}" && changed=1
+    done
+    (( changed )) && bat cache --build >/dev/null 2>&1
+    return 0
+}
+
+# delta : fichier a inclure depuis la config du VCS ([include] path = ~/.config/zanvil/theme/delta.gitconfig).
+_zanvil_theme_tool_delta() {
+    local dir="$(_zanvil_theme_dir)" st=tokyonight_night k c o i ch bc
+    [[ "$(_zanvil_theme_mode "$1")" == light ]] && st=tokyonight_day
+    local -A p
+    local l; for l in ${(f)"$(_zanvil_theme_palette_hex "$1")"}; do p[${l%%=*}]=${l#*=}; done
+    # 20 % de la couleur sur le fond pour les lignes ajoutees/supprimees
+    for k in red green; do
+        o=""
+        for i in 1 3 5; do
+            ch=$((16#${p[$k][i,i+1]})); bc=$((16#${p[bg][i,i+1]}))
+            o+=$(printf '%02x' $(( (ch*2 + bc*8) / 10 )))
+        done
+        p[${k}bg]=$o
+    done
+    mkdir -p "$dir" || return 0
+    cat > "$dir/delta.gitconfig" <<CFG
+# Genere par zanvil-theme depuis la palette de '$1'
+[delta]
+    syntax-theme = $st
+    minus-style = syntax "#$p[redbg]"
+    minus-emph-style = syntax "#$p[red]" bold
+    plus-style = syntax "#$p[greenbg]"
+    plus-emph-style = syntax "#$p[green]" bold
+    line-numbers-minus-style = "#$p[red]"
+    line-numbers-plus-style = "#$p[green]"
+    line-numbers-zero-style = "#$p[dim]"
+    file-style = "#$p[blue]" bold
+    hunk-header-style = "#$p[cyan]"
+CFG
 }

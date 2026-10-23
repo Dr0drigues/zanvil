@@ -315,6 +315,9 @@ _ui_truncate() {
 # Skin k9s a nom fixe : zanvil-theme reecrit skins/zanvil.yaml, la valeur ne depend pas du theme
 (( $+commands[k9s] )) && [[ "${ZANVIL_K9S_AUTO_THEME:-true}" != "false" ]] && export K9S_SKIN=zanvil
 
+# bat choisit seul entre les deux themes vendus selon le fond du terminal (aucun BAT_THEME)
+(( $+commands[bat] )) && { export BAT_THEME_LIGHT=tokyonight_day BAT_THEME_DARK=tokyonight_night; }
+
 if [[ -f "$ZANVIL_DIR/.current_theme" ]]; then
     local _theme_name
     _theme_name=$(<"$ZANVIL_DIR/.current_theme")
