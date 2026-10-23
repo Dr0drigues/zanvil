@@ -28,11 +28,15 @@ BIN="$TEST_TMPDIR/bin"
 LOG="$TEST_TMPDIR/calls.log"
 mkdir -p "$H" "$BIN"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" >> "%s"\n' "$LOG" > "$BIN/osascript"
-chmod +x "$BIN/osascript"
-[[ "$(PATH="$BIN:$PATH" command -v osascript)" == "$BIN/osascript" ]] || { echo "osascript reel atteignable : abandon" >&2; exit 2; }
+for b in orca idea open glab; do printf '#!/bin/sh\nexit 0\n' > "$BIN/$b"; done
+chmod +x "$BIN"/*
+TPATH="$BIN:/usr/bin:/bin"  # PATH minimal : seuls les faux et les outils systeme sont atteignables
+for b in osascript orca idea open glab; do
+    [[ "$(PATH="$TPATH" command -v $b)" == "$BIN/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
+done
 
 zc() {
-    HOME="$H" PATH="$BIN:$PATH" WORK_DIR=/w ZANVIL_DIR="$ROOT" LOG="$LOG" zsh -f -c \
+    HOME="$H" PATH="$TPATH" WORK_DIR=/w ZANVIL_DIR="$ROOT" LOG="$LOG" zsh -f -c \
         'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/modules/project/project.zsh"; '"$1" 2>&1
 }
 

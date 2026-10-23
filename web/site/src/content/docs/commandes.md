@@ -94,7 +94,7 @@ Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMM
 | `project clean` | Supprime les worktrees des MR terminées |
 
 Le worktree se range sous le sous-groupe GitLab, dans un dossier `.worktrees` :
-`$WORK_DIR/group/sub/.worktrees/repo/<branche>`. Le dépôt principal (`$WORK_DIR/group/sub/repo`) est cloné
+`$WORK_DIR/group/sub/.worktrees/repo/<branche>` (un `/` dans le nom de branche devient `-`). Le dépôt principal (`$WORK_DIR/group/sub/repo`) est cloné
 au besoin et jamais modifié. Un `.zanvil.local` présent à la racine du dépôt est copié dans le worktree.
 
 ```bash
@@ -102,8 +102,10 @@ project open https://gitlab.example.com/group/sub/repo/-/merge_requests/42
 project clean
 ```
 
+`project open` s'arrête sur une notification si `glab`, `jq` ou `$WORK_DIR` manque, si la MR vient d'un fork, si la branche est déjà extraite dans le dépôt principal, si elle porte des commits non poussés ou si le dossier visé n'est pas un worktree du dépôt.
+
 Le ménage tourne aussi tout seul, en arrière-plan, au plus une fois par 24 h au démarrage du shell : il
-retire les worktrees dont la MR est fermée ou fusionnée, sans travail local non poussé. Le résultat
+retire les worktrees dont la MR est fermée ou fusionnée, sans travail local non poussé. Il garde un worktree qui a des modifications, des fichiers non suivis, un stash ou des commits hors de la MR. Le résultat
 arrive en notification. Pour ouvrir la MR copiée d'un raccourci clavier, voir
 [Ouvrir une MR](/zanvil/bureau-macos/#ouvrir-une-mr).
 

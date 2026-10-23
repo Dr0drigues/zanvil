@@ -39,7 +39,7 @@ export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=t GIT
 export HOME="$H" GIT_CONFIG_NOSYSTEM=1
 
 # faux binaires : chaque appel ecrit "nom arg1 arg2 ..." dans $LOG
-for b in orca idea osascript; do
+for b in orca idea open osascript; do
     printf '#!/bin/sh\necho "%s $*" >> "%s"\n' "$b" "$LOG" > "$BIN/$b"
 done
 cat > "$BIN/glab" <<EOS
@@ -52,7 +52,10 @@ case "\$1 \$2" in
 esac
 EOS
 chmod +x "$BIN"/*
-[[ "$(PATH="$BIN:$PATH" command -v osascript)" == "$BIN/osascript" ]] || { echo "osascript reel atteignable : abandon" >&2; exit 2; }
+TPATH="$BIN:/usr/bin:/bin"  # PATH minimal : seuls les faux et les outils systeme sont atteignables
+for b in osascript orca idea open glab; do
+    [[ "$(PATH="$TPATH" command -v $b)" == "$BIN/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
+done
 
 mr_json() {  # <source_project_id>
     printf '{"state":"opened","source_branch":"feat/panier","sha":"x","source_project_id":%s,"target_project_id":7}\n' "$1" > "$JSON"
@@ -76,7 +79,7 @@ REPO="$W/group/sub/repo"
 WT="$W/group/sub/.worktrees/repo/feat-panier"
 
 po() {
-    PATH="$BIN:$PATH" WORK_DIR="$W" ZANVIL_DIR="$ROOT" zsh -f -c \
+    PATH="$TPATH" WORK_DIR="$W" ZANVIL_DIR="$ROOT" zsh -f -c \
         'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/modules/project/project.zsh"; project open "$1"' _ "$URL" \
         >/dev/null 2>&1
 }

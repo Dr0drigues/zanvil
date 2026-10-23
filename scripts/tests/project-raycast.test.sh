@@ -14,7 +14,8 @@ check() {
 }
 
 mkdir -p "$T/home" "$T/bin" "$T/work"
-echo 'export GITLAB_TOKEN=t' > "$T/home/.gitlab_secrets"
+# syntaxe zsh (tableau) + sortie parasite : /bin/sh y echouerait, Raycast afficherait la sortie
+printf 'export GITLAB_TOKEN=t\nx=(a b)\necho fuite\n' > "$T/home/.gitlab_secrets"
 # le lien est suivi d'une injection : si le presse-papiers etait interprete, $T/pwned apparaitrait
 printf '#!/bin/sh\necho "  https://gitlab.example.com/group/sub/repo/-/merge_requests/7 ;touch %s/pwned  "\n' "$T" > "$T/bin/pbpaste"
 printf '#!/bin/sh\necho "glab TOKEN=$GITLAB_TOKEN PATH=$PATH ARGS=$*" >> "%s/calls.log"\nexit 1\n' "$T" > "$T/bin/glab"
@@ -32,7 +33,7 @@ done
 
 env -i HOME="$T/home" PATH="$T/bin:/usr/bin:/bin" ZANVIL_DIR="$ROOT" WORK_DIR="$T/work" \
     "$ROOT/scripts/raycast/project-open.sh" >"$T/out" 2>&1
-[[ -s "$T/out" ]] && cat "$T/out"
+if grep -q fuite "$T/out"; then echo "  FAIL sortie des secrets fuit"; fail=1; else echo "  ok   rien sur stdout"; fi
 
 check "jeton lu depuis ~/.gitlab_secrets" 'TOKEN=t '
 check "PATH contient /opt/homebrew/bin" 'PATH=[^ ]*/opt/homebrew/bin'

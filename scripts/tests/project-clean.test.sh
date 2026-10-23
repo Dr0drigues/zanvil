@@ -43,6 +43,7 @@ export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=t GIT
 export HOME="$H" GIT_CONFIG_NOSYSTEM=1
 
 printf '#!/bin/sh\necho "osascript $*" >> "%s"\n' "$LOG" > "$BIN/osascript"
+for b in orca idea open; do printf '#!/bin/sh\necho "%s $*" >> "%s"\n' "$b" "$LOG" > "$BIN/$b"; done
 cat > "$BIN/glab" <<EOS
 #!/bin/sh
 echo "glab GITLAB_HOST=\${GITLAB_HOST:-} \$*" >> "$LOG"
@@ -53,7 +54,10 @@ case "\$1 \$2" in
 esac
 EOS
 chmod +x "$BIN"/*
-[[ "$(PATH="$BIN:$PATH" command -v osascript)" == "$BIN/osascript" ]] || { echo "osascript reel atteignable : abandon" >&2; exit 2; }
+TPATH="$BIN:/usr/bin:/bin"  # PATH minimal : seuls les faux et les outils systeme sont atteignables
+for b in osascript orca idea open glab; do
+    [[ "$(PATH="$TPATH" command -v $b)" == "$BIN/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
+done
 
 mr_json() {  # <state> <sha>
     printf '{"state":"%s","source_branch":"feat/panier","sha":"%s"}\n' "$1" "$2" > "$JSON"
@@ -77,12 +81,12 @@ WT="$W/group/sub/.worktrees/repo/feat-panier"
 STAMP="$Z/.last_project_clean"
 
 pc() {
-    PATH="$BIN:$PATH" WORK_DIR="$W" ZANVIL_DIR="$Z" zsh -f -c \
+    PATH="$TPATH" WORK_DIR="$W" ZANVIL_DIR="$Z" zsh -f -c \
         'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/modules/project/project.zsh"; project clean' \
         >/dev/null 2>&1
 }
 init_module() {  # [WORK_DIR]
-    PATH="$BIN:$PATH" WORK_DIR="${1:-$W}" ZANVIL_DIR="$Z" zsh -f -c \
+    PATH="$TPATH" WORK_DIR="${1:-$W}" ZANVIL_DIR="$Z" zsh -f -c \
         'source "$ZANVIL_DIR/core/ui.zsh"; source "$ZANVIL_DIR/modules/project/init.zsh"' >/dev/null 2>&1
 }
 # depot principal (origin en https d'exemple, jamais contacte) + worktree de feat/panier
