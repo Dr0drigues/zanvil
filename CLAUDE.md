@@ -118,6 +118,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 - `_zanvil_theme_wallpaper` (macOS) : pose `~/.config/zanvil/wallpapers/<theme>.{jpg,jpeg,png,heic}` via NSWorkspace (JXA, sans autorisation) s'il existe
 - `zanvil-ghostty auto` : ecrit `theme = light:<chemin>,dark:<chemin>` (ZANVIL_GHOSTTY_LIGHT/DARK, defauts tokyo-light-storm/tokyo-night-storm) ; Ghostty suit l'apparence sans rechargement. `zanvil-theme auto` (ZANVIL_THEME_LIGHT/DARK) tourne au demarrage du shell ; le direct passe par un declencheur externe (SketchyBar sur AppleInterfaceThemeChangedNotification)
 - Fichiers generes dans `~/.config/zanvil/theme/` (jamais dans les configs versionnees ni le depot dotfiles) : `starship.toml` (`STARSHIP_CONFIG` exporte par `core/hooks.zsh`), `ghostty` (inclus par `config-file = ?~/.config/zanvil/theme/ghostty`), k9s via `K9S_SKIN`. Un CLI Rust compile avant ce changement doit etre reconstruit
+- Outils suivant le theme (`core/commands/theme_tools.zsh`, un `_zanvil_theme_tool_<outil>` par outil installe) : bat, delta, fzf, eza, lazygit, btop, atuin, posting, lazydocker, tmux (+ k9s). Exports (`_zanvil_theme_exports`, `BAT_THEME_*`) seulement si le fichier genere existe ; jamais par-dessus un reglage ou theme de l'utilisateur ; selecteur ajoute seulement s'il n'y en a aucun (`_zanvil_theme_adopt`, avertissement unique) ; config en lien symbolique jamais ecrite. nvim : rien (Neovim >= 0.11 suit DEC 2031). Themes bat vendus sous Apache-2.0 (`config/bat/themes/NOTICE`)
 
 ### Dotfiles (core/commands/dotfiles.zsh)
 
