@@ -45,6 +45,10 @@ zc "_project_parse_mr https://gitlab.example.com/group/sub/repo/-/issues/42; ech
     | assert_equals "ticket : code 1" "rc=1"
 zc "_project_parse_mr https://gitlab.example.com/group/sub/repo; echo rc=\$?" \
     | assert_equals "depot : code 1" "rc=1"
+for p in ../../etc group/./repo group//repo group/..; do
+    zc "_project_parse_mr https://gitlab.example.com/$p/-/merge_requests/1; echo rc=\$?" \
+        | assert_equals "chemin $p : code 1" "rc=1"
+done
 
 echo "chemins"
 zc '_project_repo_dir group/sub/repo' | assert_equals "repo_dir" "/w/group/sub/repo"
