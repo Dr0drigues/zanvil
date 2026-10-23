@@ -29,6 +29,7 @@ LOG="$TEST_TMPDIR/calls.log"
 mkdir -p "$H" "$BIN"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" >> "%s"\n' "$LOG" > "$BIN/osascript"
 chmod +x "$BIN/osascript"
+[[ "$(PATH="$BIN:$PATH" command -v osascript)" == "$BIN/osascript" ]] || { echo "osascript reel atteignable : abandon" >&2; exit 2; }
 
 zc() {
     HOME="$H" PATH="$BIN:$PATH" WORK_DIR=/w ZANVIL_DIR="$ROOT" LOG="$LOG" zsh -f -c \

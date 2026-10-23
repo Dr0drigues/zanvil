@@ -52,6 +52,7 @@ case "\$1 \$2" in
 esac
 EOS
 chmod +x "$BIN"/*
+[[ "$(PATH="$BIN:$PATH" command -v osascript)" == "$BIN/osascript" ]] || { echo "osascript reel atteignable : abandon" >&2; exit 2; }
 
 mr_json() {  # <source_project_id>
     printf '{"state":"opened","source_branch":"feat/panier","sha":"x","source_project_id":%s,"target_project_id":7}\n' "$1" > "$JSON"

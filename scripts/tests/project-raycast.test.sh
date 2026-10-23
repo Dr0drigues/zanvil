@@ -20,7 +20,15 @@ printf '#!/bin/sh\necho "  https://gitlab.example.com/group/sub/repo/-/merge_req
 printf '#!/bin/sh\necho "glab TOKEN=$GITLAB_TOKEN PATH=$PATH ARGS=$*" >> "%s/calls.log"\nexit 1\n' "$T" > "$T/bin/glab"
 printf "#!/bin/sh\nexit 0\n" > "$T/bin/jq"  # seule la presence compte : glab echoue avant
 chmod +x "$T/bin/pbpaste" "$T/bin/glab" "$T/bin/jq"
+# faux osascript/orca/idea/open : rien ne doit atteindre le vrai systeme (notifications, applis)
+for b in osascript orca idea open; do
+    printf '#!/bin/sh\necho "%s $*" >> "%s/calls.log"\n' "$b" "$T" > "$T/bin/$b"
+    chmod +x "$T/bin/$b"
+done
 touch "$T/calls.log"
+for b in osascript orca idea open glab pbpaste jq; do
+    [[ "$(PATH="$T/bin:/usr/bin:/bin" command -v $b)" == "$T/bin/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
+done
 
 env -i HOME="$T/home" PATH="$T/bin:/usr/bin:/bin" ZANVIL_DIR="$ROOT" WORK_DIR="$T/work" \
     "$ROOT/scripts/raycast/project-open.sh" >"$T/out" 2>&1
@@ -30,5 +38,13 @@ check "jeton lu depuis ~/.gitlab_secrets" 'TOKEN=t '
 check "PATH contient /opt/homebrew/bin" 'PATH=[^ ]*/opt/homebrew/bin'
 check "glab mr view appele" 'ARGS=.*mr view'
 check "MR transmise a glab" 'mr view 7 -R group/sub/repo'
+
+# presse-papiers qui n'est pas un lien de MR : la notification de project open, rien d'autre
+printf '#!/bin/sh\necho "pas un lien"\n' > "$T/bin/pbpaste"
+: > "$T/calls.log"
+env -i HOME="$T/home" PATH="$T/bin:/usr/bin:/bin" ZANVIL_DIR="$ROOT" WORK_DIR="$T/work" \
+    "$ROOT/scripts/raycast/project-open.sh" >/dev/null 2>&1
+check "notification pour un texte qui n'est pas une MR" 'osascript.*Pas un lien de MR'
+if grep -q '^glab' "$T/calls.log"; then echo "  FAIL glab appele sans lien"; fail=1; else echo "  ok   glab non appele"; fi
 if [[ -e "$T/pwned" ]]; then echo "  FAIL presse-papiers interprete"; fail=1; else echo "  ok   presse-papiers non interprete"; fi
 exit $fail
