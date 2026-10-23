@@ -40,6 +40,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── ssh/            # ssh_manager
 │   ├── tmux/           # tmux_manager (lazy loaded)
 │   ├── ai/             # ai_context, ai_tokens (lazy loaded)
+│   ├── project/        # project open <lien-MR> (worktree + Orca + IDEA), project clean (guard: ZANVIL_MODULE_PROJECT)
 │   ├── security/       # security_audit
 │   ├── utils/          # utils, extract, fkill, net_utils (lazy)
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile
@@ -121,6 +122,10 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 ### Dotfiles (core/commands/dotfiles.zsh)
 
 `zanvil-dotfiles status|pull|install|cleanup|link|adopt|apply|migrate`. Brewfiles en couches (`brew/base.Brewfile` + `common` + profil du depot dotfiles), liens Stow toujours `--no-folding`. Apres un `install` reussi sur macOS, lance `macos.sh` a la racine du depot s'il existe (`sh`, idempotent ; un echec avertit sans faire echouer l'install). `cleanup` liste puis exige une confirmation explicite ; `link` bloque sur conflit ; `adopt` refuse les secrets. `migrate` (core/commands/dotfiles_migrate.zsh) applique le depot sur une machine deja configuree : ecrit seulement les cles absentes ou vides de `config.zsh`, `--adopt` des casks deja installes (refus et echecs retires du Brewfile donne a `brew bundle`), resolution des conflits d/l/p avec sauvegarde dans `~/.zanvil-backup/`, liens Stow de tout sauf les fichiers passes (`--ignore` par chemin), commit local sans push, simulation de `cleanup` sans jamais desinstaller ; proposee une fois apres une mise a jour reussie (`.dotfiles_migrate_suggested`, gitignore). Variables : `ZANVIL_PROFILE` (pro|perso), `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` (defaut `~/.dotfiles`). `install.sh` ecrit les trois dans `config.zsh` (`--profile`, `--dotfiles`, sinon question ou valeur deja presente dans `config.zsh`).
+
+### Project (modules/project/project.zsh)
+
+`project open <lien-de-MR>` clone au besoin le depot sous `$WORK_DIR/<chemin GitLab>` (hote GitLab pris du lien) et cree un worktree de la branche de la MR dans `$WORK_DIR/<sous-groupe>/.worktrees/<repo>/<branche>` ; le depot principal n'est jamais touche, le `.zanvil.local` du depot est copie. Ouvre ensuite Orca et IntelliJ IDEA ; les erreurs passent par une notification (`_project_notify`). `project clean` retire les worktrees des MR terminees sans travail non pousse ; `init.zsh` le lance en arriere-plan une fois par 24 h. `scripts/raycast/project-open.sh` (Hyper+O dans Raycast) lit le presse-papiers et rebranche `PATH` et `~/.gitlab_secrets` avant d'appeler `project open`.
 
 ### Kube aliases
 

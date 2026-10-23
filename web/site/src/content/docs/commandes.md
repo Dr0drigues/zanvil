@@ -86,6 +86,27 @@ Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMM
 | `zanvil context` | Génération de contexte projet |
 | `zanvil modules` | Gestion des modules (list, enable, disable) |
 
+## Project
+
+| Commande | Description |
+|----------|-------------|
+| `project open <lien-de-MR>` | Ouvre la MR dans un worktree sous `$WORK_DIR`, puis dans Orca et IntelliJ IDEA |
+| `project clean` | Supprime les worktrees des MR terminées |
+
+Le worktree se range sous le sous-groupe GitLab, dans un dossier `.worktrees` :
+`$WORK_DIR/group/sub/.worktrees/repo/<branche>`. Le dépôt principal (`$WORK_DIR/group/sub/repo`) est cloné
+au besoin et jamais modifié. Un `.zanvil.local` présent à la racine du dépôt est copié dans le worktree.
+
+```bash
+project open https://gitlab.example.com/group/sub/repo/-/merge_requests/42
+project clean
+```
+
+Le ménage tourne aussi tout seul, en arrière-plan, au plus une fois par 24 h au démarrage du shell : il
+retire les worktrees dont la MR est fermée ou fusionnée, sans travail local non poussé. Le résultat
+arrive en notification. Pour ouvrir la MR copiée d'un raccourci clavier, voir
+[Ouvrir une MR](/zanvil/bureau-macos/#ouvrir-une-mr).
+
 ## GitLab
 
 | Commande | Description |
