@@ -143,6 +143,89 @@ _project_open() {
     _ui_msg_ok "MR !$iid ouverte : $wt"
 }
 
+# _project_remote_host <url-de-remote> : hote d'une URL https, ssh:// ou scp (git@hote:chemin)
+_project_remote_host() {
+    [[ "$1" =~ '^[a-z+]+://([^@/]+@)?([^/:]+)' ]] && { print -r -- "${match[2]}"; return; }
+    [[ "$1" =~ '^([^@/]+@)?([^/:]+):' ]] && { print -r -- "${match[2]}"; return; }
+    return 1
+}
+
+# _project_clean_reason <depot> <worktree> <branche> <sha-de-la-MR> : rien si le worktree peut
+# etre supprime, sinon la raison de le garder
+_project_clean_reason() {
+    local repo="$1" wt="$2" branch="$3" sha="$4" head line
+    [[ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ]] || { print modifications en cours; return; }
+    # stash commun au depot : seules comptent les entrees faites sur cette branche
+    for line in ${(f)"$(git -C "$repo" stash list --format=%gs 2>/dev/null)"}; do
+        [[ "$line" == "WIP on $branch:"* || "$line" == "On $branch:"* ]] && { print stash en cours; return; }
+    done
+    head=$(git -C "$wt" rev-parse -q --verify HEAD) || { print HEAD illisible; return; }
+    # shortcut: pas de fetch ; un sha de MR absent en local se rabat sur les refs distantes connues
+    [[ "$sha" =~ '^[0-9a-f]{40,64}$' ]] && git -C "$repo" merge-base --is-ancestor "$head" "$sha" 2>/dev/null && return
+    [[ -n "$(git -C "$repo" for-each-ref --count=1 --contains "$head" refs/remotes 2>/dev/null)" ]] && return
+    print commits non pousses
+}
+
+# _project_clean [--quiet] : supprime les worktrees sous $WORK_DIR dont la MR est mergee ou fermee
+# et qui ne portent aucun travail non pousse ; notifie un resume (rien si rien a faire).
+_project_clean() {
+    local quiet=0
+    [[ "$1" == --quiet ]] && quiet=1
+    [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]] || { _project_notify "WORK_DIR absent : ${WORK_DIR:-non defini}"; return 1; }
+    command -v glab &>/dev/null || { _project_notify "glab introuvable"; return 1; }
+    command -v jq &>/dev/null || { _project_notify "jq introuvable"; return 1; }
+
+    local wt repo rel mr_path ref branch host json state sha reason
+    local -a f removed kept
+    for wt in "$WORK_DIR"/**/.worktrees/*/*(/N); do
+        repo="${wt:h:h:h}/${wt:h:t}"
+        rel="${wt#$WORK_DIR/}"
+        mr_path="${repo#$WORK_DIR/}"
+        # seulement les worktrees de ce depot ; le reste sous .worktrees n'est pas a nous
+        [[ -e "$wt/.git" && -d "$repo" ]] || continue
+        [[ "$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" \
+            == "$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" ]] || continue
+        # vraie branche lue dans le worktree : feat/x -> feat-x ne se defait pas
+        ref=$(git -C "$wt" symbolic-ref -q HEAD) || { kept+=("$rel : HEAD detache"); continue; }
+        branch="${ref#refs/heads/}"
+        host=$(_project_remote_host "$(git -C "$repo" remote get-url origin 2>/dev/null)") || continue
+        json=$(GITLAB_HOST="$host" glab mr view "$branch" -R "$mr_path" -F json 2>/dev/null) || continue
+        f=("${(@f)$(print -r -- "$json" | jq -r '.state, .sha' 2>/dev/null)}")
+        state="${f[1]}" sha="${f[2]}"
+        [[ "$state" == (merged|closed) ]] || continue
+        reason=$(_project_clean_reason "$repo" "$wt" "$branch" "$sha")
+        [[ -z "$reason" ]] || { kept+=("$rel : $reason"); continue; }
+        # sans --force : git refuse encore si le worktree a change entre-temps
+        git -C "$repo" worktree remove "$wt" &>/dev/null || { kept+=("$rel : suppression refusee par git"); continue; }
+        git -C "$repo" branch -D "$branch" &>/dev/null
+        rmdir "${wt:h}" "${wt:h:h}" 2>/dev/null
+        removed+=("$rel")
+    done
+
+    (( ${#removed} + ${#kept} )) || { (( quiet )) || _ui_msg_info "Rien a faire"; return 0; }
+    local -a parts
+    (( ${#removed} )) && parts+=("${#removed} worktree$( (( ${#removed} > 1 )) && print s) supprime$( (( ${#removed} > 1 )) && print s)")
+    local k
+    for k in $kept; do parts+=("garde $k"); done
+    if (( ! quiet )); then
+        _ui_header "project clean"
+        for k in $removed; do _ui_msg_ok "supprime $k"; done
+        for k in $kept; do _ui_msg_warn "garde $k"; done
+    fi
+    # le resume est deja affiche : la notification ne le repete pas au terminal
+    _project_notify "${(j: ; :)parts}" >/dev/null
+}
+
+# _project_clean_daily : _project_clean --quiet en arriere-plan, au plus une fois par 24 h
+_project_clean_daily() {
+    local stamp="$ZANVIL_DIR/.last_project_clean" last
+    zmodload -F zsh/datetime p:EPOCHSECONDS
+    [[ -r "$stamp" ]] && last=$(<"$stamp")
+    [[ "$last" == <-> ]] && (( EPOCHSECONDS - last < 86400 )) && return 0
+    print -r -- "$EPOCHSECONDS" > "$stamp"
+    _project_clean --quiet &>/dev/null &!
+}
+
 _project_help() {
     _ui_header "project"
     print "  project open <lien-de-MR>   ouvre la MR dans un worktree sous \$WORK_DIR"
