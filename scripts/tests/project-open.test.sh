@@ -44,7 +44,7 @@ for b in orca idea osascript; do
 done
 cat > "$BIN/glab" <<EOS
 #!/bin/sh
-echo "glab \$*" >> "$LOG"
+echo "glab GITLAB_HOST=\${GITLAB_HOST:-} \$*" >> "$LOG"
 [ -n "\${GLAB_FAIL:-}" ] && exit 1
 case "\$1 \$2" in
     "mr view") cat "$JSON" ;;
@@ -86,7 +86,10 @@ fresh
 po; echo "rc=$?" | assert_equals "code 0" "rc=0"
 git -C "$REPO" rev-parse --is-inside-work-tree 2>&1 | assert_equals "clone sous WORK_DIR/group/sub/repo" "true"
 git -C "$WT" symbolic-ref --short HEAD 2>&1 | assert_equals "worktree sur feat/panier" "feat/panier"
-grep -c "^glab repo clone group/sub/repo $REPO\$" "$LOG" | assert_equals "glab repo clone <chemin> <dossier>" "1"
+grep -c "^glab GITLAB_HOST=gitlab.example.com mr view 42 -R group/sub/repo -F json\$" "$LOG" \
+    | assert_equals "glab mr view sur l'hote du lien" "1"
+grep -c "^glab GITLAB_HOST=gitlab.example.com repo clone group/sub/repo $REPO\$" "$LOG" \
+    | assert_equals "glab repo clone <chemin> <dossier> sur l'hote du lien" "1"
 grep -c "^orca terminal create --worktree path:$WT --title !42 --focus\$" "$LOG" | assert_equals "onglet Orca" "1"
 grep -c "^orca reference add $URL --worktree path:$WT\$" "$LOG" | assert_equals "reference Orca" "1"
 grep -c "^idea $WT\$" "$LOG" | assert_equals "IDEA sur le worktree" "1"
@@ -117,6 +120,30 @@ local_branch=$(git -C "$REPO" rev-parse feat/panier)
 po; echo "rc=$?" | assert_equals "code 1" "rc=1"
 git -C "$REPO" rev-parse feat/panier | assert_equals "branche locale intacte" "$local_branch"
 { [[ -e "$W/group/sub/.worktrees" ]] && echo present || echo absent; } | assert_equals "aucun dossier .worktrees" "absent"
+
+echo "tag du meme nom que la branche, commit local non pousse"
+fresh
+git clone -q "$BARE" "$REPO"
+git -C "$REPO" branch feat/panier \
+    "$(git -C "$REPO" commit-tree -p refs/remotes/origin/feat/panier -m non-pousse 'refs/remotes/origin/feat/panier^{tree}')"
+git -C "$REPO" tag feat/panier refs/remotes/origin/main
+local_branch=$(git -C "$REPO" rev-parse refs/heads/feat/panier)
+po; echo "rc=$?" | assert_equals "code 1" "rc=1"
+git -C "$REPO" rev-parse refs/heads/feat/panier | assert_equals "commit local intact" "$local_branch"
+
+echo "dossier du worktree occupe par un autre depot"
+fresh
+git clone -q -b feat/panier "$BARE" "$WT"
+po; echo "rc=$?" | assert_equals "code 1" "rc=1"
+grep -c "^osascript.*n'est pas un worktree de" "$LOG" | assert_equals "notification" "1"
+{ [[ -e "$REPO" ]] && echo present || echo absent; } | assert_equals "clone de cet appel retire" "absent"
+git -C "$WT" rev-parse --abbrev-ref HEAD | assert_equals "autre depot intact" "feat/panier"
+
+echo "identifiants de projet absents"
+fresh
+mr_json null
+po; echo "rc=$?" | assert_equals "code 1" "rc=1"
+grep -c "^osascript.*illisibles" "$LOG" | assert_equals "message clair" "1"
 
 echo "relances"
 fresh

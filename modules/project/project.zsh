@@ -70,6 +70,7 @@ _project_open() {
         || { _project_notify "MR !$iid introuvable sur $mr_host ($mr_path)"; return 1; }
     f=("${(@f)$(print -r -- "$json" | jq -r '.state, .source_branch, .sha, .source_project_id, .target_project_id' 2>/dev/null)}")
     local state="${f[1]}" branch="${f[2]}"
+    [[ "${f[4]}" == <-> && "${f[5]}" == <-> ]] || { _project_notify "MR !$iid : projets source/cible illisibles"; return 1; }
     [[ "${f[4]}" == "${f[5]}" ]] || { _project_notify "MR d'un fork : non prise en charge"; return 1; }
     # la branche vient de GitLab : refuser tout nom que git n'accepterait pas (option, '..', etc.)
     [[ -n "$branch" && "$branch" != null ]] && git check-ref-format --branch "$branch" &>/dev/null \
@@ -80,35 +81,41 @@ _project_open() {
     wt=$(_project_worktree_dir "$mr_path" "$branch")
     if [[ ! -d "$repo" ]]; then
         created=("$(_project_first_missing "$repo")")
-        mkdir -p "${repo:h}" && glab repo clone "$mr_path" "$repo" &>/dev/null \
+        mkdir -p "${repo:h}" && GITLAB_HOST="$mr_host" glab repo clone "$mr_path" "$repo" &>/dev/null \
             || { _project_abort "Clone de $mr_path impossible" $created; return; }
     fi
-    local before_fetch=$(git -C "$repo" rev-parse -q --verify "refs/remotes/origin/$branch")
-    git -C "$repo" fetch --quiet origin "$branch" &>/dev/null \
+    # refs completes partout : un tag, ou une branche locale 'origin/x', du meme nom ne masque rien
+    local remote="refs/remotes/origin/$branch" local_ref="refs/heads/$branch"
+    local before_fetch=$(git -C "$repo" rev-parse -q --verify "$remote")
+    git -C "$repo" fetch --quiet origin "+$local_ref:$remote" &>/dev/null \
         || { _project_abort "Branche $branch introuvable sur origin (MR $state)" $created; return; }
-    [[ "$(git -C "$repo" symbolic-ref -q --short HEAD)" == "$branch" ]] \
+    [[ "$(git -C "$repo" symbolic-ref -q HEAD)" == "$local_ref" ]] \
         && { _project_abort "$branch est extraite dans $repo : rien n'est touche" $created; return; }
 
-    local remote="origin/$branch"
     if [[ ! -e "$wt" ]]; then
-        if git -C "$repo" show-ref -q --verify "refs/heads/$branch"; then
-            git -C "$repo" merge-base --is-ancestor "$branch" "$remote" \
-                || { _project_abort "Branche locale $branch divergente de $remote : rien n'est touche" $created; return; }
-            git -C "$repo" branch -f "$branch" "$remote" &>/dev/null \
-                || { _project_abort "Branche locale $branch impossible a avancer" $created; return; }
+        # branche locale existante : seulement si elle avance en avance rapide (-B l'y amene)
+        if git -C "$repo" show-ref -q --verify "$local_ref"; then
+            git -C "$repo" merge-base --is-ancestor "$local_ref" "$remote" \
+                || { _project_abort "Branche locale $branch divergente de origin : rien n'est touche" $created; return; }
         fi
         created+=("$(_project_first_missing "$wt")")
-        git -C "$repo" worktree add --quiet "$wt" "$branch" &>/dev/null \
+        git -C "$repo" worktree add --quiet --track -B "$branch" "$wt" "$remote" &>/dev/null \
             || { _project_abort "Worktree $wt impossible" $created; return; }
     else
-        [[ -e "$wt/.git" && "$(git -C "$wt" symbolic-ref -q --short HEAD)" == "$branch" ]] \
-            || { _project_notify "$wt n'est pas un worktree sur $branch : rien n'est touche"; return 1; }
+        # ici $created vaut au plus $repo : $wt existe, donc ses ancetres aussi
+        local wt_common repo_common
+        wt_common=$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+        repo_common=$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+        [[ -e "$wt/.git" && -n "$wt_common" && "${wt_common:A}" == "${repo_common:A}" ]] \
+            || { _project_abort "$wt n'est pas un worktree de $repo : rien n'est touche" $created; return; }
+        [[ "$(git -C "$wt" symbolic-ref -q HEAD)" == "$local_ref" ]] \
+            || { _project_abort "$wt n'est pas sur $branch : rien n'est touche" $created; return; }
         [[ -z "$(git -C "$wt" status --porcelain)" ]] \
-            || { _project_notify "Modifications en cours dans $wt : rien n'est touche"; return 1; }
+            || { _project_abort "Modifications en cours dans $wt : rien n'est touche" $created; return; }
         _project_pushed "$repo" "$branch" "$(git -C "$wt" rev-parse HEAD)" "$before_fetch" \
-            || { _project_notify "Commits non pousses dans $wt : rien n'est touche"; return 1; }
+            || { _project_abort "Commits non pousses dans $wt : rien n'est touche" $created; return; }
         git -C "$wt" reset --quiet --hard "$remote" &>/dev/null \
-            || { _project_notify "Mise a jour de $wt impossible"; return 1; }
+            || { _project_abort "Mise a jour de $wt impossible" $created; return; }
     fi
 
     if [[ -f "$repo/.zanvil.local" && ! -e "$wt/.zanvil.local" ]]; then
