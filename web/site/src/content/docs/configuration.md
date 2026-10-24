@@ -232,7 +232,7 @@ ZANVIL_UPDATE_RELOAD=true    # Recharger les terminaux déjà ouverts après une
 Une mise à jour n'est **jamais** appliquée si le dépôt n'est pas sur `main`, s'il porte des modifications
 de fichiers suivis (les fichiers non suivis ou ignorés comme `config.zsh` ne gênent pas) ou si son
 historique a divergé d'`origin/main`. Une notification « zanvil : mise à jour en attente — modifications
-locales » (ou « branche X », « historique divergé ») le signale une seule fois par situation.
+locales » (ou « branche X », « historique divergé ») le signale une seule fois par situation. Une fusion impossible ou un `origin` injoignable trois vérifications de suite sont notifiés de la même façon : une mise à jour ne s'arrête jamais en silence. Le `git fetch` d'arrière-plan ne peut rien demander (ni phrase de passe, ni clé d'hôte, ni identifiants : il échoue) et abandonne un réseau trop lent.
 
 **Rechargement** : chaque terminal retient la révision chargée (lecture de `.git/HEAD` et du ref, sans
 processus). À chaque invite, si la révision du dépôt a changé et qu'aucune mise à jour n'est en cours, il

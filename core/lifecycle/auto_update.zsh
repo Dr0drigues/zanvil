@@ -34,9 +34,11 @@ _zanvil_should_check_update() {
 }
 
 # Fonction pour verifier les mises a jour (fetch puis comparaison avec origin/main)
+# 0 = mise a jour disponible, 1 = a jour, 2 = fetch impossible (ou pas un depot git)
 _zanvil_check_update() {
-    [[ -d "$ZANVIL_DIR/.git" ]] || return 1
-    git -C "$ZANVIL_DIR" fetch origin --quiet 2>/dev/null || return 1
+    [[ -d "$ZANVIL_DIR/.git" ]] || return 2
+    # reseau trop lent (trou noir) : abandon apres 30 s sous 1 ko/s plutot qu'une attente sans fin
+    git -C "$ZANVIL_DIR" -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 fetch origin --quiet 2>/dev/null || return 2
     [[ "$(git -C "$ZANVIL_DIR" rev-parse HEAD 2>/dev/null)" != "$(git -C "$ZANVIL_DIR" rev-parse origin/main 2>/dev/null)" ]]
 }
 
@@ -76,11 +78,29 @@ _zanvil_update_apply() {
     return 0
 }
 
-# _zanvil_update_lock : verrou atomique (mkdir) ; un verrou de plus d'1 h est repris. Code 1 si occupe.
+# pid reel du processus : dans un sous-shell (&!), $$ reste celui du shell parent
+zmodload -F zsh/system p:sysparams 2>/dev/null
+
+# _zanvil_update_lock : verrou atomique (mkdir) portant un jeton proprietaire (owner). Un verrou de
+# plus d'1 h est d'abord renomme (rename atomique : un seul gagnant) puis recree. Code 1 si occupe.
 _zanvil_update_lock() {
-    mkdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null && return 0
-    local -a stale=( "$_ZANVIL_UPDATE_LOCK"(N/mm+59) )
-    (( $#stale )) && rmdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null && mkdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null
+    local lock="$_ZANVIL_UPDATE_LOCK"
+    _zanvil_update_token="${sysparams[pid]:-$$}.$RANDOM"
+    if ! mkdir "$lock" 2>/dev/null; then
+        local -a stale=( "$lock"(N/mm+59) )
+        (( $#stale )) && mv "$lock" "$lock.stale.$_zanvil_update_token" 2>/dev/null || return 1
+        rm -rf "$lock.stale.$_zanvil_update_token"
+        mkdir "$lock" 2>/dev/null || return 1
+    fi
+    print -r -- "$_zanvil_update_token" >| "$lock/owner"
+}
+
+# _zanvil_update_unlock : retire le verrou seulement s'il porte notre jeton
+_zanvil_update_unlock() {
+    local owner=
+    [[ -r "$_ZANVIL_UPDATE_LOCK/owner" ]] && owner=$(<"$_ZANVIL_UPDATE_LOCK/owner")
+    [[ -n "$_zanvil_update_token" && "$owner" == "$_zanvil_update_token" ]] || return 0
+    rm -f "$_ZANVIL_UPDATE_LOCK/owner" && rmdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null
 }
 
 # _zanvil_update_notify <message> : journal + notification macOS (argv : aucun echappement)
@@ -89,6 +109,17 @@ _zanvil_update_notify() {
     (( $+commands[osascript] )) \
         && osascript -e 'on run a' -e 'display notification (item 1 of a) with title "zanvil"' -e 'end run' -- "$1" &>/dev/null
     return 0
+}
+
+# _zanvil_update_alert <message> : notifie une fois par (message, HEAD). Une mise a jour ne
+# s'arrete jamais en silence, sans que la meme situation soit annoncee chaque jour.
+_zanvil_update_alert() {
+    local marker="$ZANVIL_DIR/.update_blocked" seen=
+    local key="$1 $(git -C "$ZANVIL_DIR" rev-parse HEAD 2>/dev/null)"
+    [[ -r "$marker" ]] && seen=$(<"$marker")
+    [[ "$seen" == "$key" ]] && return 0
+    print -r -- "$key" >| "$marker"
+    _zanvil_update_notify "$1"
 }
 
 # Le git pull amene du code Rust neuf ; sans cette reconstruction, le binaire
@@ -102,8 +133,15 @@ _zanvil_update_rebuild_cli() {
     command -v cargo &>/dev/null && [[ -x "$HOME/.local/bin/zanvil" ]] || return 0
     echo -e "${_ui_blue}[zanvil]${_ui_nc} Reconstruction du binaire..."
     if (cd "$ZANVIL_DIR/cli" && cargo build --release 2>/dev/null); then
-        cp "$ZANVIL_DIR/cli/target/release/zanvil" "$HOME/.local/bin/" \
-            && _ui_msg_ok "binaire mis a jour"
+        # rename atomique plutot qu'une reecriture en place : un shell peut lancer le binaire a cet
+        # instant (fichier a moitie ecrit) et macOS garde en cache la signature de l'ancien inode
+        local dst="$HOME/.local/bin/zanvil"
+        if cp "$ZANVIL_DIR/cli/target/release/zanvil" "$dst.tmp" && mv -f "$dst.tmp" "$dst"; then
+            _ui_msg_ok "binaire mis a jour"
+        else
+            rm -f "$dst.tmp"
+            _ui_msg_warn "copie du binaire echouee — le binaire reste a sa version precedente"
+        fi
     else
         _ui_msg_warn "reconstruction echouee — le binaire reste a sa version precedente"
     fi
@@ -123,7 +161,7 @@ _zanvil_update_pending_migrations() {
 _zanvil_do_update() {
     echo -e "${_ui_blue}[zanvil]${_ui_nc} Mise a jour en cours..."
 
-    _zanvil_update_lock || { echo -e "${_ui_yellow}[zanvil]${_ui_nc} Mise a jour deja en cours."; return 1; }
+    # verrou pris par l'appelant (zanvil-update, _zanvil_auto_update)
     {
         local old_help=""
         if (( $+functions[zanvil-help] )); then
@@ -174,17 +212,37 @@ _zanvil_do_update() {
         # Splash zanvil apres une mise a jour reussie
         _zanvil_logo
         return 0
-    } always {
-        rmdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null
     }
 }
 
 # Mise a jour sans terminal (mode auto) : ne pose jamais de question ; sortie dans .update.log.
-# Bloquee (branche, modifications, divergence) : une notification par situation et par HEAD.
+# Bloquee ou en echec (fusion, origin injoignable 3 fois de suite) : une notification par
+# situation et par HEAD.
 _zanvil_update_background() {
+    setopt localoptions localtraps
+    # Aucune invite possible : une demande de phrase de passe, de cle d'hote ou d'identifiants
+    # HTTPS lirait /dev/tty (SIGTTIN) et bloquerait le job en gardant le verrou. Ces variables
+    # suffisent sans setsid (absent de macOS) : git et ssh echouent au lieu de demander.
+    local -x GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=true SSH_ASKPASS_REQUIRE=never
+    [[ -n "$(git -C "$ZANVIL_DIR" config core.sshCommand 2>/dev/null)" ]] \
+        || local -x GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=2"
+
     _zanvil_update_lock || return 0
+    trap '_zanvil_update_unlock; exit 129' HUP INT TERM
     {
-        _zanvil_check_update || return 0
+        local fails="$ZANVIL_DIR/.update_fetch_failures" n=0
+        _zanvil_check_update
+        case $? in
+            1) rm -f "$fails"; return 0 ;;
+            2)
+                [[ -r "$fails" ]] && n=$(<"$fails")
+                [[ "$n" == <-> ]] || n=0
+                print -r -- $(( ++n )) >| "$fails"
+                (( n >= 3 )) && _zanvil_update_alert "zanvil : échec de la mise à jour — origin injoignable (3 vérifications de suite)"
+                return 0
+                ;;
+        esac
+        rm -f "$fails"
         _zanvil_update_apply
         case $? in
             0)
@@ -195,18 +253,11 @@ _zanvil_update_background() {
                 _zanvil_update_pending_migrations && msg+=" — migrations en attente : lancez zanvil-migrate"
                 _zanvil_update_notify "$msg"
                 ;;
-            2)
-                local marker="$ZANVIL_DIR/.update_blocked" seen=
-                local key="$REPLY $(git -C "$ZANVIL_DIR" rev-parse HEAD 2>/dev/null)"
-                [[ -r "$marker" ]] && seen=$(<"$marker")
-                [[ "$seen" == "$key" ]] && return 0
-                print -r -- "$key" >| "$marker"
-                _zanvil_update_notify "zanvil : mise à jour en attente — $REPLY"
-                ;;
-            3) print -r -- "zanvil : échec de la mise à jour ($REPLY)" ;;
+            2) _zanvil_update_alert "zanvil : mise à jour en attente — $REPLY" ;;
+            3) _zanvil_update_alert "zanvil : échec de la mise à jour — $REPLY" ;;
         esac
     } always {
-        rmdir "$_ZANVIL_UPDATE_LOCK" 2>/dev/null
+        _zanvil_update_unlock
     }
 }
 
@@ -240,7 +291,11 @@ _zanvil_auto_update() {
         echo -n "Mettre a jour maintenant ? [y/N] "
         read -r answer
         if [[ "$answer" =~ ^[yYoO]$ ]]; then
-            _zanvil_do_update
+            if _zanvil_update_lock; then
+                { _zanvil_do_update } always { _zanvil_update_unlock }
+            else
+                echo -e "${_ui_yellow}[zanvil]${_ui_nc} Mise a jour deja en cours."
+            fi
         else
             echo -e "${_ui_blue}[zanvil]${_ui_nc} Mise a jour reportee. Lancez ${_ui_bold}zanvil-update${_ui_nc} pour mettre a jour manuellement."
         fi
@@ -254,13 +309,21 @@ zanvil-update() {
 
     echo -e "Verification des mises a jour..."
 
-    if _zanvil_check_update; then
-        _zanvil_show_changes
-        echo ""
-        _zanvil_do_update
-    else
-        echo -e "${_ui_green}${_ui_check}${_ui_nc} Vous etes deja a jour!"
-    fi
+    _zanvil_update_lock || { echo -e "${_ui_yellow}[zanvil]${_ui_nc} Mise a jour deja en cours."; return 1; }
+    {
+        _zanvil_check_update
+        case $? in
+            0)
+                _zanvil_show_changes
+                echo ""
+                _zanvil_do_update
+                ;;
+            1) echo -e "${_ui_green}${_ui_check}${_ui_nc} Vous etes deja a jour!" ;;
+            *) echo -e "${_ui_yellow}[zanvil]${_ui_nc} Impossible de joindre origin (git fetch a echoue)."; return 1 ;;
+        esac
+    } always {
+        _zanvil_update_unlock
+    }
 }
 
 # _zanvil_update_rev : revision du depot dans $REPLY, sans fork (vide si illisible)

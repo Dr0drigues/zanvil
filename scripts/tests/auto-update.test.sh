@@ -127,6 +127,69 @@ head_is_origin | assert_equals "verrou present : rien applique" "non"
 touch -t 202001010000 "$Z/.update.lock"
 zu '_zanvil_update_background' >/dev/null
 head_is_origin | assert_equals "verrou de plus d'1 h : repris, mise a jour appliquee" "oui"
+ls -a "$Z" | grep -c '^\.update\.lock' | assert_equals "reprise : ni verrou ni dossier renomme laisses" "0"
+fixture; mkdir "$Z/.update.lock"; touch -t 202001010000 "$Z/.update.lock"
+zu '_zanvil_update_lock && echo A; _zanvil_update_lock || echo B-occupe; cat $_ZANVIL_UPDATE_LOCK/owner | grep -c "^[0-9]*\.[0-9]*$"' \
+    | assert_equals "reprise d'un verrou perime : un seul gagnant, jeton ecrit" "$(printf 'A\nB-occupe\n1')"
+fixture; mkdir "$Z/.update.lock"; echo autre > "$Z/.update.lock/owner"
+zu '_zanvil_update_token=moi; _zanvil_update_unlock; cat $_ZANVIL_UPDATE_LOCK/owner' \
+    | assert_equals "verrou d'un autre proprietaire : jamais retire" "autre"
+zu '_zanvil_update_lock || echo occupe' | assert_equals "verrou frais d'un autre : occupe" "occupe"
+
+echo "git non interactif"
+FAKEGIT="$TEST_TMPDIR/fakegit"; ENVLOG="$TEST_TMPDIR/env.log"; mkdir -p "$FAKEGIT"
+cat > "$FAKEGIT/git" <<EOS
+#!/bin/sh
+case " \$* " in
+    *" config core.sshCommand "*) [ -n "\${FAKE_SSHCMD:-}" ] && { echo "\$FAKE_SSHCMD"; exit 0; }; exit 1 ;;
+    *" fetch "*)
+        { echo "args=\$*"; echo "GIT_TERMINAL_PROMPT=\$GIT_TERMINAL_PROMPT GIT_ASKPASS=\$GIT_ASKPASS SSH_ASKPASS_REQUIRE=\$SSH_ASKPASS_REQUIRE"; echo "GIT_SSH_COMMAND=\${GIT_SSH_COMMAND:-}"; } >> "$ENVLOG"
+        [ -n "\${FAKE_SLEEP:-}" ] && sleep "\$FAKE_SLEEP"
+        exit 1 ;;
+esac
+exit 1
+EOS
+chmod +x "$FAKEGIT/git"
+fixture
+zu '_zanvil_update_background' "$FAKEGIT:$TPATH" >/dev/null
+sed -n 2p "$ENVLOG" | assert_equals "fetch : aucune invite possible (variables)" "GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=true SSH_ASKPASS_REQUIRE=never"
+sed -n 3p "$ENVLOG" | assert_equals "fetch : ssh en BatchMode avec delais" "GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=2"
+grep -c -- '-c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 fetch origin' "$ENVLOG" | assert_equals "fetch : abandon d'un reseau trop lent" "1"
+rm -f "$ENVLOG"; FAKE_SSHCMD="ssh -i cle" zu 'export FAKE_SSHCMD; _zanvil_update_background' "$FAKEGIT:$TPATH" >/dev/null
+sed -n 3p "$ENVLOG" | assert_equals "core.sshCommand defini : GIT_SSH_COMMAND non impose" "GIT_SSH_COMMAND="
+zu 'print ${GIT_TERMINAL_PROMPT:-vide}' | assert_equals "variables locales a la mise a jour (shell appelant intact)" "vide"
+rm -f "$ENVLOG"
+( FAKE_SLEEP=1 env HOME="$H" ZANVIL_DIR="$Z" FAKE_SLEEP=1 PATH="$FAKEGIT:$TPATH" zsh -f -c "source '$ROOT/core/ui.zsh'; ZANVIL_UPDATE_MODE=off; source '$ROOT/core/lifecycle/auto_update.zsh'; _zanvil_update_background" >/dev/null 2>&1 & echo $! > "$TEST_TMPDIR/pid"; wait )&
+for i in $(seq 1 60); do [[ -s "$ENVLOG" ]] && break; sleep 0.05; done
+kill -TERM "$(cat "$TEST_TMPDIR/pid")"; wait
+for i in $(seq 1 60); do [[ -d "$Z/.update.lock" ]] || break; sleep 0.05; done
+{ [[ -d "$Z/.update.lock" ]] && echo present || echo absent; } | assert_equals "TERM pendant le fetch : verrou libere" "absent"
+
+echo "echecs signales"
+fixture; rm -f "$NLOG"
+zu '_zanvil_update_background; _zanvil_update_background' "$FAKEGIT:$TPATH" >/dev/null
+cat "$NLOG" 2>/dev/null | wc -l | tr -d ' ' | assert_equals "fetch en echec 2 fois : pas encore de notification" "0"
+zu '_zanvil_update_background; _zanvil_update_background' "$FAKEGIT:$TPATH" >/dev/null
+cat "$NLOG" | assert_equals "fetch en echec 3 fois de suite : une seule notification (4 passages)" "zanvil : échec de la mise à jour — origin injoignable (3 vérifications de suite)"
+zu '_zanvil_update_background' >/dev/null
+{ [[ -e "$Z/.update_fetch_failures" ]] && echo present || echo absent; } | assert_equals "fetch reussi : compteur remis a zero" "absent"
+fixture; echo nouveau > "$W/new.txt"; git -C "$W" add new.txt; git -C "$W" commit --quiet -m new; git -C "$W" push --quiet origin main
+echo local > "$Z/new.txt"
+zu '_zanvil_update_background; _zanvil_update_background' >/dev/null
+head_is_origin | assert_equals "fusion impossible (fichier non suivi ecrase) : rien applique" "non"
+cat "$NLOG" | assert_equals "fusion impossible : une seule notification" "zanvil : échec de la mise à jour — fusion impossible"
+
+echo "reconstruction du binaire"
+CARGOBIN="$TEST_TMPDIR/cargobin"; mkdir -p "$CARGOBIN" "$H/.local/bin"
+printf '#!/bin/sh\nmkdir -p target/release && echo nouveau > target/release/zanvil && chmod +x target/release/zanvil\n' > "$CARGOBIN/cargo"
+chmod +x "$CARGOBIN/cargo"
+fixture; mkdir -p "$Z/cli"; printf 'ancien\n' > "$H/.local/bin/zanvil"; chmod +x "$H/.local/bin/zanvil"
+ino_before=$(ls -i "$H/.local/bin/zanvil" | awk '{print $1}')
+zu '_zanvil_update_rebuild_cli' "$CARGOBIN:$TPATH" >/dev/null
+cat "$H/.local/bin/zanvil" | assert_equals "binaire remplace" "nouveau"
+{ [[ "$(ls -i "$H/.local/bin/zanvil" | awk '{print $1}')" != "$ino_before" ]] && echo renomme; } | assert_equals "remplacement par rename (nouvel inode, pas de reecriture en place)" "renomme"
+ls "$H/.local/bin" | assert_equals "aucun fichier temporaire laisse" "zanvil"
+rm -rf "$H/.local"
 
 echo "zanvil-update (manuel, meme logique)"
 fixture; advance

@@ -90,8 +90,8 @@ _zanvil_sync_export() {
   "plugins": $plugins,
   "auto_update": {
     "enabled": ${au_enabled:-true},
-    "frequency": ${au_freq:-7},
-    "mode": "${au_mode:-prompt}"
+    "frequency": ${au_freq:-1},
+    "mode": "${au_mode:-auto}"
   }
 }
 EOF
