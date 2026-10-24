@@ -34,13 +34,17 @@ ZANVIL_MODULE_KUBE=${ZANVIL_MODULE_KUBE:-false}
 ZANVIL_MODULE_SECURITY=${ZANVIL_MODULE_SECURITY:-true}
 ZANVIL_MODULE_AI=${ZANVIL_MODULE_AI:-true}
 
-# Auto-update
+# Auto-update (auto | prompt | off) et rechargement des terminaux ouverts
 ZANVIL_AUTO_UPDATE=${ZANVIL_AUTO_UPDATE:-true}
-ZANVIL_UPDATE_FREQUENCY=${ZANVIL_UPDATE_FREQUENCY:-7}
-ZANVIL_UPDATE_MODE=${ZANVIL_UPDATE_MODE:-prompt}
+ZANVIL_UPDATE_FREQUENCY=${ZANVIL_UPDATE_FREQUENCY:-1}
+ZANVIL_UPDATE_MODE=${ZANVIL_UPDATE_MODE:-auto}
+ZANVIL_UPDATE_RELOAD=${ZANVIL_UPDATE_RELOAD:-true}
 
 # Charger config personnalisee si presente
 [[ -f "$ZANVIL_DIR/config.zsh" ]] && source "$ZANVIL_DIR/config.zsh"
+
+# Backward compat: ZANVIL_AUTO_UPDATE=false (anciens config.zsh) = mode off
+[[ "$ZANVIL_AUTO_UPDATE" == false ]] && ZANVIL_UPDATE_MODE=off
 
 # Backward compat: NVM -> mise (pour les anciens config.zsh)
 if [[ -n "$ZANVIL_MODULE_NVM" && -z "$ZANVIL_MODULE_MISE" ]]; then

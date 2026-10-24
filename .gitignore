@@ -16,6 +16,9 @@ aliases.local.zsh
 
 # Fichier de tracking auto-update
 .last_update_check
+.update.log
+.update.lock/
+.update_blocked
 .last_project_clean
 .project_clean.lock/
 

@@ -718,28 +718,28 @@ if [[ "$INTERACTIVE" = true ]]; then
     if [[ "$AUTO_UPDATE" = "true" ]]; then
         echo -e "  Frequence de verification:" >&2
         echo -e "    ${CYAN}1)${NC} Chaque demarrage" >&2
-        echo -e "    ${CYAN}2)${NC} Tous les 7 jours (recommande)" >&2
-        echo -e "    ${CYAN}3)${NC} Tous les 30 jours" >&2
+        echo -e "    ${CYAN}2)${NC} Chaque jour (recommande)" >&2
+        echo -e "    ${CYAN}3)${NC} Tous les 7 jours" >&2
         printf "  Choix [2]: " >&2
         read -r freq_choice
         case "$freq_choice" in
             1) UPDATE_FREQ=0 ;;
-            3) UPDATE_FREQ=30 ;;
-            *) UPDATE_FREQ=7 ;;
+            3) UPDATE_FREQ=7 ;;
+            *) UPDATE_FREQ=1 ;;
         esac
 
         echo -e "  Mode de mise a jour:" >&2
-        echo -e "    ${CYAN}1)${NC} Demander confirmation (recommande)" >&2
-        echo -e "    ${CYAN}2)${NC} Automatique (silencieux)" >&2
+        echo -e "    ${CYAN}1)${NC} Automatique en arriere-plan (recommande)" >&2
+        echo -e "    ${CYAN}2)${NC} Demander confirmation" >&2
         printf "  Choix [1]: " >&2
         read -r mode_choice
         case "$mode_choice" in
-            2) UPDATE_MODE="auto" ;;
-            *) UPDATE_MODE="prompt" ;;
+            2) UPDATE_MODE="prompt" ;;
+            *) UPDATE_MODE="auto" ;;
         esac
     else
-        UPDATE_FREQ=7
-        UPDATE_MODE="prompt"
+        UPDATE_FREQ=1
+        UPDATE_MODE="off"
     fi
 else
     log_info "Mode --default : modules actives (GitLab, Docker et Kube selon le profil)"
@@ -750,8 +750,8 @@ else
     MODULE_KUBE=$(_install_module_default "$PROFILE")
     STARSHIP_THEME="forge"
     AUTO_UPDATE="true"
-    UPDATE_FREQ=7
-    UPDATE_MODE="prompt"
+    UPDATE_FREQ=1
+    UPDATE_MODE="auto"
     SOPS_CONFIGURED="false"
 
     # Configuration SOPS automatique en mode default

@@ -25,9 +25,9 @@ ZANVIL_MODULE_POSTING=true     # Client HTTP TUI (posting)
 # ==============================================================================
 # Auto-Update
 # ==============================================================================
-ZANVIL_AUTO_UPDATE=true        # Activer la verification des mises a jour
-ZANVIL_UPDATE_FREQUENCY=7      # Frequence en jours (0 = a chaque demarrage)
-ZANVIL_UPDATE_MODE="prompt"    # "prompt" = demander, "auto" = mise a jour silencieuse
+ZANVIL_UPDATE_MODE="auto"      # "auto" = en arriere-plan (defaut), "prompt" = demander, "off" = jamais
+ZANVIL_UPDATE_FREQUENCY=1      # Frequence en jours (0 = a chaque demarrage)
+ZANVIL_UPDATE_RELOAD=true      # false = les terminaux ouverts ne se rechargent pas apres une mise a jour
 
 # ==============================================================================
 # Parametres avances (surchargeable)
