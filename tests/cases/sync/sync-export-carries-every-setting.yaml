@@ -36,9 +36,9 @@ expect:
         - '"zsh-syntax-highlighting"'
         - '"frequency": 14'
         - '"mode": "silent"'
-      # Un export ne doit pas substituer ses defauts a ce que la config porte : `7` et
-      # `prompt` sont les valeurs de repli du code, et les voir ici signifierait que la
+      # Un export ne doit pas substituer ses defauts a ce que la config porte : `1` et
+      # `auto` sont les valeurs de repli du code, et les voir ici signifierait que la
       # lecture de config.zsh a echoue en silence.
       absent:
-        - '"frequency": 7'
-        - '"mode": "prompt"'
+        - '"frequency": 1,'
+        - '"mode": "auto"'

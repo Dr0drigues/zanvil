@@ -31,7 +31,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zanvil.local)
 │   ├── completions.zsh # Completions des commandes core
 │   ├── commands/       # Commandes zanvil-* (admin, commands, theme, setup, check_env_deps, dotfiles)
-│   └── lifecycle/      # Migration, sync, auto-update (auto_update, migrate, sync)
+│   └── lifecycle/      # Migration, sync, auto-update (auto_update, migrate, sync) ; auto-update en arriere-plan (ff-only de main) + rechargement des shells ouverts au precmd
 ├── modules/            # Features modulaires (init.zsh + completions.zsh par module)
 │   ├── git/            # git_bulk, git_hooks, git_change_author, git_root
 │   ├── gitlab/         # gitlab_logic, pipeline_bulk (guard: ZANVIL_MODULE_GITLAB)
@@ -123,6 +123,10 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 ### Dotfiles (core/commands/dotfiles.zsh)
 
 `zanvil-dotfiles status|pull|install|cleanup|link|adopt|apply|migrate`. Brewfiles en couches (`brew/base.Brewfile` + `common` + profil du depot dotfiles), liens Stow toujours `--no-folding`. Apres un `install` reussi sur macOS, lance `macos.sh` a la racine du depot s'il existe (`sh`, idempotent ; un echec avertit sans faire echouer l'install). `cleanup` liste puis exige une confirmation explicite ; `link` bloque sur conflit ; `adopt` refuse les secrets. `migrate` (core/commands/dotfiles_migrate.zsh) applique le depot sur une machine deja configuree : ecrit seulement les cles absentes ou vides de `config.zsh`, `--adopt` des casks deja installes (refus et echecs retires du Brewfile donne a `brew bundle`), resolution des conflits d/l/p avec sauvegarde dans `~/.zanvil-backup/`, liens Stow de tout sauf les fichiers passes (`--ignore` par chemin), commit local sans push, simulation de `cleanup` sans jamais desinstaller ; proposee une fois apres une mise a jour reussie (`.dotfiles_migrate_suggested`, gitignore). Variables : `ZANVIL_PROFILE` (pro|perso), `ZANVIL_DOTFILES_REPO`, `ZANVIL_DOTFILES_DIR` (defaut `~/.dotfiles`). `install.sh` ecrit les trois dans `config.zsh` (`--profile`, `--dotfiles`, sinon question ou valeur deja presente dans `config.zsh`).
+
+### Auto-update (core/lifecycle/auto_update.zsh)
+
+`ZANVIL_UPDATE_MODE` auto (defaut) | prompt | off, `ZANVIL_UPDATE_FREQUENCY` (jours, defaut 1). En auto, le demarrage ne lit que `.last_update_check` (ni git ni fork) ; si due, `_zanvil_update_background` tourne en `&!` (verrou `.update.lock` a jeton proprietaire, repris apres 1 h par rename atomique, sortie `.update.log` ; fetch sans invite : GIT_TERMINAL_PROMPT=0, ssh BatchMode, http.lowSpeed*) : fetch puis `_zanvil_update_apply` (commun avec `zanvil-update`), qui n'applique qu'un `merge --ff-only` sur `main` sans modification suivie ; sinon, comme pour une fusion impossible ou 3 fetch en echec de suite (`.update_fetch_failures`), une notification par situation et par HEAD (`.update_blocked`) ; binaire CLI remplace par cp+mv. Sans TTY : reconstruction du CLI si deja installe, jamais de migration (notification). `_zanvil_update_precmd` compare a chaque invite `_ZANVIL_LOADED_REV` a la revision lue dans `.git` (HEAD, ref ou packed-refs, sans fork) et recharge via `sched +0 ss` (niveau global : sourcer depuis une fonction rendrait les typeset locaux) ; attend la fin d'un verrou frais ; `ZANVIL_UPDATE_RELOAD=false` coupe.
 
 ### Project (modules/project/project.zsh)
 

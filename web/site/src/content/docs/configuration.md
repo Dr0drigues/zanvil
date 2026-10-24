@@ -213,10 +213,33 @@ Les hooks du module `tools` (`modules/tools/mise_hooks.zsh`) ajoutent la détect
 ## Auto-update
 
 ```zsh
-ZANVIL_AUTO_UPDATE=true      # Activer
-ZANVIL_UPDATE_FREQUENCY=7    # Vérifier tous les X jours
-ZANVIL_UPDATE_MODE="prompt"  # "prompt" ou "auto"
+ZANVIL_UPDATE_MODE="auto"    # "auto" (défaut), "prompt" ou "off"
+ZANVIL_UPDATE_FREQUENCY=1    # Vérifier tous les X jours (0 = à chaque démarrage)
+ZANVIL_UPDATE_RELOAD=true    # Recharger les terminaux déjà ouverts après une mise à jour
 ```
+
+- **`auto`** : l'ouverture d'un terminal ne fait que lire la date de la dernière vérification (ni
+  `git`, ni processus). Quand la vérification est due, la mise à jour tourne en arrière-plan : `git fetch`,
+  puis avance rapide de `main` sur `origin/main`. Un verrou (`.update.lock`, repris après 1 h) garantit une
+  seule exécution quand plusieurs terminaux s'ouvrent ensemble ; la sortie va dans `.update.log`. Une
+  notification macOS annonce « zanvil mis à jour : v1.2.0 → v1.3.0 ». Le binaire `zanvil` est reconstruit
+  s'il est déjà installé et que `cargo` est présent ; les migrations ne sont jamais lancées sans terminal :
+  la notification invite à lancer `zanvil-migrate`.
+- **`prompt`** : comportement historique, une question avant de mettre à jour.
+- **`off`** : ni vérification ni rechargement. `ZANVIL_AUTO_UPDATE=false` (anciennes configurations)
+  équivaut à `off`.
+
+Une mise à jour n'est **jamais** appliquée si le dépôt n'est pas sur `main`, s'il porte des modifications
+de fichiers suivis (les fichiers non suivis ou ignorés comme `config.zsh` ne gênent pas) ou si son
+historique a divergé d'`origin/main`. Une notification « zanvil : mise à jour en attente — modifications
+locales » (ou « branche X », « historique divergé ») le signale une seule fois par situation. Une fusion impossible ou un `origin` injoignable trois vérifications de suite sont notifiés de la même façon : une mise à jour ne s'arrête jamais en silence. Le `git fetch` d'arrière-plan ne peut rien demander (ni phrase de passe, ni clé d'hôte, ni identifiants : il échoue) et abandonne un réseau trop lent.
+
+**Rechargement** : chaque terminal retient la révision chargée (lecture de `.git/HEAD` et du ref, sans
+processus). À chaque invite, si la révision du dépôt a changé et qu'aucune mise à jour n'est en cours, il
+affiche « zanvil mis à jour (abc1234 → def5678), rechargement… » et se recharge comme `ss`, une seule fois.
+Avec `ZANVIL_UPDATE_RELOAD=false`, seuls les nouveaux terminaux prennent la nouvelle version.
+
+`zanvil-update` force la vérification et applique la même règle (avance rapide de `main` seulement).
 
 ## Plugins
 

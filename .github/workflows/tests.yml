@@ -69,6 +69,7 @@ jobs:
           bash scripts/tests/raycast-commands.test.sh
           bash scripts/tests/themes-toml.test.sh
           bash scripts/tests/install-profile.test.sh
+          bash scripts/tests/auto-update.test.sh
           # 145 cas qui ne tournaient nulle part : la suite existait depuis la creation de
           # work_config_repo et n a jamais ete appelee ici, donc aucune de ses gardes ne
           # protegeait la branche. Elle ne demande ni reseau ni identite git — ses `git

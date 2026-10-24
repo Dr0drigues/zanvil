@@ -157,11 +157,11 @@ cd ~/.zanvil/cli
 cargo build --release
 ```
 
-Ou activez l'auto-update dans `config.zsh` :
+L'auto-update est actif par défaut (voir la page Configuration) :
 
 ```zsh
-ZANVIL_AUTO_UPDATE=true
-ZANVIL_UPDATE_FREQUENCY=7  # jours
+ZANVIL_UPDATE_MODE="auto"
+ZANVIL_UPDATE_FREQUENCY=1  # jours
 ```
 
 ## Désinstallation
