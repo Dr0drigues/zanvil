@@ -72,23 +72,53 @@ run kube-context.sh ctx-prd
 has "prod : dialogue" 'frontmost application.*display dialog.*icon caution'
 hasnt "prod + Annuler : pas de bascule" 'use-context'
 
-echo 1 > "$T/dialog.rc"; : > "$T/dialog"  # annulation reelle d'osascript : code 1, rien sur stdout
+echo 1 > "$T/dialog.rc"; echo "User canceled. (-128)" > "$T/dialog"  # annulation reelle d'osascript
+run kube-context.sh ctx-prd
+hasnt "annulation : pas de bascule" 'use-context'
+has "annulation : notification" 'osascript.*Bascule annulée'
+
+: > "$T/dialog"
 run kube-context.sh ctx-prd
 hasnt "dialogue en echec : pas de bascule" 'use-context'
+has "dialogue en echec : notification" 'osascript.*Confirmation impossible'
 
 printf 'button returned:Basculer\n' > "$T/dialog"; echo 0 > "$T/dialog.rc"
 run kube-context.sh ctx-prd
 has "prod + Basculer : bascule" 'use-context full-cluster-prd'
 run kube-context.sh other-prod
-has "nom complet en -prod : dialogue" 'display dialog'
+has "nom en -prod : dialogue" 'display dialog'
+run kube-context.sh aks-x-prd-common-001
+has "segment -prd au milieu : dialogue" 'display dialog'
+run kube-context.sh aks-x-PROD
+has "-PROD en majuscules : dialogue" 'display dialog'
+run kube-context.sh aks-x-prdx-dev
+hasnt "-prdx n'est pas prod : pas de dialogue" 'display dialog'
+printf 'ctx-new=aks-y-prd-001\n' >> "$H/.kube/.context_aliases"
+run kube-context.sh ctx-new
+has "alias dont le contexte est prod : dialogue" 'display dialog'
+printf 'ctx-old=full-cluster-dev\nsafe-prd=full-cluster-dev\n' >> "$H/.kube/.context_aliases"
+run kube-context.sh full-cluster-dev
+has "alias -prd pointant le contexte : dialogue" 'display dialog'
 
 run kube-context.sh "x\"; touch $T/pwned; \""
 [[ -e "$T/pwned" ]] && bad "argument interprete" || ok "argument avec guillemets non interprete"
 has "argument transmis tel quel" 'use-context x"; touch'
+
+echo "kubectl absent"
+# le script ajoute les chemins Homebrew : un vrai kubectl installe la ferait echouer
+if [[ -x /opt/homebrew/bin/kubectl || -x /usr/local/bin/kubectl ]]; then echo "  skip kubectl reel present"; else
+    mv "$B/kubectl" "$T/kubectl.off"
+    run kube-context.sh ctx-old
+    has "kubectl absent : notification" 'osascript.*kubectl introuvable'
+    mv "$T/kubectl.off" "$B/kubectl"
+fi
 
 echo "project-clean"
 rmdir "$H/work"  # WORK_DIR absent : project clean s'arrete avec sa propre notification
 run project-clean.sh
 has "project clean execute (sa notification)" 'osascript.*WORK_DIR absent'
 nostdout project-clean
+mkdir "$H/work"  # rien a retirer
+run project-clean.sh
+has "rien a faire : notification" 'osascript.*Aucun worktree à retirer'
 exit $fail

@@ -23,14 +23,29 @@ exec zsh -f -c '
     setopt extendedglob
     target="${${1##[[:space:]]#}%%[[:space:]]#}"
     [[ -n "$target" ]] || { notify "Contexte kube : argument vide"; exit 1; }
+    command -v kubectl >/dev/null || { notify "kubectl introuvable"; exit 1; }
     resolved=$(_kube_resolve_alias "$target")
-    # shortcut: regle propre a ce script (suffixe -prd/-prod, sur l alias ou le contexte complet), aucune autre dans zanvil
-    if [[ "$target" == *(-prd|-prod) || "$resolved" == *(-prd|-prod) ]]; then
-        answer=$(osascript -e "on run a" \
-            -e "tell application (path to frontmost application as text) to display dialog (item 1 of a) with title \"zanvil\" with icon caution buttons {\"Annuler\", \"Basculer\"} default button \"Annuler\"" \
-            -e "end run" -- "Basculer sur le contexte de production : $target ?" 2>/dev/null)
-        [[ "$answer" == *"button returned:Basculer"* ]] || exit 1
+    # prod : la cible, le contexte complet ou un alias de ce contexte porte un segment -prd/-prod
+    # shortcut: regle propre a ce script, aucune autre dans zanvil ; segments separes par - seulement
+    names=("$target" "$resolved")
+    if [[ -f "$KUBE_ALIASES_FILE" ]]; then
+        while IFS= read -r line; do
+            [[ "${line#*=}" == "$resolved" ]] && names+=("${line%%=*}")
+        done < "$KUBE_ALIASES_FILE"
     fi
+    for n in "${names[@]}"; do
+        if [[ "$n" == (#i)*-(prd|prod)(|-*) ]]; then
+            answer=$(osascript -e "on run a" \
+                -e "tell application (path to frontmost application as text) to display dialog (item 1 of a) with title \"zanvil\" with icon caution buttons {\"Annuler\", \"Basculer\"} default button \"Annuler\"" \
+                -e "end run" -- "Basculer sur le contexte de production : $target ?" 2>&1)
+            case "$answer" in
+                *"button returned:Basculer"*) ;;
+                *"button returned:Annuler"*|*"-128"*) notify "Bascule annulée"; exit 1 ;;
+                *) notify "Confirmation impossible"; exit 1 ;;
+            esac
+            break
+        fi
+    done
     if kube_switch "$target" &>/dev/null; then
         notify "Contexte : $(_kube_get_alias "$resolved")"
     else
