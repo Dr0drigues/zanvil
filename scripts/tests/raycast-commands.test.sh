@@ -14,8 +14,12 @@ has() { grep -q -- "$2" "$T/calls.log" && ok "$1" || { bad "$1 (attendu : $2)"; 
 hasnt() { grep -q -- "$2" "$T/calls.log" && { bad "$1 (inattendu : $2)"; cat "$T/calls.log"; } || ok "$1"; }
 
 # ZANVIL_DIR jetable : zanvil-theme y ecrit .current_theme
-Z="$T/zanvil"; H="$T/home"; B="$T/bin"
-mkdir -p "$Z" "$H/.kube" "$H/work" "$B"
+Z="$T/zanvil"; H="$T/home"; B="$T/bin"; S="$T/sysbin"
+mkdir -p "$Z" "$H/.kube" "$H/work" "$B" "$S"
+# PATH isole : symlinks vers les seuls utilitaires requis (la CI a de vrais kubectl, bat, tmux... dans /usr/bin)
+for u in zsh sh bash env cat cp mv rm ln mkdir rmdir touch chmod ls find sort uniq tr sed awk grep head tail cut wc cmp diff date stat dirname basename readlink realpath mktemp printf tee uname sleep id whoami hostname; do
+    p=$(command -v "$u" 2>/dev/null) && [[ "$p" == /* ]] && ln -sf "$p" "$S/$u"
+done
 cp -R "$ROOT/core" "$ROOT/config" "$ROOT/modules" "$ROOT/scripts" "$Z/"
 printf 'ctx-dev=full-cluster-dev\nctx-prd=full-cluster-prd\n' > "$H/.kube/.context_aliases"
 
@@ -35,26 +39,27 @@ case "\$*" in
 esac
 exit 0
 EOF
+printf "#!/bin/sh\nexit 0\n" > "$B/starship"  # zanvil-theme le demande pour appliquer un theme
 for b in glab jq open sketchybar borders; do
     printf '#!/bin/sh\necho "%s $*" >> "%s/calls.log"\nexit 1\n' "$b" "$T" > "$B/$b"
 done
 chmod +x "$B"/*
 touch "$T/calls.log"
 for b in osascript kubectl glab jq open sketchybar borders; do
-    [[ "$(PATH="$B:/usr/bin:/bin" command -v $b)" == "$B/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
+    [[ "$(PATH="$B:$S" command -v $b)" == "$B/$b" ]] || { echo "$b reel atteignable : abandon" >&2; exit 2; }
 done
-[[ -z "$(PATH="$B:/usr/bin:/bin" command -v zanvil)" ]] || { echo "zanvil reel atteignable : abandon" >&2; exit 2; }
+[[ -z "$(PATH="$B:$S" command -v zanvil)" ]] || { echo "zanvil reel atteignable : abandon" >&2; exit 2; }
 
 run() {  # run <script> [arg]
     : > "$T/calls.log"
-    env -i HOME="$H" XDG_CONFIG_HOME="$H/.config" PATH="$B:/usr/bin:/bin" ZANVIL_DIR="$Z" \
+    env -i HOME="$H" XDG_CONFIG_HOME="$H/.config" PATH="$B:$S" ZANVIL_DIR="$Z" \
         "$Z/scripts/raycast/$1" "${@:2}" >"$T/out" 2>&1
 }
 nostdout() { [[ ! -s "$T/out" ]] && ok "$1 : rien sur stdout" || { bad "$1 : sortie parasite"; cat "$T/out"; }; }
 
 echo "zanvil-theme"
 run zanvil-theme.sh forge
-[[ "$(cat "$Z/.current_theme" 2>/dev/null)" == forge ]] && ok "le theme du dropdown atteint zanvil-theme" || bad "theme non applique"
+[[ "$(cat "$Z/.current_theme" 2>/dev/null)" == forge ]] && ok "le theme du dropdown atteint zanvil-theme" || { bad "theme non applique"; cat "$T/out"; }
 nostdout zanvil-theme
 run zanvil-theme.sh inexistant
 has "theme inconnu : notification" 'osascript.*Thème non appliqué : inexistant'
@@ -105,8 +110,8 @@ run kube-context.sh "x\"; touch $T/pwned; \""
 has "argument transmis tel quel" 'use-context x"; touch'
 
 echo "kubectl absent"
-# le script ajoute les chemins Homebrew : un vrai kubectl installe la ferait echouer
-if [[ -x /opt/homebrew/bin/kubectl || -x /usr/local/bin/kubectl ]]; then echo "  skip kubectl reel present"; else
+# le script ajoute les chemins Homebrew a PATH : impossible de masquer un kubectl installe la
+if [[ -x /opt/homebrew/bin/kubectl || -x /usr/local/bin/kubectl ]]; then echo "  skip kubectl reel dans un chemin Homebrew"; else
     mv "$B/kubectl" "$T/kubectl.off"
     run kube-context.sh ctx-old
     has "kubectl absent : notification" 'osascript.*kubectl introuvable'
