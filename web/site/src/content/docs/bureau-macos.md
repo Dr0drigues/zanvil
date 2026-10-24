@@ -136,6 +136,16 @@ zanvil. La CLI d'Orca, absente de tout `PATH`, est prise dans `/Applications/Orc
 IntelliJ IDEA s'ouvre quand même. Un presse-papiers qui n'est pas un lien de MR
 donne une notification d'erreur.
 
+Le même dossier fournit trois autres commandes, à lancer depuis Raycast ou à raccourcir :
+
+- **Thème zanvil** : liste déroulante des thèmes (plus `auto`), appelle `zanvil-theme`. La liste est
+  statique dans l'en-tête du script (`scripts/raycast/zanvil-theme.sh`) : la mettre à jour quand
+  `config/themes` change.
+- **Contexte kube** : un alias (`ctx-dev`) ou un nom de contexte complet, résolu par le module kube. Un
+  contexte dont le nom ou l'alias finit par `-prd` ou `-prod` ouvre d'abord une confirmation
+  (Annuler par défaut) ; annuler, ou un dialogue en échec, ne change rien. Le résultat arrive en notification.
+- **Ménage des worktrees** : lance `project clean`, qui notifie lui-même son résumé.
+
 ## Réglages macOS
 
 S'il existe, `macos.sh` à la racine du dépôt dotfiles est lancé par `zanvil-dotfiles install`, sur
