@@ -51,6 +51,10 @@ pub struct App {
     pub refreshing: bool,
     /// change a chaque nouvel arbre : les etats git d'avant sont ignores
     pub generation: u64,
+    /// lignes du panneau de droite a l'ecran (debut, nombre), mises a jour par le rendu
+    pub viewport: (usize, usize),
+    /// premier q/Echap pendant un clone : le suivant quitte
+    pub quit_armed: bool,
 }
 
 const CLONING: &str = "clonage…";
@@ -94,6 +98,8 @@ impl App {
             fetched_at,
             refreshing: false,
             generation: 0,
+            viewport: (0, 0),
+            quit_armed: false,
         }
     }
 
@@ -198,7 +204,13 @@ impl App {
         if self.links.is_some() {
             return self.links_key(k);
         }
+        let armed = std::mem::take(&mut self.quit_armed);
         match k.code {
+            // quitter tuerait les git clone en cours (dossier a moitie clone)
+            KeyCode::Char('q') | KeyCode::Esc if !armed && self.cloning.values().any(|c| c == CLONING) => {
+                self.quit_armed = true;
+                self.status = "clonage en cours — q à nouveau pour quitter quand même".into();
+            }
             KeyCode::Char('q') | KeyCode::Esc => return Action::Quit,
             KeyCode::Tab => {
                 self.focus = if self.focus == Pane::Groups { Pane::Repos } else { Pane::Groups };
@@ -314,10 +326,11 @@ impl App {
         }
     }
 
-    /// Repos clones affiches dont l'etat git n'a pas encore ete demande.
+    /// Repos clones a l'ecran dont l'etat git n'a pas encore ete demande.
     pub fn state_requests(&mut self) -> Vec<(usize, PathBuf)> {
         let mut out = Vec::new();
-        for i in self.visible_entries() {
+        let (start, len) = self.viewport;
+        for i in self.visible_entries().into_iter().skip(start).take(len) {
             if let Some(d) = &self.tree.entries[i].local {
                 if self.asked.insert(i) {
                     out.push((i, d.clone()));
@@ -327,14 +340,38 @@ impl App {
         out
     }
 
+    /// Etat git recu d'un thread ; ignore s'il vise un arbre remplace depuis.
+    pub fn state_done(&mut self, generation: u64, i: usize, st: Option<GitState>) {
+        if let (true, Some(st)) = (generation == self.generation, st) {
+            self.states.insert(i, st);
+        }
+    }
+
     pub fn set_tree(&mut self, tree: Tree, fetched_at: i64) {
-        self.tree = tree;
+        // reporte par chemin : clones en cours et clones finis apres le scan du rafraichissement
+        let old = std::mem::replace(&mut self.tree, tree);
+        let cloning = std::mem::take(&mut self.cloning);
+        let by_path: HashMap<&str, usize> =
+            self.tree.entries.iter().enumerate().map(|(i, e)| (e.path.as_str(), i)).collect();
+        let mut carried = Vec::new();
+        for (oi, e) in old.entries.iter().enumerate() {
+            let Some(&ni) = by_path.get(e.path.as_str()) else { continue };
+            if let Some(c) = cloning.get(&oi) {
+                self.cloning.insert(ni, c.clone());
+            }
+            if e.local.is_some() && self.tree.entries[ni].local.is_none() {
+                carried.push((ni, e.local.clone(), e.misplaced));
+            }
+        }
+        for (ni, local, misplaced) in carried {
+            self.tree.entries[ni].local = local;
+            self.tree.entries[ni].misplaced = misplaced;
+        }
         self.fetched_at = Some(fetched_at);
         self.refreshing = false;
         self.generation += 1;
         self.states.clear();
         self.asked.clear();
-        self.cloning.clear();
         self.links = None;
         if self.node(&self.selected_node).is_none() {
             self.selected_node = vec![0];
@@ -602,6 +639,7 @@ mod tests {
         a.clone_done(CFG, Ok(PathBuf::from("/w").join(CFG)));
         assert!(a.tree.entries[i].local.is_some() && !a.cloning.contains_key(&i));
         // les etats git sont demandes une seule fois par repo clone visible
+        a.viewport = (0, 10);
         let asked: Vec<usize> = a.state_requests().into_iter().map(|(i, _)| i).collect();
         assert_eq!(asked.len(), 2);
         assert!(a.state_requests().is_empty());
@@ -641,5 +679,77 @@ mod tests {
         assert_eq!(a.handle_key(key(KeyCode::Enter)), Action::None);
         assert_eq!(a.tree.entries[a.visible_entries()[a.selected_entry]].path, CFG);
         assert!(a.status.contains("c "), "{}", a.status);
+    }
+
+    fn many(n: usize) -> App {
+        let locals: Vec<LocalRepo> = (0..n)
+            .map(|k| {
+                let rel = format!("g/r{k:02}");
+                LocalRepo { dir: PathBuf::from("/w").join(&rel), rel: rel.clone(), remote: Remote::Gitlab(rel) }
+            })
+            .collect();
+        let s = settings();
+        App::new(tree::build(None, &locals, &s), Arc::new(s), None)
+    }
+
+    #[test]
+    fn etats_limites_a_la_fenetre() {
+        let mut a = many(10);
+        assert!(a.state_requests().is_empty(), "rien avant le premier dessin");
+        a.viewport = (4, 3);
+        let dirs: Vec<PathBuf> = a.state_requests().into_iter().map(|(_, d)| d).collect();
+        assert_eq!(dirs, ["r04", "r05", "r06"].map(|r| PathBuf::from("/w/g").join(r)));
+        a.viewport = (5, 3);
+        assert_eq!(a.state_requests().len(), 1);
+    }
+
+    #[test]
+    fn quitter_pendant_un_clone() {
+        let mut a = app();
+        select(&mut a, CFG);
+        let i = a.current().unwrap();
+        a.start_clone(&[i]);
+        assert_eq!(a.handle_key(key(KeyCode::Char('q'))), Action::None);
+        assert_eq!(a.status, "clonage en cours — q à nouveau pour quitter quand même");
+        assert_eq!(a.handle_key(key(KeyCode::Char('q'))), Action::Quit);
+        // une autre touche desarme ; Echap suit la meme regle
+        a.handle_key(key(KeyCode::Esc));
+        a.handle_key(key(KeyCode::Down));
+        assert_eq!(a.handle_key(key(KeyCode::Esc)), Action::None);
+        // clone termine : q quitte tout de suite
+        a.clone_done(CFG, Ok(PathBuf::from("/w").join(CFG)));
+        assert_eq!(a.handle_key(key(KeyCode::Char('x'))), Action::None);
+        assert_eq!(a.handle_key(key(KeyCode::Char('q'))), Action::Quit);
+    }
+
+    #[test]
+    fn nouvel_arbre_indices_surs() {
+        let mut a = app();
+        select(&mut a, CFG);
+        let cfg = a.current().unwrap();
+        a.start_clone(&[cfg]);
+        let web = a.tree.entries.iter().position(|e| e.path == WEB).unwrap();
+        a.start_clone(&[web]);
+        // WEB fini entre le scan du rafraichissement et la reconstruction
+        a.clone_done(WEB, Ok(PathBuf::from("/w").join(WEB)));
+        let old = a.generation;
+        // nouvel index : un projet de plus en tete decale tous les indices
+        let mut idx_paths = vec!["aaa/first", API, CFG, WEB, "shared/lib/x"];
+        let idx = Index { fetched_at: 9, projects: idx_paths.drain(..).map(proj).collect(), apps: vec![] };
+        let s = settings();
+        a.set_tree(tree::build(Some(&idx), &[], &s), 9);
+        let at = |a: &App, p: &str| a.tree.entries.iter().position(|e| e.path == p).unwrap();
+        // marque de clone en cours et clone deja termine reportes par chemin
+        assert_eq!(a.cloning.get(&at(&a, CFG)).map(String::as_str), Some("clonage…"));
+        assert_eq!(a.tree.entries[at(&a, WEB)].local, Some(PathBuf::from("/w").join(WEB)));
+        // etat git d'avant : ignore ; du bon arbre : garde
+        a.state_done(old, 0, Some(GitState { branch: "main".into(), dirty: false, ahead: 0, behind: 0 }));
+        assert!(a.states.is_empty());
+        a.state_done(a.generation, 1, Some(GitState { branch: "main".into(), dirty: false, ahead: 0, behind: 0 }));
+        assert!(a.states.contains_key(&1));
+        // clone qui finit apres coup : retrouve par chemin sur le nouvel indice
+        a.clone_done(CFG, Ok(PathBuf::from("/w").join(CFG)));
+        let c = at(&a, CFG);
+        assert!(a.tree.entries[c].local.is_some() && !a.cloning.contains_key(&c));
     }
 }

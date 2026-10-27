@@ -81,11 +81,14 @@ fn event_loop(term: &mut Term, app: &mut App) -> io::Result<Option<PathBuf>> {
     let states = pool(WORKERS, &tx);
     let clones = pool(WORKERS, &tx);
     loop {
+        let mut viewport = app.viewport;
+        term.draw(|f| viewport = draw(f, app))?;
+        // seulement les lignes a l'ecran, connues apres le rendu
+        app.viewport = viewport;
         for (i, d) in app.state_requests() {
             let g = app.generation;
             let _ = states.send(Box::new(move || Msg::State(g, i, git::state(&d))));
         }
-        term.draw(|f| draw(f, app))?;
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(k) = event::read()? {
                 if k.kind == KeyEventKind::Press {
@@ -108,11 +111,7 @@ fn event_loop(term: &mut Term, app: &mut App) -> io::Result<Option<PathBuf>> {
 fn drain(app: &mut App, rx: &Receiver<Msg>) {
     while let Ok(m) = rx.try_recv() {
         match m {
-            Msg::State(g, i, st) => {
-                if let (true, Some(st)) = (g == app.generation, st) {
-                    app.states.insert(i, st);
-                }
-            }
+            Msg::State(g, i, st) => app.state_done(g, i, st),
             Msg::Cloned(path, res) => app.clone_done(&path, res),
             Msg::Refreshed(Ok((idx, locals))) => {
                 let t = tree::build(Some(&idx), &locals, &app.settings);
@@ -231,7 +230,8 @@ fn entry_line(app: &App, i: usize, key: &str) -> String {
     s
 }
 
-fn draw(f: &mut Frame, app: &App) {
+/// Rend aussi la fenetre visible du panneau de droite (debut, nombre de lignes).
+fn draw(f: &mut Frame, app: &App) -> (usize, usize) {
     let [main, bottom] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(f.area());
     let [left, right] = Layout::horizontal([Constraint::Percentage(35), Constraint::Percentage(65)]).areas(main);
 
@@ -250,6 +250,7 @@ fn draw(f: &mut Frame, app: &App) {
     f.render_stateful_widget(list, left, &mut st);
 
     let repos = app.focus == Pane::Repos;
+    let mut viewport = app.viewport;
     if let Some(links) = &app.links {
         let items: Vec<ListItem> = links.iter().map(|l| ListItem::new(l.text.clone())).collect();
         let mut st = ListState::default().with_selected(Some(app.link_sel));
@@ -269,6 +270,7 @@ fn draw(f: &mut Frame, app: &App) {
         let mut st = ListState::default().with_selected((!visible.is_empty()).then_some(app.selected_entry));
         let title = format!("Repos ({})", visible.len());
         f.render_stateful_widget(List::new(items).block(pane(title, repos)).highlight_style(highlight(repos)), right, &mut st);
+        viewport = (st.offset(), right.height.saturating_sub(2) as usize);
     }
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
@@ -284,4 +286,5 @@ fn draw(f: &mut Frame, app: &App) {
         format!("{}{filter}  │  {tail}", app.index_line(now))
     };
     f.render_widget(Paragraph::new(text), bottom);
+    viewport
 }
