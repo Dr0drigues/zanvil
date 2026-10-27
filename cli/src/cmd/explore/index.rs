@@ -105,42 +105,81 @@ fn glab_api(glab: &str, host: &str, endpoint: &str, paginate: bool) -> Result<Ve
     parse_paginated(&String::from_utf8_lossy(&out.stdout))
 }
 
-pub fn refresh(s: &Settings) -> Result<Index, String> {
+pub fn refresh(s: &Settings) -> Result<Refreshed, String> {
     refresh_with(s, "glab")
 }
 
-pub fn refresh_with(s: &Settings, glab: &str) -> Result<Index, String> {
-    let host = &s.gitlab_host;
-    let projects = glab_api(
-        glab,
-        host,
-        "projects?membership=true&min_access_level=30&archived=false&per_page=100",
-        true,
-    )?
-    .iter()
-    .filter_map(project_from_json)
-    .collect();
+/// Groupes d'application `<bu>/<app_segment>/<app>` ou l'on est au moins Maintainer sur un projet :
+/// seuls ceux-la ont leurs variables lues (ailleurs l'API rend 403).
+pub fn app_candidates(projects: &[IndexProject], s: &Settings) -> Vec<String> {
+    let Some(seg) = s.app_segment.as_deref() else { return Vec::new() };
+    let ptf = s.ptf_root.as_deref().map(|r| format!("{r}/"));
+    let set: std::collections::BTreeSet<String> = projects
+        .iter()
+        .filter(|p| p.access >= 40 && !ptf.as_deref().is_some_and(|r| p.path.starts_with(r)))
+        .filter_map(|p| {
+            let parts: Vec<&str> = p.path.splitn(4, '/').collect();
+            (parts.len() == 4 && parts[1] == seg && s.bus.contains_key(parts[0])).then(|| parts[..3].join("/"))
+        })
+        .collect();
+    set.into_iter().collect()
+}
 
-    let mut apps = Vec::new();
-    if let (Some(ptf), Some(seg)) = (&s.ptf_root, &s.app_segment) {
-        let groups = glab_api(glab, host, "groups?min_access_level=40&per_page=100", true)?;
-        for g in &groups {
-            let (Some(path), Some(id)) = (g["full_path"].as_str(), g["id"].as_u64()) else { continue };
-            let parts: Vec<&str> = path.split('/').collect();
-            let is_app = parts.len() == 3
-                && parts[1] == seg
-                && parts[0] != ptf
-                && s.bus.contains_key(parts[0]);
-            if !is_app {
-                continue;
-            }
-            // un groupe en echec n'arrete pas l'index
-            if let Ok(vars) = glab_api(glab, host, &format!("groups/{id}/variables?per_page=100"), false) {
-                apps.push(AppMeta { group: path.to_string(), vars: keep_app_vars(&vars, &s.app_var_keys) });
-            }
+#[derive(Debug)]
+pub struct Refreshed {
+    pub index: Index,
+    /// groupes d'application dont les variables n'ont pas pu etre lues (403, erreur)
+    pub refused: usize,
+}
+
+pub fn refresh_with(s: &Settings, glab: &str) -> Result<Refreshed, String> {
+    let host = &s.gitlab_host;
+    let list = |level: u8, simple: bool| {
+        let extra = if simple { "&simple=true" } else { "" };
+        glab_api(
+            glab,
+            host,
+            &format!("projects?membership=true&min_access_level={level}&archived=false&per_page=100{extra}"),
+            true,
+        )
+    };
+    let mut projects: Vec<IndexProject> = list(30, false)?.iter().filter_map(project_from_json).collect();
+    // un acces herite d'un partage de groupe laisse `permissions` a null : le filtre min_access_level, lui, en tient compte
+    for level in [40u8, 50] {
+        let paths: std::collections::HashSet<String> = list(level, true)?
+            .iter()
+            .filter_map(|v| v["path_with_namespace"].as_str().map(str::to_string))
+            .collect();
+        for p in projects.iter_mut().filter(|p| paths.contains(&p.path)) {
+            p.access = p.access.max(level);
         }
     }
-    Ok(Index { fetched_at: chrono::Utc::now().timestamp(), projects, apps })
+
+    let mut apps = Vec::new();
+    let mut refused = 0;
+    for group in app_candidates(&projects, s) {
+        let ep = format!("groups/{}/variables?per_page=100", group.replace('/', "%2F"));
+        // un groupe en echec n'arrete pas l'index
+        match glab_api(glab, host, &ep, false) {
+            Ok(vars) => apps.push(AppMeta { group, vars: keep_app_vars(&vars, &s.app_var_keys) }),
+            Err(_) => refused += 1,
+        }
+    }
+    Ok(Refreshed { index: Index { fetched_at: chrono::Utc::now().timestamp(), projects, apps }, refused })
+}
+
+/// Un index vide (jeton expire, mauvais hote) ne remplace jamais un cache.
+pub fn save_refreshed(p: &Path, r: &Refreshed) -> Result<String, String> {
+    if r.index.projects.is_empty() {
+        return Err("aucun projet recu, cache conserve".into());
+    }
+    write_cache(p, &r.index).map_err(|e| e.to_string())?;
+    Ok(format!(
+        "{} projets, {} applications, {} groupes refusés",
+        r.index.projects.len(),
+        r.index.apps.len(),
+        r.refused
+    ))
 }
 
 #[cfg(test)]
@@ -208,5 +247,91 @@ mod tests {
         let s = Settings::load(Path::new("/nonexistent/projects.toml"));
         let e = refresh_with(&s, "glab-inexistant-zanvil").unwrap_err();
         assert!(e.contains("glab"), "{e}");
+    }
+
+    fn settings(ptf: Option<&str>, seg: Option<&str>) -> Settings {
+        let mut s = Settings::load(Path::new("/nonexistent/projects.toml"));
+        s.ptf_root = ptf.map(Into::into);
+        s.app_segment = seg.map(Into::into);
+        s.bus.insert("bu1".into(), "Unite 1".into());
+        s.bus.insert("plat".into(), "Plateforme".into());
+        s.app_var_keys = vec!["APP_ID".into()];
+        s
+    }
+
+    fn proj(path: &str, access: u8) -> IndexProject {
+        IndexProject { access, path: path.into(), ..sample().projects[0].clone() }
+    }
+
+    #[test]
+    fn candidats_applications() {
+        let ps = vec![
+            proj("bu1/apps/shop/api", 40),
+            proj("bu1/apps/shop/components/front", 50), // imbrique : meme application
+            proj("bu1/apps/cart/api", 30),              // Developer seulement
+            proj("bu9/apps/x/api", 40),                 // hors BU
+            proj("plat/apps/core/api", 40),             // sous la plateforme
+            proj("bu1/libs/y/z", 40),                   // pas le segment d'application
+            proj("bu1/apps/shop", 40),                  // le groupe lui-meme n'est pas un projet d'app
+        ];
+        assert_eq!(app_candidates(&ps, &settings(Some("plat"), Some("apps"))), vec!["bu1/apps/shop"]);
+        // sans racine plateforme, plat est une BU comme une autre
+        assert_eq!(
+            app_candidates(&ps, &settings(None, Some("apps"))),
+            vec!["bu1/apps/shop", "plat/apps/core"]
+        );
+        assert!(app_candidates(&ps, &settings(Some("plat"), None)).is_empty());
+    }
+
+    #[test]
+    fn index_vide_ne_remplace_pas_le_cache() {
+        let d = std::env::temp_dir().join(format!("zanvil-guard-{}", std::process::id()));
+        let p = d.join("projects.json");
+        write_cache(&p, &sample()).unwrap();
+        let empty = Refreshed { index: Index { fetched_at: 9, projects: vec![], apps: vec![] }, refused: 0 };
+        assert!(save_refreshed(&p, &empty).is_err());
+        assert_eq!(load_cache(&p), Some(sample()));
+        let ok = Refreshed { index: sample(), refused: 2 };
+        assert_eq!(save_refreshed(&p, &ok).unwrap(), "1 projets, 1 applications, 2 groupes refusés");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn rafraichissement_bout_en_bout() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = std::env::temp_dir().join(format!("zanvil-fakeglab-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let glab = d.join("glab");
+        // pagination : deux tableaux concatenes ; acces herite (permissions null) pour shop/api et cart/api
+        std::fs::write(&glab, r#"#!/bin/sh
+case "$*" in
+  *min_access_level=30*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api","permissions":{"project_access":null,"group_access":null}},{"path_with_namespace":"bu1/apps/cart/api","permissions":{"project_access":null,"group_access":null}}][{"path_with_namespace":"bu1/apps/dev/api","permissions":{"project_access":{"access_level":30},"group_access":null}},{"path_with_namespace":"bu1/apps/own/api","permissions":{"project_access":{"access_level":50},"group_access":null}}]' ;;
+  *min_access_level=40*simple=true*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api"}][{"path_with_namespace":"bu1/apps/cart/api"},{"path_with_namespace":"bu1/apps/own/api"}]' ;;
+  *min_access_level=50*simple=true*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api"}]' ;;
+  *"groups/bu1%2Fapps%2Fshop/variables"*) printf '%s' '[{"key":"APP_ID","value":"A1"},{"key":"SECRET","value":"s"}]' ;;
+  *"groups/bu1%2Fapps%2Fcart/variables"*) echo '403 Forbidden' >&2; exit 1 ;;
+  *) echo "appel inattendu : $*" >&2; exit 1 ;;
+esac
+"#).unwrap();
+        std::fs::set_permissions(&glab, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let s = settings(Some("plat"), Some("apps"));
+        let r = refresh_with(&s, glab.to_str().unwrap()).unwrap();
+        let _ = std::fs::remove_dir_all(&d);
+        let access: Vec<(&str, u8)> = r.index.projects.iter().map(|p| (p.path.as_str(), p.access)).collect();
+        assert_eq!(
+            access,
+            vec![
+                ("bu1/apps/shop/api", 50),
+                ("bu1/apps/cart/api", 40),
+                ("bu1/apps/dev/api", 30),
+                ("bu1/apps/own/api", 50), // plancher : permissions du projet
+            ]
+        );
+        // own : variables non decrites par le faux glab -> refus compte aussi
+        assert_eq!(r.refused, 2);
+        assert_eq!(r.index.apps.len(), 1);
+        assert_eq!(r.index.apps[0].group, "bu1/apps/shop");
+        assert_eq!(r.index.apps[0].vars.len(), 1);
+        assert_eq!(r.index.apps[0].vars["APP_ID"], "A1");
     }
 }

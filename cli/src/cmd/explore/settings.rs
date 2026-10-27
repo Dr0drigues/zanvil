@@ -70,10 +70,11 @@ impl Settings {
             } else {
                 raw.gitlab_host
             },
-            work_dir: raw
-                .work_dir
-                .or_else(|| env("WORK_DIR").map(PathBuf::from))
-                .unwrap_or_else(|| home.join("work")),
+            work_dir: match raw.work_dir {
+                Some(w) if w == Path::new("~") => home.clone(),
+                Some(w) => w.strip_prefix("~").map(|r| home.join(r)).unwrap_or(w),
+                None => env("WORK_DIR").map(PathBuf::from).unwrap_or_else(|| home.join("work")),
+            },
             clone_method: if raw.clone_method == "ssh" { "ssh".into() } else { "https".into() },
             ptf_root: raw.ptf_root,
             app_segment: raw.app_segment,
@@ -157,6 +158,15 @@ to = "$1/configurations/$2"
     fn clone_method_inconnue_donne_https() {
         let p = tmp("cm", "clone_method = \"ftp\"\n");
         assert_eq!(Settings::load(&p).clone_method, "https");
+    }
+
+    #[test]
+    fn work_dir_tilde_developpe() {
+        let home = PathBuf::from(std::env::var("HOME").unwrap());
+        assert_eq!(Settings::load(&tmp("t1", "work_dir = \"~/work\"\n")).work_dir, home.join("work"));
+        assert_eq!(Settings::load(&tmp("t2", "work_dir = \"~\"\n")).work_dir, home);
+        assert_eq!(Settings::load(&tmp("t3", "work_dir = \"/w/~x\"\n")).work_dir, PathBuf::from("/w/~x"));
+        assert_eq!(Settings::load(&tmp("t4", "work_dir = \"~user/w\"\n")).work_dir, PathBuf::from("~user/w"));
     }
 
     #[test]
