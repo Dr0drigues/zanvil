@@ -92,6 +92,7 @@ pub fn ci_references(repo_dir: &Path, s: &Settings) -> (Vec<String>, Vec<(String
     for f in files {
         let Ok(txt) = std::fs::read_to_string(&f) else { continue };
         let mut include: Option<usize> = None; // indentation du bloc include: en cours
+        let mut item_indent: Option<usize> = None; // indentation des elements de la liste include
         let mut tpl: Option<(String, Option<String>)> = None;
         for line in txt.lines() {
             let body = line.trim_start();
@@ -104,7 +105,8 @@ pub fn ci_references(repo_dir: &Path, s: &Settings) -> (Vec<String>, Vec<(String
                 if indent > n || (indent == n && body.starts_with('-')) {
                     let item = body.strip_prefix('-').map(str::trim_start);
                     let kv = item.unwrap_or(body).split_once(':');
-                    if item.is_some() {
+                    // seul un element de la liste include ouvre un nouveau template, pas ceux d'une liste file:
+                    if item.is_some() && *item_indent.get_or_insert(indent) == indent {
                         templates.extend(tpl.take());
                     }
                     match kv {
@@ -124,6 +126,7 @@ pub fn ci_references(repo_dir: &Path, s: &Settings) -> (Vec<String>, Vec<(String
             let Some((k, v)) = body.split_once(':') else { continue };
             if k == "include" && v.trim().is_empty() {
                 include = Some(indent);
+                item_indent = None;
                 continue;
             }
             let v = scalar(v).replace("%2F", "/").replace("%2f", "/");
@@ -229,6 +232,15 @@ mod tests {
         let (configs, templates) = ci_references(&d, &settings());
         assert!(configs.is_empty());
         assert_eq!(templates, [("shared/ci/base".to_string(), None)]);
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn ref_apres_liste_file() {
+        let d = tmp("filelist");
+        write(&d, ".gitlab-ci.yml", "include:\n  - project: a/b\n    file:\n      - x.yml\n    ref: v1\n  - project: c/d\n");
+        let (_, templates) = ci_references(&d, &settings());
+        assert_eq!(templates, [("a/b".to_string(), Some("v1".to_string())), ("c/d".to_string(), None)]);
         fs::remove_dir_all(&d).unwrap();
     }
 

@@ -179,12 +179,14 @@ fn levels(group: &str, s: &Settings, apps: &[AppMeta]) -> Vec<(String, String)> 
     out
 }
 
-pub fn node_label(group_path: &str, _s: &Settings, apps: &[AppMeta]) -> String {
+/// Valeurs des cles `app_var_keys` presentes, dans l'ordre configure ; sinon nom du chemin.
+pub fn node_label(group_path: &str, s: &Settings, apps: &[AppMeta]) -> String {
     let name = group_path.rsplit('/').next().unwrap_or(group_path).to_string();
     let Some(meta) = apps.iter().find(|a| a.group == group_path) else { return name };
-    let parts: Vec<&str> = ["APP_NAME", "APP_ID", "PDT_NAME"]
+    let parts: Vec<&str> = s
+        .app_var_keys
         .iter()
-        .filter_map(|k| meta.vars.get(*k).map(String::as_str).filter(|v| !v.is_empty()))
+        .filter_map(|k| meta.vars.get(k).map(String::as_str).filter(|v| !v.is_empty()))
         .collect();
     if parts.is_empty() { name } else { parts.join(" · ") }
 }
@@ -334,9 +336,13 @@ mod tests {
             ("APP_NAME".to_string(), "Shop".to_string()),
             ("APP_ID".to_string(), "A1".to_string()),
             ("PDT_NAME".to_string(), "Pos".to_string()),
+            ("OTHER".to_string(), "x".to_string()),
         ]);
         let apps = vec![AppMeta { group: "bu1/apps/shop".into(), vars }];
-        let s = configured();
+        let mut s = configured();
+        // sans cle configuree : nom du chemin
+        assert_eq!(node_label("bu1/apps/shop", &s, &apps), "shop");
+        s.app_var_keys = vec!["APP_NAME".into(), "APP_ID".into(), "PDT_NAME".into()];
         assert_eq!(node_label("bu1/apps/shop", &s, &apps), "Shop · A1 · Pos");
         assert_eq!(node_label("bu1/apps/other", &s, &apps), "other");
         // le libelle sert bien dans l'arbre
