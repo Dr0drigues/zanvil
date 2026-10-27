@@ -1,6 +1,7 @@
 // Explorateur de projets a deux volets. Les sous-modules arrivent par etapes.
 #![allow(dead_code)] // consomme par les taches suivantes
 
+pub mod git;
 pub mod index;
 pub mod links;
 pub mod local;
