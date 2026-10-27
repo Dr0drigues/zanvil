@@ -203,8 +203,11 @@ Les plages s'écrivent `Xs`, `Xm`, `Xh` ou `Xd`. `work_es_apps --refresh` ignore
 |----------|-------------|
 | `work_explore` | Explorateur de projets à deux volets (`zanvil explore`) ; `Entrée` sur un dépôt change le dossier du shell. `project` sans argument l'appelle |
 
-Demande le CLI Rust. L'index GitLab (`~/.cache/zanvil/projects.json`) est reconstruit en arrière-plan
-quand il a plus de 24 h ; `zanvil explore --refresh` le force. Les réglages (hôte, règles de
+Demande le CLI Rust. L'index GitLab (`${XDG_CACHE_HOME:-~/.cache}/zanvil/projects.json`) est
+reconstruit en arrière-plan quand il est absent ou a plus de 24 h, un seul rafraîchissement à la fois ;
+`zanvil explore --refresh` le force et affiche le nombre de projets, d'applications et de groupes
+refusés (un résultat vide ne remplace jamais l'index existant). `q` demande confirmation pendant un
+clone ; `Ctrl-C` quitte tout de suite, même pendant un clone. Les réglages (hôte, règles de
 dépôts de configuration et de tests, libellés des unités) se lisent dans
 `~/.config/zanvil/projects.toml`, à garder dans vos dotfiles : voir `examples/projects.toml.example`.
 
