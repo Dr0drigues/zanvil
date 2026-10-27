@@ -159,7 +159,7 @@ Avec `ZANVIL_MODULE_FASTFETCH=true`, `zfetch [preset]` lance fastfetch avec un p
 | `palette` | Palette d'un thème en blocs : `zfetch palette <thème>` |
 | `banner` | Bannière de démarrage courte |
 
-Le logo est l'enclume zanvil. `ZANVIL_FETCH_LOGO=wallpaper` affiche à la place le fond d'écran du thème,
+Le logo est l’enclume de `config/fastfetch/logo.txt`, aux couleurs du thème. `ZANVIL_FETCH_LOGO=wallpaper` affiche à la place le fond d'écran du thème,
 rendu en caractères par chafa ; le terminal doit donner sa taille en pixels, sinon fastfetch affiche son
 logo par défaut. `ZANVIL_STARTUP_BANNER=fastfetch` remplace la ligne de démarrage par `zfetch banner`,
 une fois par shell de premier niveau (pas à chaque `ss`).

@@ -23,7 +23,7 @@ zfetch() {
 
     local -a args=(-c "$cfg" --color-keys "#$p[blue]" --color-title "#$p[cyan]")
     if [[ "$preset" == (full|work) ]]; then
-        # Logo : l'enclume zanvil ; ZANVIL_FETCH_LOGO=wallpaper rend le fond d'ecran du theme par chafa
+        # Logo : l'enclume de config/fastfetch/logo.txt ; ZANVIL_FETCH_LOGO=wallpaper rend le fond d'ecran du theme par chafa
         # (le terminal doit donner sa taille en pixels, sinon fastfetch affiche son logo par defaut)
         wp=""
         [[ "${ZANVIL_FETCH_LOGO:-}" == wallpaper && -n "$cur" ]] && for ext in jpg jpeg png heic; do
@@ -33,8 +33,9 @@ zfetch() {
         done
         if [[ -n "$wp" ]] && fastfetch --list-features 2>/dev/null | grep -qx chafa; then
             args+=(--chafa "$wp" --logo-width 30)
-        elif [[ -f "$ZANVIL_DIR/web/assets/zanvil-logo.txt" ]]; then
-            args+=(--data "\$1$(<"$ZANVIL_DIR/web/assets/zanvil-logo.txt")" --logo-color-1 "#$p[blue]")
+        else
+            # $1 corps, $2 face du dessus, $3 etincelles
+            args+=(--file "$ZANVIL_DIR/config/fastfetch/logo.txt" --logo-color-1 "#$p[blue]" --logo-color-2 "#$p[cyan]" --logo-color-3 "#$p[yellow]")
         fi
     fi
 
