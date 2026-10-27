@@ -402,6 +402,7 @@ install_tool "dust"  "dust"    ""        ""          # du arborescent (brew only
 install_tool "duf"   "duf"     "duf"     "duf"       # df colore
 install_tool "procs" "procs"   ""        "procs"     # ps moderne
 install_tool "btop"  "btop"    "btop"    "btop"      # top / moniteur TUI
+install_tool "fastfetch" "fastfetch" "fastfetch" "fastfetch"  # infos systeme (successeur de neofetch)
 install_tool "gping" "gping"   ""        ""          # ping graphique (brew only)
 install_tool "tldr"  "tlrc"    "tldr"    "tldr"      # exemples concrets (complement man ; tlrc fournit la commande tldr)
 
