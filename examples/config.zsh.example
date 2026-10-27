@@ -15,6 +15,8 @@ ZANVIL_MODULE_NUSHELL=true     # Integration Nushell
 ZANVIL_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 ZANVIL_KUBE_TUI=sofka         # TUI ouverte par k : sofka ou k9s (kube_tui pour changer)
 ZANVIL_MODULE_POSTING=true     # Client HTTP TUI (posting)
+ZANVIL_MODULE_SCREENSAVER=false # Economiseur bonsai aux couleurs du theme (zsaver)
+# ZANVIL_SCREENSAVER_IDLE=600    # zsaver apres 10 min sans frappe a l'invite
 
 # ==============================================================================
 # Mise Configuration

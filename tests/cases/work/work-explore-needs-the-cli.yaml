@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# L explorateur est dans le CLI Rust ; sans binaire, work_explore dit comment l obtenir
+# au lieu d echouer sur « command not found ».
+name: work-explore-needs-the-cli
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/explore.zsh"]
+  call: ["eval", "work_explore; echo rc=$?"]
+  hide: [zanvil]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "zanvil CLI absent"
+      - "gclone"
+      - "install.sh"
+      - "rc=1"

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Sans cache, work_explore rafraichit l index en arriere-plan, mais un seul a la fois :
+# un verrou recent (refresh.lock) laisse le rafraichissement en cours finir. Le faux
+# `zanvil` ne voit donc qu un appel, celui de l explorateur, dont le code de sortie
+# revient a l appelant.
+name: work-explore-refresh-waits-for-the-lock
+weight: 6
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/explore.zsh"]
+  call: ["eval", "unset XDG_CACHE_HOME; mkdir -p $HOME/.cache/zanvil/refresh.lock; work_explore; echo rc=$?"]
+fake:
+  bins: [zanvil]
+  rules:
+    - match: { bin: zanvil, args_include: ["explore", "--out"] }
+      exit: 3
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["rc=3"]
+  calls:
+    zanvil: 1

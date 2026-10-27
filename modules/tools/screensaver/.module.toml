@@ -1,0 +1,4 @@
+guard = "ZANVIL_MODULE_SCREENSAVER"
+binary = "cbonsai"
+install = "brew install cbonsai"
+description = "Economiseur bonsai aux couleurs du theme (zsaver)"
