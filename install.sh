@@ -429,6 +429,7 @@ if [[ -f "${_config_file}" ]]; then
         "ZANVIL_MODULE_LAZYGIT:lazygit:lazygit:lazygit:lazygit"
         "ZANVIL_MODULE_DELTA:delta:git-delta:git-delta:git-delta"
         "ZANVIL_MODULE_POSTING:posting:posting:posting:posting"
+        "ZANVIL_MODULE_SCREENSAVER:cbonsai:cbonsai:cbonsai:cbonsai"
     )
     for _entry in "${_optional_tools[@]}"; do
         _guard=$(echo "$_entry" | cut -d: -f1)

@@ -60,6 +60,7 @@ ZANVIL_MODULE_DELTA=true      # Pager syntaxique pour git diff
 ZANVIL_MODULE_LAZYGIT=true    # TUI Git ergonomique (alias lg)
 ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
 ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
+ZANVIL_MODULE_SCREENSAVER=false # Économiseur bonsai aux couleurs du thème (zsaver)
 
 # Integrations
 ZANVIL_MODULE_MISE=true       # Gestionnaire de versions (Node, Java, Maven)
@@ -143,6 +144,13 @@ Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le 
 ### Fond d'écran
 
 Sur macOS, si `~/.config/zanvil/wallpapers/<thème>.jpg` existe (ou `.jpeg`, `.png`, `.heic`, dans cet ordre), `zanvil-theme <thème>` le pose sur tous les écrans. Les images vous appartiennent : placez-les dans votre dépôt dotfiles. Sans image pour le thème, le fond ne change pas. Un fond imposé par une gestion de parc (MDM) peut reprendre le dessus.
+
+### Économiseur d'écran (cbonsai)
+
+Avec `ZANVIL_MODULE_SCREENSAVER=true`, `zsaver` fait pousser un bonsai (cbonsai) aux couleurs du thème
+actif ; une touche le quitte. Les options de cbonsai passent telles quelles (`zsaver -m "message"`).
+`ZANVIL_SCREENSAVER_IDLE=600` le lance après 10 minutes sans frappe à l'invite, dans un seul terminal à
+la fois.
 
 ### Clair et sombre
 
