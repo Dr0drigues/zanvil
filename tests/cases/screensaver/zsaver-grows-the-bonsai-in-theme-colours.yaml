@@ -1,0 +1,27 @@
+# zsaver lance cbonsai en mode economiseur avec les couleurs de la palette converties en indices
+# 256 couleurs : sans theme actif, repli tokyo-light (vert 587539 -> 65, jaune 8c6c3e -> 95,
+# cyan 007197 -> 24, gris 969cb4 -> 109).
+name: zsaver-grows-the-bonsai-in-theme-colours
+weight: 5
+setup:
+  exec: ./tests/hooks/prepare-zanvil-dir.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/commands/theme.zsh", "core/commands/theme_tools.zsh", "modules/tools/screensaver/init.zsh"]
+  call: ["eval", "zsaver"]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+    ZANVIL_MODULE_SCREENSAVER: "true"
+fake:
+  bins: [cbonsai]
+  rules:
+    - match: { bin: cbonsai, args_contain: "65,95,24,109" }
+      stdout: "BONSAI_AUX_COULEURS"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["BONSAI_AUX_COULEURS"]
+  calls:
+    cbonsai: 1

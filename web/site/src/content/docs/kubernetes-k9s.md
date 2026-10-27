@@ -23,7 +23,7 @@ le nom complet.
 kube_switch blg-dev     # bascule sur le contexte complet
 kube_switch             # sélection fzf si aucun argument
 kube_ns                 # sélection du namespace
-k blg-dev default       # k9s sur un contexte et un namespace
+k blg-dev default       # sofka ou k9s sur un contexte et un namespace
 k blg-dev all           # tous les namespaces
 ```
 
@@ -42,6 +42,15 @@ k9s ne lit pas `~/.config/k9s/` sur macOS depuis la v0.32 mais
 `~/Library/Application Support/k9s/`. `kube_k9s_setup` écrit au bon endroit ; en cas de doute,
 `k9s info` affiche le chemin réellement utilisé.
 :::
+
+## k9s ou sofka
+
+`k` ouvre la TUI désignée par `ZANVIL_KUBE_TUI` : `sofka` (par défaut) ou `k9s`. `install.sh` pose la
+question et installe l'outil choisi ; `kube_tui k9s` ou `kube_tui sofka` change d'outil et l'écrit
+dans `config.zsh`. Si l'outil choisi manque, `k` ouvre l'autre.
+
+sofka reste en configuration native : les plugins, hotkeys et skins de cette page ne concernent que
+k9s. Les deux outils partagent seulement le `KUBECONFIG` et les alias de contexte de `k`.
 
 ## Les trois plugins
 

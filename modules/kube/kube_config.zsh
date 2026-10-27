@@ -1119,37 +1119,64 @@ kns() {
     fi
 }
 
-# Ouvre k9s sur un contexte (avec resolution d'alias)
+# Ouvre la TUI Kubernetes (ZANVIL_KUBE_TUI : sofka par defaut, ou k9s) sur un contexte
+# (avec resolution d'alias). Les deux acceptent --context/--namespace/--all-namespaces.
 # Usage: k [context] [namespace]
-#   k              → k9s sur le contexte courant
-#   k blg-dev      → k9s sur blg-dev, namespace courant
-#   k blg-dev web  → k9s sur blg-dev, namespace web
-#   k blg-dev all  → k9s sur blg-dev, tous les namespaces
+#   k              → contexte courant
+#   k blg-dev      → blg-dev, namespace courant
+#   k blg-dev web  → blg-dev, namespace web
+#   k blg-dev all  → blg-dev, tous les namespaces
 k() {
-    if ! command -v k9s &>/dev/null; then
-        _ui_msg_fail "k9s n'est pas installe"
-        return 1
+    local tui="${ZANVIL_KUBE_TUI:-sofka}"
+    if ! command -v "$tui" &>/dev/null; then
+        # L'autre outil s'il est la, plutot qu'un echec
+        local other=k9s; [[ "$tui" == k9s ]] && other=sofka
+        if ! command -v "$other" &>/dev/null; then
+            _ui_msg_fail "$tui n'est pas installe"
+            return 1
+        fi
+        tui="$other"
     fi
 
-    local k9s_args=()
+    local tui_args=()
 
     # Premier argument : contexte (optionnel).
     if [[ -n "$1" ]]; then
         local resolved=$(_kube_resolve_alias "$1")
-        k9s_args+=(--context "$resolved")
+        tui_args+=(--context "$resolved")
         shift
     fi
 
     # Second argument : namespace (optionnel)
     if [[ -n "$1" ]]; then
         if [[ "$1" == "all" ]]; then
-            k9s_args+=(--all-namespaces)
+            tui_args+=(--all-namespaces)
         else
-            k9s_args+=(--namespace "$1")
+            tui_args+=(--namespace "$1")
         fi
     fi
 
-    k9s "${k9s_args[@]}"
+    "$tui" "${tui_args[@]}"
+}
+
+# Choisit la TUI ouverte par `k` (sofka ou k9s) et l'ecrit dans config.zsh.
+# Sans argument : affiche le choix courant.
+kube_tui() {
+    if [[ -z "$1" ]]; then
+        _ui_msg_info "TUI Kubernetes : ${ZANVIL_KUBE_TUI:-sofka}"
+        return 0
+    fi
+    if [[ "$1" != sofka && "$1" != k9s ]]; then
+        _ui_msg_fail "Usage : kube_tui [sofka|k9s]"
+        return 1
+    fi
+    command -v "$1" &>/dev/null || _ui_msg_warn "$1 n'est pas installe (brew install $1)"
+    local cfg="$ZANVIL_DIR/config.zsh" lines=()
+    [[ -f "$cfg" ]] && lines=("${(@f)$(<"$cfg")}")
+    lines=("${(@)lines:#ZANVIL_KUBE_TUI=*}" "ZANVIL_KUBE_TUI=$1")
+    print -rl -- "${lines[@]}" > "$cfg" || return 1
+    export ZANVIL_KUBE_TUI="$1"
+    _ui_msg_ok "k ouvre maintenant $1"
 }
 
 # Deploie la config k9s depuis le repo (~/.config/k9s/hotkeys.yaml).
@@ -1250,7 +1277,8 @@ Kube Config Manager - Commandes disponibles:
   kube_select      Selecteur interactif (fzf) pour choisir les configs
   kube_switch      Switch de contexte Kubernetes (interactif)
   kube_ns          Switch de namespace (interactif)
-  k [ctx] [ns]     Ouvre k9s (supporte les alias, "all" pour tous ns)
+  k [ctx] [ns]     Ouvre sofka ou k9s (supporte les alias, "all" pour tous ns)
+  kube_tui [outil] Choisit la TUI de k : sofka (defaut) ou k9s
   k9s: Shift-L     Logs formatés (logback) dans less
   k9s: Ctrl-L      Logs interactifs (fzf) — filtrer, copier, Ctrl-R recharge
   klog [pod] [ctn] Logs d'un pod (selection fzf) — JSON brut, --follow, --previous, --tail N, -n ns

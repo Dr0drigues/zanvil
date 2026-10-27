@@ -62,6 +62,8 @@ ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
 ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
 ZANVIL_MODULE_FASTFETCH=true  # Fiche système aux couleurs du thème (zfetch)
 
+ZANVIL_MODULE_SCREENSAVER=false # Économiseur bonsai aux couleurs du thème (zsaver)
+
 # Integrations
 ZANVIL_MODULE_MISE=true       # Gestionnaire de versions (Node, Java, Maven)
 ZANVIL_MODULE_NUSHELL=true    # Integration Nushell
@@ -163,6 +165,13 @@ Le logo est l’enclume de `config/fastfetch/logo.txt`, aux couleurs du thème. 
 rendu en caractères par chafa ; le terminal doit donner sa taille en pixels, sinon fastfetch affiche son
 logo par défaut. `ZANVIL_STARTUP_BANNER=fastfetch` remplace la ligne de démarrage par `zfetch banner`,
 une fois par shell de premier niveau (pas à chaque `ss`).
+
+### Économiseur d'écran (cbonsai)
+
+Avec `ZANVIL_MODULE_SCREENSAVER=true`, `zsaver` fait pousser un bonsai (cbonsai) aux couleurs du thème
+actif ; une touche le quitte. Les options de cbonsai passent telles quelles (`zsaver -m "message"`).
+`ZANVIL_SCREENSAVER_IDLE=600` le lance après 10 minutes sans frappe à l'invite, dans un seul terminal à
+la fois.
 
 ### Clair et sombre
 
