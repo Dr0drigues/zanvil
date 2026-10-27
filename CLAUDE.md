@@ -134,7 +134,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 
 ### Explorateur de projets (modules/work/explore.zsh, cli/src/cmd/explore/)
 
-`work_explore` lance `zanvil explore --out <tmp>` (TUI a deux volets, CLI Rust requis) puis `cd` vers le depot choisi ; l'index GitLab `~/.cache/zanvil/projects.json` est rafraichi en arriere-plan (`zanvil explore --refresh`) s'il a plus de 24 h. Reglages dans `~/.config/zanvil/projects.toml` (fichier des dotfiles, jamais dans ce depot public ; modele : `examples/projects.toml.example`).
+`work_explore` lance `zanvil explore --out <tmp>` (TUI a deux volets, CLI Rust requis) puis `cd` vers le depot choisi ; l'index GitLab `${XDG_CACHE_HOME:-~/.cache}/zanvil/projects.json` est rafraichi en arriere-plan (`zanvil explore --refresh`) s'il est absent ou a plus de 24 h, un seul a la fois (verrou `refresh.lock`, perime apres 1 h) ; un index vide n'ecrase pas le cache. Acces effectif = max des listes `min_access_level=30/40/50` ; variables lues sur les groupes `<bu>/<app_segment>/<app>` des projets ou l'on est Maintainer. Reglages dans `~/.config/zanvil/projects.toml` (fichier des dotfiles, jamais dans ce depot public ; modele : `examples/projects.toml.example`).
 
 ### Kube aliases
 

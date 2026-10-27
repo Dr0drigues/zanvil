@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Provenance : la source de vérité de ce script est le projet ~/work/dimitri.rodriguesoliveira/analysis-tool
+# Provenance : la source de verite de ce script est le projet analysis-tools (depot perso)
 # (il reprendra ce script comme fondation).
 # Toute évolution doit se faire là-bas puis être resynchronisée ici.
 set -uo pipefail

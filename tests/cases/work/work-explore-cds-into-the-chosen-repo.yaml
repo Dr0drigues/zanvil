@@ -8,7 +8,7 @@ weight: 7
 setup:
   shell: zsh
   source: ["core/ui.zsh", "modules/work/explore.zsh"]
-  call: ["eval", "mkdir -p $HOME/work/grp/repo $HOME/.cache/zanvil; : > $HOME/.cache/zanvil/projects.json; zanvil() { [[ $1 == explore && $2 == --out ]] && print -r -- $HOME/work/grp/repo > $3; }; work_explore; pwd"]
+  call: ["eval", "unset XDG_CACHE_HOME; mkdir -p $HOME/work/grp/repo $HOME/.cache/zanvil; : > $HOME/.cache/zanvil/projects.json; zanvil() { [[ $1 == explore && $2 == --out ]] && print -r -- $HOME/work/grp/repo > $3; }; work_explore; pwd"]
 expect:
   exit_code: 0
   stdout:
