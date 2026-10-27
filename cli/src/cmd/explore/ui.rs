@@ -180,7 +180,7 @@ fn refresh(app: &mut App, tx: &Sender<Msg>) {
     let (s, tx) = (Arc::clone(&app.settings), tx.clone());
     thread::spawn(move || {
         let res = index::refresh(&s)
-            .and_then(|idx| index::write_cache(&index::cache_path(), &idx).map(|_| idx).map_err(|e| e.to_string()))
+            .and_then(|r| index::save_refreshed(&index::cache_path(), &r).map(|_| r.index))
             .map(|idx| (idx, local::scan(&s.work_dir, &s.gitlab_host)));
         let _ = tx.send(Msg::Refreshed(res));
     });

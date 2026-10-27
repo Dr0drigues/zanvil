@@ -5,7 +5,7 @@
 # Hote GitLab ; vide ou absent : $GITLAB_BASE_DOMAIN.
 # gitlab_host = "gitlab.example.com"
 
-# Racine des clones ; absent : $WORK_DIR ou ~/work. Le "~" n'est pas developpe.
+# Racine des clones ; absent : $WORK_DIR ou ~/work. Un "~/" en tete est developpe.
 # work_dir = "/home/moi/work"
 
 # Methode de clonage : "https" (defaut) ou "ssh".
