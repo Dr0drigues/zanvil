@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# work_explore lance `zanvil explore --out <fichier>`, lit le dossier choisi et s y place.
+# `zanvil` est une fonction du cas (un faux binaire ne peut pas ecrire dans le fichier
+# passe) ; le cache est recent pour que le --refresh d arriere-plan ne parte pas.
+name: work-explore-cds-into-the-chosen-repo
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/explore.zsh"]
+  call: ["eval", "unset XDG_CACHE_HOME; mkdir -p $HOME/work/grp/repo $HOME/.cache/zanvil; : > $HOME/.cache/zanvil/projects.json; zanvil() { [[ $1 == explore && $2 == --out ]] && print -r -- $HOME/work/grp/repo > $3; }; work_explore; pwd"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "/work/grp/repo"

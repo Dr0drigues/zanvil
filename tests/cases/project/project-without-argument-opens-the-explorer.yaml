@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# `project` sans argument ouvre l explorateur du module work ; si ce module n est pas
+# charge, il le dit au lieu d afficher l aide.
+name: project-without-argument-opens-the-explorer
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/project/project.zsh"]
+  call: ["eval", "project; echo rc=$?; work_explore() { echo EXPLORER; }; project"]
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "module work"
+      - "rc=1"
+      - "EXPLORER"
