@@ -43,7 +43,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── project/        # project open <lien-MR> (worktree + Orca + IDEA), project clean (guard: ZANVIL_MODULE_PROJECT)
 │   ├── security/       # security_audit
 │   ├── utils/          # utils, extract, fkill, net_utils (lazy)
-│   ├── tools/          # mise_hooks, test_runner, zsh_profile
+│   ├── tools/          # mise_hooks, test_runner, zsh_profile ; sous-module screensaver (zsaver, cbonsai)
 │   └── boulanger/      # boulanger_context
 ├── brew/               # base.Brewfile : dependances de zanvil (common/profil vivent dans le depot dotfiles)
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
