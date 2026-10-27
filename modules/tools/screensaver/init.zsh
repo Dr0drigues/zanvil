@@ -27,6 +27,9 @@ zsaver() {
     local -A p
     [[ -f "$ZANVIL_DIR/.current_theme" ]] && cur=$(<"$ZANVIL_DIR/.current_theme")
     for l in ${(f)"$(_zanvil_theme_palette_hex "$cur")"}; do p[${l%%=*}]=${l#*=}; done
+    # -S relit la sauvegarde « graine branches » et echoue si elle manque ou est vide (premier lancement)
+    local save="${XDG_CACHE_HOME:-$HOME/.cache}/cbonsai"
+    [[ -s "$save" ]] || { mkdir -p "${save:h}" && print -r -- "$RANDOM 0" >| "$save"; }
     # Feuilles sombres, bois sombre, feuilles claires, bois clair
     cbonsai -S -k "$(_zsaver_256 $p[green]),$(_zsaver_256 $p[yellow]),$(_zsaver_256 $p[cyan]),$(_zsaver_256 $p[dim])" "$@"
 }
