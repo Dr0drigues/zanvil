@@ -5,6 +5,7 @@ pub mod convert;
 pub mod context;
 pub mod doctor;
 pub mod es;
+pub mod explore;
 pub mod modules;
 pub mod mr_fanout;
 pub mod secrets;

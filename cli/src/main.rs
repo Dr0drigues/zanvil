@@ -73,6 +73,8 @@ enum Commands {
         #[command(subcommand)]
         action: cmd::es::EsAction,
     },
+    /// Explorateur de projets a deux volets
+    Explore(cmd::explore::ExploreArgs),
     #[command(name = "mr-fanout")]
     MrFanout(MrFanoutArgs),
     /// Interactive configuration TUI
@@ -106,6 +108,7 @@ fn main() {
                 std::process::exit(code);
             }
         }
+        Commands::Explore(args) => cmd::explore::run(args),
         Commands::MrFanout(args) => cmd::mr_fanout::run(args),
         Commands::Config => cmd::tui_config::run(),
         Commands::Sync { action } => cmd::sync::run(action),
