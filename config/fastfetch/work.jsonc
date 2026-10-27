@@ -1,0 +1,12 @@
+// Preset zanvil — travail : contexte kube, kubeconfigs, IP locales (VPN compris).
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "modules": [
+    "title", "separator",
+    { "type": "command", "key": "Profil", "text": "printf %s \"$ZF_PROFILE\"" },
+    { "type": "command", "key": "Kube", "text": "printf %s \"$ZF_KUBE\"" },
+    { "type": "command", "key": "Kubeconfigs", "text": "printf %s \"$ZF_KUBECONFIGS\"" },
+    { "type": "localip", "key": "IP", "showIpv4": true, "showAllIps": true },
+    { "type": "command", "key": "Mise à jour", "text": "printf %s \"$ZF_UPDATE\"" }
+  ]
+}

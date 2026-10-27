@@ -1,0 +1,26 @@
+# zfetch lance fastfetch sur le preset demande, aux couleurs de la palette (bleu tokyo-light par
+# defaut, sans theme actif), et refuse un preset inconnu sans appeler fastfetch.
+name: zfetch-runs-the-preset-in-theme-colours
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "core/commands/theme.zsh", "core/commands/theme_tools.zsh", "modules/tools/fastfetch/init.zsh"]
+  call: ["eval", "zfetch minimal; zfetch nope; echo rc=$?"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_MODULE_FASTFETCH: "true"
+fake:
+  bins: [fastfetch]
+  rules:
+    - match: { bin: fastfetch, args_contain: "#2e7de9" }
+      stdout: "PRESET_LANCE"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains: ["PRESET_LANCE", "preset inconnu : nope", "rc=1"]
+  calls:
+    fastfetch: 1

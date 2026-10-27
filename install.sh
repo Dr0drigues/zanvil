@@ -263,6 +263,7 @@ ZANVIL_UPDATE_MODE="$UPDATE_MODE"
 
 # Banniere de demarrage
 # ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
+# ZANVIL_STARTUP_BANNER=fastfetch   # Banniere zfetch banner (module fastfetch)
 
 # Profil de la machine et depot dotfiles
 ZANVIL_PROFILE=$PROFILE
@@ -406,6 +407,7 @@ install_tool "dust"  "dust"    ""        ""          # du arborescent (brew only
 install_tool "duf"   "duf"     "duf"     "duf"       # df colore
 install_tool "procs" "procs"   ""        "procs"     # ps moderne
 install_tool "btop"  "btop"    "btop"    "btop"      # top / moniteur TUI
+install_tool "fastfetch" "fastfetch" "fastfetch" "fastfetch"  # infos systeme (successeur de neofetch)
 install_tool "gping" "gping"   ""        ""          # ping graphique (brew only)
 install_tool "tldr"  "tlrc"    "tldr"    "tldr"      # exemples concrets (complement man ; tlrc fournit la commande tldr)
 

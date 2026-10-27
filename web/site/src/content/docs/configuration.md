@@ -60,6 +60,7 @@ ZANVIL_MODULE_DELTA=true      # Pager syntaxique pour git diff
 ZANVIL_MODULE_LAZYGIT=true    # TUI Git ergonomique (alias lg)
 ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
 ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
+ZANVIL_MODULE_FASTFETCH=true  # Fiche système aux couleurs du thème (zfetch)
 ZANVIL_MODULE_SCREENSAVER=false # Économiseur bonsai aux couleurs du thème (zsaver)
 
 # Integrations
@@ -144,6 +145,25 @@ Un CLI `zanvil` compilé avant ce changement écrit ailleurs : reconstruisez-le 
 ### Fond d'écran
 
 Sur macOS, si `~/.config/zanvil/wallpapers/<thème>.jpg` existe (ou `.jpeg`, `.png`, `.heic`, dans cet ordre), `zanvil-theme <thème>` le pose sur tous les écrans. Les images vous appartiennent : placez-les dans votre dépôt dotfiles. Sans image pour le thème, le fond ne change pas. Un fond imposé par une gestion de parc (MDM) peut reprendre le dessus.
+
+### Fiche système (fastfetch)
+
+Avec `ZANVIL_MODULE_FASTFETCH=true`, `zfetch [preset]` lance fastfetch avec un preset de
+`config/fastfetch/`, aux couleurs du thème actif (relues à chaque appel, donc `zanvil-theme auto` est suivi).
+`fastfetch` seul garde votre propre configuration.
+
+| Preset | Contenu |
+|--------|---------|
+| `full` (défaut) | Fiche complète, plus version zanvil, thème, profil, contexte kube, état de l'auto-update, modules actifs |
+| `work` | Profil, contexte kube, nombre de kubeconfigs chargés, IP locales (VPN compris), auto-update |
+| `minimal` | Quelques lignes sans logo, pour les captures |
+| `palette` | Palette d'un thème en blocs : `zfetch palette <thème>` |
+| `banner` | Bannière de démarrage courte |
+
+Le logo est l’enclume de `config/fastfetch/logo.txt`, aux couleurs du thème. `ZANVIL_FETCH_LOGO=wallpaper` affiche à la place le fond d'écran du thème,
+rendu en caractères par chafa ; le terminal doit donner sa taille en pixels, sinon fastfetch affiche son
+logo par défaut. `ZANVIL_STARTUP_BANNER=fastfetch` remplace la ligne de démarrage par `zfetch banner`,
+une fois par shell de premier niveau (pas à chaque `ss`).
 
 ### Économiseur d'écran (cbonsai)
 
