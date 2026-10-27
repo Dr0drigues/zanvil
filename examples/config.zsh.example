@@ -14,6 +14,7 @@ ZANVIL_MODULE_MISE=true        # Gestionnaire de versions (Node, Java, Maven)
 ZANVIL_MODULE_NUSHELL=true     # Integration Nushell
 ZANVIL_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 ZANVIL_MODULE_POSTING=true     # Client HTTP TUI (posting)
+ZANVIL_MODULE_FASTFETCH=true   # Fiche systeme aux couleurs du theme (zfetch)
 
 # ==============================================================================
 # Mise Configuration
@@ -38,6 +39,8 @@ ZANVIL_UPDATE_RELOAD=true      # false = les terminaux ouverts ne se rechargent 
 # ZANVIL_WORK_NEXUS_URL=""          # URL de probe pour detecter le contexte interne (voir env.d/work.zsh)
 # ZANVIL_AI_CHARS_PER_TOKEN=4      # Ratio caracteres/token pour estimation AI
 # ZANVIL_STARTUP_BANNER=false       # Coupe la banniere de demarrage (le splash install/update reste affiche)
+# ZANVIL_STARTUP_BANNER=fastfetch   # Banniere zfetch banner (une fois par shell de premier niveau)
+# ZANVIL_FETCH_LOGO=wallpaper       # Logo zfetch : fond d'ecran du theme (chafa) au lieu de l'enclume
 
 # ==============================================================================
 # Chargement des plugins

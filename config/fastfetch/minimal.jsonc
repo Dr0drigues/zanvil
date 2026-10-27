@@ -1,0 +1,9 @@
+// Preset zanvil — minimal, sans logo (captures d ecran).
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": { "type": "none" },
+  "modules": [
+    "title", "os", "terminal", "shell",
+    { "type": "command", "key": "Thème", "text": "printf %s \"$ZF_THEME\"" }
+  ]
+}

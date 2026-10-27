@@ -261,6 +261,7 @@ ZANVIL_UPDATE_MODE="$UPDATE_MODE"
 
 # Banniere de demarrage
 # ZANVIL_STARTUP_BANNER=false   # Coupe la banniere de demarrage (le splash install/update reste affiche)
+# ZANVIL_STARTUP_BANNER=fastfetch   # Banniere zfetch banner (module fastfetch)
 
 # Profil de la machine et depot dotfiles
 ZANVIL_PROFILE=$PROFILE

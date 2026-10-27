@@ -200,6 +200,12 @@ fi
 # BANNIERE DE DEMARRAGE (zanvil)
 # =======================================================
 # Ligne compacte a chaque shell interactif. Opt-out : ZANVIL_STARTUP_BANNER=false
+# ZANVIL_STARTUP_BANNER=fastfetch : zfetch banner, une fois par shell de premier niveau (pas a chaque ss)
 if [[ -o interactive && "${ZANVIL_STARTUP_BANNER:-true}" != "false" ]]; then
-    _zanvil_banner_compact
+    if [[ "$ZANVIL_STARTUP_BANNER" == fastfetch ]] && (( $+functions[zfetch] && SHLVL == 1 && ! ${+_ZANVIL_FETCH_SHOWN} )); then
+        typeset -g _ZANVIL_FETCH_SHOWN=1
+        zfetch banner
+    else
+        _zanvil_banner_compact
+    fi
 fi
