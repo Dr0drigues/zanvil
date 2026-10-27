@@ -61,7 +61,6 @@ ZANVIL_MODULE_LAZYGIT=true    # TUI Git ergonomique (alias lg)
 ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
 ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
 ZANVIL_MODULE_FASTFETCH=true  # Fiche système aux couleurs du thème (zfetch)
-
 ZANVIL_MODULE_SCREENSAVER=false # Économiseur bonsai aux couleurs du thème (zsaver)
 
 # Integrations
