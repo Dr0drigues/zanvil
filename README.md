@@ -34,7 +34,7 @@ Le script installe les dependances, configure `.zshrc`, et build le CLI Rust si 
 | Module | Description |
 |--------|-------------|
 | **Navigation** | Jump intelligent avec `zoxide`, auto-cd |
-| **Kubernetes** | Multi-config Azure/AWS/GCP, aliases, `kube_switch`, `k` (k9s) |
+| **Kubernetes** | Multi-config Azure/AWS/GCP, aliases, `kube_switch`, `k` (sofka ou k9s, `kube_tui` pour changer) |
 | **GitLab** | Clone groupes, PAT status, browse, pipelines |
 | **SSH Manager** | Gestion simplifiee des connexions SSH |
 | **Tmux Manager** | Gestion des sessions tmux |
@@ -58,7 +58,7 @@ zanvil-backup             # Sauvegarde des configs
 
 kube_switch blg-dev        # Switch de cluster (avec aliases)
 kube_ns                    # Switch de namespace
-k blg-dev                  # k9s sur un cluster
+k blg-dev                  # sofka (ou k9s) sur un cluster
 kube_status                # Contexte + namespace + pods
 
 zanvil-gitlab-status      # Statut du PAT GitLab

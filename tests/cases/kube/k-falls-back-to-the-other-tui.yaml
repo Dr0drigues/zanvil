@@ -1,0 +1,25 @@
+# `k` ouvre la TUI de ZANVIL_KUBE_TUI ; si elle manque, l'autre plutot qu'un echec.
+# Ici k9s est choisi mais seul sofka existe : sofka doit recevoir le contexte et -A.
+name: k-falls-back-to-the-other-tui
+weight: 5
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/kube/kube_config.zsh"]
+  call: ["eval", "k blg-dev all"]
+  env:
+    ZANVIL_MODULE_KUBE: "true"
+    ZANVIL_KUBE_TUI: "k9s"
+fake:
+  bins: [sofka]
+  rules:
+    - match: { bin: sofka, args_contain: "--all-namespaces" }
+      stdout: "SOFKA_TOUS_NS"
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["SOFKA_TOUS_NS"]
+  calls:
+    sofka: 1

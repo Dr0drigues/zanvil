@@ -143,7 +143,8 @@ builds) ; la référence ajoutée dans Orca, elle, reste. Pour ouvrir la MR copi
 | `kube_reset` | Remet la config minimale |
 | `kube_switch [context]` | Change de contexte Kubernetes (fzf si sans arg) |
 | `kube_ns [namespace]` | Change de namespace (fzf si sans arg) |
-| `k [alias]` | Lance k9s avec support des alias de contexte |
+| `k [alias]` | Lance sofka ou k9s (`ZANVIL_KUBE_TUI`) avec support des alias de contexte |
+| `kube_tui [sofka\|k9s]` | Choisit la TUI ouverte par `k` et l’écrit dans `config.zsh` |
 | `kube_azure [cluster]` | Récupère credentials Azure AKS |
 | `kube_aws [cluster]` | Récupère credentials AWS EKS |
 | `kube_gcp [cluster]` | Récupère credentials GCP GKE |

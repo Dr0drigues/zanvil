@@ -67,7 +67,8 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 | `kube_reset` | Remet la config minimale |
 | `kube_switch [context]` | Change de contexte Kubernetes (fzf si sans arg) |
 | `kube_ns [namespace]` | Change de namespace (fzf si sans arg) |
-| `k [alias]` | Lance k9s avec support des alias de contexte |
+| `k [alias]` | Lance sofka ou k9s (`ZANVIL_KUBE_TUI`) avec support des alias de contexte |
+| `kube_tui [sofka\|k9s]` | Choisit la TUI ouverte par `k` et l ecrit dans `config.zsh` |
 | `kube_azure [cluster]` | Recupere credentials Azure AKS |
 | `kube_aws [cluster]` | Recupere credentials AWS EKS |
 | `kube_gcp [cluster]` | Recupere credentials GCP GKE |

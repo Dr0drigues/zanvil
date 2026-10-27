@@ -87,6 +87,9 @@ _k_k9s() {
 }
 compdef _k_k9s k
 
+_kube_tui() { _arguments '1:outil:(sofka k9s)' }
+compdef _kube_tui kube_tui
+
 _klog() {
     local current_ns
     current_ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
