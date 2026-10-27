@@ -226,7 +226,7 @@ if [[ -f "$CONFIG_FILE" ]]; then
     kept=$(awk '
         skip { if ($0 ~ /^[[:space:]]*\)/) skip = 0; next }
         /^[[:space:]]*(#|$)/ { next }
-        /^[[:space:]]*(ZANVIL_MODULE_(GITLAB|DOCKER|MISE|NUSHELL|KUBE)|ZANVIL_PLUGINS_ORG|ZANVIL_PLUGINS|ZANVIL_AUTO_UPDATE|ZANVIL_UPDATE_FREQUENCY|ZANVIL_UPDATE_MODE|ZANVIL_PROFILE|ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR|ZANVIL_WORK_DETECTED)=/ {
+        /^[[:space:]]*(ZANVIL_MODULE_(GITLAB|DOCKER|MISE|NUSHELL|KUBE)|ZANVIL_KUBE_TUI|ZANVIL_PLUGINS_ORG|ZANVIL_PLUGINS|ZANVIL_AUTO_UPDATE|ZANVIL_UPDATE_FREQUENCY|ZANVIL_UPDATE_MODE|ZANVIL_PROFILE|ZANVIL_DOTFILES_REPO|ZANVIL_DOTFILES_DIR|ZANVIL_WORK_DETECTED)=/ {
             if ($0 ~ /\([[:space:]]*$/) skip = 1
             next
         }
@@ -246,6 +246,8 @@ ZANVIL_MODULE_DOCKER=$MODULE_DOCKER
 ZANVIL_MODULE_MISE=$MODULE_MISE
 ZANVIL_MODULE_NUSHELL=$MODULE_NUSHELL
 ZANVIL_MODULE_KUBE=$MODULE_KUBE
+# TUI ouverte par k : sofka ou k9s (kube_tui pour changer)
+ZANVIL_KUBE_TUI=${KUBE_TUI:-sofka}
 
 # Plugins
 ZANVIL_PLUGINS_ORG=zsh-users
@@ -344,6 +346,8 @@ _install_prev_profile=$(_install_existing_value "$_install_prev_config" ZANVIL_P
 [[ "$DOTFILES_REPO_SET" = true ]] || DOTFILES_REPO=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_REPO)
 DOTFILES_DIR=$(_install_existing_value "$_install_prev_config" ZANVIL_DOTFILES_DIR)
 DOTFILES_DIR="${DOTFILES_DIR:-${ZANVIL_DOTFILES_DIR:-$HOME/.dotfiles}}"
+KUBE_TUI=$(_install_existing_value "$_install_prev_config" ZANVIL_KUBE_TUI)
+[[ "$KUBE_TUI" = k9s ]] || KUBE_TUI=sofka
 if [[ -z "$PROFILE" ]]; then
     if [[ "$INTERACTIVE" = true ]]; then
         while [[ "$PROFILE" != pro && "$PROFILE" != perso ]]; do
@@ -653,6 +657,20 @@ if [[ "$INTERACTIVE" = true ]]; then
     MODULE_NUSHELL=$(ask_module "Nushell" "Integration Nushell (aliases nu)" "true")
     MODULE_KUBE=$(ask_module "Kube" "Gestionnaire de configs Kubernetes (kube_select)" "$(_install_module_default "$PROFILE")")
 
+    # TUI Kubernetes ouverte par k
+    if [[ "$MODULE_KUBE" = "true" ]]; then
+        echo -e "  TUI Kubernetes (commande k) :" >&2
+        echo -e "    ${CYAN}1)${NC} sofka - Rust, Flux/Argo integres, vue incident" >&2
+        echo -e "    ${CYAN}2)${NC} k9s   - La reference, plugins de logs zanvil complets" >&2
+        _kube_tui_default=1; [[ "$KUBE_TUI" = k9s ]] && _kube_tui_default=2
+        printf "  Choix [%s]: " "$_kube_tui_default" >&2
+        read -r _kube_tui_choice
+        case "${_kube_tui_choice:-$_kube_tui_default}" in
+            2) KUBE_TUI=k9s ;;
+            *) KUBE_TUI=sofka ;;
+        esac
+    fi
+
     # Configuration SOPS/Age (si module Kube actif)
     SOPS_CONFIGURED="false"
     if [[ "$MODULE_KUBE" = "true" ]]; then
@@ -765,6 +783,11 @@ else
         chmod 600 "$AGE_KEY_FILE"
         SOPS_CONFIGURED="true"
     fi
+fi
+
+# --- TUI Kubernetes choisie (si module Kube actif) ---
+if [[ "$MODULE_KUBE" = "true" ]]; then
+    install_tool "$KUBE_TUI" "$KUBE_TUI" "" ""
 fi
 
 # --- Docker BuildKit (si module Docker actif) ---

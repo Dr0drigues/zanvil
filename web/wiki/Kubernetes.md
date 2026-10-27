@@ -15,7 +15,8 @@ Gestion multi-config Kubernetes avec support Azure AKS, AWS EKS et GCP GKE. En v
 | `kube_encrypt <file>` | Chiffre une config avec sops/age |
 | `kube_switch [context]` | Change de contexte Kubernetes |
 | `kube_ns [namespace]` | Change de namespace |
-| `k [alias]` | Lance k9s avec support des alias de contexte |
+| `k [alias]` | Lance sofka ou k9s (`ZANVIL_KUBE_TUI`) avec support des alias de contexte |
+| `kube_tui [sofka\|k9s]` | Choisit la TUI ouverte par `k` et l ecrit dans `config.zsh` |
 | `kube_help` | Affiche l'aide |
 
 ## Changement de contexte (kube_switch)
@@ -49,7 +50,7 @@ kube_ns monitoring
 
 ## k9s avec alias (k)
 
-La commande `k` lance k9s avec support des alias de contexte :
+La commande `k` lance la TUI choisie (`ZANVIL_KUBE_TUI` : sofka par defaut, ou k9s ; `kube_tui k9s` pour changer) avec support des alias de contexte :
 
 ```bash
 # k9s sur le contexte courant

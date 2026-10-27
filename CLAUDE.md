@@ -138,7 +138,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 ```
 blg-dev=aks-blg-caasplatform-dev-common-001
 ```
-Utilise par : `kube_switch`, `k` (k9s), `zanvil context` (prompt Starship)
+Utilise par : `kube_switch`, `k` (sofka ou k9s selon `ZANVIL_KUBE_TUI`, `kube_tui` pour changer), `zanvil context` (prompt Starship)
 
 ### .zanvil.local (direnv-like)
 
