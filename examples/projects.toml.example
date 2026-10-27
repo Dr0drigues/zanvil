@@ -15,15 +15,21 @@ clone_method = "https"
 ptf_root = "plat"
 app_segment = "apps"
 
-# Unites : code (premier segment du chemin) = libelle affiche.
-[bus]
-bu1 = "Unité 1"
-bu2 = "Unité 2"
-
 # Variable CI qui nomme le depot de configuration d'un projet, et motif de chemin
 # qui reconnait un depot de configuration.
 config_var = "CFG_PROJECT"
 config_path_pattern = '/configs?/'
+
+# Depots de configuration communs, toujours proposes.
+common_configs = ["configs/shared"]
+
+# Variables d'application lues dans la CI ; l'ordre est celui de l'affichage.
+app_var_keys = ["APP_NAME", "APP_ID"]
+
+# Unites : code (premier segment du chemin) = libelle affiche.
+[bus]
+bu1 = "Unité 1"
+bu2 = "Unité 2"
 
 # Regles chemin du depot -> chemin du depot de configuration (premiere qui correspond ;
 # $1, $2 = groupes capturés).
@@ -40,8 +46,3 @@ to = '$1/configs/shared'
 from = '^(plat/[^/]+/apps/[^/]+)/([^/]+)$'
 to = '$1/tests/$2'
 
-# Depots de configuration communs, toujours proposes.
-common_configs = ["configs/shared"]
-
-# Variables d'application lues dans la CI ; l'ordre est celui de l'affichage.
-app_var_keys = ["APP_NAME", "APP_ID"]
