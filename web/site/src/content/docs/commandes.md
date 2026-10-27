@@ -90,6 +90,7 @@ Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMM
 
 | Commande | Description |
 |----------|-------------|
+| `project` | Ouvre l'explorateur de projets (module work), voir `work_explore` |
 | `project open <lien-de-MR>` | Ouvre la MR dans un worktree sous `$WORK_DIR`, puis dans Orca et IntelliJ IDEA |
 | `project clean` | Supprime les worktrees des MR terminées |
 
@@ -195,6 +196,17 @@ l'environnement — voir `env.d/` et le chiffrement sops.
 | `work_fetch_logs` | Récupère les logs d'une application vers un fichier |
 
 Les plages s'écrivent `Xs`, `Xm`, `Xh` ou `Xd`. `work_es_apps --refresh` ignore le cache.
+
+## Explorateur (module work)
+
+| Commande | Description |
+|----------|-------------|
+| `work_explore` | Explorateur de projets à deux volets (`zanvil explore`) ; `Entrée` sur un dépôt change le dossier du shell. `project` sans argument l'appelle |
+
+Demande le CLI Rust. L'index GitLab (`~/.cache/zanvil/projects.json`) est reconstruit en arrière-plan
+quand il a plus de 24 h ; `zanvil explore --refresh` le force. Les réglages (hôte, règles de
+dépôts de configuration et de tests, libellés des unités) se lisent dans
+`~/.config/zanvil/projects.toml`, à garder dans vos dotfiles : voir `examples/projects.toml.example`.
 
 ## API produits merch (module work)
 

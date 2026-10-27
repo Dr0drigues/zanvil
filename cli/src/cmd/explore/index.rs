@@ -87,10 +87,6 @@ pub fn write_cache(p: &Path, idx: &Index) -> io::Result<()> {
     })
 }
 
-pub fn is_stale(idx: &Index, now: i64) -> bool {
-    now - idx.fetched_at > 86_400
-}
-
 fn glab_api(glab: &str, host: &str, endpoint: &str, paginate: bool) -> Result<Vec<Value>, String> {
     let mut cmd = Command::new(glab);
     cmd.arg("api");
@@ -205,13 +201,6 @@ mod tests {
         assert_eq!(load_cache(&p), None);
         assert_eq!(load_cache(&d.join("absent.json")), None);
         let _ = std::fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn peremption() {
-        let i = sample();
-        assert!(!is_stale(&i, 5 + 86_400));
-        assert!(is_stale(&i, 5 + 86_401));
     }
 
     #[test]
