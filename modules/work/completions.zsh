@@ -95,5 +95,3 @@ _work_merch_product() {
 }
 compdef _work_merch_product work_merch_product
 compdef _work_merch_product get_merch_product
-
-compdef _nothing work_explore

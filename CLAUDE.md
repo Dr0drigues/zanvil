@@ -130,11 +130,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 
 ### Project (modules/project/project.zsh)
 
-`project` sans argument appelle `work_explore` (module work ; message sinon). `project open <lien-de-MR>` clone au besoin le depot sous `$WORK_DIR/<chemin GitLab>` (hote GitLab pris du lien) et cree un worktree de la branche de la MR dans `$WORK_DIR/<sous-groupe>/.worktrees/<repo>/<branche>` ; le depot principal n'est jamais touche, le `.zanvil.local` du depot est copie. Ouvre ensuite Orca et IntelliJ IDEA ; les erreurs passent par une notification (`_project_notify`). `project clean` retire les worktrees des MR terminees sans travail non pousse ; `init.zsh` le lance en arriere-plan une fois par 24 h. `scripts/raycast/project-open.sh` (Hyper+O dans Raycast) lit le presse-papiers et rebranche `PATH` et `~/.gitlab_secrets` avant d'appeler `project open`.
-
-### Explorateur de projets (modules/work/explore.zsh, cli/src/cmd/explore/)
-
-`work_explore` lance `zanvil explore --out <tmp>` (TUI a deux volets, CLI Rust requis) puis `cd` vers le depot choisi ; l'index GitLab `${XDG_CACHE_HOME:-~/.cache}/zanvil/projects.json` est rafraichi en arriere-plan (`zanvil explore --refresh`) s'il est absent ou a plus de 24 h, un seul a la fois (verrou `refresh.lock`, perime apres 1 h) ; un index vide n'ecrase pas le cache. Acces effectif = max des listes `min_access_level=30/40/50` ; variables lues sur les groupes `<bu>/<app_segment>/<app>` des projets ou l'on est Maintainer. Reglages dans `~/.config/zanvil/projects.toml` (fichier des dotfiles, jamais dans ce depot public ; modele : `examples/projects.toml.example`).
+`project open <lien-de-MR>` clone au besoin le depot sous `$WORK_DIR/<chemin GitLab>` (hote GitLab pris du lien) et cree un worktree de la branche de la MR dans `$WORK_DIR/<sous-groupe>/.worktrees/<repo>/<branche>` ; le depot principal n'est jamais touche, le `.zanvil.local` du depot est copie. Ouvre ensuite Orca et IntelliJ IDEA ; les erreurs passent par une notification (`_project_notify`). `project clean` retire les worktrees des MR terminees sans travail non pousse ; `init.zsh` le lance en arriere-plan une fois par 24 h. `scripts/raycast/project-open.sh` (Hyper+O dans Raycast) lit le presse-papiers et rebranche `PATH` et `~/.gitlab_secrets` avant d'appeler `project open`.
 
 ### Kube aliases
 
