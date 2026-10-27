@@ -263,20 +263,14 @@ _project_clean_daily() {
 
 _project_help() {
     _ui_header "project"
-    print "  project                     ouvre l'explorateur de projets (module work)"
     print "  project open <lien-de-MR>   ouvre la MR dans un worktree sous \$WORK_DIR"
     print "  project clean               supprime les worktrees des MR terminees"
     print "  project help                cette aide"
 }
 
 project() {
-    if (( ! $# )); then
-        if (( $+functions[work_explore] )); then work_explore; return $?; fi
-        _ui_msg_fail "l'explorateur fait partie du module work (non charge)"
-        return 1
-    fi
-    local sub="$1"
-    shift
+    local sub="${1:-help}"
+    (( $# )) && shift
     case "$sub" in
         open|clean) "_project_$sub" "$@" ;;
         help|-h|--help) _project_help ;;
