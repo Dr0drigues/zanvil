@@ -2,9 +2,11 @@
 #![allow(dead_code)] // consomme par les taches suivantes
 
 pub mod index;
+pub mod links;
 pub mod local;
 pub mod remote;
 pub mod settings;
+pub mod tree;
 
 use clap::Args;
 use std::path::PathBuf;
