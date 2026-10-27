@@ -143,7 +143,12 @@ pub fn refresh_with(s: &Settings, glab: &str) -> Result<Refreshed, String> {
             true,
         )
     };
-    let mut projects: Vec<IndexProject> = list(30, false)?.iter().filter_map(project_from_json).collect();
+    let mut projects: Vec<IndexProject> = list(30, false)?
+        .iter()
+        .filter_map(project_from_json)
+        // la liste est filtree a Developer : c'est le plancher, meme quand `permissions` est null
+        .map(|p| IndexProject { access: p.access.max(30), ..p })
+        .collect();
     // un acces herite d'un partage de groupe laisse `permissions` a null : le filtre min_access_level, lui, en tient compte
     for level in [40u8, 50] {
         let paths: std::collections::HashSet<String> = list(level, true)?
@@ -305,7 +310,7 @@ mod tests {
         // pagination : deux tableaux concatenes ; acces herite (permissions null) pour shop/api et cart/api
         std::fs::write(&glab, r#"#!/bin/sh
 case "$*" in
-  *min_access_level=30*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api","permissions":{"project_access":null,"group_access":null}},{"path_with_namespace":"bu1/apps/cart/api","permissions":{"project_access":null,"group_access":null}}][{"path_with_namespace":"bu1/apps/dev/api","permissions":{"project_access":{"access_level":30},"group_access":null}},{"path_with_namespace":"bu1/apps/own/api","permissions":{"project_access":{"access_level":50},"group_access":null}}]' ;;
+  *min_access_level=30*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api","permissions":{"project_access":null,"group_access":null}},{"path_with_namespace":"bu1/apps/cart/api","permissions":{"project_access":null,"group_access":null}}][{"path_with_namespace":"bu1/apps/dev/api","permissions":{"project_access":{"access_level":30},"group_access":null}},{"path_with_namespace":"bu1/apps/own/api","permissions":{"project_access":{"access_level":50},"group_access":null}},{"path_with_namespace":"bu1/shared/lib","permissions":{"project_access":null,"group_access":null}}]' ;;
   *min_access_level=40*simple=true*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api"}][{"path_with_namespace":"bu1/apps/cart/api"},{"path_with_namespace":"bu1/apps/own/api"}]' ;;
   *min_access_level=50*simple=true*) printf '%s' '[{"path_with_namespace":"bu1/apps/shop/api"}]' ;;
   *"groups/bu1%2Fapps%2Fshop/variables"*) printf '%s' '[{"key":"APP_ID","value":"A1"},{"key":"SECRET","value":"s"}]' ;;
@@ -325,6 +330,7 @@ esac
                 ("bu1/apps/cart/api", 40),
                 ("bu1/apps/dev/api", 30),
                 ("bu1/apps/own/api", 50), // plancher : permissions du projet
+                ("bu1/shared/lib", 30),   // partage hors listes 40/50 : plancher Developer
             ]
         );
         // own : variables non decrites par le faux glab -> refus compte aussi
