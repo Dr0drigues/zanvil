@@ -1,0 +1,47 @@
+# Reglages de l'explorateur de projets (`zanvil explore`, `project`).
+# Exemple GENERIQUE : le vrai fichier appartient a vos dotfiles et se pose en
+# ~/.config/zanvil/projects.toml (zanvil-dotfiles link). Tout est optionnel.
+
+# Hote GitLab ; vide ou absent : $GITLAB_BASE_DOMAIN.
+# gitlab_host = "gitlab.example.com"
+
+# Racine des clones ; absent : $WORK_DIR ou ~/work. Le "~" n'est pas developpe.
+# work_dir = "/home/moi/work"
+
+# Methode de clonage : "https" (defaut) ou "ssh".
+clone_method = "https"
+
+# Plateforme : dossier racine des groupes de plateforme, et segment des applications.
+ptf_root = "plat"
+app_segment = "apps"
+
+# Unites : code (premier segment du chemin) = libelle affiche.
+[bus]
+bu1 = "Unité 1"
+bu2 = "Unité 2"
+
+# Variable CI qui nomme le depot de configuration d'un projet, et motif de chemin
+# qui reconnait un depot de configuration.
+config_var = "CFG_PROJECT"
+config_path_pattern = '/configs?/'
+
+# Regles chemin du depot -> chemin du depot de configuration (premiere qui correspond ;
+# $1, $2 = groupes capturés).
+[[config_rules]]
+from = '^(.+)/components/(.+)$'
+to = '$1/configs/$2'
+
+[[config_rules]]
+from = '^(.+)/libraries/.+$'
+to = '$1/configs/shared'
+
+# Idem pour les depots de tests.
+[[test_rules]]
+from = '^(plat/[^/]+/apps/[^/]+)/([^/]+)$'
+to = '$1/tests/$2'
+
+# Depots de configuration communs, toujours proposes.
+common_configs = ["configs/shared"]
+
+# Variables d'application lues dans la CI ; l'ordre est celui de l'affichage.
+app_var_keys = ["APP_NAME", "APP_ID"]
