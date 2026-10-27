@@ -2,6 +2,7 @@
 #![allow(dead_code)] // consomme par les taches suivantes
 
 pub mod index;
+pub mod local;
 pub mod remote;
 pub mod settings;
 
