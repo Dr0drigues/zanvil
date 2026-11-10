@@ -62,8 +62,9 @@ _zanvil_update_apply() {
     local head remote branch v0
     head=$($g rev-parse HEAD 2>/dev/null) && remote=$($g rev-parse origin/main 2>/dev/null) \
         || { REPLY="revision illisible"; return 3; }
-    # origin/main deja contenu (a jour, ou commits locaux en avance) : rien a recuperer
-    $g merge-base --is-ancestor "$remote" "$head" 2>/dev/null && return 1
+    # origin/main deja contenu (a jour, ou commits locaux en avance) : rien a recuperer, plus rien de
+    # bloque (mise a jour faite a la main depuis l'alerte)
+    $g merge-base --is-ancestor "$remote" "$head" 2>/dev/null && { rm -f "$ZANVIL_DIR/.update_blocked"; return 1; }
     branch=$($g symbolic-ref --short -q HEAD 2>/dev/null)
     [[ "$branch" == main ]] || { REPLY="branche ${branch:-détachée}"; return 2; }
     # fichiers suivis seulement : non suivis et ignores (config.zsh, .current_theme...) ne bloquent pas
@@ -75,6 +76,7 @@ _zanvil_update_apply() {
     if [[ -z "$v0" || "$v0" == "$_zanvil_update_to" ]]; then
         _zanvil_update_from=${head[1,7]} _zanvil_update_to=${remote[1,7]}
     fi
+    rm -f "$ZANVIL_DIR/.update_blocked"
     return 0
 }
 
@@ -176,7 +178,6 @@ _zanvil_do_update() {
             *) echo -e "${_ui_yellow}[zanvil]${_ui_nc} Erreur lors de la mise a jour ($REPLY)."; return 1 ;;
         esac
 
-        rm -f "$ZANVIL_DIR/.update_blocked"
         if [[ "$ZANVIL_UPDATE_RELOAD" == false ]]; then
             echo -e "${_ui_green}[zanvil]${_ui_nc} Mise a jour terminee. Rechargez avec: ${_ui_bold}ss${_ui_nc}"
         else
@@ -233,7 +234,8 @@ _zanvil_update_background() {
         local fails="$ZANVIL_DIR/.update_fetch_failures" n=0
         _zanvil_check_update
         case $? in
-            1) rm -f "$fails"; return 0 ;;
+            # a jour : ni echec de fetch ni blocage a signaler
+            1) rm -f "$fails" "$ZANVIL_DIR/.update_blocked"; return 0 ;;
             2)
                 [[ -r "$fails" ]] && n=$(<"$fails")
                 [[ "$n" == <-> ]] || n=0
@@ -246,7 +248,6 @@ _zanvil_update_background() {
         _zanvil_update_apply
         case $? in
             0)
-                rm -f "$ZANVIL_DIR/.update_blocked"
                 _zanvil_update_rebuild_cli
                 local msg="zanvil mis à jour : $_zanvil_update_from → $_zanvil_update_to"
                 # une migration peut interroger : laissee a une session interactive
