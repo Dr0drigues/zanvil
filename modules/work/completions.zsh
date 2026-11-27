@@ -89,6 +89,7 @@ _work_merch_product() {
         "${excl}"{-o,--offerId}'[Identifiant d offre]:offerId:' \
         "${excl}"{-s,--sapId}'[Identifiant SAP]:sapId:' \
         "${excl}"{-p,--pimId}'[Identifiant PIM]:pimId:' \
+        '--productpage[Fiche produit complete (exige -p)]' \
         '(--qlf)--prod[Production (defaut)]' \
         '(--prod)--qlf[Qualification]' \
         '(-h --help)'{-h,--help}'[Afficher l aide]'
