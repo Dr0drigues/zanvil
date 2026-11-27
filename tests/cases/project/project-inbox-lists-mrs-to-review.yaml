@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #158 (E) : `project inbox` liste les MR ouvertes ou l'on est relecteur ou assigne. Une MR
+# presente dans les deux listes n'apparait qu'une fois ; draft et conflits priment sur l'etat
+# de fusion. Sans terminal, la liste est imprimee (pas de fzf). glab est une fonction.
+name: project-inbox-lists-mrs-to-review
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/project/project.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_MODULE_PROJECT: "true"
+  call:
+    - "eval"
+    - |
+      unset GITLAB_BASE_DOMAIN
+      glab() {
+        case "$2" in
+          user) echo '{"username":"moi"}' ;;
+          *reviewer_username=moi*) echo '[{"references":{"full":"g/api!1"},"title":"Ajout cache","author":{"username":"ana"},"draft":false,"has_conflicts":false,"detailed_merge_status":"mergeable","web_url":"https://gitlab.exemple.invalide/g/api/-/merge_requests/1"},
+                                         {"references":{"full":"g/front!7"},"title":"Refonte","author":{"username":"bob"},"draft":true,"has_conflicts":false,"web_url":"https://gitlab.exemple.invalide/g/front/-/merge_requests/7"}]' ;;
+          *assignee_username=moi*) echo '[{"references":{"full":"g/api!1"},"title":"Ajout cache","author":{"username":"ana"},"draft":false,"has_conflicts":false,"web_url":"https://gitlab.exemple.invalide/g/api/-/merge_requests/1"},
+                                         {"references":{"full":"g/lib!3"},"title":"Montee de version","author":{"username":"cid"},"draft":false,"has_conflicts":true,"web_url":"https://gitlab.exemple.invalide/g/lib/-/merge_requests/3"}]' ;;
+        esac
+      }
+      out=$(project inbox </dev/null)
+      print -r -- "$out"
+      echo "g/api!1 x$(print -r -- "$out" | grep -c 'g/api!1 ')"
+      glab() { case "$2" in user) echo '{"username":"moi"}' ;; *) echo '[]' ;; esac }
+      project inbox </dev/null
+      glab() { return 1 }
+      project inbox </dev/null; echo "rc_panne=$?"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "relecteur g/api!1"
+      - "mergeable    Ajout cache"
+      - "relecteur g/front!7"
+      - "draft        Refonte"
+      - "assigne   g/lib!3"
+      - "conflits     Montee de version"
+      - "g/api!1 x1"
+      - "Aucune MR a relire ni assignee"
+      - "rc_panne=1"

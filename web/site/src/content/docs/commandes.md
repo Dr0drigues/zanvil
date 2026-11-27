@@ -109,6 +109,7 @@ Les fonctions zsh délèguent au CLI quand il est installé, et gardent un repli
 | `project` | Ouvre l'explorateur de projets (module work), voir `work_explore` |
 | `project open <lien-de-MR>` | Ouvre la MR dans un worktree sous `$WORK_DIR`, puis dans Orca et IntelliJ IDEA |
 | `project clean` | Supprime les worktrees des MR terminées |
+| `project inbox` | MR ouvertes à relire ou assignées ; Entrée ouvre la MR choisie (`project open`) |
 
 Le worktree se range sous le sous-groupe GitLab, dans un dossier `.worktrees` :
 `$WORK_DIR/group/sub/.worktrees/repo/<branche>` (un `/` dans le nom de branche devient `-`). Le dépôt principal (`$WORK_DIR/group/sub/repo`) est cloné
@@ -117,6 +118,7 @@ au besoin et jamais modifié. Un `.zanvil.local` présent à la racine du dépô
 ```bash
 project open https://gitlab.example.com/group/sub/repo/-/merge_requests/42
 project clean
+project inbox     # MR à relire ou assignées, Entrée pour les ouvrir
 ```
 
 `project open` s'arrête sur une notification si `glab`, `jq` ou `$WORK_DIR` manque, si la MR vient d'un fork, si la branche est déjà extraite dans le dépôt principal, si elle porte des commits non poussés ou si le dossier visé n'est pas un worktree du dépôt.
