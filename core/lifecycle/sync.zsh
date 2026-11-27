@@ -120,6 +120,11 @@ _zanvil_sync_import() {
         return 1
     fi
 
+    # config.zsh est source a chaque demarrage : une valeur importee telle quelle y deviendrait
+    # du code (`x; curl …|sh`), et un theme `../..` ferait sourcer une palette hors du depot.
+    # Refus avant toute ecriture, et avant la delegation (le CLI valide aussi de son cote).
+    _zanvil_sync_validate "$input" || return 1
+
     if command -v zanvil &>/dev/null; then
         zanvil sync import "$input"; return $?
     fi
@@ -189,6 +194,31 @@ _zanvil_sync_import() {
 
     echo ""
     _ui_msg_ok "Config importee. Rechargez avec ${_ui_bold}ss${_ui_nc}"
+}
+
+# Usage : _zanvil_sync_validate <fichier.json>
+# Liste blanche par cle : noms [A-Za-z0-9_-], booleens, entier, mode en minuscules.
+# Sans jq, le CLI (seul chemin possible alors) fait sa propre validation.
+_zanvil_sync_validate() {
+    command -v jq &>/dev/null || return 0
+    local bad
+    bad=$(jq -r '
+        def name: type == "string" and test("^[A-Za-z0-9_-]+$");
+        (.modules // {} | to_entries[]
+            | select((.key | test("^[A-Za-z0-9_]+$") | not) or (.value | type) != "boolean")
+            | "modules.\(.key)"),
+        (("theme", "theme_light", "theme_dark") as $k
+            | select(.[$k] != null and .[$k] != "" and (.[$k] | name | not)) | $k),
+        (.auto_update // {}
+            | (select(.enabled != null and (.enabled | type) != "boolean") | "auto_update.enabled"),
+              (select(.frequency != null and ((.frequency | type) != "number" or .frequency < 0
+                  or .frequency != (.frequency | floor))) | "auto_update.frequency"),
+              (select(.mode != null and .mode != "" and ((.mode | type) != "string"
+                  or (.mode | test("^[a-z]+$") | not))) | "auto_update.mode"))
+    ' "$1" 2>/dev/null) || { _ui_msg_fail "JSON invalide : $1"; return 1; }
+    [[ -z "$bad" ]] && return 0
+    _ui_msg_fail "Import refuse, valeurs invalides : ${(j:, :)${(f)bad}}"
+    return 1
 }
 
 # Helper : set ou update une variable dans config.zsh
