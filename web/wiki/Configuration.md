@@ -76,17 +76,9 @@ sops ~/.zanvil/env.d/secrets.sops.zsh
 
 ## Chargement local (.zanvil.local)
 
-Le fichier `.zanvil.local` dans un repertoire est auto-charge lorsque vous y entrez (similaire a direnv). Un mecanisme de confiance base sur un hash empeche l'execution de fichiers non approuves.
-
-```bash
-# Creer un fichier local
-echo 'export NODE_ENV=development' > /path/to/project/.zanvil.local
-
-# La premiere fois, zanvil demandera d'approuver le fichier
-# Apres approbation, il sera charge automatiquement
-```
-
-Voir [[Security]] pour les details du mecanisme de confiance.
+Variables et fonctions par dossier, chargees au `cd`, heritees par les sous-dossiers et
+approuvees une fois. La documentation de reference est sur le site :
+[Variables par dossier (.zanvil.local)](https://dr0drigues.github.io/zanvil/zanvil-local/).
 
 ## Profils d'environnement
 

@@ -77,8 +77,8 @@ fi
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd _zanvil_local_chpwd
 
-# Charger si on est deja dans un dossier avec .zanvil.local
-[[ -f "$PWD/.zanvil.local" ]] && _zanvil_local_load "$PWD/.zanvil.local"
+# Charger la pile du dossier de depart (comme apres un cd)
+_zanvil_local_chpwd
 
 # =======================================================
 # KEYBINDINGS

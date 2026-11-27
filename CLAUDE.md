@@ -145,11 +145,10 @@ app-dev=aks-exemple-dev-001
 ```
 Utilise par : `kube_switch`, `k` (sofka ou k9s selon `ZANVIL_KUBE_TUI`, `kube_tui` pour changer), `zanvil context` (prompt Starship)
 
-### .zanvil.local (direnv-like)
+### .zanvil.local (direnv-like, hierarchique)
 
-Fichier `.zanvil.local` a la racine d'un projet, auto-source au `cd`.
-Fonctions dans `core/zanvil_local.zsh` (definitions seules) ; `hooks.zsh` enregistre le hook chpwd et fait le chargement initial.
-Trust hash-based (sha256) du contenu lu une seule fois, affiche en entier avant autorisation, puis `eval` de ce meme texte. Au dechargement (sortie du dossier ou de ses sous-dossiers, ou autre `.zanvil.local`), les variables exportees retrouvent leur valeur d'avant (ajoutees retirees, modifiees restaurees).
+Fonctions dans `core/zanvil_local.zsh` (definitions seules) ; `hooks.zsh` enregistre le hook chpwd et charge la pile du dossier de depart.
+Pile = tous les `.zanvil.local` entre `$HOME` (exclu) et `$PWD`, appliques racine -> feuille (l'enfant l'emporte). Trust par sha256 du contenu, lu une fois, affiche en entier puis `eval` ; refuser un parent coupe les enfants, refus memorise pour la session (`_ZANVIL_LOCAL_DENIED`). Pile differente au cd -> dechargement complet (variables exportees restaurees ou retirees, fonctions definies supprimees) puis rechargement. Doc de reference : `web/site/src/content/docs/zanvil-local.md` ; exemple `examples/zanvil.local.overthewire.example`.
 
 ## Systeme UI (`core/ui.zsh`)
 

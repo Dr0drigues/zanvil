@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# Heritage des .zanvil.local (#121/#122) : la chaine racine -> dossier courant est appliquee,
+# l'enfant l'emporte sur le parent, et en sortant tout revient comme avant : USER reprend sa
+# valeur, la fonction definie par l'enfant disparait. Refuser le parent coupe l'enfant, et
+# un refus n'est pas redemande dans la session.
+name: zanvil-local-inherits-from-parent-directories
+weight: 9
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "core/zanvil_local.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      w=$(mktemp -d); _ZANVIL_LOCAL_TRUST_DIR=$w/trust
+      autoload -Uz add-zsh-hook; add-zsh-hook chpwd _zanvil_local_chpwd
+      mkdir -p $w/otw/bandit0/notes $w/otw/bandit1 $w/autre
+      print -l 'export OTW_HOST=serveur.exemple.invalide' 'export USER=parent' > $w/otw/.zanvil.local
+      print -l 'export USER=bandit0' 'otw-login() { echo "login $USER@$OTW_HOST"; }' > $w/otw/bandit0/.zanvil.local
+      zanvil-trust $w/otw/.zanvil.local >/dev/null; zanvil-trust $w/otw/bandit0/.zanvil.local >/dev/null
+      vrai=$USER
+      cd $w/otw/bandit0
+      echo "enfant $(otw-login)"
+      cd notes; echo "sous-dossier user=$USER host=$OTW_HOST"
+      cd $w/otw/bandit1; echo "voisin user=$USER host=$OTW_HOST fn=$(whence -w otw-login | cut -d' ' -f2)"
+      cd $w/autre; echo "sorti host=${OTW_HOST-absent} user_restaure=$([[ $USER == $vrai ]] && echo oui) fn=$(whence -w otw-login | cut -d' ' -f2)"
+      # Parent modifie, donc plus autorise : le refuser coupe aussi l'enfant pourtant autorise.
+      echo 'export EN_PLUS=1' >> $w/otw/.zanvil.local
+      cd $w/otw/bandit0 </dev/null >/dev/null
+      echo "parent refuse host=${OTW_HOST-absent} user_restaure=$([[ $USER == $vrai ]] && echo oui)"
+      cd $w/autre; cd $w/otw/bandit0 </dev/null | grep -c 'detecte' | sed 's/^/redemande=/'
+      rm -rf $w
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "enfant login bandit0@serveur.exemple.invalide"
+      - "sous-dossier user=bandit0 host=serveur.exemple.invalide"
+      - "voisin user=parent host=serveur.exemple.invalide fn=none"
+      - "sorti host=absent user_restaure=oui fn=none"
+      - "parent refuse host=absent user_restaure=oui"
+      - "redemande=0"

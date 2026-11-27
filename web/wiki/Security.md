@@ -72,35 +72,10 @@ Permissions attendues : 600
 
 ## Mecanisme de confiance (.zanvil.local)
 
-Le fichier `.zanvil.local` permet de definir des variables d'environnement specifiques a un repertoire. Pour eviter l'execution de code malveillant, un mecanisme de confiance base sur un hash est mis en place.
-
-### Fonctionnement
-
-1. Lorsque vous entrez dans un repertoire contenant `.zanvil.local`, zanvil calcule le hash SHA-256 du fichier
-2. Si le hash n'est pas dans la liste des fichiers approuves, zanvil affiche un avertissement et demande confirmation
-3. Une fois approuve, le hash est enregistre et le fichier sera charge automatiquement
-4. Si le fichier est modifie (hash different), une nouvelle approbation est requise
-
-### Utilisation
-
-```bash
-# Creer un fichier .zanvil.local dans un projet
-cat > /path/to/project/.zanvil.local << 'EOF'
-export NODE_ENV=development
-export DATABASE_URL=postgres://localhost/mydb
-EOF
-
-# Entrer dans le repertoire -> zanvil demande d'approuver
-cd /path/to/project
-# > .zanvil.local detecte (non approuve). Approuver ? [y/N]
-```
-
-### Securite
-
-- Le hash est calcule sur le contenu complet du fichier
-- Les fichiers approuves sont stockes de maniere securisee
-- Toute modification invalide l'approbation precedente
-- `zanvil audit` verifie l'integrite des fichiers approuves
+Un `.zanvil.local` est du zsh execute au `cd`. Avant le premier chargement, zanvil l'affiche
+en entier et demande l'autorisation ; l'empreinte SHA-256 du contenu est alors notee dans
+`$ZANVIL_DIR/.trusted/`, et toute modification redemande l'autorisation. Detail complet
+(heritage, refus, limites) : [Variables par dossier (.zanvil.local)](https://dr0drigues.github.io/zanvil/zanvil-local/).
 
 ## Exemple de sortie
 
