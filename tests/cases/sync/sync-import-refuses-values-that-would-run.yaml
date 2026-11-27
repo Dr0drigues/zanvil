@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #148 : config.zsh est source a chaque demarrage. L import ecrivait les valeurs du JSON
+# telles quelles, donc `x; touch pwned` devenait du code et un theme `../..` faisait sourcer
+# une palette hors du depot. Le refus vient avant toute ecriture : config.zsh et le theme
+# courant ressortent intacts, sans meme de sauvegarde. Le binaire est cache pour eprouver
+# le chemin zsh ; le CLI a ses propres tests unitaires (cli/src/cmd/sync.rs).
+name: sync-import-refuses-values-that-would-run
+weight: 9
+setup:
+  exec: ./tests/hooks/prepare-sync-fixture.sh
+  shell: zsh
+  source: ["core/ui.zsh", "core/lifecycle/sync.zsh"]
+  call: ["zanvil-sync", "import", "bad.json"]
+  hide: [zanvil]
+  env:
+    ZANVIL_DIR: "$HOME/zanvil"
+expect:
+  exit_code: 1
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "Import refuse, valeurs invalides : modules.X;touch /tmp/zv, theme, theme_light, auto_update.mode"
+  not_written:
+    # Ni sauvegarde, ni config, ni theme courant : le refus arrive avant le premier geste.
+    - "$HOME/zanvil/config.zsh.pre-import"
+    - "$HOME/zanvil/config.zsh"
+    - "$HOME/zanvil/.current_theme"

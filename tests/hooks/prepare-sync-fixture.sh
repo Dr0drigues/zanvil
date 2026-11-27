@@ -58,3 +58,18 @@ cat >ref.json <<'JSON'
   "auto_update": { "enabled": true, "frequency": 3, "mode": "auto" }
 }
 JSON
+
+# Un import piege (#148) : chaque valeur deviendrait du code ou un chemin si elle etait
+# ecrite telle quelle dans config.zsh ou .current_theme.
+cat >bad.json <<'JSON'
+{
+  "version": "v4.4.0",
+  "exported_at": "2026-01-01T00:00:00Z",
+  "modules": { "KUBE": false, "X;touch /tmp/zv": true },
+  "theme": "../../../tmp/p",
+  "theme_light": "x; touch pwned",
+  "theme_dark": "forge",
+  "plugins": [],
+  "auto_update": { "enabled": true, "frequency": 3, "mode": "auto\"; touch pwned #" }
+}
+JSON
