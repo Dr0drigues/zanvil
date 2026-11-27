@@ -78,6 +78,22 @@ set -e
 
 echo "Running pre-commit checks..."
 
+# Secrets : bloque un .env, un kubeconfig ou un jeton indexe AVANT le commit. Sortie montree
+# seulement en cas de fuite, secrets masques (--redact). Contourner : git commit --no-verify.
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "  Scanning staged changes for secrets (gitleaks)..."
+    if gitleaks git --help >/dev/null 2>&1; then
+        set -- git --staged          # gitleaks >= 8.19
+    else
+        set -- protect --staged      # versions plus anciennes
+    fi
+    if ! gitleaks "$@" --redact --no-banner . >/dev/null 2>&1; then
+        gitleaks "$@" --redact --no-banner . 2>&1 | tail -20
+        echo "Secret detecte : commit refuse (git commit --no-verify pour passer outre)."
+        exit 1
+    fi
+fi
+
 # Lint staged files
 if command -v npm &> /dev/null && [ -f "package.json" ]; then
     if grep -q '"lint"' package.json 2>/dev/null; then

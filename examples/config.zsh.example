@@ -14,6 +14,7 @@ ZANVIL_MODULE_MISE=true        # Gestionnaire de versions (Node, Java, Maven)
 ZANVIL_MODULE_NUSHELL=true     # Integration Nushell
 ZANVIL_MODULE_KUBE=true        # Gestionnaire de configs Kubernetes
 ZANVIL_KUBE_TUI=sofka         # TUI ouverte par k : sofka ou k9s (kube_tui pour changer)
+# ZANVIL_KUBE_PROTECTED='*prod*|*prd*'  # Contextes ou kubectl demande confirmation (vide = off)
 ZANVIL_MODULE_SECURITY=true    # Audit de securite et scan de secrets
 ZANVIL_MODULE_AI=true          # Estimation de tokens LLM et contexte IA (ai-tokens, ai-context)
 ZANVIL_MODULE_TOOLS=true       # Outils transverses : hooks mise, test runner, zanvil-bench

@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #158 (B) : sur un contexte protege (*prod*|*prd* par defaut), une commande kubectl qui
+# modifie le cluster demande de retaper le nom du contexte ou son alias. La lecture seule,
+# --dry-run et les contextes non proteges passent sans question ; sans terminal, refus.
+# Un faux kubectl journalise ce qui part vraiment ; un fichier tient lieu de terminal.
+name: kubectl-guard-asks-before-changing-a-protected-context
+weight: 8
+setup:
+  shell: zsh
+  source: ["core/ui.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_MODULE_KUBE: "true"
+  call:
+    - "eval"
+    - |
+      w=$(mktemp -d); mkdir -p $w/bin $w/home/.kube; HOME=$w/home
+      print 'app-prd=aks-exemple-prd-001' > $HOME/.kube/.context_aliases
+      print -l '#!/bin/sh' 'if [ "$1 $2" = "config current-context" ]; then echo "$FAKE_CTX"; else echo "PARTI $*"; fi' > $w/bin/kubectl; chmod +x $w/bin/kubectl
+      path=($w/bin $path)
+      source $ZANVIL_DIR/modules/kube/kube_guard.zsh
+      _KUBE_GUARD_TTY=$w/tty
+      export FAKE_CTX=aks-exemple-dev-001
+      kubectl apply -f x.yaml 2>/dev/null | sed 's/^/dev: /'
+      export FAKE_CTX=aks-exemple-prd-001
+      kubectl get pods 2>/dev/null | sed 's/^/lecture: /'
+      kubectl apply -f x.yaml --dry-run=client 2>/dev/null | sed 's/^/dryrun: /'
+      kubectl rollout status deploy/a 2>/dev/null | sed 's/^/rollout-status: /'
+      print mauvais > $w/tty; kubectl delete pod a 2>/dev/null; echo "mauvaise reponse rc=$?"
+      print app-prd > $w/tty; kubectl -n web rollout restart deploy/a 2>/dev/null | sed 's/^/alias: /'
+      print aks-exemple-prd-001 > $w/tty; kubectl scale deploy/a --replicas=0 2>/dev/null | sed 's/^/nom-complet: /'
+      export FAKE_CTX=aks-exemple-dev-001
+      print non > $w/tty; kubectl --context=aks-exemple-prd-001 delete pod a 2>/dev/null; echo "context explicite rc=$?"
+      _KUBE_GUARD_TTY=$w/absent; kubectl --context aks-exemple-prd-001 apply -f x 2>&1 | grep -c 'aucun terminal' | sed 's/^/sans-terminal=/'
+      ZANVIL_KUBE_PROTECTED= kubectl --context aks-exemple-prd-001 apply -f x 2>/dev/null | sed 's/^/desactive: /'
+      rm -rf $w
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "dev: PARTI apply -f x.yaml"
+      - "lecture: PARTI get pods"
+      - "dryrun: PARTI apply -f x.yaml --dry-run=client"
+      - "rollout-status: PARTI rollout status deploy/a"
+      - "mauvaise reponse rc=1"
+      - "alias: PARTI -n web rollout restart deploy/a"
+      - "nom-complet: PARTI scale deploy/a --replicas=0"
+      - "context explicite rc=1"
+      - "sans-terminal=1"
+      - "desactive: PARTI --context aks-exemple-prd-001 apply -f x"
+    absent: ["PARTI delete pod a"]
