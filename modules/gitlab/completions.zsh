@@ -45,3 +45,16 @@ if (( ${#GC_ALIAS_DESCRIPTIONS} )); then
     done
     unset _gc_name
 fi
+
+_zanvil_pipeline_bulk() {
+    _arguments \
+        '1:action:((status\:"Etat des pipelines" trigger\:"Lancer un pipeline par depot" watch\:"Suivre les pipelines"))' \
+        '-b[Branche]:branche:' \
+        '-d[Dossier a scanner]:dossier:_directories' \
+        '-f[Filtre sur le nom des depots]:filtre:' \
+        '-s[Depots a ignorer (motif)]:motif:' \
+        '-w[Suivre apres trigger]' \
+        '(-h --help)'{-h,--help}'[Aide]' \
+        '*:dossier:_directories'
+}
+compdef _zanvil_pipeline_bulk zanvil-pipeline-bulk

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #156 : `zanvil-update -h` lancait la mise a jour et `zanvil-audit-fix --help` les chmod.
+# Les deux affichent maintenant leur usage sans rien faire ; un argument inattendu est refuse.
+name: help-flags-do-not-act
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_UPDATE_MODE: "off"
+  call:
+    - "eval"
+    - |
+      source $ZANVIL_DIR/core/lifecycle/auto_update.zsh; source $ZANVIL_DIR/modules/security/security_audit.zsh
+      git() { echo "GIT-APPELE $*"; }; chmod() { echo "CHMOD-APPELE $*"; }; zanvil() { echo "CLI-APPELE $*"; }
+      zanvil-update -h; echo "rc_update=$?"
+      zanvil-audit-fix --help; echo "rc_fix=$?"
+      zanvil-audit-fix x; echo "rc_fix_x=$?"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains: ["Usage: zanvil-update", "rc_update=0", "Usage: zanvil-audit-fix", "rc_fix=0", "Argument inattendu : x", "rc_fix_x=1"]
+    absent: ["GIT-APPELE fetch", "CHMOD-APPELE", "CLI-APPELE"]
