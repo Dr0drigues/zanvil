@@ -2,6 +2,7 @@
 # Provenance : la source de verite de ce script est le projet analysis-tools (depot perso)
 # (il reprendra ce script comme fondation).
 # Toute évolution doit se faire là-bas puis être resynchronisée ici.
+# Divergence a reporter la-bas : identifiants par `curl --config -` (es_curl) et DELETE du scroll authentifie (#149).
 set -uo pipefail
 
 usage() {
@@ -227,6 +228,15 @@ draw_progress() {
   printf "\r[%s] %3d%% — %s/%s docs (batch %d)\033[K" "$bar" "$pct" "$current" "$total" "$batch"
 }
 
+# Identifiants par une config curl lue sur stdin, pas par `-u` : un argument est lisible
+# dans `ps`. \ et " echappes, la valeur etant entre guillemets dans la config de curl.
+es_curl() {
+  local cred="$ES_USER:$ES_PASSWORD"
+  cred=${cred//\\/\\\\}
+  cred=${cred//\"/\\\"}
+  printf 'user = "%s"\n' "$cred" | curl --config - "$@"
+}
+
 write_batch() {
   local resp="$1" file="$2"
   case "$FORMAT" in
@@ -253,7 +263,7 @@ if [[ -n "$SEARCH" ]]; then
   SEARCH_ESC="${SEARCH_ESC//\"/\\\"}"
 
   echo "=== Recherche \"$SEARCH\" (margin ±$MARGIN) ==="
-  search_resp=$(curl -u "$ES_USER:$ES_PASSWORD" -s "$ES_URL/$INDEX/_search" \
+  search_resp=$(es_curl -s "$ES_URL/$INDEX/_search" \
     -H 'Content-Type: application/json' \
     -d "{
       \"size\": 0,
@@ -301,7 +311,7 @@ rm -f "$BATCHES_DIR"/batch_*.ndjson "$BATCHES_DIR"/batch_*.json "$BATCHES_DIR"/b
 batch_num=1
 
 # Première requête avec scroll
-response=$(curl -u "$ES_USER:$ES_PASSWORD" -s "$ES_URL/$INDEX/_search?scroll=5m" \
+response=$(es_curl -s "$ES_URL/$INDEX/_search?scroll=5m" \
   -H 'Content-Type: application/json' \
   -d "{
     \"size\": $BATCH_SIZE,
@@ -340,7 +350,7 @@ draw_progress "$fetched" "$total" "$batch_num"
 
 # Scroll pour récupérer le reste
 while [ "$hits" -gt 0 ]; do
-  response=$(curl -u "$ES_USER:$ES_PASSWORD" -s "$ES_URL/_search/scroll" \
+  response=$(es_curl -s "$ES_URL/_search/scroll" \
     -H 'Content-Type: application/json' \
     -d "{\"scroll\": \"5m\", \"scroll_id\": \"$scroll_id\"}")
 
@@ -359,8 +369,8 @@ while [ "$hits" -gt 0 ]; do
 done
 printf "\n"
 
-# Cleanup scroll
-curl -s -X DELETE "$ES_URL/_search/scroll" \
+# Cleanup scroll (authentifie : sans identifiants, un 401 muet laissait le contexte ouvert 5 min)
+es_curl -s -X DELETE "$ES_URL/_search/scroll" \
   -H 'Content-Type: application/json' \
   -d "{\"scroll_id\": \"$scroll_id\"}" > /dev/null 2>&1
 
