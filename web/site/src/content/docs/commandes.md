@@ -224,12 +224,15 @@ sous sops, jamais dans un fichier versionné.
 
 Un seul critère à la fois, l'API n'en accepte pas davantage : `-e/--ean`, `-o/--offerId`,
 `-s/--sapId`, `-p/--pimId`. L'environnement se choisit avec `--prod` (défaut) ou `--qlf`.
+`--productpage` (avec `-p`) interroge la fiche produit complète `/productpage/<pimId>`,
+celle que lisent les fronts.
 La sortie est indentée par `jq` sur un terminal et brute dans un pipe, donc composable :
 
 ```bash
 get_merch_product -e 3660000000000
 get_merch_product --offerId 12345 --qlf
 get_merch_product -s 987654 | jq '.products[0].label'
+get_merch_product -p 1234567 --productpage
 ```
 
 ## Git Hooks

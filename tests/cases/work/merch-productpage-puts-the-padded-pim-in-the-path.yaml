@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# `--productpage` interroge la fiche produit que lisent les fronts : le pimId y est dans le
+# chemin, complete a 18 chiffres, et non en parametre encode. Le cas fige l URL, le refus
+# d un critere autre que le pimId et le refus d un pimId qui fabriquerait un autre chemin.
+name: merch-productpage-puts-the-padded-pim-in-the-path
+weight: 6
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/work/merch.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_WORK_MERCH_HOST_PROD: "merch.exemple.invalide"
+    ZANVIL_WORK_MERCH_API_KEY_PROD: "cle-de-test"
+    ZANVIL_WORK_MERCH_ORG: "ORGTEST"
+  call: ["eval", "work_merch_product -p 1234567 --productpage; echo rc_ok=$?; work_merch_product -e 123 --productpage 2>&1; echo rc_ean=$?; work_merch_product -p '../x' --productpage 2>&1; echo rc_bad=$?"]
+fake:
+  rules:
+    - match: { bin: curl, args_contain: "/offer/merch-v3/organizations/ORGTEST/productpage/000000000001234567" }
+      stdout: |
+        {"ok":true}
+        200
+    - match: {}
+      exit: 127
+      stderr: "the case did not foresee this call"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - '{"ok":true}'
+      - "rc_ok=0"
+      - "--productpage exige -p/--pimId"
+      - "rc_ean=1"
+      - "pimId invalide"
+      - "rc_bad=1"
+    absent:
+      - "--data-urlencode"
+  calls:
+    curl: 1

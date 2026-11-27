@@ -38,6 +38,9 @@ _work_merch_org() {
 }
 
 _WORK_MERCH_PATH_TMPL='offer/merch-v3/organizations/%s/products'
+# Fiche produit complete, celle que lisent les fronts : le pimId est dans
+# le chemin, pas en parametre.
+_WORK_MERCH_PRODUCTPAGE_TMPL='offer/merch-v3/organizations/%s/productpage/%s'
 
 # --- Garde commune : outils et configuration avant tout appel reseau ---
 
@@ -61,15 +64,21 @@ _work_merch_require() {
 
 # --- Appel ---
 
-# Usage : _work_merch_curl <env> <param> <valeur>
+# Usage : _work_merch_curl <env> <param> <valeur> [productpage]
 # Sortie : 1ere ligne = code HTTP, reste = corps.
 # Return : code de sortie curl (0 = reponse recue, meme en erreur HTTP).
 _work_merch_curl() {
-    local env=$1 param=$2 value=$3
+    local env=$1 param=$2 value=$3 mode=${4:-}
     local host org url
     host="$(_work_merch_host "$env")"
     org="$(_work_merch_org)"
-    url="https://${host}/$(printf "$_WORK_MERCH_PATH_TMPL" "$org")"
+    if [[ "$mode" == productpage ]]; then
+        # Le pimId va dans le chemin : l appelant a deja verifie qu il n est fait que de
+        # chiffres, donc rien a encoder. Complete a 18 comme le font les clients merch.
+        url="https://${host}/$(printf "$_WORK_MERCH_PRODUCTPAGE_TMPL" "$org" "${(l:18::0:)value}")"
+    else
+        url="https://${host}/$(printf "$_WORK_MERCH_PATH_TMPL" "$org")"
+    fi
 
     local -a opts
     opts=(-s --connect-timeout 5 --max-time 30)
@@ -79,7 +88,7 @@ _work_merch_curl() {
     opts+=(-H 'Accept-Language: fr_FR')
     # `--get --data-urlencode` plutot qu une query concatenee : la valeur est encodee par
     # curl, donc un identifiant contenant & ou = ne peut pas fabriquer un second parametre.
-    opts+=(--get --data-urlencode "${param}=${value}")
+    [[ "$mode" != productpage ]] && opts+=(--get --data-urlencode "${param}=${value}")
     opts+=(-w $'\n%{http_code}')
 
     # La cle passe par un fichier de configuration lu sur stdin, pas par argv : un `-H` en
@@ -110,6 +119,10 @@ Critere (exactement un) :
   -s, --sapId <id>         Identifiant SAP
   -p, --pimId <id>         Identifiant PIM
 
+Endpoint :
+  --productpage            Fiche produit complete (/productpage/<pimId>), celle des
+                           fronts. Exige -p.
+
 Environnement :
   --prod                   Production (defaut)
   --qlf                    Qualification
@@ -126,6 +139,7 @@ Exemples :
   work_merch_product -e 3660000000000
   work_merch_product --offerId 12345 --qlf
   work_merch_product -s 987654 | jq '.products[0].label'
+  work_merch_product -p 1234567 --productpage
 EOF
 }
 
@@ -136,7 +150,7 @@ work_merch_product() {
     # NU sur une variable qui a deja une valeur IMPRIME « nom=valeur » sur stdout. A la
     # deuxieme passe de cette boucle, `local p` affichait donc « p=ean » au milieu de la
     # sortie. Voir tests/bin/bare-local-in-loop.
-    local env=prod param="" value="" crit_opt="" p=""
+    local env=prod param="" value="" crit_opt="" p="" mode=""
 
     while (( $# )); do
         case "$1" in
@@ -164,6 +178,7 @@ work_merch_product() {
                 # argument — piege zsh releve en review sur work_es_count.
                 if (( $# >= 2 )); then shift 2; else shift; fi
                 ;;
+            --productpage) mode=productpage; shift ;;
             --prod) env=prod; shift ;;
             --qlf)  env=qlf;  shift ;;
             -h|--help) _work_merch_usage; return 0 ;;
@@ -182,10 +197,23 @@ work_merch_product() {
         return 1
     fi
 
+    if [[ "$mode" == productpage ]]; then
+        if [[ "$param" != pimId ]]; then
+            _ui_msg_fail "--productpage exige -p/--pimId (pas --$param)"
+            return 1
+        fi
+        # Le pimId part dans le chemin, pas en parametre encode : seuls des chiffres passent,
+        # sinon `../` ou `?` fabriqueraient une autre URL.
+        if [[ "$value" != <-> ]]; then
+            _ui_msg_fail "pimId invalide : $value (chiffres uniquement)"
+            return 1
+        fi
+    fi
+
     _work_merch_require "$env" || return 1
 
     local out code curl_rc
-    out=$(_work_merch_curl "$env" "$param" "$value")
+    out=$(_work_merch_curl "$env" "$param" "$value" "$mode")
     curl_rc=$?
     if (( curl_rc != 0 )); then
         # Les codes qu on rencontre vraiment ici. Le reste est rendu tel quel : inventer
