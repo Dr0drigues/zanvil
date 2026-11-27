@@ -958,6 +958,10 @@ fn env_label(branch: &str) -> String {
     branch.to_uppercase()
 }
 
+/// Prefixe des lignes d'aide du modele : `#` seul effacait aussi les titres Markdown
+/// (`## Contexte`) que l'utilisateur ecrit dans la description.
+const COMMENT: &str = "#~";
+
 fn resolve_description(args: &MrFanoutArgs, title: &str) -> String {
     if let Some(d) = &args.description {
         return d.clone();
@@ -969,8 +973,8 @@ fn resolve_description(args: &MrFanoutArgs, title: &str) -> String {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".into());
     let path = std::env::temp_dir().join(format!("mr-fanout-desc-{}.md", std::process::id()));
     let template = format!(
-        "{}\n\n# Description (les lignes commencant par # seront ignorees)\n# Titre: {}\n",
-        "", title
+        "{}\n\n{} Description (les lignes commencant par {} seront ignorees)\n{} Titre: {}\n",
+        "", COMMENT, COMMENT, COMMENT, title
     );
     std::fs::write(&path, template).ok();
     let status = Command::new(&editor).arg(&path).status();
@@ -984,7 +988,7 @@ fn resolve_description(args: &MrFanoutArgs, title: &str) -> String {
     let _ = std::fs::remove_file(&path);
     let cleaned: String = buf
         .lines()
-        .filter(|l| !l.trim_start().starts_with('#'))
+        .filter(|l| !l.trim_start().starts_with(COMMENT))
         .collect::<Vec<_>>()
         .join("\n");
     cleaned.trim().to_string()

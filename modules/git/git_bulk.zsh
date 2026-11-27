@@ -166,7 +166,9 @@ zanvil-git-bulk() {
 
     # Scanner les repos
     local repos=()
-    repos=($(_git_bulk_scan "$target_dir" "$recursive"))
+    # Une ligne par depot : un chemin avec espaces reste une seule entree.
+    repos=("${(@f)$(_git_bulk_scan "$target_dir" "$recursive")}")
+    repos=("${(@)repos:#}")
 
     if [[ ${#repos[@]} -eq 0 ]]; then
         _ui_header "Git Bulk"

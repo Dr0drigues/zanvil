@@ -30,8 +30,9 @@ _kube_save_selection() {
 # Restaure la selection KUBECONFIG sauvegardee
 _kube_restore_selection() {
     if [[ -f "$KUBE_SELECTION_FILE" ]]; then
-        local saved_config
-        saved_config=$(cat "$KUBE_SELECTION_FILE")
+        local saved_config config
+        local -a configs
+        saved_config=$(command cat "$KUBE_SELECTION_FILE")
         # Verifie que tous les fichiers existent encore
         local valid_configs=""
         IFS=':' read -rA configs <<< "$saved_config"

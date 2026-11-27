@@ -86,7 +86,7 @@ fi
 autoload -Uz compinit
 # Cache des completions (surchargeable via ZANVIL_ZCOMPDUMP_CACHE_HOURS)
 _zanvil_zcompdump_hours="${ZANVIL_ZCOMPDUMP_CACHE_HOURS:-24}"
-if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+${_zanvil_zcompdump_hours}) ]]; then
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+${_zanvil_zcompdump_hours}) ]]; then
     compinit -u
 else
     compinit -u -C

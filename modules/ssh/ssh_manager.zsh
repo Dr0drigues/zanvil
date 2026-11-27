@@ -237,10 +237,12 @@ ssh_remove() {
     chmod 600 "$SSH_CONFIG_FILE.bak"
 
     # Supprimer le bloc Host
+    # Comparaison en minuscules a la main : IGNORECASE n'existe que dans gawk, pas dans le
+    # awk de macOS, et le grep ci-dessus est deja insensible a la casse.
     awk -v host="$host" '
-        BEGIN { skip=0; IGNORECASE=1 }
+        BEGIN { skip=0; host=tolower(host) }
         /^Host / {
-            if ($2 == host) { skip=1; next }
+            if (tolower($2) == host) { skip=1; next }
             else { skip=0 }
         }
         skip && /^[[:space:]]/ { next }
@@ -249,6 +251,10 @@ ssh_remove() {
         !skip { print }
     ' "$SSH_CONFIG_FILE.bak" > "$SSH_CONFIG_FILE"
 
+    if grep -qi "^Host $host$" "$SSH_CONFIG_FILE" 2>/dev/null; then
+        echo "Host '$host' toujours present (bloc a plusieurs alias ?). Backup: $SSH_CONFIG_FILE.bak" >&2
+        return 1
+    fi
     echo "Host '$host' supprime."
     echo "Backup: $SSH_CONFIG_FILE.bak"
 }

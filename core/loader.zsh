@@ -11,7 +11,8 @@ fpath=("$ZANVIL_DIR/core" $fpath)
 source "$ZANVIL_DIR/core/ui.zsh"
 
 # --- 2. Charger les fichiers core (commandes, admin, theme, setup) ---
-local _skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh)
+# migrate_zanvil.zsh : migration ponctuelle, lancee par rc.zsh sous condition, jamais ici.
+local _skip_core=(rc.zsh loader.zsh ui.zsh variables.zsh aliases.zsh hooks.zsh migrate_zanvil.zsh)
 for _core_file in "$ZANVIL_DIR/core"/*.zsh(N) "$ZANVIL_DIR/core"/*/*.zsh(N); do
     [[ ! -f "$_core_file" ]] && continue
     local _core_name="${_core_file:t}"

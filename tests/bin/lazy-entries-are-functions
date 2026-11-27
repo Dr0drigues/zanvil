@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Imprime les noms d'un fichier .lazy qui ne sont pas definis comme fonctions par leur module.
+#
+# Le loader cree une fonction d'attente pour chaque nom du .lazy ; au premier appel elle
+# source le module puis rappelle le nom. Si le module ne definit pas de fonction de ce nom
+# (un alias, une faute de frappe, une fonction renommee), le rappel retombe sur la fonction
+# d'attente, qui resource le module en boucle : `ait`, alias liste dans modules/ai/.lazy,
+# finissait sur « maximum nested function level reached ».
+set -uo pipefail
+
+ROOT="${ZANVIL_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+for lazy in "$ROOT"/modules/*/.lazy "$ROOT"/modules/*/*/.lazy; do
+    [[ -f "$lazy" ]] || continue
+    dir="${lazy%/.lazy}"
+    while IFS= read -r name || [[ -n "$name" ]]; do
+        name="${name%%#*}"; name="${name//[[:space:]]/}"
+        [[ -n "$name" ]] || continue
+        # `nom()` ou `function nom` en debut de ligne, dans un fichier du module.
+        if ! grep -rqE "^[[:space:]]*(function[[:space:]]+)?${name//./\\.}[[:space:]]*\(\)|^[[:space:]]*function[[:space:]]+${name//./\\.}([[:space:]]|\{|$)" \
+                --include='*.zsh' "$dir"; then
+            echo "${lazy#$ROOT/}: $name"
+        fi
+    done < "$lazy"
+done
