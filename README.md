@@ -56,9 +56,9 @@ zanvil-modules list       # Lister/activer/desactiver les modules
 zanvil-theme list         # Gestion des themes (prompt + palette)
 zanvil-backup             # Sauvegarde des configs
 
-kube_switch blg-dev        # Switch de cluster (avec aliases)
+kube_switch app-dev        # Switch de cluster (avec aliases)
 kube_ns                    # Switch de namespace
-k blg-dev                  # sofka (ou k9s) sur un cluster
+k app-dev                  # sofka (ou k9s) sur un cluster
 kube_status                # Contexte + namespace + pods
 
 zanvil-gitlab-status      # Statut du PAT GitLab

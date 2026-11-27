@@ -11,7 +11,8 @@ _kube_add() {
 compdef _kube_add kube_add
 
 _kube_azure() {
-    local clusters=(blg-dev blg-qlf blg-pprd blg-prd edt-dev edt-qlf edt-pprd edt-prd)
+    # Les labels viennent de la configuration de l'utilisateur ("label:subscription:rg:cluster").
+    local clusters=(${_KUBE_AZ_CLUSTERS[@]%%:*})
     _arguments \
         '1:cluster:(${clusters[@]})'
 }

@@ -161,7 +161,7 @@ kube_aliases() {
     if [[ ! -f "$KUBE_ALIASES_FILE" ]] || [[ ! -s "$KUBE_ALIASES_FILE" ]]; then
         _ui_msg_info "Aucun alias configure"
         echo -e "  ${_ui_dim}Les alias sont demandes a l'ajout de config (kube_azure, kube_aws, etc.)${_ui_nc}"
-        echo -e "  ${_ui_dim}Ou ajoutez manuellement: echo 'blg-dev=contexte-complet' >> ~/.kube/.context_aliases${_ui_nc}"
+        echo -e "  ${_ui_dim}Ou ajoutez manuellement: echo 'app-dev=contexte-complet' >> ~/.kube/.context_aliases${_ui_nc}"
         return 0
     fi
 
@@ -1125,9 +1125,9 @@ kns() {
 # (avec resolution d'alias). Les deux acceptent --context/--namespace/--all-namespaces.
 # Usage: k [context] [namespace]
 #   k              → contexte courant
-#   k blg-dev      → blg-dev, namespace courant
-#   k blg-dev web  → blg-dev, namespace web
-#   k blg-dev all  → blg-dev, tous les namespaces
+#   k app-dev      → app-dev, namespace courant
+#   k app-dev web  → app-dev, namespace web
+#   k app-dev all  → app-dev, tous les namespaces
 k() {
     local tui="${ZANVIL_KUBE_TUI:-sofka}"
     if ! command -v "$tui" &>/dev/null; then

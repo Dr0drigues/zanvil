@@ -5,7 +5,7 @@ weight: 5
 setup:
   shell: zsh
   source: ["core/ui.zsh", "modules/kube/kube_config.zsh"]
-  call: ["eval", "k blg-dev all"]
+  call: ["eval", "k app-dev all"]
   env:
     ZANVIL_MODULE_KUBE: "true"
     ZANVIL_KUBE_TUI: "k9s"

@@ -58,7 +58,7 @@ def level_color:
 
 # Regle logback %logger{36} : au-dela de $max caracteres, chaque segment de
 # package est reduit a son initiale, la classe finale etant preservee.
-# "com.boulanger.foo.FooService" -> "c.b.f.FooService"
+# "com.exemple.foo.FooService" -> "c.e.f.FooService"
 def abbrev_logger($max):
   if length <= $max then .
   else (split(".")) as $p

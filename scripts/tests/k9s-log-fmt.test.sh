@@ -61,9 +61,9 @@ assert_equals() {
 
 echo "== thread et logger =="
 
-printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.boulanger.foo.FooService","message":"Demarrage termine"}' \
+printf '%s\n' '{"@timestamp":"2026-07-28T08:00:00.123Z","level":"INFO","thread_name":"main","logger_name":"com.exemple.foo.FooService","message":"Demarrage termine"}' \
     | "$FMT" | assert_contains "thread entre crochets, logger, separateur" \
-    "08:00:00.123 INFO  [main] com.boulanger.foo.FooService - Demarrage termine"
+    "08:00:00.123 INFO  [main] com.exemple.foo.FooService - Demarrage termine"
 
 echo
 echo "== stack trace =="

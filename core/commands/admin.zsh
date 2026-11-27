@@ -510,11 +510,11 @@ zanvil-switch() {
             _ui_msg_info "Aucun profil configure dans $profiles_dir"
             echo ""
             echo -e "  ${_ui_dim}Creez un fichier .zsh dans profiles/ :"
-            echo -e "  Exemple: profiles/blg-dev.zsh${_ui_nc}"
+            echo -e "  Exemple: profiles/app-dev.zsh${_ui_nc}"
             echo ""
             echo -e "  ${_ui_dim}Contenu type :${_ui_nc}"
-            echo -e "  ${_ui_dim}  export KUBECONFIG=~/.kube/configs.d/blg-dev.yml${_ui_nc}"
-            echo -e "  ${_ui_dim}  kubectl config use-context blg-dev${_ui_nc}"
+            echo -e "  ${_ui_dim}  export KUBECONFIG=~/.kube/configs.d/app-dev.yml${_ui_nc}"
+            echo -e "  ${_ui_dim}  kubectl config use-context app-dev${_ui_nc}"
             return 0
         fi
 

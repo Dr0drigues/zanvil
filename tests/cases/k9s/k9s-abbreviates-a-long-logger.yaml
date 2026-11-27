@@ -3,7 +3,7 @@ name: k9s-abbreviates-a-long-logger
 weight: 3
 setup:
   stdin: |
-    {"level":"DEBUG","logger_name":"com.boulanger.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}
+    {"level":"DEBUG","logger_name":"com.exemple.foo.bar.baz.qux.EnormousServiceImplementation","message":"x"}
   run: ["$GAVELDROP_PROJECT/scripts/k9s-log-fmt.sh"]
 expect:
   exit_code: 0

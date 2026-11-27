@@ -42,7 +42,7 @@ PAIRS="$TEST_TMPDIR/pairs.txt"
 {
     printf '\033[36m06:49:46.865\033[0m \033[31mERROR\033[0m InsuranceContractDatasource - Error getting claims\t{"level":"ERROR","message":"Error getting claims"}\n'
     printf '\033[36m06:49:46.826\033[0m \033[32mINFO\033[0m  platodin/externalHTTPCallLog - GET http://gravitee/sales\t{"level":"INFO","message":"GET http://gravitee/sales"}\n'
-    printf '\033[36m07:02:11.004\033[0m \033[32mINFO\033[0m  auditLog - [getQualireparBonus] BL136851 affected\t{"level":"INFO","msg":"[getQualireparBonus] BL136851 affected"}\n'
+    printf '\033[36m07:02:11.004\033[0m \033[32mINFO\033[0m  auditLog - [getBonus] ID000001 affected\t{"level":"INFO","msg":"[getBonus] ID000001 affected"}\n'
 } > "$PAIRS"
 
 echo "== le filtre ne voit que le texte rendu =="
@@ -77,7 +77,7 @@ echo "== expressions regulieres courantes =="
 "$GREP" "$PAIRS" 'gravitee/(sales|supply)' | wc -l | tr -d ' ' \
     | assert_equals "alternance groupee" "1"
 
-"$GREP" "$PAIRS" 'BL[0-9]{6}' | wc -l | tr -d ' ' \
+"$GREP" "$PAIRS" 'ID[0-9]{6}' | wc -l | tr -d ' ' \
     | assert_equals "intervalle de repetition" "1"
 
 # Deux lignes qui ne different que par le caractere du milieu : elles separent le point

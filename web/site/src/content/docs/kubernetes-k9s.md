@@ -12,19 +12,19 @@ Les noms de contexte Kubernetes réels sont longs. `~/.kube/.context_aliases` as
 chacun :
 
 ```
-blg-dev=aks-blg-caasplatform-dev-common-001
-blg-qlf=aks-blg-caasplatform-qlf-common-001
+app-dev=aks-exemple-dev-001
+app-qlf=aks-exemple-qlf-001
 ```
 
 Le fichier est lu par `kube_switch`, par `k` et par le prompt Starship, qui affiche l'alias plutôt que
 le nom complet.
 
 ```bash
-kube_switch blg-dev     # bascule sur le contexte complet
+kube_switch app-dev     # bascule sur le contexte complet
 kube_switch             # sélection fzf si aucun argument
 kube_ns                 # sélection du namespace
-k blg-dev default       # sofka ou k9s sur un contexte et un namespace
-k blg-dev all           # tous les namespaces
+k app-dev default       # sofka ou k9s sur un contexte et un namespace
+k app-dev all           # tous les namespaces
 ```
 
 ## Déployer les plugins
@@ -72,12 +72,12 @@ Le rendu suit le pattern console de logback
 `%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg` :
 
 ```
-08:00:00.123 INFO  [main] c.b.f.FooService - Démarrage terminé
-08:00:01.456 ERROR [nio-8080-exec-2] c.b.f.BarClient - Timeout amont
+08:00:00.123 INFO  [main] c.e.f.FooService - Démarrage terminé
+08:00:01.456 ERROR [nio-8080-exec-2] c.e.f.BarClient - Timeout amont
   java.lang.IllegalStateException: Timeout amont
-      at com.boulanger.foo.BarClient.send(BarClient.java:17)
+      at com.exemple.foo.BarClient.send(BarClient.java:17)
       ... 24 more
-08:00:02.001 WARN  [scheduling-1] c.b.f.Cleanup - 3 orphelins ignorés
+08:00:02.001 WARN  [scheduling-1] c.e.f.Cleanup - 3 orphelins ignorés
                                   http.status=503  retry=2
 ```
 
@@ -88,8 +88,8 @@ Ce que le formatteur fait des champs :
 - **Niveau** — complété à cinq caractères. `level`, `severity` ou `lvl`, texte comme numérique
   (pino, bunyan). Coloré selon la gravité.
 - **Thread** — tronqué à 20 caractères, entre crochets, omis s'il manque.
-- **Logger** — abrégé selon la règle `%logger{36}` : `com.boulanger.foo.FooService` devient
-  `c.b.f.FooService`, la classe finale étant toujours préservée.
+- **Logger** — abrégé selon la règle `%logger{36}` : `com.exemple.foo.FooService` devient
+  `c.e.f.FooService`, la classe finale étant toujours préservée.
 - **Stack trace** — restituée et indentée, depuis `stack_trace`, `exception`, `stacktrace` ou
   `throwable`.
 - **Champs MDC** — sur une seconde ligne alignée sous le message. `trace_id` et `span_id` sont masqués :
