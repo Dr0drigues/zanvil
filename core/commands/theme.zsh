@@ -396,9 +396,15 @@ if [[ -n "${ZANVIL_THEME_LIGHT}" && -n "${ZANVIL_THEME_DARK}" ]]; then
         local current=""
         [[ -f "$ZANVIL_DIR/.current_theme" ]] && current=$(<"$ZANVIL_DIR/.current_theme")
 
-        if [[ "$current" != "$target" ]]; then
-            zanvil-theme "$target" &>/dev/null
-        fi
+        [[ "$current" != "$target" ]] || return 0
+        # Plusieurs onglets ouverts ensemble apres un changement d'apparence : un seul applique
+        # le theme, les autres le laissent faire au lieu d'ecrire les memes fichiers en parallele.
+        # Verrou de plus de 5 min (shell tue en cours) : repris.
+        local lock="$ZANVIL_DIR/.theme.lock"
+        local -a stale=( "$lock"(N/mm+5) )
+        (( $#stale )) && rmdir "$lock" 2>/dev/null
+        mkdir "$lock" 2>/dev/null || return 0
+        { zanvil-theme "$target" &>/dev/null } always { rmdir "$lock" 2>/dev/null }
     }
     _zanvil_theme_auto_startup
     unfunction _zanvil_theme_auto_startup 2>/dev/null

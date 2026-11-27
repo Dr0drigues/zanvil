@@ -73,7 +73,14 @@ if [[ -d "$ZANVIL_DIR/env.d" ]]; then
         # Fichiers sops : dechiffrer a la volee
         if [[ "$_base" == *.sops.zsh ]]; then
             if command -v sops &>/dev/null; then
-                eval "$(sops -d "$_env_file" 2>/dev/null)"
+                # Un echec (cle age absente, fichier abime) faisait disparaitre les variables en
+                # silence : il est signale, sans le message de sops qui pourrait citer le contenu.
+                if _env_plain=$(sops -d "$_env_file" 2>/dev/null); then
+                    eval "$_env_plain"
+                else
+                    print -u2 "[zanvil] dechiffrement impossible : env.d/$_base (variables non chargees)"
+                fi
+                unset _env_plain
             fi
         else
             source "$_env_file"
