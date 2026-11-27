@@ -20,6 +20,7 @@ aliases.local.zsh
 .update.lock*
 .update_blocked
 .update_available
+.theme.lock
 .update_fetch_failures
 .last_project_clean
 .project_clean.lock/
