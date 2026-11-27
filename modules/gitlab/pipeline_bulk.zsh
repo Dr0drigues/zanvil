@@ -115,7 +115,9 @@ zanvil-pipeline-bulk() {
         fi
     else
         # Scanner les sous-dossiers pour trouver des repos GitLab
-        repos=($(_pipeline_bulk_scan "$target_dir" "$filter" "$skip_pattern"))
+        # Une ligne par depot : un chemin avec espaces reste une seule entree.
+        repos=("${(@f)$(_pipeline_bulk_scan "$target_dir" "$filter" "$skip_pattern")}")
+        repos=("${(@)repos:#}")
     fi
 
     if [[ ${#repos[@]} -eq 0 ]]; then

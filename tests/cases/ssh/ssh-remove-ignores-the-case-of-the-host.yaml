@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #152 : la recherche ignorait la casse (grep -i) mais la suppression reposait sur
+# IGNORECASE, propre a gawk. Avec le awk de macOS, `ssh_remove myserver` sur `Host MyServer`
+# ne retirait rien et annoncait « supprime ». Le bloc voisin doit rester.
+name: ssh-remove-ignores-the-case-of-the-host
+weight: 6
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/ssh/ssh_manager.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      SSH_CONFIG_FILE=$(mktemp -d)/config
+      print -l 'Host MyServer' '  HostName 192.0.2.1' '' 'Host autre' '  HostName 192.0.2.2' > $SSH_CONFIG_FILE
+      print y | ssh_remove myserver; echo "rc=$?"
+      echo "reste=$(grep -c '^Host ' $SSH_CONFIG_FILE) $(grep '^Host ' $SSH_CONFIG_FILE)"
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["supprime", "rc=0", "reste=1 Host autre"]

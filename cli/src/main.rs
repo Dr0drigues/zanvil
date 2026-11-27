@@ -62,7 +62,6 @@ enum Commands {
         #[arg(long)]
         exclude: Vec<String>,
     },
-    /// Fan-out a change as a MR/PR across multiple env branches
     /// Report duplicate declarations across the project's zsh files
     Conflicts,
     /// Date conversions the shell functions call. Cachee : primitive, pas commande.
@@ -75,6 +74,7 @@ enum Commands {
     },
     /// Explorateur de projets a deux volets
     Explore(cmd::explore::ExploreArgs),
+    /// Fan-out a change as a MR/PR across multiple env branches
     #[command(name = "mr-fanout")]
     MrFanout(MrFanoutArgs),
     /// Interactive configuration TUI

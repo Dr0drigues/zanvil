@@ -2,9 +2,9 @@
 fkill() {
     local pid
     if [[ "$UID" != "0" ]]; then
-        pid=$(ps -f -u "$UID" | sed 1d | fzf -m | awk '{print $2}')
+        pid=$(command ps -f -u "$UID" | sed 1d | fzf -m | awk '{print $2}')
     else
-        pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+        pid=$(command ps -ef | sed 1d | fzf -m | awk '{print $2}')
     fi
 
     if [[ -n "$pid" ]]; then

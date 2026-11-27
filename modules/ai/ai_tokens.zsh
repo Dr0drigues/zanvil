@@ -621,4 +621,5 @@ ai-tokens() {
 }
 
 # Alias court
-alias ait='ai-tokens'
+# Fonction et non alias : le chargement a la demande (.lazy) ne sait creer que des fonctions.
+ait() { ai-tokens "$@"; }
