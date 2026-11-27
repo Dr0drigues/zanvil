@@ -37,11 +37,11 @@ Le script installe les dependances, configure `.zshrc`, et build le CLI Rust si 
 | **Kubernetes** | Multi-config Azure/AWS/GCP, aliases, `kube_switch`, `k` (sofka ou k9s, `kube_tui` pour changer) |
 | **GitLab** | Clone groupes, PAT status, browse, pipelines |
 | **SSH Manager** | Gestion simplifiee des connexions SSH |
-| **Tmux Manager** | Gestion des sessions tmux |
+| **Project** | `project open <lien-de-MR>` : worktree de la MR, ouvert dans l'IDE |
 | **Git Bulk** | Operations git en masse avec dry-run |
 | **Security** | Audit des permissions et secrets |
 | **Themes** | Themes unifies Starship + palette shell (true color) |
-| **CLI Rust** | Binaire natif optionnel pour doctor, audit, context, modules |
+| **CLI Rust** | Binaire natif optionnel (doctor, audit, theme, modules, bench, explore, mr-fanout...) |
 | **env.d/** | Variables d'env dynamiques avec support sops |
 | **.zanvil.local** | Auto-chargement par projet (style direnv) |
 
@@ -63,11 +63,11 @@ kube_status                # Contexte + namespace + pods
 
 zanvil-gitlab-status      # Statut du PAT GitLab
 zanvil-gitlab-browse -m   # Ouvrir les MRs dans le navigateur
-gpr                        # Raccourci creation MR
+gpr                        # Liste des MR du projet
 
 zanvil-switch env         # Switcher d'environnement
 ssh_select                 # Selectionner un host SSH
-tm                         # Gerer les sessions tmux
+zanvil-git-bulk status     # Statut git de tous les repos du dossier
 hooks_install              # Installer les hooks Git
 ```
 
@@ -80,24 +80,24 @@ hooks_install              # Installer les hooks Git
 ├── core/               # Systeme central
 │   ├── ui.zsh          # Systeme UI + palette loader
 │   ├── loader.zsh      # Module loader automatique
-│   ├── commands.zsh    # zanvil-list, doctor, status, help
-│   ├── admin.zsh       # modules, backup, restore, switch
-│   ├── theme.zsh       # Themes Starship + Ghostty
-│   └── hooks.zsh       # Init outils + .zanvil.local
+│   ├── hooks.zsh       # Init outils + .zanvil.local
+│   ├── commands/       # commands.zsh (list, doctor, status, help), admin.zsh (modules,
+│   │                   # backup, restore, switch), theme.zsh (Starship + Ghostty), dotfiles.zsh
+│   └── lifecycle/      # Mise a jour, migration, sync
 ├── modules/            # Features modulaires
 │   ├── git/            # bulk, hooks, change-author
 │   ├── gitlab/         # clone, pipelines, PAT, browse
 │   ├── docker/         # dex, dstop
 │   ├── ssh/            # select, add, remove, test
-│   ├── tmux/           # sessions (lazy loaded)
 │   ├── ai/             # context, tokens (lazy loaded)
+│   ├── work/           # contexte Work, Elasticsearch, explorateur (lazy loaded)
 │   └── ...             # kube, project, security, utils, tools (guard: ZANVIL_MODULE_*)
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit)
-├── secrets/            # Fichiers sensibles (gitignored)
-│   ├── secrets/kube/   # Kubeconfigs + .context_aliases
-│   └── secrets/work/   # Certificats et settings dechiffres
+│   └── themes/         # Flat .toml ou directory (prompt.toml + palette.zsh)
+├── secrets/            # Fichiers chiffres (.enc, .sops.*) versionnes ; dechiffres gitignored
+│   ├── kube/           # Kubeconfig minimal (sops)
+│   └── work/           # Certificats et settings Maven
 ├── examples/           # Templates de config (config.zsh, aliases.local.zsh)
-├── themes/             # Flat .toml ou directory (prompt.toml + palette.zsh)
 ├── env.d/              # Variables dynamiques (*.zsh, *.sops.zsh)
 ├── cli/                # CLI Rust companion (optionnel)
 └── scripts/            # Scripts autonomes
@@ -122,7 +122,7 @@ Build manuel : `cd cli && cargo build --release && cp target/release/zanvil ~/.l
 Les themes unifies controlent a la fois le prompt Starship et les couleurs des commandes zanvil-* :
 
 ```
-themes/
+config/themes/
 ├── tokyo-night-pro/     # Directory theme
 │   ├── prompt.toml      # Config Starship
 │   └── palette.zsh      # Couleurs true color pour _ui_*

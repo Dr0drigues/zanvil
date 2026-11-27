@@ -48,7 +48,7 @@ AI_TOKENS_PRIORITY=(
     [vue]=8 [svelte]=8
 )
 
-# Prix par million de tokens (input) - surchargeable via ZANVIL_AI_TOKENS_PRICES
+# Prix par million de tokens (input) - surchargeable via le tableau AI_TOKENS_PRICES
 # Definir dans config.zsh pour mettre a jour les prix
 if [[ -z "${AI_TOKENS_PRICES+x}" ]]; then
     typeset -A AI_TOKENS_PRICES

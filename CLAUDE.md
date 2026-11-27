@@ -39,13 +39,12 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── kube/           # kube_config, kube_switch, kube_ns, k (guard: ZANVIL_MODULE_KUBE)
 │   ├── docker/         # docker_utils (guard: ZANVIL_MODULE_DOCKER)
 │   ├── ssh/            # ssh_manager
-│   ├── tmux/           # tmux_manager (lazy loaded)
 │   ├── ai/             # ai_context, ai_tokens (lazy loaded)
 │   ├── project/        # project open <lien-MR> (worktree + Orca + IDEA), project clean (guard: ZANVIL_MODULE_PROJECT)
-│   ├── security/       # security_audit
-│   ├── utils/          # utils, extract, fkill, net_utils (lazy)
+│   ├── security/       # security_audit, secrets_scan (guard: ZANVIL_MODULE_SECURITY)
+│   ├── utils/          # utils, extract, fkill ; seul net_utils (myip, port) est lazy
 │   ├── tools/          # mise_hooks, test_runner, zsh_profile ; sous-modules atuin, delta, lazygit, posting, fastfetch (zfetch), screensaver (zsaver, cbonsai)
-│   └── boulanger/      # boulanger_context
+│   └── work/           # work_context, elasticsearch, config_repos, merch, explore (lazy loaded, sans guard)
 ├── brew/               # base.Brewfile : dependances de zanvil (common/profil vivent dans le depot dotfiles)
 ├── config/             # Configs outils versionnees (atuin, delta, ghostty, k9s, lazygit, posting)
 │   └── themes/         # Themes Starship (flat .toml ou directory avec palette.zsh)
@@ -54,8 +53,8 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │       │   └── palette.zsh
 │       └── minimal.toml
 ├── secrets/            # .enc versionnés, plaintext déchiffré gitignored
-│   ├── secrets/kube/   # Kubeconfigs + .context_aliases
-│   └── secrets/work/   # Certificats et settings dechiffres
+│   ├── kube/           # Kubeconfig minimal (sops)
+│   └── work/           # Certificats et settings Maven
 ├── examples/           # Templates de config utilisateur
 │   ├── config.zsh.example
 │   └── env.d/          # Exemples de variables d'env dynamiques
@@ -97,7 +96,7 @@ Le site (`web/site/`) est un projet Astro Starlight déployé sur GitHub Pages v
 
 Binary optionnel `zanvil` qui accelere les commandes lourdes. Les fonctions zsh delegent au CLI quand disponible, fallback au zsh sinon.
 
-Commandes implementees : `theme list|apply|current`, `doctor`, `audit`, `context`, `modules list|enable|disable`
+Commandes implementees : `theme list|apply|current`, `doctor`, `audit`, `context`, `modules list|enable|disable`, `bench`, `sync export|import|diff`, `update [--check]`, `secrets`, `conflicts`, `es window`, `explore`, `mr-fanout`, `config` (TUI) ; caches : `convert`, `completions`
 
 Pattern de delegation :
 ```zsh

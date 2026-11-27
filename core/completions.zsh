@@ -21,6 +21,7 @@ _zanvil_theme() {
         'list:Lister les themes disponibles'
         'current:Afficher le theme actuel'
         'apply:Appliquer un theme'
+        'preview:Apercu sans appliquer'
         'auto:Auto dark/light'
     )
 

@@ -477,7 +477,7 @@ kube_encrypt() {
 
 # Configuration des clusters Azure AKS (surchargeable via config.zsh)
 # Format: "label:subscription:resource-group:cluster-name"
-# Definir ZANVIL_KUBE_AZ_CLUSTERS dans config.zsh pour personnaliser
+# Definir _KUBE_AZ_CLUSTERS dans env.d/kube.zsh ou config.zsh pour personnaliser
 if [[ -z "${_KUBE_AZ_CLUSTERS+x}" ]]; then
     # Aucun cluster preconfigure par defaut.
     # Definir _KUBE_AZ_CLUSTERS dans env.d/kube.zsh ou config.zsh.

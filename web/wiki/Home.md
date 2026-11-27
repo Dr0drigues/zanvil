@@ -13,7 +13,6 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 - [[Commandes]] - Reference complete des commandes
 - [[Kubernetes]] - Multi-config Kubernetes, kube_switch, kube_ns, k9s
 - [[SSH-Manager]] - Gestion des connexions SSH
-- [[Tmux-Manager]] - Gestion des sessions tmux
 - [[Git-Hooks]] - Gestionnaire de hooks Git
 - [[Security]] - Audit de securite et mecanisme de confiance
 
@@ -37,10 +36,8 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 │   ├── aliases.zsh           # Alias globaux
 │   ├── hooks.zsh             # Hooks shell (chpwd, precmd, etc.)
 │   ├── ui.zsh                # Systeme UI (couleurs, formatage)
-│   ├── commands.zsh          # Commandes zanvil-* principales
-│   ├── admin.zsh             # Commandes d'administration
-│   ├── theme.zsh             # Gestion des themes
-│   └── setup.zsh             # Setup initial
+│   ├── commands/             # Commandes zanvil-* (commands, admin, theme, setup, dotfiles)
+│   └── lifecycle/            # Mise a jour, migration, sync
 ├── modules/                  # Modules optionnels
 │   └── <name>/
 │       ├── init.zsh          # Point d'entree du module
@@ -52,7 +49,7 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 ├── env.d/                    # Variables d'env dynamiques (support sops)
 ├── profiles/                 # Profils d'environnement
 ├── scripts/                  # Scripts autonomes
-├── zanvil/              # CLI Rust (zanvil)
+├── cli/                      # CLI Rust (zanvil)
 └── install.sh                # Bootstrapper cross-platform
 ```
 
@@ -84,7 +81,7 @@ Bienvenue sur le wiki de **zanvil** v2 - une configuration Zsh modulaire et orie
 |--------|-------------|------------|
 | GitLab | Scripts clone/trigger en masse | `zanvil-modules enable gitlab` |
 | Docker | Utilitaires Docker (dex) | `zanvil-modules enable docker` |
-| NVM | Auto-switch Node.js | `zanvil-modules enable nvm` |
+| Mise | Versions de Node, Java, Maven (remplace NVM) | `ZANVIL_MODULE_MISE=true` |
 | Kube | Gestion multi-config K8s | `zanvil-modules enable kube` |
 
 Voir `zanvil-modules list` pour la liste complete.
@@ -95,7 +92,7 @@ Voir `zanvil-modules list` pour la liste complete.
 ss                      # Recharger la config
 zanvil-doctor          # Diagnostic complet
 zanvil-status          # Statut rapide
-zanvil-profile         # Profiler le temps de demarrage
+zanvil-bench           # Profiler le temps de demarrage
 zanvil-audit           # Audit de securite
 zanvil-modules list    # Lister les modules
 zanvil-theme list      # Lister les themes
@@ -111,7 +108,7 @@ Le binaire `zanvil` fournit des commandes performantes :
 zanvil theme       # Gestion des themes
 zanvil doctor      # Diagnostic
 zanvil audit       # Audit de securite
-zanvil context     # Contexte projet
+zanvil context     # Contexte kube pour Starship
 zanvil modules     # Gestion des modules
 ```
 

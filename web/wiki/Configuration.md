@@ -6,7 +6,7 @@ La configuration se fait via `~/.zanvil/config.zsh`.
 
 ```bash
 # Creer depuis le template
-cp ~/.zanvil/config.zsh.example ~/.zanvil/config.zsh
+cp ~/.zanvil/examples/config.zsh.example ~/.zanvil/config.zsh
 ```
 
 ## Architecture v2
@@ -20,10 +20,11 @@ En v2, la configuration est repartie dans `core/` :
 | `core/hooks.zsh` | Hooks shell (chpwd, precmd, etc.) |
 | `core/loader.zsh` | Chargement des modules |
 | `core/ui.zsh` | Systeme UI |
-| `core/commands.zsh` | Commandes zanvil-* |
-| `core/admin.zsh` | Administration |
-| `core/theme.zsh` | Gestion des themes |
-| `core/setup.zsh` | Setup initial |
+| `core/commands/commands.zsh` | Commandes zanvil-* |
+| `core/commands/admin.zsh` | Administration |
+| `core/commands/theme.zsh` | Gestion des themes |
+| `core/commands/setup.zsh` | Setup initial |
+| `core/lifecycle/` | Mise a jour, migration, sync |
 
 ## Modules
 
@@ -37,7 +38,7 @@ zanvil-modules list
 zanvil-modules enable gitlab
 
 # Desactiver un module
-zanvil-modules disable nvm
+zanvil-modules disable docker
 ```
 
 Chaque module est dans `modules/<name>/` avec un `init.zsh` et optionnellement un `completions.zsh`.
@@ -48,27 +49,27 @@ Configuration manuelle dans `config.zsh` :
 # Activer/desactiver les modules
 ZANVIL_MODULE_GITLAB=true    # Scripts GitLab
 ZANVIL_MODULE_DOCKER=true    # Utilitaires Docker
-ZANVIL_MODULE_NVM=true       # Auto-switch Node
+ZANVIL_MODULE_MISE=true      # Versions Node, Java, Maven (remplace NVM)
 ZANVIL_MODULE_NUSHELL=false  # Integration Nushell
 ZANVIL_MODULE_KUBE=true      # Gestion Kubernetes
 ```
 
 ## Variables dynamiques (env.d/)
 
-Le dossier `env.d/` permet de definir des variables d'environnement par fichier. Chaque fichier `.env` est charge automatiquement au demarrage.
+Le dossier `env.d/` permet de definir des variables d'environnement par fichier. Chaque fichier `*.zsh` est charge automatiquement au demarrage.
 
 ```bash
 # Creer une variable
-echo 'MY_VAR=value' > ~/.zanvil/env.d/my-project.env
+echo 'export MY_VAR=value' > ~/.zanvil/env.d/my-project.zsh
 ```
 
 ### Chiffrement sops
 
-Les fichiers `env.d/` supportent le chiffrement sops :
+Les fichiers `env.d/*.sops.zsh` sont dechiffres par sops au chargement :
 
 ```bash
 # Creer un fichier chiffre
-sops ~/.zanvil/env.d/secrets.env
+sops ~/.zanvil/env.d/secrets.sops.zsh
 
 # Le dechiffrement est automatique au chargement
 ```
@@ -113,22 +114,21 @@ Le theme actif est enregistre dans `~/.zanvil/.current_theme`.
 
 Voir [[Themes]] pour la liste des themes et le systeme de theming unifie.
 
-## NVM (Node Version Manager)
+## Versions de runtimes (mise)
+
+`mise` remplace NVM et SDKMAN : il gere Node, Java et Maven, et lit `.nvmrc`, `.sdkmanrc` et
+`.tool-versions`. `ZANVIL_MODULE_NVM` et `ZANVIL_NVM_LAZY` sont deprecies : `rc.zsh` reporte
+`ZANVIL_MODULE_NVM` sur `ZANVIL_MODULE_MISE`.
 
 ```zsh
-# Lazy loading (recommande) - charge NVM au premier appel node/npm
-ZANVIL_NVM_LAZY=true
-
-# Chargement immediat (ajoute ~200ms au demarrage)
-ZANVIL_NVM_LAZY=false
+ZANVIL_MODULE_MISE=true
 ```
 
 ## Auto-update
 
 ```zsh
-ZANVIL_AUTO_UPDATE=true      # Activer
-ZANVIL_UPDATE_FREQUENCY=7    # Verifier tous les X jours
-ZANVIL_UPDATE_MODE="prompt"  # "prompt" ou "auto"
+ZANVIL_UPDATE_MODE="auto"    # "auto" (defaut), "prompt" ou "off"
+ZANVIL_UPDATE_FREQUENCY=1    # Verifier tous les X jours
 ```
 
 ## Plugins
@@ -193,7 +193,7 @@ zanvil-restore
 | `config.zsh` | Configuration personnelle | Non |
 | `aliases.local.zsh` | Aliases personnels | Non |
 | `.current_theme` | Theme actif | Non |
-| `env.d/*.env` | Variables dynamiques | Non (sauf chiffrees) |
+| `env.d/*.zsh` | Variables dynamiques | Non (sauf chiffrees) |
 | `profiles/` | Profils d'environnement | Non |
 | `~/.secrets` | Tokens et secrets | Non |
 | `~/.gitlab_secrets` | Config GitLab | Non |

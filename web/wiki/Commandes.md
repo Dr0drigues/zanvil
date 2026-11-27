@@ -7,7 +7,7 @@
 | `zanvil-list` | Liste les outils installes avec versions (format tableau) |
 | `zanvil-doctor` | Diagnostic complet de l'installation (compact) |
 | `zanvil-status` | Statut rapide (version, modules, git) |
-| `zanvil-profile` | Profile le temps de demarrage par module |
+| `zanvil-bench [--quick]` | Temps de demarrage par module |
 | `zanvil-benchmark [n]` | Benchmark sur n executions (defaut: 5) |
 | `zanvil-audit` | Audit de securite des permissions (compact) |
 | `zanvil-audit-fix` | Corrige automatiquement les permissions |
@@ -32,22 +32,22 @@ Toutes les commandes `zanvil-*` utilisent un style visuel moderne et compact via
 
 | Commande | Description |
 |----------|-------------|
-| `zanvil theme` | Gestion des themes (list, apply, preview) |
+| `zanvil theme` | Gestion des themes (list, apply, current) |
 | `zanvil doctor` | Diagnostic complet en Rust (rapide) |
 | `zanvil audit` | Audit de securite avance |
-| `zanvil context` | Generation de contexte projet |
+| `zanvil context` | Contexte Kubernetes affiche dans le prompt Starship |
 | `zanvil modules` | Gestion des modules (list, enable, disable) |
 
 ## GitLab
 
 | Commande | Description |
 |----------|-------------|
-| `zanvil-gitlab-status` | Affiche le statut des pipelines GitLab |
+| `zanvil-gitlab-status` | Affiche le statut du jeton GitLab (PAT) |
 | `zanvil-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
-| `gpr` | Alias pour creer une merge request GitLab |
-| `clone-projects [--dry-run] [--parallel]` | Clone en masse des projets GitLab |
-| `gclone <cle\|group-id>` | Clone un groupe GitLab depuis `$WORK_DIR` et s'y positionne |
-| `git-bulk [--dry-run]` | Operations Git en masse sur plusieurs repos |
+| `gpr` | Ouvre la liste des merge requests du projet |
+| `gclone <cle\|group-id> [--dry-run] [--parallel]` | Clone un groupe GitLab depuis `$WORK_DIR` et s'y positionne |
+| `zanvil-git-bulk [action] [dossier]` | Operations Git en masse sur plusieurs repos |
+| `zanvil-pipeline-bulk [status\|trigger\|watch]` | Pipelines GitLab en masse |
 
 ## Navigation
 
@@ -86,17 +86,6 @@ Voir [[Kubernetes]] pour plus de details.
 | `ssh_test <host>` | Teste la connexion |
 
 Voir [[SSH-Manager]] pour plus de details.
-
-## Tmux
-
-| Commande | Description |
-|----------|-------------|
-| `tm [session]` | Attach ou cree une session |
-| `tm-list` | Liste les sessions |
-| `tm-kill [session]` | Tue une session |
-| `tm-rename [name]` | Renomme la session courante |
-
-Voir [[Tmux-Manager]] pour plus de details.
 
 ## Git Hooks
 
