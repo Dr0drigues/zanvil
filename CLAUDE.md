@@ -141,7 +141,7 @@ Un theme controle a la fois le prompt Starship ET les couleurs des commandes zan
 
 `~/.kube/.context_aliases` mappe des noms courts vers les contextes complets :
 ```
-blg-dev=aks-blg-caasplatform-dev-common-001
+app-dev=aks-exemple-dev-001
 ```
 Utilise par : `kube_switch`, `k` (sofka ou k9s selon `ZANVIL_KUBE_TUI`, `kube_tui` pour changer), `zanvil context` (prompt Starship)
 

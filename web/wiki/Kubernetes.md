@@ -152,7 +152,7 @@ Prerequis : `gcloud auth login`.
 ├── config.minimal.yml        # Config minimale (base)
 ├── .context_aliases          # Alias de contexte (nouveau v2)
 └── configs.d/                # Configs additionnelles
-    ├── kubeconfig-blg-dev.yml
+    ├── kubeconfig-app-dev.yml
     ├── kubeconfig-eks-prod.yml
     └── kubeconfig-gke-staging.yml
 ```
@@ -186,7 +186,7 @@ creation_rules:
 ●/○ = etat actuel | TAB: toggle | Ctrl-A: tout | Ctrl-N: rien
 
 ● config.minimal.yml (base)
-○ kubeconfig-blg-dev.yml
+○ kubeconfig-app-dev.yml
 ○ kubeconfig-eks-prod.yml
 ```
 
@@ -194,5 +194,5 @@ Le KUBECONFIG resultant est la concatenation :
 
 ```bash
 echo $KUBECONFIG
-# /Users/user/.kube/config.minimal.yml:/Users/user/.kube/configs.d/kubeconfig-blg-dev.yml
+# /Users/user/.kube/config.minimal.yml:/Users/user/.kube/configs.d/kubeconfig-app-dev.yml
 ```
