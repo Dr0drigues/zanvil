@@ -178,6 +178,26 @@ pc
 present "$WT/sale.txt" | assert_equals "worktree garde" "present"
 grep -c "^osascript.*modifications en cours" "$LOG" | assert_equals "notification" "1"
 
+echo "MR mergee, fichier ignore pose a la main"
+fresh
+mr_json merged "$MR_SHA"
+printf '.env.local\nbuild/\n' > "$TEST_TMPDIR/exclude"
+git -C "$WT" config core.excludesFile "$TEST_TMPDIR/exclude"
+echo secret > "$WT/.env.local"
+mkdir -p "$WT/build"; echo o > "$WT/build/out"
+pc
+present "$WT/.env.local" | assert_equals "worktree garde" "present"
+grep -c "^osascript.*fichiers ignores locaux (.env.local)" "$LOG" | assert_equals "notification" "1"
+
+echo "MR mergee, seulement un dossier de build ignore"
+fresh
+mr_json merged "$MR_SHA"
+printf 'build/\n' > "$TEST_TMPDIR/exclude"
+git -C "$WT" config core.excludesFile "$TEST_TMPDIR/exclude"
+mkdir -p "$WT/build"; echo o > "$WT/build/out"
+pc
+present "$WT" | assert_equals "worktree supprime" "absent"
+
 echo "MR mergee, stash fait sur la branche"
 fresh
 mr_json merged "$MR_SHA"

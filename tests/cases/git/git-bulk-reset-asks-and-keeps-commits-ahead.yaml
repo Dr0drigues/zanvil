@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #151 : `git-bulk reset --apply` faisait `reset --hard` sur chaque depot sans la
+# confirmation annoncee, et abandonnait les commits en avance sur l'upstream. Il montre
+# maintenant l'apercu, demande, et garde les commits en avance sauf --force.
+name: git-bulk-reset-asks-and-keeps-commits-ahead
+weight: 9
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/git/git_bulk.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    GIT_CONFIG_GLOBAL: "/dev/null"
+    GIT_AUTHOR_NAME: "t"
+    GIT_AUTHOR_EMAIL: "t@exemple.invalide"
+    GIT_COMMITTER_NAME: "t"
+    GIT_COMMITTER_EMAIL: "t@exemple.invalide"
+  call:
+    - "eval"
+    - |
+      T=$(mktemp -d); git init -q --bare $T/up.git; git clone -q $T/up.git $T/seed 2>/dev/null
+      git -C $T/seed commit -q --allow-empty -m init; git -C $T/seed push -q origin HEAD 2>/dev/null
+      mkdir $T/w; git clone -q $T/up.git $T/w/sale; git clone -q $T/up.git $T/w/avance
+      echo x > $T/w/sale/f; git -C $T/w/sale add f; git -C $T/w/avance commit -q --allow-empty -m local
+      print n | zanvil-git-bulk reset --apply -d $T/w >/dev/null 2>&1
+      echo "non rc=$? sale=$(git -C $T/w/sale status --porcelain | wc -l | tr -d ' ')"
+      print y | zanvil-git-bulk reset --apply -d $T/w >/dev/null 2>&1
+      echo "oui sale=$(git -C $T/w/sale status --porcelain | wc -l | tr -d ' ') avance=$(git -C $T/w/avance rev-list --count @{u}..HEAD)"
+      print y | zanvil-git-bulk reset --apply --force -d $T/w >/dev/null 2>&1
+      echo "force avance=$(git -C $T/w/avance rev-list --count @{u}..HEAD)"
+      rm -rf $T
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["non rc=1 sale=1", "oui sale=0 avance=1", "force avance=0"]

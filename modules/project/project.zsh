@@ -166,6 +166,12 @@ _project_remote_host() {
 _project_clean_reason() {
     local repo="$1" wt="$2" branch="$3" head="$4" sha="$5" line
     [[ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ]] || { print modifications en cours; return; }
+    # Fichiers ignores poses a la main (.env.local, application-local.yml) : status les tait, mais
+    # `worktree remove` les efface. Les dossiers ignores en entier (node_modules/, target/) sont
+    # des sorties de build et ne retiennent pas le worktree ; .zanvil.local vient de project open.
+    local -a ignored=(${${(M)${(f)"$(git -C "$wt" status --porcelain --ignored 2>/dev/null)"}:#\!\! *}#\!\! })
+    ignored=(${ignored:#*/}); ignored=(${ignored:#(.zanvil.local|.DS_Store|*/.DS_Store)})
+    (( ${#ignored} )) && { print "fichiers ignores locaux (${ignored[1]})"; return; }
     # stash commun au depot : seules comptent les entrees faites sur cette branche
     for line in ${(f)"$(git -C "$repo" stash list --format=%gs 2>/dev/null)"}; do
         [[ "$line" == "WIP on $branch:"* || "$line" == "On $branch:"* ]] && { print stash en cours; return; }

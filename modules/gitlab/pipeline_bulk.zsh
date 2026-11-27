@@ -270,6 +270,19 @@ _pipeline_bulk_trigger() {
     [[ -n "$branch" ]] && _ui_section "Branche" "$branch"
     echo ""
 
+    # Plusieurs depots : apercu puis confirmation, un pipeline lance ne se rattrape pas.
+    if (( ${#repos[@]} > 1 )); then
+        local r reply
+        for r in "${repos[@]}"; do
+            printf "  %-24s %s\n" "$(_ui_truncate "${r:t}" 22)" "${branch:-$(git -C "$r" branch --show-current 2>/dev/null)}"
+        done
+        echo ""
+        printf "Declencher %d pipelines ? [y/N] " "${#repos[@]}"
+        read -r reply
+        [[ "$reply" == [yYoO]* ]] || { _ui_msg_info "Annule"; return 1; }
+        echo ""
+    fi
+
     local ok=0 fail=0 skip=0
     local triggered_repos=()
 
