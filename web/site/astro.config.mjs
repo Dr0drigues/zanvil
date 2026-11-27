@@ -16,6 +16,7 @@ export default defineConfig({
         { label: 'Guides', items: [
           { label: 'Installation', slug: 'installation' },
           { label: 'Configuration', slug: 'configuration' },
+          { label: 'Variables par dossier', slug: 'zanvil-local' },
           { label: 'Kubernetes et k9s', slug: 'kubernetes-k9s' },
           { label: 'Bureau macOS', slug: 'bureau-macos' },
         ]},

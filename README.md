@@ -43,7 +43,7 @@ Le script installe les dependances, configure `.zshrc`, et build le CLI Rust si 
 | **Themes** | Themes unifies Starship + palette shell (true color) |
 | **CLI Rust** | Binaire natif optionnel (doctor, audit, theme, modules, bench, explore, mr-fanout...) |
 | **env.d/** | Variables d'env dynamiques avec support sops |
-| **.zanvil.local** | Auto-chargement par projet (style direnv) |
+| **.zanvil.local** | Variables par dossier, heritees par les sous-dossiers ([doc](https://dr0drigues.github.io/zanvil/zanvil-local/)) |
 
 ## Commandes essentielles
 
