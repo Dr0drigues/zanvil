@@ -49,3 +49,8 @@ expect:
     line_includes:
       - ["KUBE", "actif"]
       - ["DOCKER", "inactif"]
+      # #154 : sans ligne dans config.zsh, la valeur par defaut du .module.toml. AI et PROJECT
+      # sont charges sans ligne et s'affichaient « inactif » ; SCREENSAVER reste inactif.
+      - ["AI", "actif"]
+      - ["PROJECT", "actif"]
+      - ["SCREENSAVER", "inactif"]

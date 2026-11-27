@@ -45,10 +45,13 @@ fn list_modules() {
         let name = guard_var
             .strip_prefix("ZANVIL_MODULE_")
             .unwrap_or(guard_var);
-        let enabled = content.lines().any(|line| {
-            let t = line.trim();
-            t == format!("{}=true", guard_var) || t == format!("{}=\"true\"", guard_var)
-        });
+        // Valeur de config.zsh si la ligne existe, sinon la valeur par defaut du module : AI,
+        // SECURITY, TOOLS ou PROJECT sont charges sans ligne, et s'affichaient « inactif ».
+        let enabled = config_modules
+            .iter()
+            .find(|m| format!("ZANVIL_MODULE_{}", m.name) == guard_var)
+            .map(|m| m.enabled)
+            .unwrap_or(meta.default);
         let status = if enabled {
             "actif".green().to_string()
         } else {
@@ -84,13 +87,18 @@ fn toggle_module(name: &str, enabled: bool) {
         }
     };
 
-    let new_content = match config::set_module(&content, &upper, enabled) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("{}", e.red());
-            return;
-        }
-    };
+    // Module connu : declare par un .module.toml ou deja present dans config.zsh. Une cle
+    // absente est ensuite ajoutee (set_value) : un module actif par defaut n'a pas de ligne.
+    let key = format!("ZANVIL_MODULE_{}", upper);
+    let known = config::scan_module_metas(&config::zanvil_dir())
+        .iter()
+        .any(|m| m.guard.as_deref() == Some(key.as_str()))
+        || config::parse_modules(&content).iter().any(|m| m.name == upper);
+    if !known {
+        eprintln!("{}", format!("Module inconnu : {}", upper).red());
+        std::process::exit(1);
+    }
+    let new_content = config::set_value(&content, &key, if enabled { "true" } else { "false" });
 
     if let Err(e) = config::write_config(&new_content) {
         eprintln!("{}", e.red());

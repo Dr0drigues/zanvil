@@ -1,2 +1,3 @@
 guard = "ZANVIL_MODULE_AI"
 description = "Estimation de tokens LLM et contexte repo pour prompts IA"
+default = true

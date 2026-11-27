@@ -2,3 +2,4 @@ guard = "ZANVIL_MODULE_ATUIN"
 binary = "atuin"
 install = "brew install atuin"
 description = "Historique shell enrichi SQLite (fuzzy search)"
+default = false

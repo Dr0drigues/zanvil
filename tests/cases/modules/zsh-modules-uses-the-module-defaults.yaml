@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #154 : sans le binaire, zanvil-modules ne connaissait que 5 modules en dur, et `enable` sur
+# une cle absente de config.zsh annoncait un succes sans rien ecrire. Il lit maintenant les
+# .module.toml (comme le CLI) : un module actif par defaut sans ligne s'affiche actif, et
+# activer ou desactiver ajoute la ligne manquante.
+name: zsh-modules-uses-the-module-defaults
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "core/commands/admin.zsh"]
+  hide: [zanvil]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      Z=$(mktemp -d); ln -s $GAVELDROP_PROJECT/modules $Z/modules; print 'ZANVIL_MODULE_KUBE=true' > $Z/config.zsh
+      ZANVIL_DIR=$Z
+      zanvil-modules list | grep -E ' (AI|PROJECT|ATUIN) '
+      zanvil-modules disable ai >/dev/null; zanvil-modules enable nope; echo "rc_inconnu=$?"
+      echo "config=$(tr '\n' ' ' < $Z/config.zsh)"
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "AI         actif"
+      - "PROJECT    actif"
+      - "ATUIN      inactif"
+      - "Module inconnu: NOPE"
+      - "rc_inconnu=1"
+      - "config=ZANVIL_MODULE_KUBE=true ZANVIL_MODULE_AI=false"
