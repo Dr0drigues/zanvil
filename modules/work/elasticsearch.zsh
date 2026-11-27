@@ -57,7 +57,7 @@ _work_es_curl() {
     opts=(-s --connect-timeout 5 --max-time "$max_time")
     (( max_time < 5 )) && opts[2,3]=(--connect-timeout "$max_time")
     [[ -n "${SSL_CERT_FILE:-}" ]] && opts+=(--cacert "$SSL_CERT_FILE")
-    opts+=(-u "$ES_USER:$ES_PASSWORD" -H 'Content-Type: application/json')
+    opts+=(-H 'Content-Type: application/json')
     if [[ "$method" == HEAD ]]; then
         opts+=(-I)
     else
@@ -66,7 +66,12 @@ _work_es_curl() {
     [[ -n "$body" ]] && opts+=(-d "$body")
 
     local out ret
-    out=$(command curl "${opts[@]}" -w $'\n%{http_code}' "$(_work_es_url)/$es_path" 2>/dev/null)
+    # Identifiants dans une config lue sur stdin, pas en argv (lisible dans `ps`). Les \ et "
+    # sont echappes : la valeur est entre guillemets dans la syntaxe de config de curl.
+    local cred="$ES_USER:$ES_PASSWORD"
+    cred=${cred//\\/\\\\}; cred=${cred//\"/\\\"}
+    out=$(printf 'user = "%s"\n' "$cred" \
+        | command curl "${opts[@]}" --config - -w $'\n%{http_code}' "$(_work_es_url)/$es_path" 2>/dev/null)
     ret=$?
     (( ret != 0 )) && return $ret
     # Reordonne: code HTTP en premiere ligne, corps ensuite

@@ -172,9 +172,10 @@ ai_tokens_analyze() {
     echo ""
 
     # Construire la commande find avec exclusions
-    local find_excludes=""
+    # Tableau et non chaine + eval : un nom de dossier contenant $( ) serait execute.
+    local -a find_excludes=()
     for d in "${AI_TOKENS_IGNORE_DIRS[@]}"; do
-        find_excludes="$find_excludes -path '*/$d' -prune -o"
+        find_excludes+=(-path "*/$d" -prune -o)
     done
 
     # Collecter les fichiers
@@ -212,7 +213,7 @@ ai_tokens_analyze() {
         # Compter les fichiers volumineux
         [[ $tokens -gt 5000 ]] && ((large_count++))
 
-    done < <(eval "find \"$dir\" $find_excludes -type f -print 2>/dev/null")
+    done < <(find "$dir" "${find_excludes[@]}" -type f -print 2>/dev/null)
 
     local file_count=${#files[@]}
 
@@ -401,9 +402,10 @@ ai_tokens_select() {
     local -A file_tokens
 
     # Fichiers a ignorer
-    local find_excludes=""
+    # Tableau et non chaine + eval : un nom de dossier contenant $( ) serait execute.
+    local -a find_excludes=()
     for d in "${AI_TOKENS_IGNORE_DIRS[@]}"; do
-        find_excludes="$find_excludes -path '*/$d' -prune -o"
+        find_excludes+=(-path "*/$d" -prune -o)
     done
 
     while IFS= read -r file; do
@@ -453,7 +455,7 @@ ai_tokens_select() {
         file_scores[$file]=$score
         file_tokens[$file]=$(_ai_estimate_tokens_file "$file")
 
-    done < <(eval "find \"$dir\" $find_excludes -type f -print 2>/dev/null")
+    done < <(find "$dir" "${find_excludes[@]}" -type f -print 2>/dev/null)
 
     # Trier par score et selectionner
     local selected_files=()
@@ -511,9 +513,10 @@ ai_tokens_export() {
     echo ""
 
     # Construire la liste des fichiers avec scoring (meme logique que select)
-    local find_excludes=""
+    # Tableau et non chaine + eval : un nom de dossier contenant $( ) serait execute.
+    local -a find_excludes=()
     for d in "${AI_TOKENS_IGNORE_DIRS[@]}"; do
-        find_excludes="$find_excludes -path '*/$d' -prune -o"
+        find_excludes+=(-path "*/$d" -prune -o)
     done
 
     local current_tokens=0
@@ -549,7 +552,7 @@ ai_tokens_export() {
 
         current_tokens=$((current_tokens + tokens))
 
-    done < <(eval "find \"$dir\" $find_excludes -type f -print 2>/dev/null" | head -100)
+    done < <(find "$dir" "${find_excludes[@]}" -type f -print 2>/dev/null | head -100)
 
     echo "# Total: ~$current_tokens tokens" >&2
 }

@@ -92,7 +92,6 @@ function _gclone_usage() {
 function gclone() {
     local target="$1"
     local group_id script full_path start_dir api_url rc
-    local -a curl_opts
 
     if [[ -z "$target" ]]; then
         _ui_msg_fail "Argument manquant : clé GITLAB_PROJECTS ou group-id"
@@ -144,11 +143,8 @@ function gclone() {
 
     # Résolution du sous-répertoire du groupe (best-effort : sert au cd final)
     api_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
-    curl_opts=(-s --max-time 5)
-    [[ "${GITLAB_IGNORE_SSL:-false}" == "true" ]] && curl_opts+=(-k)
-
     if command -v jq &>/dev/null; then
-        full_path=$(curl "${curl_opts[@]}" --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        full_path=$(_gitlab_api_curl --max-time 5 \
             "$api_url/groups/$group_id" 2>/dev/null | jq -r '.full_path // empty' 2>/dev/null)
     fi
 
@@ -156,7 +152,8 @@ function gclone() {
     start_dir="$PWD"
     cd "$WORK_DIR" || { _ui_msg_fail "Impossible d'accéder à $WORK_DIR"; return 1 }
 
-    "$script" "$group_id" "$GITLAB_TOKEN" "$@"
+    # « - » : le script lit le jeton dans GITLAB_TOKEN (environnement), pas en argument.
+    GITLAB_TOKEN="$GITLAB_TOKEN" "$script" "$group_id" - "$@"
     rc=$?
 
     if (( rc != 0 )); then
@@ -216,6 +213,14 @@ _gitlab_days_until() {
     print -r -- $(( (expire_epoch - $(date +%s)) / 86400 ))
 }
 
+# curl vers l'API GitLab. Le jeton passe par une config lue sur stdin, pas par argv
+# (lisible dans `ps`) ; -k seulement si GITLAB_IGNORE_SSL=true. Usage : _gitlab_api_curl [opts curl] URL
+_gitlab_api_curl() {
+    local -a tls
+    [[ "${GITLAB_IGNORE_SSL:-false}" == "true" ]] && tls=(-k)
+    printf 'header = "PRIVATE-TOKEN: %s"\n' "$GITLAB_TOKEN" | command curl -s "${tls[@]}" --config - "$@"
+}
+
 function zanvil-gitlab-status() {
     [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
     local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
@@ -231,7 +236,7 @@ function zanvil-gitlab-status() {
     fi
 
     local response
-    response=$(curl -s -k --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
+    response=$(_gitlab_api_curl "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
 
     if ! echo "$response" | jq -e '.id' &>/dev/null; then
         _ui_msg_fail "Impossible de récupérer le statut du token"
@@ -356,7 +361,7 @@ if [[ -n "$GITLAB_TOKEN" ]] && command -v jq &>/dev/null; then
         [[ -z "${GITLAB_BASE_DOMAIN:-}" ]] && { _ui_msg_fail "GITLAB_BASE_DOMAIN non defini (voir env.d/gitlab.zsh)"; return 1; }
     local gitlab_url="https://${GITLAB_BASE_DOMAIN}/api/v4"
         local response expires_at
-        response=$(curl -s -k --max-time 3 --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
+        response=$(_gitlab_api_curl --max-time 3 "$gitlab_url/personal_access_tokens/self" 2>/dev/null)
         expires_at=$(echo "$response" | jq -r '.expires_at // empty' 2>/dev/null)
 
         if [[ -n "$expires_at" ]]; then

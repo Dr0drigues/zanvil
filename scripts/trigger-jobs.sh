@@ -162,6 +162,11 @@ if [ "$IGNORE_SSL_ERRORS" == "true" ]; then
     CURL_OPTS="$CURL_OPTS -k"
 fi
 
+# curl vers l'API : jeton dans une config lue sur stdin, jamais en argument (lisible dans `ps`).
+gl_curl() {
+    printf 'header = "PRIVATE-TOKEN: %s"\n' "$GITLAB_TOKEN" | curl $CURL_OPTS --config - "$@"
+}
+
 # Fichiers temporaires pour stocker les jobs trouves
 TMP_JOBS_FILE=$(mktemp)
 TMP_INFO_FILE=$(mktemp)
@@ -209,7 +214,7 @@ scan_project() {
     log_debug "URL: $url"
 
     while true; do
-        response=$(curl $CURL_OPTS --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        response=$(gl_curl \
             "${url}&page=$page")
 
         if ! echo "$response" | jq -e . >/dev/null 2>&1; then
@@ -273,7 +278,7 @@ if [ -n "$GROUP_ID" ]; then
     page=1
 
     while true; do
-        projects_response=$(curl $CURL_OPTS --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        projects_response=$(gl_curl \
             "$GITLAB_API_URL/groups/$GROUP_ID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
 
         if ! echo "$projects_response" | jq -e . >/dev/null 2>&1; then
@@ -376,7 +381,7 @@ for i in "${!JOBS_TO_TRIGGER[@]}"; do
 
     draw_progress "$current" "$total" "$job_id" "..."
 
-    result=$(curl $CURL_OPTS -X POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+    result=$(gl_curl -X POST \
         "$GITLAB_API_URL/projects/$project_id/jobs/$job_id/play")
 
     if echo "$result" | jq -e '.id' >/dev/null 2>&1; then

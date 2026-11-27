@@ -89,6 +89,12 @@ mkdir -p "$H/.config/gh"
 echo tok > "$H/.config/gh/hosts.yml"
 zd 'zanvil-dotfiles adopt .config/gh/hosts.yml >/dev/null 2>&1; echo "rc=$?"' | assert_equals "adopt gh/hosts.yml : code 1" "rc=1"
 { kind "$H/.config/gh/hosts.yml"; } | assert_equals "adopt gh/hosts.yml : fichier non deplace" "reel"
+# Les fichiers de secrets que le projet designe lui-meme (#149), et les identifiants usuels.
+mkdir -p "$H/.kube" "$H/.aws" "$H/.docker"
+for f in .gitlab_secrets .secrets .netrc .kube/config .aws/credentials .docker/config.json; do echo tok > "$H/$f"; done
+for f in .gitlab_secrets .secrets .netrc .kube/config .aws/credentials .docker/config.json; do
+    zd "zanvil-dotfiles adopt $f >/dev/null 2>&1; echo \"\$?\"" | tr "\n" " "; kind "$H/$f"
+done | sort -u | assert_equals "adopt secrets : refuses et non deplaces" "1 reel"
 
 rm "$H/.config/demo/a.conf"
 zd 'zanvil-dotfiles apply >/dev/null 2>&1; echo "rc=$?"' | assert_equals "apply hors depot git : code 1" "rc=1"

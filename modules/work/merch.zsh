@@ -93,7 +93,6 @@ _work_merch_curl() {
 
     # La cle passe par un fichier de configuration lu sur stdin, pas par argv : un `-H` en
     # ligne de commande est lisible dans `ps` par tout processus du meme utilisateur.
-    # `_work_es_curl` met ES_PASSWORD en argv ; c est une dette, pas un modele a copier.
     local out
     out=$(printf 'header = "x-api-key: %s"\n' "$(_work_merch_api_key "$env")" \
         | command curl "${opts[@]}" --config - "$url" 2>/dev/null)

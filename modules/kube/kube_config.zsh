@@ -80,7 +80,9 @@ _kube_decrypt_sops() {
         return 1
     fi
 
-    if sops -d "$src" > "$dest" 2>/dev/null; then
+    # umask 077 : le fichier dechiffre ne doit jamais exister lisible par les autres, meme
+    # le temps d'un chmod.
+    if (umask 077; sops -d "$src" > "$dest") 2>/dev/null; then
         chmod 600 "$dest"
         return 0
     else
