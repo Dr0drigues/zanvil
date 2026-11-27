@@ -32,6 +32,7 @@
 #   -b <br> [base]   Cree la branche (pour checkout)
 #   -n|--dry-run     Simule l'action sans l'executer
 #   --apply          Execute (pour prune/branch delete/clean/reset)
+#   --force          reset : abandonne aussi les commits en avance sur l'upstream
 #   --abort          Abort les merges en cours
 #   --since <date>   Filtrer par date (pour log)
 #   --author <name>  Filtrer par auteur (pour log)
@@ -43,7 +44,7 @@ zanvil-git-bulk() {
     local commit_msg=""
     local recursive=true
     local dry_run=false
-    local apply=false
+    local apply=false force=false
     local branch_name=""
     local create_branch=false
     local base_branch=""
@@ -106,6 +107,10 @@ zanvil-git-bulk() {
                 ;;
             --apply)
                 apply=true
+                shift
+                ;;
+            --force)
+                force=true
                 shift
                 ;;
             -b)
@@ -184,7 +189,7 @@ zanvil-git-bulk() {
             log)      _git_bulk_log "$log_count" "$log_since" "$log_author" "${repos[@]}" ;;
             merge)    _git_bulk_merge_dry "$branch_name" "${repos[@]}" ;;
             clean)    _git_bulk_clean false "${repos[@]}" ;;
-            reset)    _git_bulk_reset false "${repos[@]}" ;;
+            reset)    _git_bulk_reset false "$force" "${repos[@]}" ;;
         esac
     else
         case "$action" in
@@ -200,7 +205,7 @@ zanvil-git-bulk() {
             log)      _git_bulk_log "$log_count" "$log_since" "$log_author" "${repos[@]}" ;;
             merge)    _git_bulk_merge "$branch_name" "$sub_action" "${repos[@]}" ;;
             clean)    _git_bulk_clean "$apply" "${repos[@]}" ;;
-            reset)    _git_bulk_reset "$apply" "${repos[@]}" ;;
+            reset)    _git_bulk_reset "$apply" "$force" "${repos[@]}" ;;
         esac
     fi
 }
@@ -1412,9 +1417,20 @@ _git_bulk_clean() {
 # Action: reset (dry-run par defaut, confirmation interactive)
 # ==============================================================================
 _git_bulk_reset() {
-    local do_apply="$1"
-    shift
+    local do_apply="$1" force="$2"
+    shift 2
     local repos=("$@")
+
+    if [[ "$do_apply" == "true" ]]; then
+        # reset --hard perd le travail non commite pour de bon : apercu, puis confirmation.
+        _git_bulk_reset false "$force" "${repos[@]}"
+        echo ""
+        local reply
+        printf "reset --hard : les modifications non commitees de ces depots seront perdues. Continuer ? [y/N] "
+        read -r reply
+        [[ "$reply" == [yYoO]* ]] || { _ui_msg_info "Annule"; return 1; }
+        echo ""
+    fi
 
     if [[ "$do_apply" == "true" ]]; then
         _ui_header "Git Bulk Reset"
@@ -1455,6 +1471,14 @@ _git_bulk_reset() {
         local changes=$(git -C "$repo" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
         local ahead_n=$(git -C "$repo" rev-list --count "@{upstream}"..HEAD 2>/dev/null || echo "0")
         ((total_dirty++))
+
+        # Des commits en avance ne survivraient que dans le reflog : on les garde sauf --force.
+        if (( ahead_n > 0 )) && [[ "$force" != "true" ]]; then
+            _ui_skip "${ahead_n} commit(s) en avance, garde (--force pour les abandonner)"
+            echo ""
+            ((total_dirty--))
+            continue
+        fi
 
         if [[ "$do_apply" == "true" ]]; then
             local output=
@@ -1648,6 +1672,7 @@ _git_bulk_help() {
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-b <branche> [base]" "Cree la branche (pour checkout)"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "-n, --dry-run" "Simule l'action sans l'executer"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "--apply" "Execute la suppression (prune/branch/clean/reset)"
+    printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "--force" "reset : abandonne aussi les commits en avance"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "--abort" "Abort les merges en cours (pour merge)"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "--since <date>" "Filtrer par date (pour log)"
     printf "${_ui_cyan}%-28s${_ui_nc} %s\n" "--author <name>" "Filtrer par auteur (pour log)"

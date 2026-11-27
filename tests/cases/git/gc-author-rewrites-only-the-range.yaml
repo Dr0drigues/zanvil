@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #151 : avec git-filter-repo, gc-author plantait (callback de nom sans email) et, une fois
+# reparable, aurait reecrit toutes les branches en retirant origin, faute de transmettre la
+# plage. Il passe maintenant par un mailmap et --refs. Le cas vaut pour les deux methodes :
+# seuls les deux derniers commits changent, l'autre branche et origin restent. Une valeur
+# contenant une apostrophe (interpolee dans du shell par filter-branch) est refusee.
+name: gc-author-rewrites-only-the-range
+weight: 8
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/git/git_change_author.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    GIT_CONFIG_GLOBAL: "/dev/null"
+    FILTER_BRANCH_SQUELCH_WARNING: "1"
+  call:
+    - "eval"
+    - |
+      T=$(mktemp -d); cd $T; git init -q; git config user.name a; git config user.email old@x.invalide
+      for i in 1 2 3 4; do git commit -q --allow-empty -m c$i; done
+      git remote add origin https://exemple.invalide/r.git; git branch autre HEAD~1
+      print y | gc-author old@x.invalide 'Nouveau Nom' new@x.invalide HEAD~2..HEAD >/dev/null 2>&1
+      echo "log=$(git log --format='%s:%ae' | tr '\n' ' ')"
+      echo "autre=$(git log -1 --format=%ae autre) remote=$(git remote)"
+      gc-author "o'x" n n@x.invalide 2>&1 | tail -1; echo "rc_quote=$?"
+      cd /; rm -rf $T
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "log=c4:new@x.invalide c3:new@x.invalide c2:old@x.invalide c1:old@x.invalide"
+      - "autre=old@x.invalide remote=origin"
+      - "Caractere interdit dans : o'x"

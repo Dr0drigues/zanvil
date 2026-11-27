@@ -32,6 +32,7 @@ _git_bulk_cmd() {
         '-n[Dry-run]' \
         '--dry-run[Dry-run]' \
         '--apply[Execute (prune/branch/clean/reset)]' \
+        '--force[reset : abandonne aussi les commits en avance]' \
         '--abort[Abort les merges en cours]' \
         '--since[Filtrer par date (log)]:date:' \
         '--author[Filtrer par auteur (log)]:author:' \

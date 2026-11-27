@@ -17,6 +17,16 @@ function gc-author() {
         return 1
     fi
 
+    # Les valeurs finissent dans un mailmap et dans du shell (filter-branch) : pas de guillemets,
+    # d'antislash, de $, d'accent grave, de chevrons ni de saut de ligne.
+    local v
+    for v in "$old_email" "$new_name" "$new_email"; do
+        if [[ "$v" == *[\'\"\\\$\`\<\>$'\n']* ]]; then
+            _ui_msg_fail "Caractere interdit dans : $v"
+            return 1
+        fi
+    done
+
     # Affichage unifie des parametres
     echo -e "${_ui_bold}Changement d'auteur Git${_ui_nc}"
     _ui_section "Ancien email" "$old_email"
@@ -38,9 +48,9 @@ function gc-author() {
     echo ""
 
     local response
-    read -q "response?Continuer ? [y/N] "
-    echo ""
-    [[ "$response" != "y" ]] && echo -e "${_ui_dim}Annule.${_ui_nc}" && return 0
+    printf "Continuer ? [y/N] "
+    read -r response
+    [[ "$response" == [yYoO]* ]] || { echo -e "${_ui_dim}Annule.${_ui_nc}"; return 0; }
 
     # Creer un tag de backup
     local backup_tag="backup/before-author-change-$(date +%Y%m%d-%H%M%S)"
@@ -48,11 +58,22 @@ function gc-author() {
     _ui_msg_ok "Backup cree: $backup_tag"
 
     if [[ "$method" == "filter-repo" ]]; then
-        git filter-repo --email-callback "
-            return email if email != b'$old_email' else b'$new_email'
-        " --name-callback "
-            return name if email != b'$old_email' else b'$new_name'
-        " --force
+        # Mailmap plutot que des callbacks Python : le callback de nom ne recoit pas l'email, et
+        # une valeur interpolee dans du Python est du code. --refs limite la reecriture a la
+        # plage (sans lui, toutes les branches sont reecrites et origin est retire).
+        local mailmap rc
+        mailmap=$(mktemp) || return 1
+        print -r -- "$new_name <$new_email> <$old_email>" > "$mailmap"
+        local -a refs=()
+        if [[ "$range" != --all ]]; then
+            local branch
+            branch=$(git symbolic-ref -q --short HEAD) || { _ui_msg_fail "HEAD detache : precisez une plage sur une branche"; command rm -f "$mailmap"; return 1; }
+            refs=(--refs "${range//HEAD/$branch}")
+        fi
+        git filter-repo --mailmap "$mailmap" "${refs[@]}" --force
+        rc=$?
+        command rm -f "$mailmap"
+        return $rc
     else
         git filter-branch --env-filter '
             if [ "$GIT_COMMITTER_EMAIL" = "'"$old_email"'" ]; then

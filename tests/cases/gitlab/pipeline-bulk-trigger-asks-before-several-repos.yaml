@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #151 : `pipeline-bulk trigger` lancait un pipeline dans chaque depot du dossier sans
+# apercu ni confirmation. Avec plusieurs depots, il liste maintenant depot et branche puis
+# demande : « n » ne lance rien, « y » lance les deux.
+name: pipeline-bulk-trigger-asks-before-several-repos
+weight: 7
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/gitlab/pipeline_bulk.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+    ZANVIL_MODULE_GITLAB: "true"
+    GIT_CONFIG_GLOBAL: "/dev/null"
+  call:
+    - "eval"
+    - |
+      T=$(mktemp -d)
+      glab() { echo "$*" >> $T/glab.log; echo "https://gitlab.exemple.invalide/g/x/-/pipelines/1"; }
+      for r in api front; do git init -q -b main $T/$r; git -C $T/$r remote add origin https://gitlab.exemple.invalide/g/$r.git; done
+      print n | zanvil-pipeline-bulk trigger $T 2>&1 | grep -c 'api .*main'; echo "non rc=${pipestatus[2]}"
+      echo "apres non : $(grep -c 'ci run' $T/glab.log 2>/dev/null || echo 0) appel(s)"
+      print y | zanvil-pipeline-bulk trigger $T >/dev/null 2>&1
+      echo "apres oui : $(grep -c 'ci run' $T/glab.log) appel(s)"
+      rm -rf $T
+expect:
+  exit_code: 0
+  stdout:
+    contains: ["non rc=1", "apres non : 0 appel(s)", "apres oui : 2 appel(s)"]
