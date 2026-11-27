@@ -9,7 +9,7 @@ Guide de dépannage pour les problèmes courants.
 zanvil-doctor
 
 # Profiler le démarrage
-zanvil-profile
+zanvil-bench
 
 # Audit de sécurité
 zanvil-audit
@@ -21,15 +21,10 @@ zanvil-audit
 
 1. **Profiler** :
    ```bash
-   zanvil-profile
+   zanvil-bench
    ```
 
 2. **Solutions** :
-   - Activer le lazy loading NVM :
-     ```zsh
-     # Dans config.zsh
-     ZANVIL_NVM_LAZY=true
-     ```
    - Désactiver les modules inutilisés
    - Réduire le nombre de plugins
 
@@ -55,21 +50,21 @@ ss
 source ~/.zshrc
 ```
 
-### NVM ne charge pas automatiquement
+### La version de Node ne change pas au `cd`
 
-1. Vérifier que NVM est installé :
+1. Vérifier que mise est installé et activé :
    ```bash
-   echo $NVM_DIR
-   ls $NVM_DIR
+   mise --version
+   mise current
    ```
 
 2. Vérifier le module :
    ```zsh
    # Dans config.zsh
-   ZANVIL_MODULE_NVM=true
+   ZANVIL_MODULE_MISE=true
    ```
 
-3. Vérifier le fichier `.nvmrc` dans le projet
+3. Vérifier le fichier `.nvmrc`, `.tool-versions` ou `.mise.toml` dans le projet
 
 ### KUBECONFIG non défini
 

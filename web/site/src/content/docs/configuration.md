@@ -54,6 +54,7 @@ ZANVIL_MODULE_DOCKER=true     # Utilitaires Docker (dex, dstop)
 ZANVIL_MODULE_SECURITY=false  # Audit de securite et scan de secrets
 ZANVIL_MODULE_AI=false        # Estimation de tokens LLM et contexte repo
 ZANVIL_MODULE_TOOLS=false     # mise hooks, test runner, profiler zsh
+ZANVIL_MODULE_PROJECT=true    # project open <lien-de-MR>, project clean
 
 # Outils tiers — chacun deploie sa configuration avec <outil>_setup
 ZANVIL_MODULE_DELTA=true      # Pager syntaxique pour git diff
@@ -82,20 +83,20 @@ qui n'a plus d'effet — rien à changer dans un `config.zsh` existant.
 
 ## Variables dynamiques (env.d/)
 
-Le dossier `env.d/` permet de définir des variables d'environnement par fichier. Chaque fichier `.env` est chargé automatiquement au démarrage.
+Le dossier `env.d/` permet de définir des variables d'environnement par fichier. Chaque fichier `*.zsh` est chargé automatiquement au démarrage.
 
 ```bash
 # Créer une variable
-echo 'MY_VAR=value' > ~/.zanvil/env.d/my-project.env
+echo 'export MY_VAR=value' > ~/.zanvil/env.d/my-project.zsh
 ```
 
 ### Chiffrement sops
 
-Les fichiers `env.d/` supportent le chiffrement sops :
+Les fichiers `env.d/*.sops.zsh` sont déchiffrés par sops au chargement :
 
 ```bash
 # Créer un fichier chiffré
-sops ~/.zanvil/env.d/secrets.env
+sops ~/.zanvil/env.d/secrets.sops.zsh
 
 # Le déchiffrement est automatique au chargement
 ```
@@ -306,6 +307,20 @@ WORK_DIR="$HOME/work"
 SCRIPTS_DIR="$ZANVIL_DIR/scripts"
 ```
 
+Variables plus rares, toutes facultatives :
+
+| Variable | Rôle |
+|----------|------|
+| `ZANVIL_ORCA_BIN` | CLI d'Orca utilisée par `project open` quand `orca` n'est pas dans le `PATH` (défaut : `/Applications/Orca.app/Contents/Resources/bin/orca`) |
+| `ZANVIL_APPLICATIONS_DIR` | Dossier où `zanvil-dotfiles migrate` cherche les applis installées à la main (défaut : `/Applications`) |
+| `ZANVIL_DOCKER_ADDRESS_POOL` | Plage d'adresses des réseaux Docker que `install.sh` écrit dans la config Colima en contexte Work (défaut : `172.20.0.0/16`) ; à poser dans `env.d/docker.zsh` |
+| `AI_TOKENS_PRICES` | Tableau associatif des prix par million de tokens pour `ai-tokens` ; défini dans `config.zsh`, il remplace la grille intégrée |
+
+```zsh
+# config.zsh
+typeset -A AI_TOKENS_PRICES=([claude-sonnet-4]=3.00 [gpt-4o]=2.50)
+```
+
 ## Secrets
 
 Créez `~/.secrets` pour vos tokens (ignoré par git) :
@@ -342,7 +357,7 @@ zanvil-restore
 | `config.zsh` | Configuration personnelle | Non |
 | `aliases.local.zsh` | Aliases personnels | Non |
 | `.current_theme` | Thème actif | Non |
-| `env.d/*.env` | Variables dynamiques | Non (sauf chiffrées) |
+| `env.d/*.zsh` | Variables dynamiques | Non (sauf `*.sops.zsh` chiffrés) |
 | `profiles/` | Profils d'environnement | Non |
 | `~/.secrets` | Tokens et secrets | Non |
 | `~/.gitlab_secrets` | Config GitLab | Non |

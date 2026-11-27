@@ -32,7 +32,7 @@ cd ~/.zanvil
 L'installation vous guide et permet de choisir :
 - Les modules à activer
 - Le thème Starship
-- Les options NVM
+- Le profil (`pro` ou `perso`) et le dépôt dotfiles
 
 ### Mode automatique
 
@@ -81,7 +81,7 @@ Sur macOS, si le dépôt contient un `macos.sh`, `zanvil-dotfiles install` le la
    - Outils modernes : `eza`, `starship`, `zoxide`, `fzf`, `bat`
    - Chiffrement : `sops`, `age`
    - Kubernetes : `kubectl`, `helm`, `kubelogin`, `azure-cli`
-4. **Installe NVM et SDKMAN**
+4. **Installe mise** (remplace NVM et SDKMAN ; lit `.nvmrc` et `.sdkmanrc`)
 5. **Configure `.zshrc`** pour sourcer `rc.zsh`
 6. **Crée `config.zsh`** avec vos préférences
 7. **Initialise `env.d/`** pour les variables dynamiques

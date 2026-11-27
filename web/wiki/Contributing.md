@@ -6,11 +6,13 @@ Guide pour contribuer au projet zanvil.
 
 ```
 ~/.zanvil/
-├── functions/          # Fonctions modulaires
+├── core/               # Noyau : ui, loader, commandes zanvil-*
+├── modules/            # Modules (init.zsh + completions.zsh)
 ├── scripts/            # Scripts autonomes
 ├── config/             # Configuration des outils
 │   └── themes/         # Thèmes Starship
-├── wiki/               # Documentation (ce wiki)
+├── cli/                # CLI Rust (zanvil)
+├── web/wiki/           # Documentation (ce wiki)
 ├── install.sh          # Script d'installation
 ├── README.md           # Introduction rapide
 └── CLAUDE.md           # Instructions pour Claude Code
@@ -20,7 +22,7 @@ Guide pour contribuer au projet zanvil.
 
 ### Fichiers de fonctions
 
-- Un fichier par module dans `functions/`
+- Un dossier par module dans `modules/<nom>/`, point d'entrée `init.zsh`
 - Nommage : `nom_module.zsh`
 - Header avec description :
 
@@ -39,7 +41,7 @@ Guide pour contribuer au projet zanvil.
 - Vérifier les dépendances avec `command -v`
 - Utiliser `echo ... >&2` pour les erreurs
 
-### Système UI (`functions/ui.zsh`)
+### Système UI (`core/ui.zsh`)
 
 **Toujours utiliser les fonctions UI** pour les couleurs et le formatage :
 
@@ -159,16 +161,5 @@ exemple de code
 
 ## Pousser le wiki
 
-Le wiki GitHub est un repo git séparé :
-
-```bash
-# Cloner le wiki
-git clone https://github.com/Dr0drigues/zanvil.wiki.git
-
-# Copier les fichiers
-cp ~/.zanvil/wiki/*.md zanvil.wiki/
-
-# Commit et push
-cd zanvil.wiki
-git add . && git commit -m "docs: update wiki" && git push
-```
+Le workflow `.github/workflows/wiki.yml` publie `web/wiki/` sur le wiki GitHub à chaque push
+sur `main` qui touche ce dossier. Rien à pousser à la main.

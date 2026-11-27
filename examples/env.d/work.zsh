@@ -27,8 +27,5 @@ export ZANVIL_WORK_MERCH_ORG="${ZANVIL_WORK_MERCH_ORG:-OCFR}"
 # export ZANVIL_WORK_MERCH_API_KEY_PROD=""
 # export ZANVIL_WORK_MERCH_API_KEY_QLF=""
 
-# PKI entreprise — URL du bundle de certificats (certificates_unix.sh)
-export ZANVIL_WORK_PKI_URL="${ZANVIL_WORK_PKI_URL:-}"
-
 # CA issuers SSL — noms CN des CAs entreprise, separes par ':' (ssl-setup.sh)
 export ZANVIL_ENTERPRISE_CA_ISSUERS="${ZANVIL_ENTERPRISE_CA_ISSUERS:-}"

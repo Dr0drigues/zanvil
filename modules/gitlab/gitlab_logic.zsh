@@ -348,7 +348,7 @@ for key id in "${(@kv)GITLAB_PROJECTS}"; do
     GC_ALIAS_DESCRIPTIONS[gc-${parts[2]}-${parts[1]}]="Clone groupe $id"
 done
 
-# Alias gpr : ouvre la page de creation de MR pour la branche courante
+# Alias gpr : ouvre la liste des MR du projet dans le navigateur
 alias gpr='zanvil-gitlab-browse -m'
 
 # Nettoyage de la fonction pour ne pas polluer l'espace de noms global

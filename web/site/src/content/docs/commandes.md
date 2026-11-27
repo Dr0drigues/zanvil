@@ -10,17 +10,22 @@ description: Toutes les commandes zanvil (zanvil-*) et le CLI Rust
 | `zanvil-list` | Liste les outils installés avec versions (format tableau) |
 | `zanvil-doctor` | Diagnostic complet de l'installation (compact) |
 | `zanvil-status` | Statut rapide (version, modules, git) |
-| `zanvil-profile` | Profile le temps de démarrage par module |
+| `zanvil-doctor-conflicts` | Signale les alias, fonctions et exports déclarés deux fois |
+| `zanvil-bench [--quick\|--runs N]` | Temps de démarrage par module ; `--quick` donne le total seul |
 | `zanvil-benchmark [n]` | Benchmark sur n exécutions (défaut: 5) |
 | `zanvil-audit` | Audit de sécurité des permissions (compact) |
 | `zanvil-audit-fix` | Corrige automatiquement les permissions |
-| `zanvil-theme [nom]` | Gère les thèmes unifiés (Starship + palette) |
-| `zanvil-ghostty [nom\|sync]` | Gère les thèmes Ghostty |
+| `zanvil-secrets-scan [dir]` | Cherche des secrets (clés, jetons, mots de passe) dans un dépôt ; `--history` pour l'historique git, `--bulk` pour tous les dépôts d'un dossier, `--include`/`--exclude` pour filtrer |
+| `zanvil-theme [nom]` | Gère les thèmes unifiés (Starship + palette) ; `preview <nom>` montre un thème sans l'appliquer |
+| `zanvil-ghostty [nom\|sync\|auto]` | Gère les thèmes Ghostty ; `auto` suit l'apparence de macOS (`ZANVIL_GHOSTTY_LIGHT`, `ZANVIL_GHOSTTY_DARK`) |
 | `zanvil-dotfiles [sous-commande]` | Dépôt dotfiles : Brewfiles et liens Stow (voir ci-dessous) |
 | `zanvil-completions` | Charge les auto-complétions |
 | `zanvil-completion-add` | Ajoute une complétion personnalisée |
 | `zanvil-completion-remove` | Supprime une complétion personnalisée |
 | `zanvil-update` | Force la mise à jour |
+| `zanvil-migrate [--list\|--status]` | Applique les migrations de configuration en attente |
+| `zanvil-sync export\|import\|diff [fichier]` | Exporte ou importe la config portable (modules, thème, plugins, mise à jour) en JSON, sans secrets ; `diff` compare avec un export |
+| `zanvil-trust` | Autorise le `.zanvil.local` du dossier courant |
 | `zanvil-help` | Affiche l'aide (format tableau) |
 | `zanvil-modules list` | Liste les modules disponibles et leur statut |
 | `zanvil-modules enable <nom>` | Active un module |
@@ -80,11 +85,22 @@ Tout fichier retiré de `$HOME` est **déplacé** dans `~/.zanvil-backup/<AAAAMM
 
 | Commande | Description |
 |----------|-------------|
-| `zanvil theme` | Gestion des thèmes (list, apply, preview) |
+| `zanvil theme` | Gestion des thèmes (list, apply, current) |
 | `zanvil doctor` | Diagnostic complet en Rust (rapide) |
 | `zanvil audit` | Audit de sécurité avancé |
-| `zanvil context` | Génération de contexte projet |
+| `zanvil context` | Contexte Kubernetes (alias/namespace) affiché dans le prompt Starship |
 | `zanvil modules` | Gestion des modules (list, enable, disable) |
+| `zanvil bench [-r N]` | Temps de démarrage du shell sur N exécutions (défaut : 5) |
+| `zanvil sync` | Export, import et comparaison de la config (export, import, diff) |
+| `zanvil update [--check]` | Met à jour zanvil ; `--check` vérifie seulement |
+| `zanvil secrets` | Cherche des secrets dans un dossier |
+| `zanvil conflicts` | Déclarations en double dans les fichiers zsh (appelé par `zanvil-doctor-conflicts`) |
+| `zanvil es window` | Calcule la fenêtre temporelle d'une requête Elasticsearch |
+| `zanvil explore` | Explorateur de projets (voir [Explorateur](#explorateur-module-work)) |
+| `zanvil mr-fanout` | Moteur de `zanvil-mr-fanout` |
+| `zanvil config` | Interface de configuration interactive (TUI) |
+
+Les fonctions zsh délèguent au CLI quand il est installé, et gardent un repli en zsh sinon.
 
 ## Project
 
@@ -118,12 +134,15 @@ builds) ; la référence ajoutée dans Orca, elle, reste. Pour ouvrir la MR copi
 
 | Commande | Description |
 |----------|-------------|
-| `zanvil-gitlab-status` | Affiche le statut des pipelines GitLab |
-| `zanvil-gitlab-browse` | Ouvre le projet GitLab dans le navigateur |
-| `gpr` | Alias pour créer une merge request GitLab |
-| `clone-projects [--dry-run] [--parallel]` | Clone en masse des projets GitLab |
-| `gclone <clé\|group-id>` | Clone un groupe GitLab depuis `$WORK_DIR` et s'y positionne |
-| `git-bulk [--dry-run]` | Opérations Git en masse sur plusieurs repos |
+| `zanvil-gitlab-status` | Affiche le statut du jeton GitLab (PAT) : portées, expiration, dernier usage |
+| `zanvil-gitlab-browse [-m\|-p\|-i]` | Ouvre le projet GitLab dans le navigateur (`-m` MR, `-p` pipelines, `-i` issues) |
+| `gpr` | Ouvre la liste des merge requests du projet (`zanvil-gitlab-browse -m`) |
+| `gclone <clé\|group-id> [--dry-run] [--parallel]` | Clone un groupe GitLab depuis `$WORK_DIR` et s'y positionne (s'appuie sur `scripts/clone-projects.sh`) |
+| `zanvil-git-bulk [action] [dossier]` | Opérations Git en masse sur plusieurs repos (`status`, `pull`, `checkout`, `log`…) |
+| `zanvil-pipeline-bulk [status\|trigger\|watch] [dossier]` | Dernier pipeline, déclenchement ou suivi sur chaque repo d'un dossier ; `-b` branche, `-f`/`-s` filtre, `-w` suit après `trigger` |
+| `zanvil-mr-fanout` | Propage un commit, un range ou le diff courant en MR/PR sur plusieurs branches d'environnement (`--target`, `--all`, `--dry-run`) |
+
+`zanvil-mr-fanout` demande le CLI Rust. Alias : `mrfo`, `mrfan`. Pour `zanvil-pipeline-bulk` : `gpbs`, `gpbt`, `gpbw`.
 
 ## Navigation
 
@@ -153,7 +172,8 @@ builds) ; la référence ajoutée dans Orca, elle, reste. Pour ouvrir la MR copi
 
 `klog` accepte `--no-follow`, `-p` pour le conteneur précédent après un crash, `-n` pour le namespace,
 `--tail N` (100 par défaut), `-g` pour filtrer par expression régulière, `-A` pour tous les pods du même
-label `app=`, et `-t` pour les horodatages `kubectl`. Il affiche le JSON tel quel : le rendu formaté est
+label `app=`, `-t` pour les horodatages `kubectl`, et `-o`/`--save <fichier>` pour copier la sortie dans un
+fichier. `-f`/`--follow` rétablit le suivi continu. Il affiche le JSON tel quel : le rendu formaté est
 du ressort des plugins k9s.
 
 Les trois plugins de logs k9s — `Shift-L`, `Ctrl-L` et `Ctrl-R` — ont leur propre page :
@@ -251,6 +271,7 @@ get_merch_product -p 1234567 --productpage
 |----------|-------------|
 | `dex [container]` | Exec dans un conteneur (fzf) |
 | `dstop` | Arrête tous les conteneurs |
+| `zanvil-docker-clean [--apply] [--all]` | Liste ce qui peut être nettoyé (conteneurs arrêtés, images orphelines, volumes, réseaux) ; `--apply` exécute, `--all` ajoute images inutilisées et cache de build. Alias `dclean` |
 
 ## Utilitaires
 
