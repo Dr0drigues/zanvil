@@ -27,9 +27,6 @@ _zanvil_lazy_load_module() {
     shift 2
     local init_file="$ZANVIL_DIR/modules/$module/init.zsh"
     [[ -f "$init_file" ]] && source "$init_file"
-    # Charger aussi les completions
-    local comp_file="$ZANVIL_DIR/modules/$module/completions.zsh"
-    [[ -f "$comp_file" ]] && source "$comp_file"
     "$func" "$@"
 }
 
@@ -52,6 +49,9 @@ for _module_dir in "$ZANVIL_DIR/modules"/*/(N) "$ZANVIL_DIR/modules"/*/*/(N); do
             [[ -z "$_fn_name" || "$_fn_name" == \#* ]] && continue
             eval "${_fn_name}() { _zanvil_lazy_load_module '${_module_rel}' '${_fn_name}' \"\$@\"; }"
         done < "$_module_dir/.lazy"
+        # Completions des maintenant (des compdef, rien d'autre) : chargees seulement au premier
+        # appel, `ai-tokens <TAB>` ne proposait rien avant.
+        [[ -f "$_module_dir/completions.zsh" ]] && source "$_module_dir/completions.zsh"
         continue
     fi
 

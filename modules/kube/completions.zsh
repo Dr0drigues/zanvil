@@ -127,3 +127,7 @@ _ks() {
     (( $+functions[_stern] )) && _stern "$@"
 }
 compdef _ks ks
+
+compdef _nothing kube_gcp
+_kube_aws() { _arguments '1:cluster EKS:' }
+compdef _kube_aws kube_aws

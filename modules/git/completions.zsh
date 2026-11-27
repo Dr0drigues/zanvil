@@ -62,3 +62,27 @@ compdef _hooks_cmd hooks_remove
 compdef _hooks_cmd hooks_disable
 compdef _hooks_cmd hooks_enable
 compdef _hooks_cmd hooks_edit
+
+_zanvil_mr_fanout() {
+    _arguments \
+        '(-m --mode)'{-m,--mode}'[Strategie]:mode:((cherry\:"HEAD" range\:"<from>..HEAD" patch\:"diff du worktree"))' \
+        '--from[Base du range]:revision:' \
+        '*'{-t,--target}'[Branche cible]:branche:->branches' \
+        '--all[Toutes les branches sans prompt]' \
+        '(-T --title)'{-T,--title}'[Titre de la MR]:titre:' \
+        '(-D --description)'{-D,--description}'[Description]:texte:' \
+        '--description-file[Description depuis un fichier]:fichier:_files' \
+        '--branch-prefix[Prefixe des branches]:prefixe:' \
+        '--no-push[Branches locales seulement]' \
+        '--no-mr[Push sans MR]' \
+        '(-n --dry-run)'{-n,--dry-run}'[Simulation]' \
+        '--draft[MR en draft]' \
+        '--strict[Arret au premier echec]' \
+        '--commit[Commit a cherry-picker]:sha:' \
+        '--pull[Fetch avant]' \
+        '--update[Mettre a jour les branches existantes]' \
+        '--pattern[Motif des branches cibles]:motif:' \
+        '(-h --help)'{-h,--help}'[Aide]'
+    [[ "$state" == branches ]] && { local -a br=(${(f)"$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes 2>/dev/null)"}); _describe branche br; }
+}
+compdef _zanvil_mr_fanout zanvil-mr-fanout

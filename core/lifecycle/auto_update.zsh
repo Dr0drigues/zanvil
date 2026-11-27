@@ -308,6 +308,12 @@ _zanvil_update_ask() {
 
 # Commande manuelle pour forcer la mise a jour
 zanvil-update() {
+    # -h lancait la mise a jour.
+    if (( $# )); then
+        [[ "$1" == (-h|--help) ]] || _ui_msg_fail "Argument inattendu : $1"
+        echo "Usage: zanvil-update    Recupere origin/main et applique une avance rapide de main"
+        [[ "$1" == (-h|--help) ]]; return
+    fi
     _ui_header "Zanvil Update"
 
     echo -e "Verification des mises a jour..."

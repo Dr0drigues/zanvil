@@ -5,7 +5,7 @@
 if ! (( $+functions[compdef] )); then return 0; fi
 
 _zanvil_theme() {
-    local themes_dir="${ZANVIL_DIR:-$HOME/.zanvil}/themes"
+    local themes_dir="${ZANVIL_DIR:-$HOME/.zanvil}/config/themes"
     local -a themes=()
     # Directory themes
     for d in "$themes_dir"/*/prompt.toml(N); do
@@ -21,7 +21,6 @@ _zanvil_theme() {
         'list:Lister les themes disponibles'
         'current:Afficher le theme actuel'
         'apply:Appliquer un theme'
-        'preview:Apercu sans appliquer'
         'auto:Auto dark/light'
     )
 
@@ -47,12 +46,9 @@ _zanvil_completion_add() {
 compdef _zanvil_completion_add zanvil-completion-add
 
 _zanvil_completion_remove() {
-    local completions_dir="${ZANVIL_DIR:-$HOME/.zanvil}/completions.d"
-    local completions=()
-
-    if [[ -d "$completions_dir" ]]; then
-        completions=(${(f)"$(ls "$completions_dir" 2>/dev/null | sed 's/^_//')"})
-    fi
+    # Meme lecture que zanvil-completion-remove : les entrees "nom:commande" de completions.zsh.
+    local -a completions
+    completions=(${(f)"$(sed -n 's/^[[:space:]]*"\([^:"]*\):.*/\1/p' "${ZANVIL_DIR:-$HOME/.zanvil}/completions.zsh" 2>/dev/null)"})
 
     _arguments \
         '1:completion:(${completions[@]})'
@@ -137,3 +133,28 @@ _zanvil_docker_clean() {
         '--all[Inclure images non-dangling et build cache]'
 }
 compdef _zanvil_docker_clean zanvil-docker-clean dclean
+
+_zanvil_ghostty() {
+    local -a themes=(${${(f)"$(command ls "${ZANVIL_DIR:-$HOME/.zanvil}/config/ghostty/themes" 2>/dev/null)"}})
+    _alternative \
+        'actions:action:((list\:"Lister les themes" sync\:"Suivre le theme zanvil" auto\:"Clair/sombre selon le systeme"))' \
+        "themes:theme:(${themes[*]})"
+}
+compdef _zanvil_ghostty zanvil-ghostty
+
+_zanvil_restore() {
+    local -a backups=(${(f)"$(command ls "${ZANVIL_DIR:-$HOME/.zanvil}/backups" 2>/dev/null)"})
+    _arguments "1:backup:(${backups[*]})"
+}
+compdef _zanvil_restore zanvil-restore
+
+_zanvil_migrate() {
+    _arguments '1:action:((run\:"Appliquer les migrations" --list\:"Lister" --status\:"Etat" --help\:"Aide"))'
+}
+compdef _zanvil_migrate zanvil-migrate
+
+_zanvil_trust() { _arguments '1:fichier .zanvil.local:_files' }
+compdef _zanvil_trust zanvil-trust
+
+# Commandes sans argument : rien a proposer (et pas des noms de fichiers).
+compdef _nothing zanvil-backup zanvil-config-reset zanvil-doctor-conflicts zanvil-audit zanvil-audit-fix zanvil-update

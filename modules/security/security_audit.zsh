@@ -34,6 +34,11 @@ _audit_check_perms() {
 
 # Audit principal
 zanvil-audit() {
+    if [[ "$1" == (-h|--help) ]]; then
+        echo "Usage: zanvil-audit        Verifie permissions (ssh, kube, secrets) et secrets en clair"
+        echo "       zanvil-audit-fix    Corrige les permissions trouvees par l'audit"
+        return 0
+    fi
     if command -v zanvil &>/dev/null; then
         zanvil audit; return $?
     fi
@@ -217,6 +222,12 @@ zanvil-audit() {
 
 # Corrige automatiquement les permissions
 zanvil-audit-fix() {
+    # --help lancait les chmod : la commande n'a pas d'argument, tout argument est refuse.
+    if (( $# )); then
+        [[ "$1" == (-h|--help) ]] || _ui_msg_fail "Argument inattendu : $1"
+        echo "Usage: zanvil-audit-fix    Corrige les permissions trouvees par zanvil-audit (~/.ssh, kube, secrets)"
+        [[ "$1" == (-h|--help) ]]; return
+    fi
     _ui_header "Zanvil Security Fix"
 
     local fixed=0

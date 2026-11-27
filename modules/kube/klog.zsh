@@ -12,6 +12,11 @@
 #   -t / --timestamps    ajouter les timestamps kubectl
 #   -o / --save FILE     tee vers un fichier
 klog() {
+    # Avant tout : sans ce cas, -h etait pris pour un nom de pod.
+    if [[ "$1" == (-h|--help) ]]; then
+        sed -n '/^# Usage: klog/,/^[^#]/p' "$ZANVIL_DIR/modules/kube/klog.zsh" | sed '$d; s/^# \{0,1\}//'
+        return 0
+    fi
     _kube_check_deps || return 1
 
     local follow=true previous=false tail=100 ns=""

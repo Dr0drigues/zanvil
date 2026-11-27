@@ -346,6 +346,15 @@ esac
     ;;
 esac
 ;;
+(explore)
+_arguments "${_arguments_options[@]}" : \
+'--out=[Fichier ou ecrire le chemin choisi]:OUT:_files' \
+'--settings=[Fichier de reglages (defaut \: \$XDG_CONFIG_HOME/zanvil/projects.toml)]:SETTINGS:_files' \
+'--refresh[Rafraichit l'\''index et sort]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (mr-fanout)
 _arguments "${_arguments_options[@]}" : \
 '-m+[Strategie de propagation]:MODE:((cherry\:"Cherry-pick le commit HEAD sur chaque branche cible"
@@ -538,6 +547,10 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(explore)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (mr-fanout)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -575,10 +588,11 @@ _zanvil_commands() {
 'sync:Sync configuration between machines' \
 'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
-'conflicts:Fan-out a change as a MR/PR across multiple env branches Report duplicate declarations across the project'\''s zsh files' \
+'conflicts:Report duplicate declarations across the project'\''s zsh files' \
 'convert:Date conversions the shell functions call. Cachee \: primitive, pas commande' \
 'es:Elasticsearch query helpers' \
-'mr-fanout:' \
+'explore:Explorateur de projets a deux volets' \
+'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
 'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -656,6 +670,11 @@ _zanvil__es__window_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil es window commands' commands "$@"
 }
+(( $+functions[_zanvil__explore_commands] )) ||
+_zanvil__explore_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil explore commands' commands "$@"
+}
 (( $+functions[_zanvil__help_commands] )) ||
 _zanvil__help_commands() {
     local commands; commands=(
@@ -668,10 +687,11 @@ _zanvil__help_commands() {
 'sync:Sync configuration between machines' \
 'update:Self-update zanvil' \
 'secrets:Scan for leaked secrets' \
-'conflicts:Fan-out a change as a MR/PR across multiple env branches Report duplicate declarations across the project'\''s zsh files' \
+'conflicts:Report duplicate declarations across the project'\''s zsh files' \
 'convert:Date conversions the shell functions call. Cachee \: primitive, pas commande' \
 'es:Elasticsearch query helpers' \
-'mr-fanout:' \
+'explore:Explorateur de projets a deux volets' \
+'mr-fanout:Fan-out a change as a MR/PR across multiple env branches' \
 'config:Interactive configuration TUI' \
 'completions:Generate shell completions' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -729,6 +749,11 @@ _zanvil__help__es_commands() {
 _zanvil__help__es__window_commands() {
     local commands; commands=()
     _describe -t commands 'zanvil help es window commands' commands "$@"
+}
+(( $+functions[_zanvil__help__explore_commands] )) ||
+_zanvil__help__explore_commands() {
+    local commands; commands=()
+    _describe -t commands 'zanvil help explore commands' commands "$@"
 }
 (( $+functions[_zanvil__help__help_commands] )) ||
 _zanvil__help__help_commands() {
