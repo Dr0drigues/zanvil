@@ -2,3 +2,4 @@
 
 source "$ZANVIL_DIR/modules/ai/ai_context.zsh"
 source "$ZANVIL_DIR/modules/ai/ai_tokens.zsh"
+source "$ZANVIL_DIR/modules/ai/claude_hooks.zsh"

@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #158 (D) : ai_claude_hooks ajoute ses hooks a settings.json sans toucher aux autres, une
+# seule fois meme installe deux fois, et `uninstall` rend le fichier d'origine. Le script de
+# hook tient la liste des sessions en attente (Notification/Stop) et la vide a la reprise
+# (UserPromptSubmit) ; un session_id douteux est ignore.
+name: claude-hooks-merge-and-track-waiting-sessions
+weight: 8
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "modules/ai/claude_hooks.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      w=$(mktemp -d); export CLAUDE_CONFIG_DIR=$w/claude XDG_CACHE_HOME=$w/cache; mkdir -p $CLAUDE_CONFIG_DIR
+      print '{"model":"x","hooks":{"Notification":[{"matcher":"permission_prompt","hooks":[{"type":"command","command":"echo deja"}]}]}}' > $CLAUDE_CONFIG_DIR/settings.json
+      cp $CLAUDE_CONFIG_DIR/settings.json $w/orig.json
+      ai_claude_hooks install >/dev/null; ai_claude_hooks install >/dev/null
+      echo "notif=$(jq '.hooks.Notification | length' $CLAUDE_CONFIG_DIR/settings.json) stop=$(jq '.hooks.Stop | length' $CLAUDE_CONFIG_DIR/settings.json) deja=$(grep -c 'echo deja' $CLAUDE_CONFIG_DIR/settings.json)"
+      h=$ZANVIL_DIR/scripts/claude-bar-hook.sh
+      print '{"session_id":"abc-123","cwd":"/x/mon-projet"}' | $h waiting
+      print '{"session_id":"../evil","cwd":"/x"}' | $h waiting
+      echo "attente=$(ls $XDG_CACHE_HOME/zanvil/claude | tr '\n' ' ')projet=$(cat $XDG_CACHE_HOME/zanvil/claude/abc-123)"
+      print '{"session_id":"abc-123"}' | $h working
+      echo "apres_reprise=$(ls $XDG_CACHE_HOME/zanvil/claude | wc -l | tr -d ' ')"
+      ai_claude_hooks uninstall >/dev/null
+      echo "restaure=$(cmp -s <(jq -S . $w/orig.json) <(jq -S . $CLAUDE_CONFIG_DIR/settings.json) && echo oui)"
+      rm -rf $w
+expect:
+  exit_code: 0
+  stdout:
+    contains:
+      - "notif=2 stop=1 deja=1"
+      - "attente=abc-123 projet=mon-projet"
+      - "apres_reprise=0"
+      - "restaure=oui"
