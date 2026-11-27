@@ -109,6 +109,15 @@ echo 'export NODE_ENV=development' > /path/to/project/.zanvil.local
 # Après approbation, il sera chargé automatiquement
 ```
 
+L'invite d'approbation affiche le fichier **en entier** : c'est exactement ce texte qui est
+haché puis exécuté. Toute modification redemande une approbation (`zanvil-trust` pour
+approuver le fichier du dossier courant).
+
+En sortant du dossier (ou en entrant dans un autre dossier qui a son propre `.zanvil.local`),
+l'environnement d'avant est restauré : une variable ajoutée est retirée, une variable
+modifiée comme `PATH` reprend sa valeur précédente. Les sous-dossiers gardent le fichier
+chargé ; un dossier voisin au nom proche (`app-prod` à côté de `app`) ne le garde pas.
+
 ## Profils d'environnement
 
 Les profils permettent de basculer entre différents jeux de configuration :

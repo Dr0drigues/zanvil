@@ -29,6 +29,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── variables.zsh   # Variables d'environnement
 │   ├── aliases.zsh     # Alias globaux
 │   ├── hooks.zsh       # Init outils (starship, fzf, mise, zoxide, direnv, .zanvil.local)
+│   ├── zanvil_local.zsh # Fonctions .zanvil.local (trust, load/unload avec restauration)
 │   ├── completions.zsh # Completions des commandes core
 │   ├── commands/       # Commandes zanvil-* (admin, commands, theme, setup, check_env_deps, dotfiles)
 │   └── lifecycle/      # Migration, sync, auto-update (auto_update, migrate, sync) ; auto-update en arriere-plan (ff-only de main) + rechargement des shells ouverts au precmd
@@ -147,7 +148,8 @@ Utilise par : `kube_switch`, `k` (sofka ou k9s selon `ZANVIL_KUBE_TUI`, `kube_tu
 ### .zanvil.local (direnv-like)
 
 Fichier `.zanvil.local` a la racine d'un projet, auto-source au `cd`.
-Trust hash-based (sha256). Auto-unload en sortant du dossier.
+Fonctions dans `core/zanvil_local.zsh` (definitions seules) ; `hooks.zsh` enregistre le hook chpwd et fait le chargement initial.
+Trust hash-based (sha256) du contenu lu une seule fois, affiche en entier avant autorisation, puis `eval` de ce meme texte. Au dechargement (sortie du dossier ou de ses sous-dossiers, ou autre `.zanvil.local`), les variables exportees retrouvent leur valeur d'avant (ajoutees retirees, modifiees restaurees).
 
 ## Systeme UI (`core/ui.zsh`)
 
