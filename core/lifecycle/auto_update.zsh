@@ -5,7 +5,9 @@
 #   auto   (defaut) au demarrage, seule la lecture de l'horodatage tourne au premier plan ;
 #          quand la verification est due, _zanvil_update_background s'execute en arriere-plan
 #          (verrou .update.lock, journal .update.log) et n'applique qu'une avance rapide de main.
-#   prompt comportement historique : demande avant de mettre a jour.
+#   prompt le fetch tourne en arriere-plan et pose le marqueur .update_available ; la question
+#          est posee au premier plan par le precmd (un `read` en arriere-plan recoit SIGTTIN et
+#          reste arrete pour toujours).
 #   off    rien (ni verification ni rechargement).
 # Rechargement : a chaque invite, _zanvil_update_precmd compare la revision chargee a celle du
 # depot (lecture de .git/HEAD, du ref ou de packed-refs : aucun fork) et recharge comme `ss`
@@ -18,6 +20,7 @@ zmodload -F zsh/datetime p:EPOCHSECONDS
 # Fichier pour stocker la date de derniere verification
 ZANVIL_UPDATE_FILE="$ZANVIL_DIR/.last_update_check"
 _ZANVIL_UPDATE_LOCK="$ZANVIL_DIR/.update.lock"
+_ZANVIL_UPDATE_AVAILABLE="$ZANVIL_DIR/.update_available"
 
 # Fonction pour verifier si une mise a jour est necessaire (lecture de fichier, aucun fork)
 _zanvil_should_check_update() {
@@ -274,34 +277,33 @@ _zanvil_show_changes() {
     fi
 }
 
-# Mode prompt : verification puis question
-_zanvil_auto_update() {
-    # Verifier si on doit checker
-    _zanvil_should_check_update || return 0
+# Mode prompt, arriere-plan : fetch seulement, marqueur si une mise a jour attend.
+_zanvil_update_prompt_fetch() {
+    _zanvil_check_update && : >| "$_ZANVIL_UPDATE_AVAILABLE"
+}
 
-    # Mettre a jour le timestamp
-    print -r -- "$EPOCHSECONDS" >| "$ZANVIL_UPDATE_FILE"
+# Mode prompt, premier plan (precmd) : question puis mise a jour. Rien si main a deja rejoint
+# origin/main entre-temps (zanvil-update lance a la main).
+_zanvil_update_ask() {
+    [[ "$(git -C "$ZANVIL_DIR" rev-parse HEAD 2>/dev/null)" != "$(git -C "$ZANVIL_DIR" rev-parse origin/main 2>/dev/null)" ]] || return 0
+    echo ""
+    echo -e "${_ui_yellow}[zanvil]${_ui_nc} Une mise a jour est disponible!"
+    _zanvil_show_changes
+    echo ""
 
-    # Verifier les mises a jour disponibles
-    if _zanvil_check_update; then
-        echo ""
-        echo -e "${_ui_yellow}[zanvil]${_ui_nc} Une mise a jour est disponible!"
-        _zanvil_show_changes
-        echo ""
-
-        echo -n "Mettre a jour maintenant ? [y/N] "
-        read -r answer
-        if [[ "$answer" =~ ^[yYoO]$ ]]; then
-            if _zanvil_update_lock; then
-                { _zanvil_do_update } always { _zanvil_update_unlock }
-            else
-                echo -e "${_ui_yellow}[zanvil]${_ui_nc} Mise a jour deja en cours."
-            fi
+    local answer
+    echo -n "Mettre a jour maintenant ? [y/N] "
+    read -r answer
+    if [[ "$answer" =~ ^[yYoO]$ ]]; then
+        if _zanvil_update_lock; then
+            { _zanvil_do_update } always { _zanvil_update_unlock }
         else
-            echo -e "${_ui_blue}[zanvil]${_ui_nc} Mise a jour reportee. Lancez ${_ui_bold}zanvil-update${_ui_nc} pour mettre a jour manuellement."
+            echo -e "${_ui_yellow}[zanvil]${_ui_nc} Mise a jour deja en cours."
         fi
-        echo ""
+    else
+        echo -e "${_ui_blue}[zanvil]${_ui_nc} Mise a jour reportee. Lancez ${_ui_bold}zanvil-update${_ui_nc} pour mettre a jour manuellement."
     fi
+    echo ""
 }
 
 # Commande manuelle pour forcer la mise a jour
@@ -346,6 +348,11 @@ _zanvil_update_rev() {
 # Attend la fin d'une mise a jour en cours (verrou frais). `sched +0` execute `ss` au niveau
 # global : sourcer .zshrc depuis une fonction rendrait locaux ses typeset (PATH, tableaux).
 _zanvil_update_precmd() {
+    # Mode prompt : un seul shell pose la question (le premier qui retire le marqueur).
+    if [[ "$ZANVIL_UPDATE_MODE" == prompt && -e "$_ZANVIL_UPDATE_AVAILABLE" ]] \
+        && command rm "$_ZANVIL_UPDATE_AVAILABLE" 2>/dev/null; then
+        _zanvil_update_ask
+    fi
     [[ "$ZANVIL_UPDATE_RELOAD" == false || "$ZANVIL_UPDATE_MODE" == off ]] && return 0
     _zanvil_update_rev
     [[ "$REPLY" == "$_ZANVIL_LOADED_REV" ]] && return 0
@@ -369,8 +376,10 @@ _zanvil_update_startup() {
             _zanvil_update_background </dev/null >|"$ZANVIL_DIR/.update.log" 2>&1 &!
             ;;
         prompt)
-            # un `a && b &!` mettrait toute la liste en arriere-plan : le test reste au premier plan
-            if _zanvil_should_check_update; then _zanvil_auto_update &!; fi
+            _zanvil_should_check_update || return 0
+            print -r -- "$EPOCHSECONDS" >| "$ZANVIL_UPDATE_FILE"
+            [[ -d "$ZANVIL_DIR/.git" ]] || return 0
+            _zanvil_update_prompt_fetch </dev/null >/dev/null 2>&1 &!
             ;;
     esac
 }

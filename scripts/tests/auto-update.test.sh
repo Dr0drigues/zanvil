@@ -259,6 +259,21 @@ for i in $(seq 1 100); do [[ "$(head_is_origin)" == oui && ! -d "$Z/.update.lock
 head_is_origin | assert_equals "demarrage reel : mise a jour appliquee en arriere-plan" "oui"
 grep -c "zanvil mis à jour" "$Z/.update.log" | assert_equals "journal .update.log ecrit" "1"
 
+echo "mode prompt (#153) : fetch en arriere-plan, question au premier plan"
+fixture; advance
+rm -f "$Z/.last_update_check"
+# Demarrage : aucune question ni read en arriere-plan, seulement le marqueur.
+env HOME="$H" ZANVIL_DIR="$Z" PATH="$TPATH" zsh -f -c "source '$ROOT/core/ui.zsh'; ZANVIL_UPDATE_MODE=prompt; source '$ROOT/core/lifecycle/auto_update.zsh'" </dev/null >/dev/null 2>&1
+for i in $(seq 1 100); do [[ -e "$Z/.update_available" ]] && break; sleep 0.05; done
+{ [[ -e "$Z/.update_available" ]] && echo pose; } | assert_equals "marqueur pose par le fetch d'arriere-plan" "pose"
+head_is_origin | assert_equals "rien applique sans reponse" "non"
+echo n | zu 'ZANVIL_UPDATE_MODE=prompt; _zanvil_update_precmd' | grep -c 'reportee' | assert_equals "precmd : question posee, refus" "1"
+{ [[ -e "$Z/.update_available" ]] && echo present || echo retire; } | assert_equals "marqueur retire : une seule question" "retire"
+echo n | zu 'ZANVIL_UPDATE_MODE=prompt; _zanvil_update_precmd' | grep -c 'disponible' | assert_equals "sans marqueur : pas de question" "0"
+: > "$Z/.update_available"
+echo y | zu 'ZANVIL_UPDATE_MODE=prompt; ZANVIL_UPDATE_RELOAD=false; _zanvil_update_precmd' >/dev/null
+head_is_origin | assert_equals "accord : mise a jour appliquee" "oui"
+
 echo
 printf '  %s ok, %s echec(s)\n' "$(cat "$TEST_TMPDIR/pass")" "$(cat "$TEST_TMPDIR/fail")"
 [[ "$(cat "$TEST_TMPDIR/fail")" == 0 ]]
