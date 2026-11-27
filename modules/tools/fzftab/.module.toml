@@ -1,0 +1,3 @@
+guard = "ZANVIL_MODULE_FZFTAB"
+description = "Apercus fzf-tab (dossiers, git, processus) aux couleurs du theme"
+default = false

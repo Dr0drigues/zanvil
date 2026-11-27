@@ -1,0 +1,3 @@
+guard = "ZANVIL_MODULE_ABBR"
+description = "zanvil-abbr : alias de plusieurs mots en abreviations zsh-abbr"
+default = false
