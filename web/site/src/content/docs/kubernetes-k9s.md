@@ -27,6 +27,22 @@ k app-dev default       # sofka ou k9s sur un contexte et un namespace
 k app-dev all           # tous les namespaces
 ```
 
+## Contextes protégés
+
+Sur un contexte protégé, une commande `kubectl` qui modifie le cluster (`apply`, `create`,
+`delete`, `edit`, `patch`, `replace`, `scale`, `drain`, `cordon`, `taint`, `label`, `annotate`,
+`set`, `rollout restart|undo`…) demande de **retaper le nom du contexte** ou son alias avant de
+partir. La lecture seule (`get`, `describe`, `logs`, `rollout status`) et `--dry-run` passent
+sans question ; `--context` explicite est pris en compte.
+
+```zsh
+ZANVIL_KUBE_PROTECTED='*prod*|*prd*'   # défaut ; motif zsh, vide pour désactiver
+```
+
+Sans terminal pour répondre, la commande est refusée. Le garde ne vaut que pour `kubectl` tapé
+dans le shell : un script appelle le vrai binaire. Si [kubecolor](https://github.com/kubecolor/kubecolor)
+est installé, la sortie est colorée quand elle va vers un terminal.
+
 ## Déployer les plugins
 
 ```bash

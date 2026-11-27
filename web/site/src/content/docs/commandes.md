@@ -276,6 +276,11 @@ get_merch_product -p 1234567 --productpage
 | `hooks_enable <hook>` | Active un hook |
 | `hooks_disable <hook>` | Désactive un hook |
 
+Le hook `pre-commit` installé par `hooks_install_precommit` analyse d'abord les changements
+indexés avec [gitleaks](https://github.com/gitleaks/gitleaks), s'il est installé : un secret
+(clé, jeton, `.env`) bloque le commit, avec les valeurs masquées. `git commit --no-verify`
+passe outre.
+
 ## Docker
 
 | Commande | Description |

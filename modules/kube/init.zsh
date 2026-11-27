@@ -3,3 +3,4 @@
 source "$ZANVIL_DIR/modules/kube/kube_config.zsh"
 source "$ZANVIL_DIR/modules/kube/klog.zsh"
 source "$ZANVIL_DIR/modules/kube/stern.zsh"
+source "$ZANVIL_DIR/modules/kube/kube_guard.zsh"
