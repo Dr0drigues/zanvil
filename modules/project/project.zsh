@@ -267,11 +267,51 @@ _project_clean_daily() {
     _project_clean --quiet </dev/null &>/dev/null &!
 }
 
+# _project_inbox_list : MR ouvertes ou l'on est relecteur ou assigne, une par ligne :
+# role<TAB>reference<TAB>titre<TAB>auteur<TAB>etat<TAB>lien. Hote : GITLAB_BASE_DOMAIN, sinon celui
+# de glab. Une MR a la fois relecteur et assigne n'apparait qu'une fois (relecteur d'abord).
+_project_inbox_list() {
+    local me json role param
+    local -a host
+    [[ -n "${GITLAB_BASE_DOMAIN:-}" ]] && host=(env GITLAB_HOST="$GITLAB_BASE_DOMAIN")
+    me=$("${host[@]}" glab api user 2>/dev/null | jq -r '.username // empty') || return 1
+    [[ -n "$me" ]] || return 1
+    for role param in relecteur reviewer_username assigne assignee_username; do
+        json=$("${host[@]}" glab api "merge_requests?scope=all&state=opened&per_page=100&${param}=${me}" 2>/dev/null) || return 1
+        print -r -- "$json" | jq -r --arg role "$role" '.[] | [$role, .references.full, .title,
+            .author.username,
+            (if .draft then "draft" elif .has_conflicts then "conflits" else (.detailed_merge_status // .merge_status // "") end),
+            .web_url] | @tsv'
+    done | awk -F'\t' '!seen[$6]++'
+}
+
+# project inbox : liste les MR a relire ou assignees ; avec fzf et un terminal, Entree ouvre
+# la MR choisie avec project open.
+_project_inbox() {
+    command -v glab &>/dev/null || { _ui_msg_fail "glab introuvable"; return 1; }
+    command -v jq &>/dev/null || { _ui_msg_fail "jq introuvable"; return 1; }
+    local list
+    list=$(_project_inbox_list) || { _ui_msg_fail "GitLab injoignable ou glab non authentifie (glab auth status)"; return 1; }
+    if [[ -z "$list" ]]; then
+        _ui_msg_ok "Aucune MR a relire ni assignee"
+        return 0
+    fi
+    if [[ -t 0 && -t 1 ]] && command -v fzf &>/dev/null; then
+        local pick
+        pick=$(print -r -- "$list" | fzf --delimiter=$'\t' --with-nth=1..5 --header="Entree : project open" \
+            --prompt="MR > ") || return 0
+        _project_open "${pick##*$'\t'}"
+    else
+        print -r -- "$list" | awk -F'\t' '{printf "%-9s %-40s %-12s %s\n    %s  %s\n", $1, $2, $5, $3, $4, $6}'
+    fi
+}
+
 _project_help() {
     _ui_header "project"
     print "  project                     ouvre l'explorateur de projets (module work)"
     print "  project open <lien-de-MR>   ouvre la MR dans un worktree sous \$WORK_DIR"
     print "  project clean               supprime les worktrees des MR terminees"
+    print "  project inbox               MR a relire ou assignees ; Entree les ouvre (fzf)"
     print "  project help                cette aide"
 }
 
@@ -284,7 +324,7 @@ project() {
     local sub="$1"
     shift
     case "$sub" in
-        open|clean) "_project_$sub" "$@" ;;
+        open|clean|inbox) "_project_$sub" "$@" ;;
         help|-h|--help) _project_help ;;
         *) _ui_msg_fail "sous-commande inconnue : $sub"; _project_help; return 1 ;;
     esac
