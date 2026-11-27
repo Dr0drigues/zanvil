@@ -24,6 +24,8 @@ ZANVIL_MODULE_ATUIN=false      # Historique shell enrichi SQLite (atuin)
 ZANVIL_MODULE_POSTING=true     # Client HTTP TUI (posting)
 ZANVIL_MODULE_FASTFETCH=true   # Fiche systeme aux couleurs du theme (zfetch)
 ZANVIL_MODULE_SCREENSAVER=false # Economiseur bonsai aux couleurs du theme (zsaver)
+ZANVIL_MODULE_FZFTAB=false     # Apercus fzf-tab (Aloxaf/fzf-tab dans ZANVIL_PLUGINS, avant zsh-autosuggestions)
+ZANVIL_MODULE_ABBR=false       # zanvil-abbr : alias de plusieurs mots en abreviations (olets/zsh-abbr)
 # ZANVIL_SCREENSAVER_IDLE=600    # zsaver apres 10 min sans frappe a l'invite
 
 # ==============================================================================

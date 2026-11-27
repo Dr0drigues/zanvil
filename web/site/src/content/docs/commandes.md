@@ -205,6 +205,15 @@ module ne fait rien si son binaire est absent : il affiche la commande `brew ins
 | `lg` | Lance lazygit en suivant le changement de répertoire à la sortie |
 | `po` | Alias de `posting` |
 
+
+**fzf-tab** (`ZANVIL_MODULE_FZFTAB=true`, plugin `Aloxaf/fzf-tab` dans `ZANVIL_PLUGINS`, placé avant
+`zsh-autosuggestions`) : la complétion passe par fzf, aux couleurs du thème, avec un aperçu du dossier
+(`cd`, `z`), du diff ou de l'historique git et de la ligne de commande d'un processus (`kill`).
+`<` et `>` changent de groupe.
+
+**zsh-abbr** (`ZANVIL_MODULE_ABBR=true`, plugin `olets/zsh-abbr`) : `zanvil-abbr import` liste les
+alias de plusieurs mots (`gco='git checkout'`) à transformer en abréviations, `--apply` les ajoute.
+Les remplacements de commande (`cat=bat`, `cd=z`) restent des alias.
 ## Elasticsearch (module work)
 
 Interrogation de l'Elasticsearch interne. `ES_USER` et `ES_PASSWORD` sont attendus dans

@@ -63,6 +63,8 @@ ZANVIL_MODULE_ATUIN=true      # Historique shell enrichi SQLite (fuzzy search)
 ZANVIL_MODULE_POSTING=true    # Client HTTP TUI (alias po)
 ZANVIL_MODULE_FASTFETCH=true  # Fiche système aux couleurs du thème (zfetch)
 ZANVIL_MODULE_SCREENSAVER=false # Économiseur bonsai aux couleurs du thème (zsaver)
+ZANVIL_MODULE_FZFTAB=false    # Aperçus fzf-tab (plugin Aloxaf/fzf-tab, avant zsh-autosuggestions)
+ZANVIL_MODULE_ABBR=false      # zanvil-abbr : alias de plusieurs mots en abréviations (olets/zsh-abbr)
 
 # Integrations
 ZANVIL_MODULE_MISE=true       # Gestionnaire de versions (Node, Java, Maven)

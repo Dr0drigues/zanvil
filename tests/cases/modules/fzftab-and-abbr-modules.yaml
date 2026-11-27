@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# #158 (F, G). fzftab ne pose ses zstyle que si son guard est vrai. zanvil-abbr import ne
+# retient que les alias de plusieurs mots (cat=bat reste un alias), et --apply passe par
+# `abbr add` (une fonction ici, a la place de zsh-abbr).
+name: fzftab-and-abbr-modules
+weight: 6
+setup:
+  shell: zsh
+  source: ["core/ui.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      source $ZANVIL_DIR/modules/tools/fzftab/init.zsh
+      echo "fzftab_off=$(zstyle -L ':fzf-tab:*' | wc -l | tr -d ' ')"
+      ZANVIL_MODULE_FZFTAB=true; source $ZANVIL_DIR/modules/tools/fzftab/init.zsh
+      echo "fzftab_on=$(zstyle -L ':fzf-tab:*' | grep -c fzf-preview) menu=$(zstyle -L ':completion:*' menu)"
+      ZANVIL_MODULE_ABBR=true; source $ZANVIL_DIR/modules/tools/abbr/init.zsh
+      unalias -m '*'; alias gco='git checkout' cat=bat kgp='kubectl get pods'
+      zanvil-abbr import | sort
+      zanvil-abbr import --apply; echo "rc_sans_plugin=$?"
+      abbr() { echo "ABBR $*"; }
+      zanvil-abbr import --apply | sort
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      - "fzftab_off=0"
+      - "fzftab_on=4 menu=zstyle ':completion:*' menu no"
+      - "gco            git checkout"
+      - "kgp            kubectl get pods"
+      - "rc_sans_plugin=1"
+      - "ABBR add --quieter -- gco=git checkout"
+      - "ABBR add --quieter -- kgp=kubectl get pods"
+      - "2 abreviation(s) ajoutee(s)"
+    absent: ["bat"]
