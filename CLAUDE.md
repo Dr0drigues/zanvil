@@ -39,7 +39,7 @@ Le script `install.sh` installe les dependances via brew/apt/dnf, configure `.zs
 │   ├── kube/           # kube_config, kube_switch, kube_ns, k (guard: ZANVIL_MODULE_KUBE)
 │   ├── docker/         # docker_utils (guard: ZANVIL_MODULE_DOCKER)
 │   ├── ssh/            # ssh_manager
-│   ├── ai/             # ai_context, ai_tokens (lazy loaded)
+│   ├── ai/             # ai_context, ai_tokens, claude_hooks (hooks Claude Code -> scripts/claude-bar-hook.sh -> SketchyBar) (lazy loaded)
 │   ├── project/        # project open <lien-MR> (worktree + Orca + IDEA), project clean (guard: ZANVIL_MODULE_PROJECT)
 │   ├── security/       # security_audit, secrets_scan (guard: ZANVIL_MODULE_SECURITY)
 │   ├── utils/          # utils, extract, fkill ; seul net_utils (myip, port) est lazy

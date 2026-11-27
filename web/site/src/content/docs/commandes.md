@@ -316,3 +316,18 @@ get_merch_product -p 1234567 --productpage
 | `ai-tokens export [dir]` | Exporte le contexte optimisé |
 
 Alias: `ait` (raccourci pour ai-tokens)
+
+## Sessions Claude Code dans SketchyBar
+
+| Commande | Description |
+|----------|-------------|
+| `ai_claude_hooks install` | Ajoute les hooks à `~/.claude/settings.json` (sauvegarde `settings.json.bak-zanvil`) |
+| `ai_claude_hooks uninstall` | Retire seulement les hooks zanvil |
+| `ai_claude_hooks status` | Hooks installés ? Nombre de sessions en attente |
+
+Les hooks appellent `scripts/claude-bar-hook.sh` : `Notification` et `Stop` marquent la session
+« en attente » (un fichier par session dans `~/.cache/zanvil/claude/`), `UserPromptSubmit` et
+`SessionEnd` la retirent, puis l'événement SketchyBar `claude_change` est déclenché. Les hooks déjà
+présents dans `settings.json` ne sont pas touchés. L'élément de barre qui compte les sessions en
+attente vit dans le dépôt dotfiles ; une session plantée sans `SessionEnd` cesse d'être comptée
+après 12 h. Les nouvelles sessions prennent les hooks en compte, pas celles déjà ouvertes.

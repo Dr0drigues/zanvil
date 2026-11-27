@@ -79,3 +79,6 @@ _ai_tokens() {
 }
 compdef _ai_tokens ai-tokens
 compdef _ai_tokens ait
+
+_ai_claude_hooks() { _arguments "1:action:(install uninstall status help)" }
+compdef _ai_claude_hooks ai_claude_hooks
