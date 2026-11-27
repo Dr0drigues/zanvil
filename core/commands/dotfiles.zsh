@@ -181,7 +181,8 @@ _zanvil_dotfiles_adopt() {
     target="$HOME/$rel"
     # casse ignoree : APFS ne la distingue pas (.ZSHRC, .SSH/config)
     case "${(L)rel}" in
-        */gh/hosts.yml|*/glab-cli/*|*/sops/*|*/gcloud/*|.ssh/*|.zshrc)
+        */gh/hosts.yml|*/glab-cli/*|*/sops/*|*/gcloud/*|.ssh/*|.zshrc|\
+        .secrets|.gitlab_secrets|.netrc|.kube/*|.aws/credentials|.docker/config.json)
             _ui_msg_fail "Secret ou fichier gere par install.sh, refuse : $rel" >&2; return 1 ;;
     esac
     [[ -L "$target" ]] && { _ui_msg_fail "Deja un lien : $target" >&2; return 1; }

@@ -906,11 +906,12 @@ zc '_work_cfg_json() {
     }
     _work_cfg_write_readme() { return 0 }; _work_cfg_protect() { return 0 }
     GITLAB_TOKEN=jeton-test
-    git() { print -u2 "GIT $*"; return 0 }
+    git() { print -u2 "GIT $*"; print -u2 "ENV $GIT_CONFIG_KEY_0=$GIT_CONFIG_VALUE_0"; return 0 }
     cd() { return 0 }
     out=$(print y | _work_cfg_create blg demoapp demo-front dev 2>&1 >/dev/null)
-    print -r -- "$out" | grep -c "PRIVATE-TOKEN: jeton-test"' \
-    | assert_equals "le clone reutilise le token via http.extraheader" "1"
+    # Par l environnement (GIT_CONFIG_*), jamais en argument : `-c` serait lisible dans ps.
+    print -r -- "env=$(print -r -- "$out" | grep -c "^ENV http.extraheader=PRIVATE-TOKEN: jeton-test") argv=$(print -r -- "$out" | grep -c "^GIT .*jeton-test")"' \
+    | assert_equals "le clone reutilise le token via http.extraheader, hors argv" "env=1 argv=0"
 
 zc '_work_cfg_json() {
         case "$2" in

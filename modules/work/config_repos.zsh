@@ -317,11 +317,13 @@ _work_cfg_curl() {
     local -a opts
     opts=(-s --connect-timeout 5 --max-time 30 -X "$method")
     [[ -n "${SSL_CERT_FILE:-}" ]] && opts+=(--cacert "$SSL_CERT_FILE")
-    opts+=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN" -H 'Content-Type: application/json')
+    opts+=(-H 'Content-Type: application/json')
     [[ -n "$body" ]] && opts+=(-d "$body")
 
     local out ret
-    out=$(command curl "${opts[@]}" -w $'\n%{http_code}' "$(_work_cfg_api)/$api_path" 2>/dev/null)
+    # Jeton dans une config lue sur stdin, pas en argv (lisible dans `ps`).
+    out=$(printf 'header = "PRIVATE-TOKEN: %s"\n' "$GITLAB_TOKEN" \
+        | command curl "${opts[@]}" --config - -w $'\n%{http_code}' "$(_work_cfg_api)/$api_path" 2>/dev/null)
     ret=$?
     (( ret != 0 )) && return $ret
     print -r -- "${out##*$'\n'}"
@@ -1114,7 +1116,9 @@ _work_cfg_create() {
     # nu sur une URL interne invite un prompt (ou echoue net en non-interactif), au
     # milieu d une sequence qui a deja cree du projet, des branches et des regles
     # sur la forge.
-    if ! git -c "http.extraheader=PRIVATE-TOKEN: $GITLAB_TOKEN" clone "$url" "$dest"; then
+    # En-tete passe par l'environnement (GIT_CONFIG_*), pas par `-c` lisible dans `ps`.
+    if ! GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        git clone "$url" "$dest"; then
         _ui_msg_fail "clone en echec"
         _work_cfg_create_partiel "$grp" "$repo" "$url" "$dest"
         _ui_msg_info "si $dest existe deja et n est pas vide, le vider ou cloner ailleurs"

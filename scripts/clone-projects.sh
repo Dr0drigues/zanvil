@@ -34,7 +34,8 @@ ${BOLD}DESCRIPTION${NC}
 
 ${BOLD}ARGUMENTS${NC}
     GROUP_ID        ID numérique du groupe GitLab (ex: 35621)
-    ACCESS_TOKEN    Token d'accès personnel (scope: read_api)
+    ACCESS_TOKEN    Token d'accès personnel (scope: read_api), ou « - » pour le lire
+                    dans GITLAB_TOKEN (recommandé : un argument est visible dans ps)
 
 ${BOLD}OPTIONS${NC}
     ssh | https     Méthode de clonage (Défaut: https)
@@ -108,6 +109,13 @@ fi
 
 GROUP_ID="${POSITIONAL_ARGS[0]}"
 ACCESS_TOKEN="${POSITIONAL_ARGS[1]}"
+# « - » : jeton lu dans GITLAB_TOKEN. Un jeton en argument reste visible dans `ps` et
+# dans l'historique ; gclone passe toujours par l'environnement.
+[ "$ACCESS_TOKEN" = "-" ] && ACCESS_TOKEN="${GITLAB_TOKEN:-}"
+if [ -z "$ACCESS_TOKEN" ]; then
+    echo -e "${RED}Erreur: jeton vide (argument « - » sans GITLAB_TOKEN).${NC}"
+    exit 1
+fi
 CLONE_METHOD="${POSITIONAL_ARGS[2]:-https}"
 DEPTH_MODE="${POSITIONAL_ARGS[3]:-full}"
 
@@ -122,10 +130,16 @@ if [ "$IGNORE_SSL_ERRORS" == "true" ]; then
     GIT_OPTS+=(-c http.sslVerify=false)
 fi
 
-# Utiliser le header HTTP pour l'authentification (evite l'exposition du token dans ps)
+# Jeton en en-tete HTTP, passe a git par l'environnement (GIT_CONFIG_*, git >= 2.31) et
+# non par `-c` : un argument est lisible dans `ps` par tous les utilisateurs.
 if [ "$CLONE_METHOD" != "ssh" ]; then
-    GIT_OPTS+=(-c "http.extraheader=PRIVATE-TOKEN: $ACCESS_TOKEN")
+    export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="PRIVATE-TOKEN: $ACCESS_TOKEN"
 fi
+
+# curl vers l'API : jeton dans une config lue sur stdin, jamais en argument.
+gl_curl() {
+    printf 'header = "PRIVATE-TOKEN: %s"\n' "$ACCESS_TOKEN" | curl $CURL_OPTS --config - "$@"
+}
 
 if [ "$DEPTH_MODE" == "shallow" ]; then
     GIT_CLONE_ARGS+=(--depth 1)
@@ -146,7 +160,7 @@ fi
 
 # On fait un appel HEAD (ou GET léger) pour lire le header X-Total
 # Note: On demande &per_page=1 pour minimiser le payload
-headers=$(curl $CURL_OPTS -I --header "PRIVATE-TOKEN: $ACCESS_TOKEN" \
+headers=$(gl_curl -I \
     "$GITLAB_API_URL/groups/$GROUP_ID/projects?include_subgroups=true&archived=false&per_page=1")
 
 # Extraction du header X-Total (insensible à la casse)
@@ -231,7 +245,7 @@ display_result() {
 all_rows=()
 page=1
 while true; do
-    response=$(curl $CURL_OPTS --header "PRIVATE-TOKEN: $ACCESS_TOKEN" \
+    response=$(gl_curl \
         "$GITLAB_API_URL/groups/$GROUP_ID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
 
     if ! echo "$response" | jq -e . >/dev/null 2>&1; then
