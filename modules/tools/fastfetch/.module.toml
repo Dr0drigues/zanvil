@@ -2,3 +2,4 @@ guard = "ZANVIL_MODULE_FASTFETCH"
 binary = "fastfetch"
 install = "brew install fastfetch"
 description = "Fiche systeme aux couleurs du theme (zfetch)"
+default = false

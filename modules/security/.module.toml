@@ -1,2 +1,3 @@
 guard = "ZANVIL_MODULE_SECURITY"
 description = "Audit de sécurité et scan de secrets dans les repos git"
+default = true

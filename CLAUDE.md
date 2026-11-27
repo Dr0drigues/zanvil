@@ -89,6 +89,7 @@ Le site (`web/site/`) est un projet Astro Starlight déployé sur GitHub Pages v
 
 - Decouvre automatiquement les modules dans `modules/*/init.zsh`
 - Module guards : `ZANVIL_MODULE_<NAME>` (derive du nom du dossier, uppercased)
+- `.module.toml` : `guard`, `description`, `default` (etat sans ligne dans config.zsh, comme le `:-true` du guard) ; lu par `zanvil modules` (Rust) et par le repli zsh de `zanvil-modules`
 - Lazy loading : modules avec fichier `.lazy` (liste les fonctions publiques a stub)
 - Completions par module : `modules/*/completions.zsh`
 

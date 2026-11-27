@@ -2,3 +2,4 @@ guard = "ZANVIL_MODULE_POSTING"
 binary = "posting"
 install = "brew install posting"
 description = "Client HTTP TUI (alias po)"
+default = false

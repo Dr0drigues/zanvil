@@ -2,3 +2,4 @@ guard = "ZANVIL_MODULE_DOCKER"
 binary = "docker"
 install = "brew install --cask docker"
 description = "Utilitaires Docker (dex, dstop)"
+default = true

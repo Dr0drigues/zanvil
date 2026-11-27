@@ -1,0 +1,3 @@
+guard = "ZANVIL_MODULE_PROJECT"
+description = "project open <lien-de-MR> (worktree + IDE), project clean"
+default = true

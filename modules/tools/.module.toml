@@ -1,2 +1,3 @@
 guard = "ZANVIL_MODULE_TOOLS"
 description = "Outils transverses : mise hooks, test runner, profiler zsh"
+default = true

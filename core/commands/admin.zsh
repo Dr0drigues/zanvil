@@ -234,17 +234,22 @@ zanvil-modules() {
     if command -v zanvil &>/dev/null; then
         zanvil modules "$@"; return $?
     fi
-    local config_file="${ZANVIL_DIR:-$HOME/.zanvil}/config.zsh"
+    local zdir="${ZANVIL_DIR:-$HOME/.zanvil}"
+    local config_file="$zdir/config.zsh"
 
-    # Description de chaque module
-    typeset -A module_desc
-    module_desc=(
-        [GITLAB]="Alias GitLab, clone groupes, statut PAT"
-        [DOCKER]="Utilitaires Docker (dex, dstop)"
-        [MISE]="Gestionnaire de versions (Node, Java...)"
-        [NUSHELL]="Integration Nushell (nush, nuc)"
-        [KUBE]="Gestion kubeconfig (kube_select, Azure/AWS/GCP)"
-    )
+    # Meme source que le CLI : les .module.toml (guard, description, default).
+    local -A module_desc module_default
+    local f g
+    for f in "$zdir"/modules/*/.module.toml(N) "$zdir"/modules/*/*/.module.toml(N); do
+        g=$(sed -nE 's/^guard *= *"ZANVIL_MODULE_([A-Z_]+)".*/\1/p' "$f")
+        [[ -n "$g" ]] || continue
+        module_desc[$g]=$(sed -nE 's/^description *= *"(.*)"/\1/p' "$f")
+        module_default[$g]=$(sed -nE 's/^default *= *(true|false).*/\1/p' "$f")
+    done
+    # Guards sans module (integrations de rc.zsh)
+    : ${module_desc[MISE]:=Gestionnaire de versions (Node, Java...)}
+    : ${module_desc[NUSHELL]:=Integration Nushell (nush, nuc)}
+    : ${module_default[MISE]:=true} ${module_default[NUSHELL]:=true}
 
     local action="${1:-list}"
     local module_name="${2:u}" # uppercase
@@ -255,63 +260,54 @@ zanvil-modules() {
             printf "${_ui_bold}%-12s %-8s %s${_ui_nc}\n" "Module" "Statut" "Description"
             _ui_separator
 
-            for mod in GITLAB DOCKER MISE NUSHELL KUBE; do
-                local var_name="ZANVIL_MODULE_${mod}"
-                local mod_state="${(P)var_name}"
-                local desc="${module_desc[$mod]}"
+            local mod var_name mod_state
+            for mod in ${(ko)module_desc}; do
+                var_name="ZANVIL_MODULE_${mod}"
+                # Valeur chargee si definie, sinon la valeur par defaut du module.
+                mod_state="${(P)var_name:-${module_default[$mod]:-false}}"
                 if [[ "$mod_state" == "true" ]]; then
-                    printf "  %-10s ${_ui_green}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "actif" "$desc"
+                    printf "  %-10s ${_ui_green}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "actif" "${module_desc[$mod]}"
                 else
-                    printf "  %-10s ${_ui_red}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "inactif" "$desc"
+                    printf "  %-10s ${_ui_red}%-8s${_ui_nc} ${_ui_dim}%s${_ui_nc}\n" "$mod" "inactif" "${module_desc[$mod]}"
                 fi
             done
             _ui_separator
             echo -e "  ${_ui_dim}Modifier: zanvil-modules enable|disable <module>${_ui_nc}"
             ;;
 
-        enable|on)
+        enable|on|disable|off)
+            local value=true
+            [[ "$action" == (disable|off) ]] && value=false
             if [[ -z "$module_name" ]]; then
-                _ui_msg_fail "Usage: zanvil-modules enable <module>"
+                _ui_msg_fail "Usage: zanvil-modules $action <module>"
                 return 1
             fi
-            if [[ -z "${module_desc[$module_name]}" ]]; then
+            if (( ! ${+module_desc[$module_name]} )); then
                 _ui_msg_fail "Module inconnu: $module_name"
-                _ui_msg_info "Modules disponibles: ${(kj:, :)module_desc}"
+                _ui_msg_info "Modules disponibles: ${(oj:, :)${(k)module_desc}}"
                 return 1
             fi
             if [[ ! -f "$config_file" ]]; then
                 _ui_msg_fail "Fichier config introuvable: $config_file"
                 return 1
             fi
-            if [[ "$OSTYPE" == darwin* ]]; then
-                sed -i '' "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=true/" "$config_file"
+            local key="ZANVIL_MODULE_${module_name}"
+            # Ligne absente (module actif par defaut) : ajoutee, au lieu d'un sed qui ne
+            # changeait rien en annoncant un succes.
+            if grep -q "^${key}=" "$config_file"; then
+                if [[ "$OSTYPE" == darwin* ]]; then
+                    sed -i '' "s/^${key}=.*/${key}=${value}/" "$config_file"
+                else
+                    sed -i "s/^${key}=.*/${key}=${value}/" "$config_file"
+                fi
             else
-                sed -i "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=true/" "$config_file"
+                print -r -- "${key}=${value}" >> "$config_file"
             fi
-            _ui_msg_ok "Module $module_name active"
-            _ui_msg_info "Rechargez avec: ss"
-            ;;
-
-        disable|off)
-            if [[ -z "$module_name" ]]; then
-                _ui_msg_fail "Usage: zanvil-modules disable <module>"
+            if ! grep -qx "${key}=${value}" "$config_file"; then
+                _ui_msg_fail "config.zsh non modifie ($key)"
                 return 1
             fi
-            if [[ -z "${module_desc[$module_name]}" ]]; then
-                _ui_msg_fail "Module inconnu: $module_name"
-                _ui_msg_info "Modules disponibles: ${(kj:, :)module_desc}"
-                return 1
-            fi
-            if [[ ! -f "$config_file" ]]; then
-                _ui_msg_fail "Fichier config introuvable: $config_file"
-                return 1
-            fi
-            if [[ "$OSTYPE" == darwin* ]]; then
-                sed -i '' "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=false/" "$config_file"
-            else
-                sed -i "s/^ZANVIL_MODULE_${module_name}=.*/ZANVIL_MODULE_${module_name}=false/" "$config_file"
-            fi
-            _ui_msg_ok "Module $module_name desactive"
+            if [[ "$value" == true ]]; then _ui_msg_ok "Module $module_name active"; else _ui_msg_ok "Module $module_name desactive"; fi
             _ui_msg_info "Rechargez avec: ss"
             ;;
 

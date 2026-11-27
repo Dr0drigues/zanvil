@@ -39,7 +39,7 @@ zanvil-modules list
 zanvil-modules enable gitlab
 
 # Désactiver un module
-zanvil-modules disable nvm
+zanvil-modules disable docker
 ```
 
 Chaque module est dans `modules/<name>/` avec un `init.zsh` et optionnellement un `completions.zsh`.
@@ -68,8 +68,11 @@ ZANVIL_MODULE_MISE=true       # Gestionnaire de versions (Node, Java, Maven)
 ZANVIL_MODULE_NUSHELL=true    # Integration Nushell
 ```
 
-Un module dont le guard est absent de `config.zsh` reste inactif. Les modules `git`, `ssh`, `utils`,
-`project` et `work` n'ont pas de guard : ils sont toujours chargés.
+Sans ligne dans `config.zsh`, un module prend sa valeur par défaut, déclarée par `default` dans son
+`modules/<nom>/.module.toml` : actifs par défaut `GITLAB`, `DOCKER`, `SECURITY`, `AI`, `TOOLS`, `MISE`,
+`NUSHELL` et `ZANVIL_MODULE_PROJECT` (`project open`, `project clean`) ; inactifs `KUBE` et les outils
+tiers. `zanvil-modules enable|disable` ajoute la ligne si elle manque. Les modules `git`, `ssh`, `utils`
+et `work` n'ont pas de guard : ils sont toujours chargés.
 
 :::note[Migration depuis NVM]
 `ZANVIL_MODULE_NVM` est déprécié au profit de `ZANVIL_MODULE_MISE`, qui gère Node mais aussi Java et

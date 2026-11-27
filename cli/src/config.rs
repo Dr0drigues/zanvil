@@ -45,6 +45,9 @@ pub struct ModuleMeta {
     pub binary: Option<String>,
     pub install: Option<String>,
     pub description: Option<String>,
+    /// Etat quand config.zsh ne dit rien (le `:-true` du guard) ; faux si absent.
+    #[serde(default)]
+    pub default: bool,
 }
 
 /// Scans modules/ at depth 2 and returns all .module.toml entries.
