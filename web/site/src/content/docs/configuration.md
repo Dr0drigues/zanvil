@@ -262,7 +262,8 @@ ZANVIL_UPDATE_RELOAD=true    # Recharger les terminaux déjà ouverts après une
   notification macOS annonce « zanvil mis à jour : v1.2.0 → v1.3.0 ». Le binaire `zanvil` est reconstruit
   s'il est déjà installé et que `cargo` est présent ; les migrations ne sont jamais lancées sans terminal :
   la notification invite à lancer `zanvil-migrate`.
-- **`prompt`** : comportement historique, une question avant de mettre à jour.
+- **`prompt`** : le `git fetch` tourne en arrière-plan comme en `auto` ; si une mise à jour attend, la
+  question « Mettre à jour maintenant ? » est posée à l'invite suivante, dans un seul des terminaux ouverts.
 - **`off`** : ni vérification ni rechargement. `ZANVIL_AUTO_UPDATE=false` (anciennes configurations)
   équivaut à `off`.
 
