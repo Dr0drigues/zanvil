@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Dr0drigues/gaveldrop/main/docs/case.schema.json
+#
+# .zanvil.local (#147). Le dechargement retirait toute variable que le fichier avait touchee :
+# un `export PATH="$PWD/bin:$PATH"` finissait en `unset PATH`. Il restaure maintenant la
+# valeur d avant. La sortie se teste par dossier et non par prefixe (app-prod n est pas dans
+# app), et l autorisation montre le fichier en entier, pas ses trois premieres lignes.
+name: zanvil-local-restores-the-environment-it-changed
+weight: 9
+setup:
+  shell: zsh
+  source: ["core/ui.zsh", "core/zanvil_local.zsh"]
+  env:
+    ZANVIL_DIR: "$GAVELDROP_PROJECT"
+  call:
+    - "eval"
+    - |
+      w=$(mktemp -d); _ZANVIL_LOCAL_TRUST_DIR=$w/trust
+      autoload -Uz add-zsh-hook; add-zsh-hook chpwd _zanvil_local_chpwd
+      mkdir -p $w/app/sub $w/app-prod
+      print -l 'export PATH="$PWD/bin:$PATH"' 'export FOO=1' 'unset BAR' '# ligne 4' 'echo cinquieme-ligne-executee' > $w/app/.zanvil.local
+      export BAR=garde; old=$PATH
+      cd $w/app </dev/null
+      echo "refuse foo=${FOO-absent}"
+      zanvil-trust >/dev/null
+      echo "charge foo=${FOO-absent} bar=${BAR-absent} bin=$([[ $PATH == $w/app/bin:* ]] && echo oui)"
+      cd sub; echo "sous-dossier foo=${FOO-absent}"
+      cd $w/app-prod
+      echo "frere foo=${FOO-absent} bar=${BAR-absent} path=$([[ $PATH == $old ]] && echo restaure)"
+      echo 'export FOO=2' >> $w/app/.zanvil.local
+      cd $w/app </dev/null
+      echo "modifie foo=${FOO-absent}"
+      rm -rf $w
+expect:
+  exit_code: 0
+  stdout:
+    ignore_ansi: true
+    contains:
+      # Refus sans terminal : la cinquieme ligne est montree mais pas executee.
+      - "    echo cinquieme-ligne-executee"
+      - "refuse foo=absent"
+      - "charge foo=1 bar=absent bin=oui"
+      - "sous-dossier foo=1"
+      - "frere foo=absent bar=garde path=restaure"
+      # Contenu change : nouvelle autorisation demandee, rien de charge.
+      - "modifie foo=absent"
